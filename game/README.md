@@ -951,7 +951,59 @@ against the 4.5 GB the reference GTX 1060 allows. Ground and street colour
 maps are 1024², everything else 512².
 
 ```powershell
-python -m r1.surfaces        # from game	ools: download (pinned), normalise, bake
+python -m r1.surfaces        # from game\tools: download (pinned), normalise, bake
+```
+
+## Harbours and the open sea
+
+Until now the sea was whatever OSM mapped as water inside a tile — which is
+nothing, because OSM does not map the sea: it maps the **coastline**, a line
+with the land on its left. `r1/harbours.py` rebuilds the sea from it, per tile:
+the tile's box is cut by every coastline way that crosses it, and each piece is
+sea or land by which side of the line it lies on. A tile with no coastline is land, or open ocean
+when the world map says so.
+
+- **Cells.** The 40 × 40 water grid now has three codes: land, inland water,
+  sea-level water. A mapped basin within 2.5 m of sea level joins the sea when
+  a coastline crosses the tile; a reservoir up the hill stays a lake. Estuaries
+  and docks are cut off from the coast by OSM itself, which closes the
+  coastline across a river mouth, and the elevation model reads Rotterdam's
+  basins at 5 m — so there the tags decide: `tidal=yes`, a harbour, dock or
+  lagoon water, or water inside a mapped port is the sea's. Under the sea
+  the terrain is sunk to −4 m beneath the animated surface; dry land beside it
+  is never drawn below it.
+- **Works, as OSM mapped them.** Piers are decks on piles at the water's
+  freeboard (floating pontoons sit low), breakwaters and groynes are rock
+  mounds, quays are walls, and a lighthouse is a tower banded in the
+  colours its `seamark:landmark:colour` tag gives, at its tagged height. One
+  OSM traced as a footprint (Cap Ferret) stands on it, at its surveyed
+  radius, instead of being extruded as a grey block. Every way is clipped to the
+  tile first. Decks are walkable (`ready.json` → `decks`).
+- **Boats, inferred and labelled so.** Berths are laid along piers, quays and
+  the shores of a port's docks,
+  each hull checked to float and to clear every other. The fleet follows the
+  harbour — a cluster of piers is a marina (sail, motor, fishing), a port area
+  brings tugs, bulk carriers and container ships (the kit has none: its
+  bare-decked freighter is loaded with the yard's forty-foot boxes, as children
+  of the boat so they sail with it) beside stacked yards, a ferry
+  terminal a ferry — and the country: rowing boats in hot countries,
+  houseboats on Dutch canals. Kenney's Watercraft Kit (CC0; rule 1 read both
+  ways: nothing in the project covered a vessel).
+- **Budgets.** 70 boats, 4 ships and 60 containers per tile, all scene nodes.
+  Piles are the first geometry dropped if a tile would pass its vertex budget
+  (`harbour.pilesDropped`).
+
+**Taking the helm.** `F` boards the nearer of the closest car and the closest
+boat. A boat keeps its hull length's handling (`ready.json` → `boats`): drag
+grows with the square of speed, the rudder needs way on, and the bow refuses
+land — a boat runs aground rather than climbing a beach. You step ashore only
+under 1.5 m/s and against a bank or a deck; otherwise the refusal is said, not
+silently ignored. The sea is continuous across tiles, so a boat can leave its
+harbour for the open ocean.
+
+```powershell
+python tools\play_world.py --smoke --sail --spawn 5.3698 43.2951   # Vieux-Port
+python -m unittest r1.tests.test_harbours                           # from game\tools
 ```
 
 ## The Sun follows the player

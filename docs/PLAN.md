@@ -221,6 +221,14 @@ baissent, tout revient quand on ralentit.
 - **Mobilier** : props OSM posés comme nœuds de scène, budget réparti par espèce.
   Églises et mosquées reçoivent une flèche ou un minaret générés depuis
   l'emprise.
+- **Ports et mer** : `r1/harbours.py` reconstruit la mer depuis le trait de côte
+  OSM (terre à gauche, mer à droite) et enfonce le fond sous la surface animée ;
+  jetées, digues, épis, quais et phares sont bâtis comme OSM les trace (couleurs
+  des phares depuis `seamark:*`). Les bateaux sont inférés et le manifeste le
+  dit : plaisance dans une marina, pêche, remorqueurs et porte-conteneurs dans un
+  port, ferries, barques dans les pays chauds, péniches-logements aux Pays-Bas.
+  `F` prend la barre du bateau le plus proche, on ne débarque qu'à l'arrêt et
+  contre une rive.
 - **Voiture et circulation** : `F` pour monter/descendre, n'importe quelle voiture
   se prend ; trafic sur le graphe OSM, `maxspeed` tagué d'abord.
 - **Cache hors ligne** : un lieu déjà visité ne touche plus le réseau

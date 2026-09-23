@@ -76,6 +76,39 @@
       ]
     },
     {
+      "name": "Kenney Watercraft Kit \u2014 boats, ships and containers",
+      "author": "Kenney",
+      "source": "https://kenney.nl/assets/watercraft-kit",
+      "license": "CC0 1.0",
+      "extractedFrom": [
+        "kenney_watercraft-pack.zip"
+      ],
+      "files": [
+        "assets/models/external/kenney_boats/boat_speed_a.glb",
+        "assets/models/external/kenney_boats/boat_speed_c.glb",
+        "assets/models/external/kenney_boats/boat_speed_e.glb",
+        "assets/models/external/kenney_boats/boat_speed_g.glb",
+        "assets/models/external/kenney_boats/boat_speed_j.glb",
+        "assets/models/external/kenney_boats/boat_sail_a.glb",
+        "assets/models/external/kenney_boats/boat_sail_b.glb",
+        "assets/models/external/kenney_boats/boat_fishing_small.glb",
+        "assets/models/external/kenney_boats/boat_row_large.glb",
+        "assets/models/external/kenney_boats/boat_row_small.glb",
+        "assets/models/external/kenney_boats/boat_tug_a.glb",
+        "assets/models/external/kenney_boats/ship_cargo_a.glb",
+        "assets/models/external/kenney_boats/ship_cargo_b.glb",
+        "assets/models/external/kenney_boats/ship_cargo_c.glb",
+        "assets/models/external/kenney_boats/ship_ocean_liner.glb",
+        "assets/models/external/kenney_boats/boat_house_a.glb",
+        "assets/models/external/kenney_boats/boat_house_b.glb",
+        "assets/models/external/kenney_boats/boat_house_c.glb",
+        "assets/models/external/kenney_boats/boat_house_d.glb",
+        "assets/models/external/kenney_boats/cargo_container_a.glb",
+        "assets/models/external/kenney_boats/cargo_container_b.glb",
+        "assets/models/external/kenney_boats/cargo_container_c.glb"
+      ]
+    },
+    {
       "name": "Forest Ground 01",
       "author": "Poly Haven",
       "source": "https://polyhaven.com/",

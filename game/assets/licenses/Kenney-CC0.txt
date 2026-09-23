@@ -1,5 +1,6 @@
 Assets by Kenney (www.kenney.nl).
-City Kit (Roads), Graveyard Kit, Fantasy Town Kit, Nature Kit and Car Kit.
+City Kit (Roads), Graveyard Kit, Fantasy Town Kit, Nature Kit, Car Kit and
+Watercraft Kit.
 Dedicated to the public domain under CC0 1.0 Universal.
 http://creativecommons.org/publicdomain/zero/1.0/
 Crediting Kenney is appreciated and is not required.

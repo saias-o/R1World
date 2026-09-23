@@ -85,6 +85,11 @@ class OsmData:
     # Every tagged node, untouched. `props.py` decides which of them is a thing.
     features: tuple[OsmNode, ...]
     tree_rows: tuple[OsmWay, ...] = ()
+    # `natural=coastline`, complete ways: land is on their left, sea on their
+    # right, which is how the sea of a coastal tile is rebuilt (harbours.py).
+    coastlines: tuple[OsmWay, ...] = ()
+    # Piers, breakwaters, groynes, quays, marinas and harbours, open or closed.
+    maritime: tuple[OsmWay, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -192,7 +197,11 @@ def _request_json(
 #   3  + the point features rank 10 is made of: street lamps, benches, bus
 #      stops, fountains, pylons, post boxes, hydrants, playgrounds. Trees were
 #      already asked for at v1.
-OSM_QUERY_VERSION = 4
+#   4  (unchanged question, a cache-format revision)
+#   5  + the sea's works: piers, breakwaters, groynes, quays, marinas,
+#      harbour and seamark points. The coastline itself was always asked for
+#      (`way[natural]`) and never used.
+OSM_QUERY_VERSION = 5
 
 
 def fetch_osm(bounds: Bounds, cache_path: Path, refresh: bool = False) -> dict:
@@ -231,6 +240,12 @@ def fetch_osm(bounds: Bounds, cache_path: Path, refresh: bool = False) -> dict:
   way[waterway];
   way[water];
   way[amenity=grave_yard];
+  way[man_made~"^(pier|breakwater|groyne|quay)$"];
+  way[leisure=marina];
+  way[harbour];
+  node[leisure=marina];
+  node[harbour];
+  node["seamark:type"~"^(harbour|mooring|light_major|light_minor|landmark)$"];
   node[natural=tree];
   node[highway~"^(street_lamp|bus_stop|crossing|traffic_signals)$"];
   node[amenity~"^(bench|fountain|waste_basket|drinking_water|post_box|telephone|clock)$"];
@@ -288,6 +303,8 @@ def normalize_osm(document: dict) -> OsmData:
     tree_rows = []
     waterways = []
     landcover = []
+    coastlines = []
+    maritime = []
     for element in raw_ways:
         points = tuple(nodes[node_id] for node_id in element.get("nodes", []) if node_id in nodes)
         if len(points) < 2:
@@ -296,6 +313,11 @@ def normalize_osm(document: dict) -> OsmData:
         way = OsmWay(int(element["id"]), points, tags)
         if tags.get("natural") == "tree_row":
             tree_rows.append(way)
+        if tags.get("natural") == "coastline":
+            coastlines.append(way)
+        if (tags.get("man_made") in {"pier", "breakwater", "groyne", "quay"}
+                or tags.get("leisure") == "marina" or "harbour" in tags):
+            maritime.append(way)
         if "building" in tags and len(points) >= 4 and points[0] == points[-1]:
             buildings.append(way)
         if "highway" in tags:
@@ -324,6 +346,8 @@ def normalize_osm(document: dict) -> OsmData:
         tuple(sorted(landcover, key=key)),
         tuple(sorted(features, key=key)),
         tuple(sorted(tree_rows, key=key)),
+        tuple(sorted(coastlines, key=key)),
+        tuple(sorted(maritime, key=key)),
     )
 
 

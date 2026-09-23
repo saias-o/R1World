@@ -28,6 +28,8 @@ from . import traffic as road_traffic
 from .world_elevation import fetch_ground
 from .mesh import MeshPart, write_glb
 from . import surfaces
+from . import harbours
+from .polygons import point_in_polygon
 from .buildings import build_buildings
 from .terrain import (
     TERRAIN_MESH_SIZE, build_terrain, build_roads, ground_point)
@@ -100,22 +102,15 @@ WATER_GRID = TERRAIN_MESH_SIZE - 1
 
 
 def _water_grid(bounds, landcover):
-    """Rows of '0' and '1', south to north, west to east.
+    """Rows of '0' and '1', south to north, west to east, for a tile with no sea.
 
     A cell is water when its centre is, which is the same question the terrain
     triangles were classified by and therefore the same answer. At about
     fourteen metres a cell, a canal is water and a stream is not; the module
-    docstring of `ground.py` argues why that is the right failure.
+    docstring of `ground.py` argues why that is the right failure. A tile that
+    touches the sea marks its sea-level water '2' (`harbours.Cells`).
     """
-    rows = []
-    for row in range(WATER_GRID):
-        lat = bounds.south + (bounds.north - bounds.south) * (row + .5) / WATER_GRID
-        line = []
-        for col in range(WATER_GRID):
-            lon = bounds.west + (bounds.east - bounds.west) * (col + .5) / WATER_GRID
-            line.append("1" if landcover.at(lon, lat) == "water" else "0")
-        rows.append("".join(line))
-    return rows
+    return harbours.Cells(bounds, WATER_GRID, None, landcover, lambda lon, lat: 0.0).rows()
 
 
 def clip_roads(roads, bounds):
@@ -200,24 +195,49 @@ def cook(tile, osm_cache=None):
     # Full ways (including outside vertices) are retained by Overpass.
     from .world_tiles import tile_at
     buildings = tuple(w for w in osm.buildings if tile_at(*w.points[0]) == tile)
+    # A lighthouse is drawn as a tower on its node (harbours.py), so the
+    # building OSM may also have traced around it is not extruded a second time.
+    # One traced with no node becomes the node, at its footprint's centre.
+    light_features = tuple(osm.features) + tuple(
+        harbours.traced_lighthouse(w) for w in buildings
+        if harbours.is_lighthouse(w.tags)
+        and not any(n.tags.get("man_made") == "lighthouse" and point_in_polygon((n.lon, n.lat), list(w.points))
+                    for n in osm.features))
+    lights = harbours.lighthouse_points(light_features)
+    if lights:
+        buildings = tuple(
+            w for w in buildings
+            if w.tags.get("building") != "lighthouse" and w.tags.get("man_made") != "lighthouse"
+            and not any(point_in_polygon(p, list(w.points)) for p in lights))
     profile = profile_for(lon, lat)
+    climate = surfaces.climate_at(profile.climate, lat)
     parts, footprints, stats = compact_buildings(buildings, ground, profile)
     # Rank 9. The terrain mesh is partitioned by what OSM says the ground is,
     # and by what the region says it usually is where OSM says nothing. This
     # adds no vertices at all -- see ground.py -- and it is the difference
     # between a planet that is one green and a planet that has deserts.
     landcover = ground_materials.Landcover(osm.landcover)
+    # The sea, rebuilt from the coastline, and the tile's cells: land, inland
+    # water, sea-level water (harbours.py). The terrain under the sea is sunk
+    # beneath the animated surface that covers it.
+    harbour_stats = harbours.HarbourStats()
+    sea, harbour_stats.coastline = harbours.sea_geometry(osm.coastlines, bounds, elevations.sample)
+    cells = harbours.Cells(bounds, WATER_GRID, sea, landcover, elevations.sample,
+                           harbours.tidal_water(osm.landcover, osm.maritime))
+    harbour_stats.sea_cells = sum(line.count(2) for line in cells.codes)
+
     # Which ground, where: the class OSM mapped (or the region's own), turned
     # to snow above the snowline and to frost just below it (`surfaces.py`).
-    climate = surfaces.climate_at(profile.climate, lat)
-
     def classify(x, y):
+        if cells.sea_at(x, y):
+            return "water"
         name = landcover.at(x, y) or ground_materials.INFERRED
         if name == "water":
             return name
         return name + surfaces.cold_suffix(y, elevations.sample(x, y), climate)
 
-    terrain_meshes = build_terrain(bounds, elevations, anchor, classify=classify)
+    terrain_meshes = build_terrain(bounds, elevations, anchor, classify=classify,
+                                   adjust=cells.adjust)
     # The terrain is continuous ground, not hard-edged masonry. Smooth normals
     # let adjacent triangles share vertices without changing the measured relief.
     terrain_meshes = {name: smooth_surface(mesh) for name,mesh in terrain_meshes.items()}
@@ -230,7 +250,7 @@ def cook(tile, osm_cache=None):
     # on is shipped as a bitmap. It is 40x40 characters, it is exactly what the
     # eye sees, and testing it is two divisions instead of a walk over every
     # ring in the neighbourhood.
-    water_grid = _water_grid(bounds, landcover)
+    water_grid = cells.rows()
     terrain_parts, ground_stats = [], {}
     for name in sorted(terrain_meshes):
         swatch = ground_materials.material_for(name, profile)
@@ -250,7 +270,23 @@ def cook(tile, osm_cache=None):
     # Rank 10's moving half. The lane graph is cooked with the street it
     # belongs to, so traffic cannot outlive the roads it drives on.
     lane_graph = road_traffic.build_graph(clipped_roads, ground, len(buildings), lon, lat)
-    parts = terrain_parts + street_parts + parts
+    # The sea's works, as OSM mapped them: piers, breakwaters, quays and
+    # lighthouses. Tile geometry, like the streets they belong to.
+    harbour_parts, decks = harbours.build_works(osm.maritime, light_features, ground, anchor,
+                                                cells, profile, harbour_stats)
+    parts = terrain_parts + street_parts + harbour_parts + parts
+    vertices = sum(len(p.mesh.positions) for p in parts)
+    if vertices > TILE_VERTEX_BUDGET and harbour_stats.piers:
+        # The one detail given up before a tile is refused: the piles under the
+        # piers, a rank-12 detail between a deck and the water. Said in the
+        # manifest (`pilesDropped`), never silent.
+        harbour_parts_bare, decks = harbours.build_works(
+            osm.maritime, osm.features, ground, anchor, cells, profile,
+            harbours.HarbourStats(), piles=False)
+        parts = terrain_parts + street_parts + harbour_parts_bare + parts[len(terrain_parts)
+                                                                           + len(street_parts)
+                                                                           + len(harbour_parts):]
+        harbour_stats.piles_dropped = True
     # Resource budget is enforced per tile, never silently truncate a city.
     vertices = sum(len(p.mesh.positions) for p in parts)
     if vertices > TILE_VERTEX_BUDGET:
@@ -270,9 +306,10 @@ def cook(tile, osm_cache=None):
     # hundred nodes pointing at one oak upload one oak. Baking them into
     # world.glb instead would charge the vertex arena six hundred times and
     # would not fit -- see props.py.
+    boat_manifest = []
     if ocean:
-        children = [{"type": "Water", "name": "Ocean", "size": 450., "amplitude": .05,
-                     "wavelength": 12., "shoreMode": 0}]
+        # The plane covers this tile and no more (harbours.sea_node).
+        children = [dict(harbours.sea_node(bounds, anchor, "Ocean"), amplitude=.05, wavelength=12.)]
         prop_nodes, prop_stats = [], street_props.PropStats()
         nature_stats = {"revision":nature.REVISION,"placed":0}
     else:
@@ -286,6 +323,16 @@ def cook(tile, osm_cache=None):
         nature_nodes, nature_stats = nature.plan_nature(osm,tile,anchor,ground,GAME)
         children.extend(nature_nodes)
         children.extend(prop_nodes)
+        # The harbours' boats and their container yards: inferred, scene nodes,
+        # every boat listed below so the game can board it.
+        if cells.has_sea:
+            children.append(harbours.sea_node(bounds, anchor))
+        berths = harbours.plan_boats(osm.maritime, osm.coastlines, osm.landcover, osm.features,
+                                     anchor, cells, profile, climate, GAME, harbour_stats)
+        boat_children, boat_manifest = harbours.boat_nodes(berths, anchor, GAME)
+        children.extend(boat_children)
+        children.extend(harbours.plan_containers(osm.maritime, osm.landcover, anchor, cells,
+                                                 footprints, ground, GAME, harbour_stats))
     scene = {"schema": 2, "version": 2, "scene": {
         "type": "Node", "name": tile.key, "enabled": True, "children": children}}
     atomic_json(folder / "tile.scene", scene)
@@ -305,6 +352,10 @@ def cook(tile, osm_cache=None):
               "ground": {"measuredFraction": round(measured_ground, 4),
                          "trianglesByClass": ground_stats},
               "water": water_grid,
+              # Walkable decks over the water (piers), in this tile's frame.
+              "decks": decks,
+              "boats": boat_manifest,
+              "harbour": harbour_stats.as_json(),
               "props": prop_stats.as_json(),
               "nature": nature_stats,
               "streets": street_stats,

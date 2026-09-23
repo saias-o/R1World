@@ -25,6 +25,7 @@ SOURCE_ROOT = ROOT / "data" / "source-assets"
 MODEL_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_nature_kit"
 PROP_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_props"
 VEHICLE_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_cars"
+BOAT_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_boats"
 TREE_ROOT = GAME_ROOT / "assets" / "models" / "external" / "trees_lod"
 POLYHAVEN_ROOT = GAME_ROOT / "assets" / "models" / "external" / "polyhaven_trees"
 TEXTURE_ROOT = GAME_ROOT / "assets" / "textures" / "ground"
@@ -95,6 +96,16 @@ PROP_KITS = (
         "https://kenney.nl/media/pages/assets/car-kit/1a312ec241-1775131960/kenney_car-kit.zip",
         SOURCE_ROOT / "kenney_car-kit.zip", "sha256",
         "fac7dacac5c7874348cf19729af3ef205f3d366493edaf0a827d93f4fdf3d0c4",
+    ),
+    # The boats of the harbours (harbours.py). Rule 1 was read first, both
+    # ways: the repository holds no vessel, and Poly Haven's are 17th-century
+    # Dutch ships and a pinnace, so a modern fleet widens coverage and
+    # displaces nothing -- a boat is a manufactured object, the case the rule
+    # leaves to Kenney.
+    Download(
+        "https://kenney.nl/media/pages/assets/watercraft-kit/a335cfed49-1713519620/kenney_watercraft-pack.zip",
+        SOURCE_ROOT / "kenney_watercraft-pack.zip", "sha256",
+        "cd1470c1cf441c7f46d0944ae6d0d897242365dc97677c5079b3238965d659f3",
     ),
 )
 
@@ -196,6 +207,31 @@ def decimate_trees() -> list[dict]:
 def prop_model(name: str) -> str:
     """The project-relative path a scene references this prop by."""
     return f"assets/models/external/kenney_props/{name}.glb"
+
+
+# The fleet: every hull `harbours.BOATS` can moor, plus the containers of a
+# port's yard. The galleons of the kit (`ship-large`, `ship-small`) are left
+# in the archive: a 17th-century ship in a modern harbour is a costume.
+BOAT_MODELS = tuple(
+    ("kenney_watercraft-pack.zip", stem, stem.replace("-", "_"))
+    for stem in (
+        "boat-speed-a", "boat-speed-c", "boat-speed-e", "boat-speed-g", "boat-speed-j",
+        "boat-sail-a", "boat-sail-b", "boat-fishing-small", "boat-row-large", "boat-row-small",
+        "boat-tug-a", "ship-cargo-a", "ship-cargo-b", "ship-cargo-c", "ship-ocean-liner",
+        "boat-house-a", "boat-house-b", "boat-house-c", "boat-house-d",
+        "cargo-container-a", "cargo-container-b", "cargo-container-c",
+    )
+)
+
+
+def boat_model(name: str) -> str:
+    """The project-relative path a scene references this boat by."""
+    return f"assets/models/external/kenney_boats/{name}.glb"
+
+
+def extract_boats() -> tuple[str, ...]:
+    """The fleet, mined out of the watercraft kit through the same normaliser."""
+    return _mine(BOAT_MODELS, BOAT_ROOT, boat_model)
 
 
 def vehicle_model(name: str) -> str:
@@ -582,6 +618,7 @@ def ensure_external_assets() -> dict[str, object]:
         _fetch(kit)
     props = extract_props()
     vehicles = extract_vehicles()
+    boats = extract_boats()
     for model in TREE_MODELS:
         _fetch(model)
     for texture in TREE_TEXTURES:
@@ -594,7 +631,8 @@ def ensure_external_assets() -> dict[str, object]:
 
     (LICENSE_ROOT / "Kenney-CC0.txt").write_text(
         """Assets by Kenney (www.kenney.nl).
-City Kit (Roads), Graveyard Kit, Fantasy Town Kit, Nature Kit and Car Kit.
+City Kit (Roads), Graveyard Kit, Fantasy Town Kit, Nature Kit, Car Kit and
+Watercraft Kit.
 Dedicated to the public domain under CC0 1.0 Universal.
 http://creativecommons.org/publicdomain/zero/1.0/
 Crediting Kenney is appreciated and is not required.
@@ -661,6 +699,15 @@ Crediting Kenney is appreciated and is not required.
                 "license": "CC0 1.0",
                 "extractedFrom": ["kenney_car-kit.zip"],
                 "files": list(vehicles),
+            },
+            {
+                # The harbours' fleet and the containers of their yards.
+                "name": "Kenney Watercraft Kit — boats, ships and containers",
+                "author": "Kenney",
+                "source": "https://kenney.nl/assets/watercraft-kit",
+                "license": "CC0 1.0",
+                "extractedFrom": ["kenney_watercraft-pack.zip"],
+                "files": list(boats),
             },
             {
                 "name": "Forest Ground 01",

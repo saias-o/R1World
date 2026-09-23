@@ -68,6 +68,15 @@ constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refu
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
 constexpr double kOnFootFollow=4.5,kDrivingFollow=8.5;
+// ── boats ───────────────────────────────────────────────────────────────────
+// A boat is sailed the way the car is driven: a longitude, a latitude and a
+// heading moved in the tangent plane, with one authority on position for the
+// streamer, the origin and the Sun. Its handling -- top speed, acceleration,
+// turn rate -- comes with it from the tile manifest (r1/harbours.py), because
+// a container ship and a speedboat are not one boat with two paint jobs.
+constexpr double kBoatReach=3.5;        // m from the hull's side to take the helm
+constexpr double kBoatExitSpeed=1.5;    // m/s -- above it, stepping ashore is refused
+constexpr size_t kLeftBoats=4;
 // How many traffic cars the whole neighbourhood may show at once. Not a memory
 // budget -- every one of them is the same shared mesh (§5) -- but a draw-call
 // one: a car is five primitives, so forty cars is two hundred draws, which is
@@ -154,6 +163,20 @@ struct Footprint {
     std::vector<glm::dvec2> points;
     glm::dvec2 low{1e30},high{-1e30};
 };
+// A walkable deck over the water -- a pier -- in its tile's frame.
+struct Deck {
+    std::vector<glm::dvec2> points;
+    glm::dvec2 low{1e30},high{-1e30};
+    double y=0;
+};
+// A moored boat as the manifest lists it; `node` is found once it has streamed.
+struct Mooring {
+    std::string name,kind,model;
+    glm::dvec3 local{0};
+    double heading=0,length=8,beam=3,top=10,accel=2,turn=30;
+    saida::Node* node=nullptr;
+    bool taken=false;
+};
 struct Loaded {
     saida::Node* node; json data; Frame frame; json props; size_t nextProp=0;
     std::vector<Footprint> footprints; std::vector<Plant> vegetation;
@@ -169,7 +192,11 @@ struct Loaded {
     // read JSON. See World::unpack.
     double west=0,east=0,south=0,north=0;
     int gridSize=0; std::vector<float> elevation;
+    // 0 land, 1 inland water, 2 sea-level water (see r1/harbours.Cells).
     int waterRows=0,waterCols=0; std::vector<uint8_t> water;
+    bool ocean=false;
+    std::vector<Deck> decks; glm::dvec2 deckLow{1e30},deckHigh{-1e30};
+    std::vector<Mooring> boats;
 };
 
 class World : public Rml::EventListener {
@@ -194,6 +221,17 @@ class World : public Rml::EventListener {
     // car steers itself, so looking out of the side window has to be a
     // second one. It eases back to zero when the mouse goes quiet.
     double lookYaw=0,lookIdle=0;
+    // The boat the player is at the helm of, and the ones he has left moored
+    // where he stepped ashore. Like the car, a boat he takes is the node that
+    // was moored there, handed over, never a copy.
+    struct Vessel {
+        saida::Node* node=nullptr; std::string kind="motor";
+        double length=8,beam=3,top=10,accel=2,turn=30;
+        double lon=0,lat=0,alt=0,yaw=0,speed=0;
+    };
+    bool sailing=false; Vessel boat; std::vector<Vessel> leftBoats; double seaTime=0;
+    bool smokeSail=false,smokeSailWait=false,smokeSailing=false,smokeSailBrake=false;
+    double smokeSailTime=0,smokeSailTop=0,smokeSailClear=0; glm::dvec3 smokeSailStart{0};
     std::vector<saida::Animator*> animators;
     double jumpOffset=0,jumpVelocity=0,followDistance=kOnFootFollow;
     bool wasJump=false;
@@ -378,16 +416,57 @@ class World : public Rml::EventListener {
             for(int row=0;row<tile.waterRows;++row) {
                 const std::string line=(*water)[size_t(row)].get<std::string>();
                 for(int col=0;col<tile.waterCols&&col<int(line.size());++col)
-                    tile.water[size_t(row)*size_t(tile.waterCols)+size_t(col)]=line[size_t(col)]=='1';
+                    tile.water[size_t(row)*size_t(tile.waterCols)+size_t(col)]=uint8_t(std::max(0,line[size_t(col)]-'0'));
             }
         }
+        tile.ocean=tile.data.value("surface",std::string())=="ocean";
+        auto decks=tile.data.find("decks");
+        if(decks!=tile.data.end())
+            for(const auto& entry:*decks) {
+                Deck deck;deck.y=entry.at("y");
+                for(const auto& point:entry.at("points")) {
+                    glm::dvec2 q{double(point[0]),double(point[1])};
+                    deck.points.push_back(q);deck.low=glm::min(deck.low,q);deck.high=glm::max(deck.high,q);
+                }
+                tile.deckLow=glm::min(tile.deckLow,deck.low);tile.deckHigh=glm::max(tile.deckHigh,deck.high);
+                tile.decks.push_back(std::move(deck));
+            }
+        auto boats=tile.data.find("boats");
+        if(boats!=tile.data.end())
+            for(const auto& entry:*boats) {
+                Mooring m;
+                m.name=entry.value("name",std::string());m.kind=entry.value("kind",std::string("motor"));
+                m.model=entry.value("model",std::string());
+                m.local={entry.value("x",0.),entry.value("y",0.),entry.value("z",0.)};
+                m.heading=entry.value("heading",0.);m.length=entry.value("length",8.);
+                m.beam=entry.value("beam",3.);m.top=entry.value("top",10.);
+                m.accel=entry.value("accel",2.);m.turn=entry.value("turn",30.);
+                tile.boats.push_back(std::move(m));
+            }
     }
     bool inside(const Loaded& tile,double x,double y,double margin=0.) const {
         return x>=tile.west-margin&&x<=tile.east+margin
              &&y>=tile.south-margin&&y<=tile.north+margin;
     }
+    // Is this coordinate on a pier deck? Decks are drawn over the water and
+    // walked on, so they answer before the water and before the terrain.
+    bool onDeck(const Loaded& t,double x,double y,double* level=nullptr) const {
+        if(t.decks.empty())return false;
+        const glm::dvec3 p=t.frame.local(ecef(x,y,0.));
+        const glm::dvec2 q(p.x,p.z);
+        if(q.x<t.deckLow.x||q.x>t.deckHigh.x||q.y<t.deckLow.y||q.y>t.deckHigh.y)return false;
+        for(const Deck& d:t.decks) {
+            if(q.x<d.low.x||q.x>d.high.x||q.y<d.low.y||q.y>d.high.y)continue;
+            bool in=false;const auto& poly=d.points;
+            for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++)
+                if((poly[i].y>q.y)!=(poly[j].y>q.y)&&q.x<(poly[j].x-poly[i].x)*(q.y-poly[i].y)/(poly[j].y-poly[i].y)+poly[i].x)in=!in;
+            if(in){if(level)*level=d.y;return true;}
+        }
+        return false;
+    }
     double height(double x,double y) {
         auto* t=tile(x,y);if(!t)throw std::runtime_error("Missing terrain");
+        double deck=0;if(onDeck(*t,x,y,&deck))return deck;
         const int n=t->gridSize;
         double u=std::clamp((wrap(x)-t->west)/(t->east-t->west),0.,1.)*(n-1);
         double v=std::clamp((y-t->south)/(t->north-t->south),0.,1.)*(n-1);
@@ -406,11 +485,31 @@ class World : public Rml::EventListener {
     bool onWater(double x,double y) const {
         for(const auto& [key,t]:loaded) {
             if(t.water.empty()||!inside(t,x,y))continue;
-            const int row=std::clamp(int((y-t.south)/(t.north-t.south)*t.waterRows),0,t.waterRows-1);
-            const int col=std::clamp(int((x-t.west)/(t.east-t.west)*t.waterCols),0,t.waterCols-1);
-            if(t.water[size_t(row)*size_t(t.waterCols)+size_t(col)])return true;
+            if(onDeck(t,x,y))return false;
+            if(waterCode(t,x,y))return true;
         }
         return false;
+    }
+    int waterCode(const Loaded& t,double x,double y) const {
+        if(t.water.empty())return 0;
+        const int row=std::clamp(int((y-t.south)/(t.north-t.south)*t.waterRows),0,t.waterRows-1);
+        const int col=std::clamp(int((x-t.west)/(t.east-t.west)*t.waterCols),0,t.waterCols-1);
+        return t.water[size_t(row)*size_t(t.waterCols)+size_t(col)];
+    }
+    // Where a boat may be: an ocean tile, or a water cell of a land tile that
+    // is not under a pier. The same cells the terrain is drawn from, so a boat
+    // stops at the shore the eye sees.
+    bool navigable(double x,double y) {
+        auto* t=tile(x,y);
+        if(!t)return false;
+        if(t->ocean)return true;
+        return waterCode(*t,x,y)!=0&&!onDeck(*t,x,y);
+    }
+    // The surface a boat floats on: the sea's 0 m, or a lake's own level.
+    double waterLevel(double x,double y) {
+        auto* t=tile(x,y);
+        if(!t||t->ocean)return 0.;
+        return waterCode(*t,x,y)==1?height(x,y):0.;
     }
     bool blocked(double x,double y) {
         if(onWater(x,y))return true;
@@ -765,6 +864,182 @@ class World : public Rml::EventListener {
         lon=next.x;lat=next.y;alt=groundAt(lon,lat,alt);
         carLon=lon;carLat=lat;carAlt=alt;
         request(lon,lat);
+    }
+
+    // ── boats ───────────────────────────────────────────────────────────────
+    //
+    // Every boat the harbours moored can be taken: the manifest says where each
+    // lies and how it handles, and the node that stood there is handed over,
+    // exactly as a traffic car is. From the helm, the throttle and the rudder
+    // are the walk's two axes; the boat carries its speed and heading from one
+    // frame to the next, and it stops -- out loud -- where the water does.
+    struct BoatReach {Loaded* tile=nullptr; size_t index=0; bool left=false;};
+    static double segmentDistance(glm::dvec2 p,glm::dvec2 a,glm::dvec2 b) {
+        const glm::dvec2 d=b-a;const double len=glm::dot(d,d);
+        const double f=len>0?std::clamp(glm::dot(p-a,d)/len,0.,1.):0.;
+        return glm::length(p-(a+f*d));
+    }
+    // Distance from the player to a hull's side, in metres, in `frame`.
+    double hullDistance(const Frame& frame,glm::dvec3 centre,double heading,double length,double beam) const {
+        const glm::dvec3 me=frame.local(ecef(lon,lat,alt));
+        const glm::dvec2 axis(std::sin(heading*rad),-std::cos(heading*rad));
+        const glm::dvec2 c(centre.x,centre.z);
+        return segmentDistance({me.x,me.z},c-axis*(length*.5),c+axis*(length*.5))-beam*.5;
+    }
+    saida::Node* mooredNode(Loaded& t,Mooring& m) {
+        if(!m.node&&!m.taken)m.node=t.node->findByPath(m.name);
+        return m.node;
+    }
+    bool nearestBoat(BoatReach& out,double& distance) {
+        distance=kBoatReach;bool found=false;
+        for(auto& [key,t]:loaded)
+            for(size_t i=0;i<t.boats.size();++i) {
+                Mooring& m=t.boats[i];
+                if(m.taken||!mooredNode(t,m))continue;
+                const double d=hullDistance(t.frame,m.local,m.heading,m.length,m.beam);
+                if(d<distance){distance=d;out={&t,i,false};found=true;}
+            }
+        for(size_t i=0;i<leftBoats.size();++i) {
+            const Vessel& v=leftBoats[i];
+            const Frame here(v.lon,v.lat,v.alt);
+            const double d=hullDistance(here,glm::dvec3(0),v.yaw,v.length,v.beam);
+            if(d<distance){distance=d;out={nullptr,i,true};found=true;}
+        }
+        return found;
+    }
+    bool enterBoat() {
+        if(sailing||driving)return false;
+        BoatReach target;double distance=0;
+        if(!nearestBoat(target,distance))return false;
+        if(target.left) {
+            boat=leftBoats[target.index];
+            leftBoats.erase(leftBoats.begin()+long(target.index));
+        } else {
+            Loaded& t=*target.tile;Mooring& m=t.boats[target.index];
+            auto owned=t.node->detachChild(m.node);
+            if(!owned) {
+                saida::Log::warn("[World boat] ",m.name," could not be detached from its tile");
+                return false;
+            }
+            m.taken=true;m.node=nullptr;
+            const auto where=geodeticOf(t,glm::vec3(m.local));
+            boat=Vessel{};
+            boat.node=engine.sceneTree().world().addChild(std::move(owned));
+            boat.kind=m.kind;boat.length=m.length;boat.beam=m.beam;
+            boat.top=m.top;boat.accel=m.accel;boat.turn=m.turn;
+            boat.lon=where.x;boat.lat=where.y;boat.yaw=m.heading;
+            boat.alt=waterLevel(boat.lon,boat.lat);
+        }
+        boat.speed=0;sailing=true;lookYaw=0;lookIdle=0;
+        lon=boat.lon;lat=boat.lat;alt=boat.alt;yaw=boat.yaw;
+        player->setEnabled(false);
+        for(auto* a:animators)a->play("idle");
+        jumpOffset=jumpVelocity=0;
+        text("stream-status","À la barre. F : débarquer près d'un quai · S : marche arrière.");
+        saida::Log::info("[World boat] took the helm of a ",boat.kind," (",boat.length," m) at ",lon,", ",lat);
+        return true;
+    }
+    // Returns false when stepping ashore is refused, and says why: at speed,
+    // or with no quay, pier or bank within a stride of the hull.
+    bool leaveBoat() {
+        if(!sailing)return false;
+        if(std::abs(boat.speed)>kBoatExitSpeed) {
+            text("stream-status","Trop rapide pour débarquer — ralentissez.");
+            saida::Log::info("[World boat] landing refused at ",std::abs(boat.speed)," m/s");
+            return false;
+        }
+        const double s=std::sin(boat.yaw*rad),c=std::cos(boat.yaw*rad);
+        double x=0,y=0;bool found=false;
+        for(double off:{1.,2.,3.5}) {
+            for(double along=0;along<=boat.length*.5&&!found;along+=2.)
+                for(double sign:{1.,-1.})for(double side:{1.,-1.}) {
+                    if(found)break;
+                    const double a=along*sign,o=(boat.beam*.5+off)*side;
+                    auto q=advance(boat.lon,boat.lat,s*a+c*o,c*a-s*o);
+                    if(tile(q.x,q.y)&&!blocked(q.x,q.y)){x=q.x;y=q.y;found=true;}
+                }
+            if(found)break;
+        }
+        if(!found) {
+            text("stream-status","Pas de quai à portée — accostez une jetée ou une rive.");
+            saida::Log::info("[World boat] no landing within reach of ",boat.lon,", ",boat.lat);
+            return false;
+        }
+        sailing=false;boat.speed=0;
+        leftBoats.push_back(boat);boat=Vessel{};
+        while(leftBoats.size()>kLeftBoats){leftBoats.front().node->queueFree();leftBoats.erase(leftBoats.begin());}
+        yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
+        lon=x;lat=y;alt=height(x,y);
+        player->setEnabled(true);
+        player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
+        followDistance=std::min(followDistance,kOnFootFollow);
+        text("stream-status","À terre. F : reprendre le bateau.");
+        saida::Log::info("[World boat] ashore at ",lon,", ",lat);
+        request(lon,lat);
+        return true;
+    }
+    void clearBoats() {
+        for(auto& v:leftBoats)if(v.node)v.node->queueFree();
+        leftBoats.clear();
+        if(boat.node)boat.node->queueFree();
+        boat=Vessel{};sailing=false;
+    }
+    // One step of the boat. Water resists with the square of the speed, so a
+    // hull settles at its top speed rather than being clamped to it; the rudder
+    // needs way on to bite, and bites the other way going astern.
+    void sailBoat(double dt,double throttle,double rudder) {
+        const double drag=boat.accel/(boat.top*boat.top);
+        double thrust=0;
+        if(throttle>0)thrust=boat.accel*throttle;
+        else if(throttle<0)thrust=boat.speed>.3?-2.*boat.accel:boat.accel*throttle*.5;
+        double coast=throttle==0?.12*boat.accel*(boat.speed>0?1.:boat.speed<0?-1.:0.):0.;
+        boat.speed+=(thrust-drag*boat.speed*std::abs(boat.speed)-coast)*dt;
+        if(throttle==0&&std::abs(boat.speed)<.05)boat.speed=0;
+        boat.speed=std::clamp(boat.speed,-.3*boat.top,boat.top);
+        const double way=std::clamp(std::abs(boat.speed)/(.25*boat.top),.15,1.);
+        boat.yaw=wrap(boat.yaw+rudder*boat.turn*way*dt*(boat.speed<-.05?-1.:1.));
+        yaw=boat.yaw;
+        if(std::abs(boat.speed)<1e-3)return;
+        const double s=std::sin(boat.yaw*rad),c=std::cos(boat.yaw*rad);
+        auto next=advance(lon,lat,s*boat.speed*dt,c*boat.speed*dt);
+        const double lead=boat.length*.5*(boat.speed>=0?1.:-1.);
+        auto bow=advance(next.x,next.y,s*lead,c*lead);
+        if(!tile(next.x,next.y)||!tile(bow.x,bow.y)) {
+            boat.speed=0;
+            text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
+            return;
+        }
+        if(!navigable(next.x,next.y)||!navigable(bow.x,bow.y)) {
+            // Aground is a refusal like any other: the boat stops, and the
+            // player is told which way is out.
+            boat.speed=0;
+            text("stream-status","Rivage ou haut-fond — le bateau s'arrête. S : marche arrière.");
+            return;
+        }
+        lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
+        boat.lon=lon;boat.lat=lat;boat.alt=alt;
+        request(lon,lat);
+    }
+    // Afloat: a heave and a slow pitch and roll that shrink with the hull, so
+    // a dinghy bobs and a container ship does not.
+    glm::quat boatSway(const Vessel& v,double phase,double& heave) const {
+        const double size=std::min(1.,9./std::max(1.,v.length));
+        heave=.12*size*std::sin(seaTime*1.1+phase);
+        const double pitch=2.5*size*std::sin(seaTime*1.3+phase*1.7);
+        const double roll=3.5*size*std::sin(seaTime*.9+phase*.6);
+        return glm::angleAxis(float(-v.yaw*rad),glm::vec3(0,1,0))
+              *glm::angleAxis(float(pitch*rad),glm::vec3(1,0,0))
+              *glm::angleAxis(float(roll*rad),glm::vec3(0,0,1));
+    }
+    void placeBoats() {
+        auto place=[&](const Vessel& v,double phase){
+            if(!v.node)return;
+            double heave=0;const glm::quat sway=boatSway(v,phase,heave);
+            v.node->transform().position=glm::vec3(origin.local(ecef(v.lon,v.lat,v.alt+heave)));
+            v.node->transform().rotation=sway;
+        };
+        if(sailing)place(boat,0.);
+        for(size_t i=0;i<leftBoats.size();++i)place(leftBoats[i],double(i+1)*1.9);
     }
 
     // ── traffic ─────────────────────────────────────────────────────────────
@@ -1221,6 +1496,7 @@ class World : public Rml::EventListener {
             // pavement, and a teleport that kept him seated would drop a car
             // into a neighbourhood chosen for a pedestrian.
             driving=false;
+            clearBoats();
             player->setEnabled(true);
             player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
             parkCar();
@@ -1240,7 +1516,8 @@ class World : public Rml::EventListener {
                 }
                 if(!tellSun()){saida::Log::error("[World E2E] FAIL the sun cycle did not take the observer");testFailed=true;engine.sceneTree().quit();return;}
                 saida::Log::info("[World E2E] sun follows the observer");
-                smokeStarted=true;smokeWalk=0;smokeStart=ecef(lon,lat,alt);smokeRan=smokeJumped=false;
+                smokeStarted=!smokeSail;smokeSailWait=smokeSail;smokeSailTime=0;
+                smokeWalk=0;smokeStart=ecef(lon,lat,alt);smokeRan=smokeJumped=false;
                 saida::Log::info("[World E2E] spawn complete with ",loaded.size()," tiles resident");
             }
         }
@@ -1260,7 +1537,7 @@ class World : public Rml::EventListener {
         }
     }
 public:
-    World(saida::Engine& e,fs::path g,fs::path s,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view):engine(e),game(g),session(s),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
+    World(saida::Engine& e,fs::path g,fs::path s,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false):engine(e),game(g),session(s),smokeSail(sail),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
@@ -1421,6 +1698,107 @@ public:
         }
     }
 
+    // `--sail`: find a moored boat, stand beside it, take the helm, sail it
+    // out at full throttle, be refused a landing at speed, then stop. Every
+    // step fails on its own reason (rule 3 of CLAUDE.md).
+    void runSmokeSail(float delta) {
+        const double dt=std::min(.05,double(delta));
+        smokeSailTime+=dt;
+        if(smokeSailWait) {
+            BoatReach best;double bestDistance=1e30;
+            for(auto& [key,t]:loaded)
+                for(size_t i=0;i<t.boats.size();++i) {
+                    Mooring& m=t.boats[i];
+                    if(m.taken||!mooredNode(t,m)||m.kind=="cargo"||m.kind=="liner")continue;
+                    const double d=hullDistance(t.frame,m.local,m.heading,m.length,m.beam);
+                    if(d<bestDistance){bestDistance=d;best={&t,i,false};}
+                }
+            if(!best.tile) {
+                if(smokeSailTime>60.) {
+                    saida::Log::error("[World E2E] FAIL sail: no moored boat streamed within 60 s");
+                    testFailed=true;engine.sceneTree().quit();
+                }
+                return;
+            }
+            // Stand the player on the first dry spot beside the hull, which is
+            // where a quay or a pier leaves him.
+            Mooring& m=best.tile->boats[best.index];
+            const auto centre=geodeticOf(*best.tile,glm::vec3(m.local));
+            const double s=std::sin(m.heading*rad),c=std::cos(m.heading*rad);
+            bool placed=false;
+            for(double off:{1.,2.,3.}) {
+                for(double along=-m.length*.4;along<=m.length*.4&&!placed;along+=1.)
+                    for(double side:{1.,-1.}) {
+                        const double o=(m.beam*.5+off)*side;
+                        auto q=advance(centre.x,centre.y,s*along+c*o,c*along-s*o);
+                        if(tile(q.x,q.y)&&!blocked(q.x,q.y)){lon=q.x;lat=q.y;alt=height(lon,lat);placed=true;break;}
+                    }
+                if(placed)break;
+            }
+            if(!placed) {
+                saida::Log::error("[World E2E] FAIL sail: no standable ground beside the nearest boat (",
+                                  m.kind,", ",m.name,")");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            smokeSailWait=false;
+            if(!enterBoat()) {
+                saida::Log::error("[World E2E] FAIL sail: could not take the helm from beside the hull");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            // Head for the longest run of open water, as a skipper would.
+            smokeSailClear=0;double heading=boat.yaw;
+            for(int direction=0;direction<32;++direction) {
+                double candidate=direction*11.25,clear=0;
+                for(double d=2.;d<=120.;d+=2.) {
+                    auto q=advance(boat.lon,boat.lat,std::sin(candidate*rad)*d,std::cos(candidate*rad)*d);
+                    if(!navigable(q.x,q.y))break;
+                    clear=d;
+                }
+                if(clear>smokeSailClear){smokeSailClear=clear;heading=candidate;}
+            }
+            boat.yaw=yaw=heading;
+            smokeSailing=true;smokeSailBrake=false;smokeSailTime=0;smokeSailTop=0;
+            smokeSailStart=ecef(lon,lat,alt);
+            saida::Log::info("[World E2E] sailing a ",boat.kind,", ",smokeSailClear,"m of open water ahead");
+            return;
+        }
+        smokeSailTop=std::max(smokeSailTop,boat.speed);
+        if(!navigable(lon,lat)) {
+            saida::Log::error("[World E2E] FAIL sail: the boat left the water at ",lon,", ",lat);
+            testFailed=true;engine.sceneTree().quit();return;
+        }
+        if(!smokeSailBrake) {
+            if(smokeSailTime<8.)return;
+            const double covered=glm::length(ecef(lon,lat,alt)-smokeSailStart);
+            if(covered<std::min(15.,smokeSailClear*.4)||smokeSailTop<std::min(3.,boat.top*.5)) {
+                saida::Log::error("[World E2E] FAIL sail: covered=",covered,"m of ",smokeSailClear,
+                                  "m clear, top=",smokeSailTop," m/s");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            saida::Log::info("[World E2E] sail passed, covered=",covered,"m top=",smokeSailTop," m/s");
+            if(std::abs(boat.speed)>kBoatExitSpeed&&leaveBoat()) {
+                saida::Log::error("[World E2E] FAIL sail: stepped ashore at ",std::abs(boat.speed)," m/s");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            smokeSailBrake=true;smokeSailTime=0;return;
+        }
+        if(std::abs(boat.speed)>kBoatExitSpeed) {
+            if(smokeSailTime>40.) {
+                saida::Log::error("[World E2E] FAIL sail: the boat would not slow down, still ",
+                                  std::abs(boat.speed)," m/s");
+                testFailed=true;engine.sceneTree().quit();
+            }
+            return;
+        }
+        smokeSailing=false;
+        // Out on the water a landing may rightly be refused; either answer is
+        // said, and the run ends on the sailing having worked.
+        const bool ashore=leaveBoat();
+        saida::Log::info("[World E2E] PASS sailing: stopped at ",std::abs(boat.speed)," m/s, ",
+                         ashore?"stepped ashore":"no landing within reach (refused out loud)");
+        engine.sceneTree().quit();
+    }
+
     // Diagnostic scene composition; this traversal is only run by the smoke test.
     void measureWalk() {
         const auto started=std::chrono::steady_clock::now();
@@ -1528,7 +1906,8 @@ public:
         poll+=delta;hud+=delta;
         if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)stream();}
         if(!playing||menu)return;
-        const bool fast=driving&&std::abs(carSpeed)>kFastDetail;
+        const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail);
+        seaTime+=delta;
         // §12.4, "le détail suit la vitesse": above 15 km/h the plan drops L5 --
         // mobilier, clutter, détail de façade -- and shrinks the rest. Street
         // furniture is streamed in rather than drawn from a pool, so dropping
@@ -1548,10 +1927,10 @@ public:
         // at a junction and what the first drive was missing entirely. It
         // recentres behind the car once the mouse stops and the car is rolling,
         // so the default view is still the road ahead.
-        if(driving) {
+        if(driving||sailing) {
             if(std::abs(mouse.x)>1e-4){lookYaw=wrap(lookYaw+mouse.x*.12);lookIdle=0;}
             else lookIdle+=delta;
-            if(lookIdle>.6&&std::abs(carSpeed)>2.)
+            if(lookIdle>.6&&std::abs(driving?carSpeed:boat.speed)>2.)
                 lookYaw-=lookYaw*(1-std::exp(-2.2*std::min(.05,double(delta))));
         } else yaw+=mouse.x*.12;
         pitch=std::clamp(pitch-mouse.y*.12,-65.,25.);
@@ -1570,15 +1949,20 @@ public:
         bool doorKey=w.keyDown(GLFW_KEY_F);
         if(doorKey&&!wasEnterKey) {
             if(driving)leaveCar();
-            else if(!enterCar()) {
-                // Pressing the door key from across the street is a question,
-                // and it gets an answer rather than silence.
-                Reach nothing;double away=0;
-                if(carParked||!parked.empty()||trafficLive()>0)
-                    text("stream-status",nearestCar(nothing,away)
-                         ?"Portière bloquée."
-                         :"Aucune voiture à portée — approchez-vous.");
-                (void)nothing;
+            else if(sailing)leaveBoat();
+            else {
+                // The nearer of a car and a boat: one key for every vehicle.
+                Reach carReach;BoatReach boatReach;double carAway=0,boatAway=0;
+                const bool car=nearestCar(carReach,carAway),vessel=nearestBoat(boatReach,boatAway);
+                if(vessel&&(!car||boatAway<carAway))enterBoat();
+                else if(!enterCar()) {
+                    // Pressing the door key from across the street is a question,
+                    // and it gets an answer rather than silence.
+                    if(carParked||!parked.empty()||trafficLive()>0)
+                        text("stream-status",car
+                             ?"Portière bloquée."
+                             :"Aucun véhicule à portée — approchez-vous.");
+                }
             }
         }
         wasEnterKey=doorKey;
@@ -1587,6 +1971,10 @@ public:
             if(smokeDriving){f=smokeBrake?-1.:1.;r=0;}
             driveCar(dt,f,r,w.keyDown(GLFW_KEY_SPACE)&&!smokeDriving);
             moving=std::abs(carSpeed)>.2;
+        } else if(sailing) {
+            if(smokeSailing){f=smokeSailBrake?-1.:1.;r=0;}
+            sailBoat(dt,f,r);
+            moving=std::abs(boat.speed)>.2;
         } else if(length>0) {
             double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?7.:2.8;
             double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
@@ -1602,7 +1990,7 @@ public:
             request(lon,lat);
         }
         if(glm::length(origin.local(ecef(lon,lat,alt)))>350.){origin=Frame(lon,lat,alt);placeTiles();moveSun();}
-        if(!driving) {
+        if(!driving&&!sailing) {
             bool jump=w.keyDown(GLFW_KEY_SPACE);
             if(smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
             if(jump&&!wasJump&&jumpOffset<=0)jumpVelocity=std::sqrt(2*22.*1.5);
@@ -1614,6 +2002,7 @@ public:
             for(auto* a:animators)a->play(jumpOffset>0?"jump":moving?"run":"idle");
         }
         placeCar();
+        placeBoats();
         if(smokeStarted&&worldCapture.pngPath.empty()){
             smokeRan=smokeRan||(moving&&animators.front()->currentClip()=="run");
             smokeJumped=smokeJumped||(jumpOffset>.5&&animators.front()->currentClip()=="jump");
@@ -1621,9 +2010,14 @@ public:
         camera->transform().rotation=glm::angleAxis(float(-(yaw+lookYaw)*rad),glm::vec3(0,1,0))*glm::angleAxis(float(pitch*rad),glm::vec3(1,0,0));
         // A car is longer than a man and moves twice as fast, so the camera
         // stands further back -- far enough to see the bonnet turn.
-        const double maxFollow=driving?kDrivingFollow:kOnFootFollow;
-        const double eye=driving?2.:1.6;
-        const glm::vec3 anchor=driving?car->transform().position:player->transform().position;
+        // A boat's camera stands off by its own length: a container ship is
+        // two hundred metres of hull, and eight metres behind its bridge is
+        // inside it.
+        const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
+                              :driving?kDrivingFollow:kOnFootFollow;
+        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):driving?2.:1.6;
+        const glm::vec3 anchor=sailing&&boat.node?boat.node->transform().position
+                              :driving?car->transform().position:player->transform().position;
         const glm::vec3 target=anchor+glm::vec3(0,eye,0);
         const glm::vec3 backward=camera->transform().rotation*glm::vec3(0,0,1);
         // Sweep against streamed building footprints, not an empty physics
@@ -1675,14 +2069,18 @@ public:
         if(hud>.5) {
             hud=0;
             text("coordinates",number(lat)+"°  /  "+number(lon)+"°     "+number(alt,1)+" m"
-                 +(driving?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":""));
-            Reach within;double howFar=0;
+                 +(driving?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":"")
+                 +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" nœuds":""));
+            Reach within;BoatReach moored;double howFar=0,boatFar=0;
             std::string mode=driving
                 ?" · Au volant · F : descendre"
+                :sailing?" · À la barre · F : débarquer"
+                :nearestBoat(moored,boatFar)?" · F : prendre le bateau"
                 :(nearestCar(within,howFar)?" · F : monter dans la voiture":" · M : carte");
             text("stream-status",std::to_string(loaded.size())+" tuiles actives · Relief réel / bâtiments OSM"+mode
                  +(fast?" · détail réduit à cette vitesse":""));
         }
+        if(smokeSailWait||smokeSailing){runSmokeSail(delta);return;}
         if(smokeStarted&&smokeWalk>4) {
             if(!smokeRan||!smokeJumped||jumpOffset!=0||followDistance<.15||followDistance>kOnFootFollow+.001){
                 saida::Log::error("[World E2E] FAIL player animation/jump/follow");testFailed=true;engine.sceneTree().quit();return;
@@ -1790,8 +2188,8 @@ int main(int argc,char** argv) {
             std::cout<<result.dump()<<std::endl;return 0;
         }
         fs::path game=fs::absolute(fs::path(argv[0])).parent_path().parent_path().parent_path();
-        fs::path session;bool smoke=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
-        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--session"&&i+1<argc)session=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
+        fs::path session;bool smoke=false,sail=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
+        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--session"&&i+1<argc)session=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
         if(!std::isfinite(startLon)||!std::isfinite(startLat)||std::abs(startLat)>90||std::abs(startLon)>180)throw std::runtime_error("Invalid --spawn coordinate");
         if(session.empty())throw std::runtime_error("Launch R1World with game/Play.ps1 so the data worker is started.");
         // This development executable uses the existing engine's baked paths
@@ -1801,7 +2199,7 @@ int main(int argc,char** argv) {
         engine.mountWorld();saida::Time::setScale(1);
         saida::CaptureRequest capture;saida::runtime::CaptureViewpoint view;std::string error;
         if(!saida::runtime::parseCaptureArgs(argc,argv,capture,view,error))throw std::runtime_error(error);
-        World world(engine,game,session,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view);
+        World world(engine,game,session,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail);
         engine.setOnFrame([&](float dt){world.update(dt);});
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
         engine.run();return engine.captureFailed()||world.failed()?1:0;

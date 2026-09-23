@@ -105,6 +105,10 @@ _SOURCES_SPEC = {
     "asphalt":          ("street", "polyhaven", "asphalt_01", 2.08),
     "pavement":         ("street", "polyhaven", "concrete_pavement", 1.8),
     "cobbles":          ("street", "polyhaven", "patterned_cobblestone", 2.5),
+    # ── the sea's works (harbours.py) ────────────────────────────────────────
+    "deck":             ("street", "polyhaven", "weathered_planks", 2.0),
+    "riprap":           ("street", "polyhaven", "rock_boulder_dry", 1.8),
+    "quay":             ("street", "polyhaven", "concrete", 4.0),
     # ── roofs ────────────────────────────────────────────────────────────────
     "tile_canal":       ("roof", "polyhaven", "clay_roof_tiles_02", 2.5),
     "tile_flat":        ("roof", "polyhaven", "roof_09", 4.0),

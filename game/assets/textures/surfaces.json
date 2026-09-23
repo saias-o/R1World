@@ -307,6 +307,45 @@
    "mr": "assets/textures/surfaces/cobbles_mr.jpg",
    "clipped": 0.0034
   },
+  "deck": {
+   "kind": "street",
+   "source": "polyhaven",
+   "asset": "weathered_planks",
+   "size": 2.0,
+   "sizeMeasured": true,
+   "uvSize": 2.0,
+   "level": 0.4975,
+   "albedo": "assets/textures/surfaces/deck_albedo.jpg",
+   "normal": "assets/textures/surfaces/deck_normal.jpg",
+   "mr": "assets/textures/surfaces/deck_mr.jpg",
+   "clipped": 0.0099
+  },
+  "riprap": {
+   "kind": "street",
+   "source": "polyhaven",
+   "asset": "rock_boulder_dry",
+   "size": 1.8,
+   "sizeMeasured": true,
+   "uvSize": 1.8,
+   "level": 0.5,
+   "albedo": "assets/textures/surfaces/riprap_albedo.jpg",
+   "normal": "assets/textures/surfaces/riprap_normal.jpg",
+   "mr": "assets/textures/surfaces/riprap_mr.jpg",
+   "clipped": 0.0081
+  },
+  "quay": {
+   "kind": "street",
+   "source": "polyhaven",
+   "asset": "concrete",
+   "size": 4.0,
+   "sizeMeasured": true,
+   "uvSize": 4.0,
+   "level": 0.5,
+   "albedo": "assets/textures/surfaces/quay_albedo.jpg",
+   "normal": "assets/textures/surfaces/quay_normal.jpg",
+   "mr": "assets/textures/surfaces/quay_mr.jpg",
+   "clipped": 0.0096
+  },
   "tile_canal": {
    "kind": "roof",
    "source": "polyhaven",

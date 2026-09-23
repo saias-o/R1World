@@ -37,11 +37,14 @@ def build_terrain(
     elevations: ElevationGrid,
     anchor: Anchor,
     classify=None,
+    adjust=None,
 ) -> dict[str, Mesh]:
     """The measured relief of one box, as one mesh per ground class.
 
     `classify(lon, lat) -> str` names the material a triangle is made of; with
-    no classifier every triangle lands in one unnamed mesh.
+    no classifier every triangle lands in one unnamed mesh. `adjust(row, col,
+    height) -> height` may move a vertex: it is how the sea floor is sunk
+    under the animated sea surface.
 
     **Partitioning the grid is free.** Each triangle carries its own face
     normal, so no two of them ever shared a vertex to begin with: splitting the
@@ -58,7 +61,12 @@ def build_terrain(
         line_coordinates = []
         for column in range(TERRAIN_MESH_SIZE):
             lon = bounds.west + (bounds.east - bounds.west) * column / (TERRAIN_MESH_SIZE - 1)
-            line.append(anchor.geodetic_to_engine(lon, lat, elevations.sample(lon, lat)))
+            height = elevations.sample(lon, lat)
+            if adjust is not None:
+                # The vertex's own grid position, so the caller can reason in
+                # the cells the terrain is partitioned on (harbours.Cells).
+                height = adjust(row, column, height)
+            line.append(anchor.geodetic_to_engine(lon, lat, height))
             line_coordinates.append((lon, lat))
         points.append(line)
         coordinates.append(line_coordinates)
