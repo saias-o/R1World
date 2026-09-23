@@ -1,0 +1,330 @@
+"""Contract tests for the landmarks (`landmarks.py`, `sculpt.py`).
+
+A picture says whether the Eiffel Tower looks like itself
+(`tools/landmark_preview.py`); these say the things a picture cannot:
+
+  - every model fits its share of the arena (CLAUDE.md rule 5);
+  - every finish is an albedo, not paint (rule 2);
+  - every surface faces out -- including the back of a niche, which was
+    missing from every recessed opening in the first render and showed the
+    sky through the Empire State Building;
+  - the same recipe draws the same triangles (§4 I3);
+  - the OSM trace a landmark replaces is not extruded as well, and nothing
+    else is taken with it;
+  - a tile cooked before its landmark is cooked again, and only such a tile.
+
+Nothing here needs the engine or the network.
+"""
+
+from __future__ import annotations
+
+import math
+import unittest
+
+from r1 import landmarks, sculpt
+from r1.landmarks import LANDMARKS, MAX_VERTICES, BY_SLUG
+from r1.sources import Bounds, OsmWay
+
+
+def _luminance(colour) -> float:
+    return 0.2126 * colour[0] + 0.7152 * colour[1] + 0.0722 * colour[2]
+
+
+def _signed_volume(mesh) -> float:
+    total = 0.0
+    for k in range(0, len(mesh.indices), 3):
+        a, b, c = (mesh.positions[mesh.indices[k + q]] for q in range(3))
+        total += (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0])
+                  + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6.0
+    return total
+
+
+def _face_normal(mesh, k):
+    a, b, c = (mesh.positions[mesh.indices[k + q]] for q in range(3))
+    u = [b[i] - a[i] for i in range(3)]
+    v = [c[i] - a[i] for i in range(3)]
+    return (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
+
+
+class TheList(unittest.TestCase):
+    def test_twenty_places(self):
+        # Giza's three pyramids are one place and three models.
+        places = {l.slug.split("_of_")[0] if l.slug.startswith("pyramid") else l.slug
+                  for l in LANDMARKS}
+        self.assertEqual(len(places), 20)
+
+    def test_identifiers_are_unique(self):
+        self.assertEqual(len({l.slug for l in LANDMARKS}), len(LANDMARKS))
+        self.assertEqual(len({l.wikidata for l in LANDMARKS}), len(LANDMARKS))
+        for landmark in LANDMARKS:
+            self.assertRegex(landmark.wikidata, r"^Q\d+$")
+            self.assertRegex(landmark.osm, r"^(node|way|relation)/\d+$")
+
+    def test_an_inferred_bearing_says_so(self):
+        for slug in ("statue_of_liberty", "christ_the_redeemer"):
+            self.assertNotEqual(BY_SLUG[slug].bearing_source, "osm")
+
+
+class Models(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.parts = {l.slug: landmarks.model_parts(l) for l in LANDMARKS}
+
+    def test_every_model_fits_its_share_of_the_arena(self):
+        for slug, parts in self.parts.items():
+            with self.subTest(slug):
+                self.assertLessEqual(sum(len(p.mesh.positions) for p in parts), MAX_VERTICES)
+
+    def test_height_is_the_official_one(self):
+        for landmark in LANDMARKS:
+            with self.subTest(landmark.slug):
+                top = max(p[1] for part in self.parts[landmark.slug]
+                          for p in part.mesh.positions)
+                self.assertAlmostEqual(top, landmark.height, delta=landmark.height * 0.03 + 0.5)
+
+    def test_finishes_are_albedos(self):
+        # CLAUDE.md rule 2: nothing above the ~0.35 at which this world's
+        # light saturates, nothing blacker than the darkest real surface.
+        for slug, parts in self.parts.items():
+            for part in parts:
+                with self.subTest(slug=slug, finish=part.material.name):
+                    colour = part.material.color[:3]
+                    if part.material.base_color_texture:
+                        # The factor is the albedo over the texture's level.
+                        continue
+                    self.assertGreaterEqual(_luminance(colour), 0.015)
+                    self.assertLessEqual(_luminance(colour), 0.36)
+
+    def test_textured_finishes_use_the_projects_own_photographs(self):
+        for slug, parts in self.parts.items():
+            for part in parts:
+                uri = part.material.base_color_texture
+                if uri:
+                    with self.subTest(slug=slug, finish=part.material.name):
+                        self.assertTrue(uri.startswith("../../../assets/textures/"), uri)
+
+    def test_models_are_deterministic(self):
+        again = landmarks.model_parts(BY_SLUG["st_basils_cathedral"])
+        first = self.parts["st_basils_cathedral"]
+        self.assertEqual([p.mesh.positions for p in first], [p.mesh.positions for p in again])
+        self.assertEqual([p.mesh.indices for p in first], [p.mesh.indices for p in again])
+
+    def test_no_degenerate_or_non_finite_vertex(self):
+        for slug, parts in self.parts.items():
+            for part in parts:
+                for p in part.mesh.positions:
+                    self.assertTrue(all(math.isfinite(c) for c in p), slug)
+                for n in part.mesh.normals:
+                    self.assertAlmostEqual(math.sqrt(sum(c * c for c in n)), 1.0, places=3)
+
+
+class LevelsOfDetail(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.counts = {l.slug: [sum(len(p.mesh.positions) for p in landmarks.model_parts(l, k))
+                               for k in range(3)] for l in LANDMARKS}
+
+    def test_every_level_fits_its_budget(self):
+        for slug, counts in self.counts.items():
+            for level, count in enumerate(counts):
+                with self.subTest(slug=slug, level=level):
+                    self.assertLessEqual(count, landmarks.LOD_BUDGET[level])
+
+    def test_each_level_is_lighter_than_the_one_before(self):
+        for slug, (near, district, city) in self.counts.items():
+            with self.subTest(slug):
+                self.assertLessEqual(district, near)
+                self.assertLessEqual(city, district)
+
+    def test_a_far_level_keeps_the_silhouette_height(self):
+        # From across the city the height is the one thing always seen. A
+        # finial thinner than a pixel may go (the Taj's gilded one does, 7 m
+        # of it); the body it stands on may not.
+        for landmark in LANDMARKS:
+            with self.subTest(landmark.slug):
+                top = max(p[1] for part in landmarks.model_parts(landmark, 2)
+                          for p in part.mesh.positions)
+                self.assertGreater(top, landmark.height * 0.88)
+
+    def test_far_levels_carry_no_texture(self):
+        for part in landmarks.model_parts(BY_SLUG["notre_dame_de_paris"], 1):
+            self.assertIsNone(part.material.base_color_texture, part.name)
+
+    def test_every_landmark_knows_its_ground(self):
+        for landmark in LANDMARKS:
+            with self.subTest(landmark.slug):
+                self.assertIn(landmark.ground[1], (landmarks.IGN, landmarks.GLO90))
+                self.assertTrue(-20.0 < landmark.ground[0] < 1000.0)
+
+    def test_the_far_list_names_every_landmark_and_its_levels(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            game = Path(folder)
+            saved = landmarks.GAME, landmarks.MODEL_DIR
+            landmarks.GAME, landmarks.MODEL_DIR = game, game / "cache" / "world" / "landmarks"
+            try:
+                path = landmarks.far_manifest()
+                document = json.loads(path.read_text(encoding="utf-8"))
+                self.assertEqual(document["revision"], landmarks.REVISION)
+                self.assertEqual(len(document["landmarks"]), len(LANDMARKS))
+                for entry in document["landmarks"]:
+                    source = BY_SLUG[entry["slug"]]
+                    self.assertEqual(entry["alt"], source.ground[0])
+                    self.assertEqual([l["until"] for l in entry["levels"]],
+                                     [landmarks.LOD1_UNTIL, landmarks.FAR_RANGE])
+                    for level in entry["levels"]:
+                        self.assertTrue((game / level["path"]).exists(), level["path"])
+            finally:
+                landmarks.GAME, landmarks.MODEL_DIR = saved
+
+    def test_far_range_is_the_haze(self):
+        # Past the far range a monument is more than 95% haze: drawing it
+        # further costs vertices nobody sees, drawing it less far loses it.
+        from r1 import prepare_world
+        haze = 1.0 - math.exp(-(landmarks.FAR_RANGE - 160.0) * prepare_world.FOG_DENSITY)
+        self.assertGreater(haze, 0.95)
+        self.assertLessEqual(landmarks.FAR_RANGE, prepare_world.FAR_PLANE)
+
+    def test_haze_is_the_same_in_the_scene_and_the_script(self):
+        # The scene gives the first frame, `sun_cycle.js` every frame after:
+        # two densities would be two atmospheres, a jump one frame in.
+        import re
+        from r1 import prepare_world
+        script = (landmarks.GAME / "scripts" / "sun_cycle.js").read_text(encoding="utf-8")
+        found = re.search(r"const FOG_DENSITY = ([0-9.]+);", script)
+        self.assertIsNotNone(found)
+        self.assertEqual(float(found.group(1)), prepare_world.FOG_DENSITY)
+
+
+class Vocabulary(unittest.TestCase):
+    def test_prism_encloses_a_positive_volume(self):
+        s = sculpt.Sculpt()
+        finish = sculpt.Finish("test", (0.2, 0.2, 0.2))
+        sculpt.prism(s, finish, sculpt.rect(2.0, 3.0), 0.0, 4.0, bottom=True)
+        self.assertAlmostEqual(_signed_volume(s.mesh(finish)), 24.0, places=6)
+
+    def test_lathe_faces_out_even_where_it_is_horizontal(self):
+        # A balcony: out, up, back in. Its flat top and underside are where
+        # "away from the axis" says nothing, and where the profile must decide.
+        s = sculpt.Sculpt()
+        finish = sculpt.Finish("test", (0.2, 0.2, 0.2))
+        sculpt.lathe(s, finish, [(1.0, 0.0), (1.0, 1.0), (2.0, 1.0), (2.0, 1.5), (1.0, 1.5),
+                                 (1.0, 3.0), (0.0, 3.0)], sides=12, crease=30.0)
+        mesh = s.mesh(finish)
+        for k in range(0, len(mesh.indices), 3):
+            n = _face_normal(mesh, k)
+            a, b, c = (mesh.positions[mesh.indices[k + q]] for q in range(3))
+            y = (a[1] + b[1] + c[1]) / 3
+            r = math.hypot((a[0] + b[0] + c[0]) / 3, (a[2] + b[2] + c[2]) / 3)
+            if abs(n[1]) > 0.99 * math.sqrt(sum(x * x for x in n)):
+                expected = -1 if (abs(y - 1.0) < 1e-6 and r > 1.0) else 1
+                self.assertEqual(math.copysign(1, n[1]), expected, (y, r))
+        self.assertGreater(_signed_volume(mesh), 0.0)
+
+    def test_a_recessed_opening_has_a_back(self):
+        s = sculpt.Sculpt()
+        wall = sculpt.Finish("wall", (0.2, 0.2, 0.2))
+        dark = sculpt.Finish("dark", (0.02, 0.02, 0.02))
+        face = sculpt.Face((0.0, 0.0), (1.0, 0.0))
+        sculpt.panel(s, wall, face, 0.0, 10.0, 0.0, 10.0, [sculpt.Opening(2, 8, 1, 9)],
+                     depth=0.5, recess=dark)
+        back = s.mesh(dark)
+        area = 0.0
+        for k in range(0, len(back.indices), 3):
+            n = _face_normal(back, k)
+            self.assertGreaterEqual(n[2], -1e-9)       # it faces the street
+            area += math.sqrt(sum(x * x for x in n)) / 2
+        self.assertAlmostEqual(area, 6.0 * 8.0, places=6)
+        # And the wall faces +z, the side the face was declared to face.
+        wall_mesh = s.mesh(wall)
+        self.assertTrue(all(_face_normal(wall_mesh, k)[2] >= -1e-9 or
+                            abs(_face_normal(wall_mesh, k)[2]) < 1e-9
+                            for k in range(0, len(wall_mesh.indices), 3)))
+
+    def test_bearing_turns_recipe_x_to_the_compass(self):
+        s = sculpt.Sculpt()
+        finish = sculpt.Finish("test", (0.2, 0.2, 0.2))
+        sculpt.beam(s, finish, (0.0, 0.0, 0.0), (10.0, 0.0, 0.0), 0.1)
+        for bearing, expected in ((0.0, (0.0, -10.0)), (90.0, (10.0, 0.0)),
+                                  (180.0, (0.0, 10.0))):
+            parts = s.parts(bearing, lambda f: None)
+            far = max(parts[0].mesh.positions, key=lambda p: p[0] ** 2 + p[2] ** 2)
+            self.assertAlmostEqual(far[0], expected[0], delta=0.1)
+            self.assertAlmostEqual(far[2], expected[1], delta=0.1)
+
+
+class Placement(unittest.TestCase):
+    EIFFEL = BY_SLUG["eiffel_tower"]
+
+    def setUp(self):
+        e = self.EIFFEL
+        self.bounds = Bounds(e.lat - 0.002, e.lon - 0.003, e.lat + 0.002, e.lon + 0.003)
+        k = 111_320.0 * math.cos(math.radians(e.lat))
+        # Engine metres about the tower: x east, z south.
+        self.ground = lambda lon, lat: ((lon - e.lon) * k, 35.0, -(lat - e.lat) * 110_540.0)
+        self._baked = landmarks.bake
+        landmarks.bake = lambda landmark: (f"cache/world/landmarks/{landmark.slug}.glb", 1234)
+
+    def tearDown(self):
+        landmarks.bake = self._baked
+
+    def _way(self, osm_id, lon, lat, tags=None, half=0.00005):
+        ring = ((lon - half, lat - half), (lon + half, lat - half), (lon + half, lat + half),
+                (lon - half, lat + half), (lon - half, lat - half))
+        return OsmWay(osm_id, ring, dict(tags or {"building": "yes"}))
+
+    def test_the_box_goes_and_the_neighbours_stay(self):
+        e = self.EIFFEL
+        tower = self._way(5013364, e.lon, e.lat, {"building": "tower", "height": "330",
+                                                   "wikidata": "Q243"})
+        # A room in a pillar, 50 m out along the tower's diagonal.
+        b = math.radians(e.bearing)
+        east, north = 49.9 * (math.sin(b) + math.cos(b)), 49.9 * (math.cos(b) - math.sin(b))
+        k = 111_320.0 * math.cos(math.radians(e.lat))
+        pillar = self._way(1, e.lon + east / k, e.lat + north / 110_540.0)
+        pavilion = self._way(4, e.lon + 0.0001, e.lat + 0.0001)          # between the pillars
+        neighbour = self._way(2, e.lon + 0.0025, e.lat + 0.0015)        # 200 m away
+        kept, placement = landmarks.place(self.bounds, self.ground,
+                                          (tower, pillar, pavilion, neighbour))
+        self.assertEqual([w.osm_id for w in kept], [4, 2])
+        self.assertEqual(sorted(placement.replaced), [1, 5013364])
+        self.assertEqual(len(placement.nodes), 1)
+        node = placement.nodes[0]
+        self.assertEqual(node["importedFrom"], "cache/world/landmarks/eiffel_tower.glb")
+        self.assertEqual(node["transform"]["position"], [0.0, 35.0, 0.0])
+        self.assertEqual(placement.vertices, 1234)
+        self.assertEqual(len(placement.solids), 4)     # the four pillars
+        entry = placement.manifest[0]
+        self.assertEqual(entry["anchor"]["source"], "osm:way/5013364")
+        self.assertEqual(entry["shape"]["source"], "recipe")
+
+    def test_a_landmark_anchored_next_door_still_clears_its_trace(self):
+        e = self.EIFFEL
+        # A tile whose bounds stop just short of the anchor.
+        bounds = Bounds(e.lat - 0.002, e.lon + 0.0002, e.lat + 0.002, e.lon + 0.006)
+        b = math.radians(e.bearing)
+        east, north = 49.9 * (math.sin(b) + math.cos(b)), 49.9 * (math.cos(b) - math.sin(b))
+        k = 111_320.0 * math.cos(math.radians(e.lat))
+        pillar = self._way(1, e.lon + east / k, e.lat + north / 110_540.0)
+        kept, placement = landmarks.place(bounds, self.ground, (pillar,))
+        self.assertEqual(kept, ())
+        self.assertEqual(placement.nodes, [])       # drawn once, by its own tile
+
+    def test_nowhere_near_a_landmark_nothing_changes(self):
+        far = Bounds(10.0, 10.0, 10.005, 10.005)
+        way = self._way(3, 10.002, 10.002)
+        kept, placement = landmarks.place(far, lambda lon, lat: (0.0, 0.0, 0.0), (way,))
+        self.assertEqual(kept, (way,))
+        self.assertEqual(placement.nodes, [])
+
+    def test_only_a_tile_near_a_landmark_goes_stale(self):
+        self.assertTrue(landmarks.stale({"surface": "land"}, self.bounds))
+        self.assertFalse(landmarks.stale({"surface": "land",
+                                          "landmarkRevision": landmarks.REVISION}, self.bounds))
+        self.assertFalse(landmarks.stale({"surface": "land"}, Bounds(10.0, 10.0, 10.005, 10.005)))
+
+
+if __name__ == "__main__":
+    unittest.main()

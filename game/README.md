@@ -103,7 +103,8 @@ extra arguments to the game. Example, from `game/`:
 ./Play.ps1 --smoke --spawn 2.3522 48.8566 --screenshot generated/paris-final.png --camera-pos '70.448,1.745,83.405' --camera-look '45,2,50' --after-frames 12
 ```
 
-Known limits: landmarks still use generic procedural façades; municipal Paris
+Known limits: twenty landmarks have their own models (see *The landmarks*), every other
+building uses generic procedural façades; municipal Paris
 road polygons are not yet integrated; inferred sidewalk widths need not match
 the survey; crossing ramps/islands and proper grade-separated bridges/tunnels
 remain unsupported. Such bridge/tunnel ways are counted in the manifest rather
@@ -1201,3 +1202,60 @@ Copernicus DEM GLO-90 through Open-Meteo. The selection map is Natural Earth
 (public domain) and is used for selection only — never as terrain. Asset
 provenance and checksums are recorded in `assets/THIRD_PARTY_ASSETS.json`, and
 attribution is visible in-game.
+
+
+## The landmarks
+
+Everything in this world is generated from a description, and until this
+section that included the Eiffel Tower: OSM maps it as `building=tower`,
+`height=330`, and the building chain extruded a 125 m square 330 m into the
+sky. Twenty places now have their own models (`r1/landmarks.py`): the Eiffel
+Tower, the Statue of Liberty, Big Ben, the Colosseum, the Taj Mahal, the Giza
+pyramids, Christ the Redeemer, the Sydney Opera House, the Burj Khalifa, the
+Empire State Building, the Leaning Tower of Pisa, the Arc de Triomphe,
+Notre-Dame, the Sagrada Família, the Brandenburg Gate, St Peter's, St Basil's,
+the Parthenon, Tokyo Tower and the Petronas Towers.
+
+They are still descriptions. Each is a recipe of a few dozen lines in the
+vocabulary of `r1/sculpt.py` -- a lathe for a dome, a lattice for a tower, a
+wall with its arcade cut through -- regenerated identically on every machine
+(§4 I3). No downloaded model and no photogrammetry, so no licence to carry and
+no asset of a lower grade (CLAUDE.md rule 1). The anchor and bearing are
+measured on the OSM element found by its `wikidata` tag, the height is the
+official one, the ground under the anchor is read from the same terrain source
+the tile draws; three bearings OSM cannot give (Liberty, Christ, St Basil's) are
+inferred and the manifest says so. The OSM trace of the landmark is not
+extruded; its neighbours are.
+
+**Three levels of detail, one recipe.** A sculpture built inside
+`sculpt.detail(1)` or `detail(2)` asks each primitive for less: fewer sides,
+no opening or member thinner than a pixel at that distance, no texture (from a
+kilometre a photograph is its average, which the albedo already is). Only
+where a shape changes character does a recipe intervene: a lattice tower is a
+solid silhouette from afar, a stepped pyramid a smooth one.
+
+| Level | Drawn | Budget (vertices) |
+|---|---|---|
+| 0 | by its own tile, while that tile is resident | 32 768 |
+| 1 | beyond the resident tiles, to 1.8 km | 12 288 |
+| 2 | to 5 km | 4 096 |
+
+The worker bakes levels 1 and 2 at start-up and lists them in
+`cache/world/landmarks/far.json`; `native/world.cpp` shows a far model exactly
+when the near one is not there, places it like a tile at every rebase, and
+counts it in the resident budget. `tools/landmark_preview.py` draws a contact
+sheet of any level without the engine.
+
+**The haze.** Nothing of this could be seen: the fog was a 1 km visibility
+(`fogDensity 0.0035`), chosen to hide the edge of the 3x3 neighbourhood (see
+*What this did not fix*). It is now a 5 km visibility (`0.00078`, Koschmieder's
+3.912 / V), an ordinary city day, and the camera's far plane stops at 5 km with
+it. The trade was taken knowingly: beyond the resident neighbourhood the world
+still ends, and that edge is now fainter haze rather than a wall of it. The
+horizon rings of §5 (L1/L2) are what will fill it.
+
+Known limits: where the terrain falls back to Copernicus GLO-90 through a 7x7
+grid, summits are shaved (Corcovado reads 565 m instead of about 700 m), and
+the Christ stands on the terrain the game draws, not on the real summit.
+Bridges (Golden Gate, Tower Bridge) are not on the list: roads are draped on
+the ground and a deck would not carry the car.

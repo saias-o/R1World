@@ -30,6 +30,7 @@ from .world_elevation import fetch_ground
 from .mesh import MeshPart, write_glb
 from . import surfaces
 from . import harbours
+from . import landmarks
 from . import offline_world
 from .polygons import point_in_polygon
 from .buildings import build_buildings
@@ -159,11 +160,27 @@ def atomic_json(path, value):
             time.sleep(REPLACE_PAUSE)
 
 
+def landmark_recook(done, tile, osm_cache=None):
+    """Whether a ready tile must be cooked again for its landmarks.
+
+    Only from observations on disk -- its own, or the neighbourhood's shared
+    query it was cooked from: a visited place never touches the network again
+    (CLAUDE.md §6). A stale tile with neither keeps its old answer, and
+    `serve_requests` says so in the log.
+    """
+    folder = CACHE / tile.key
+    have_osm = (folder / "osm.json").exists() or (osm_cache is not None and osm_cache.exists())
+    return (not done.get("offlineApproximation") and landmarks.stale(done, tile.bounds)
+            and have_osm and (folder / "ground-elevation.json").exists())
+
+
 def cook(tile, osm_cache=None, *, offline=False, upgrade=False):
     root = CACHE / tile.key
     ready = root / "ready.json"
     if ready.exists() and not upgrade:
-        return json.loads(ready.read_text(encoding="utf-8"))
+        done = json.loads(ready.read_text(encoding="utf-8"))
+        if not landmark_recook(done, tile, osm_cache):
+            return done
     folder = root / "offline" if offline else root
     folder.mkdir(parents=True, exist_ok=True)
     bounds = tile.bounds
@@ -213,9 +230,13 @@ def cook(tile, osm_cache=None, *, offline=False, upgrade=False):
             w for w in buildings
             if w.tags.get("building") != "lighthouse" and w.tags.get("man_made") != "lighthouse"
             and not any(point_in_polygon(p, list(w.points)) for p in lights))
+    # The twenty places a generic extrusion cannot draw: their own OSM trace
+    # is not extruded, and their model stands in its place (landmarks.py).
+    buildings, landmark_placement = landmarks.place(bounds, ground, buildings)
     profile = profile_for(lon, lat)
     climate = surfaces.climate_at(profile.climate, lat)
     parts, footprints, stats = compact_buildings(buildings, ground, profile)
+    footprints = footprints + landmark_placement.solids
     # Rank 9. The terrain mesh is partitioned by what OSM says the ground is,
     # and by what the region says it usually is where OSM says nothing. This
     # adds no vertices at all -- see ground.py -- and it is the difference
@@ -333,6 +354,9 @@ def cook(tile, osm_cache=None, *, offline=False, upgrade=False):
         prop_nodes, prop_stats = street_props.plan_props(
             in_tile, ground, profile, road_segments, GAME)
         nature_nodes, nature_stats = nature.plan_nature(osm,tile,anchor,ground,GAME)
+        # The landmark first after the ground: it is what the player came to
+        # see, and the game swaps its far model out once it has streamed.
+        children.extend(landmark_placement.nodes)
         children.extend(nature_nodes)
         children.extend(prop_nodes)
         # The harbours' boats and their container yards: inferred, scene nodes,
@@ -351,7 +375,10 @@ def cook(tile, osm_cache=None, *, offline=False, upgrade=False):
     result = {"key": tile.key, "row": tile.row, "col": tile.col,
               "lon": lon, "lat": lat, "bounds": asdict(bounds),
               "elevations": elevations.values, "footprints": footprints,
-              "vertices": 0 if ocean else vertices, "buildings": len(buildings),
+              # The landmark models are nodes, not tile geometry, but they sit
+              # in the same arena, so the residency count includes them.
+              "vertices": 0 if ocean else vertices + landmark_placement.vertices,
+              "buildings": len(buildings),
               "surface": "ocean" if ocean else "land",
               "source": ("Natural Earth 1:110m; " if offline else "OpenStreetMap; ") + elevation_source,
               "elevationSource": elevation_source,
@@ -370,6 +397,9 @@ def cook(tile, osm_cache=None, *, offline=False, upgrade=False):
               "boats": boat_manifest,
               "harbour": harbour_stats.as_json(),
               "props": prop_stats.as_json(),
+              "landmarks": [] if ocean else landmark_placement.manifest,
+              "landmarkRevision": landmarks.REVISION,
+              "landmarkReplacedWays": [] if ocean else landmark_placement.replaced,
               "nature": nature_stats,
               "streets": street_stats,
               "traffic": {"nodes": [], "lanes": [], "cars": 0,
@@ -415,6 +445,13 @@ def serve(session):
     sea = None
     conditions = LocalConditions(session, stopped, atomic_json)
     try:
+        # The far landmarks: baked once per revision, a second or two, before
+        # any tile (landmarks.far_manifest). A failure is said, not swallowed.
+        try:
+            landmarks.far_manifest()
+        except Exception as error:
+            print("LANDMARKS-FAR-FAILED", error, flush=True)
+            traceback.print_exc()
         sea = Sea(session)
         sea.start()
         conditions.start()
@@ -484,14 +521,33 @@ def serve_requests(session):
                 try:
                     stamp = ready.stat().st_mtime_ns
                     if ready not in ready_states or ready_states[ready][0] != stamp:
-                        approximate_ready = json.loads(ready.read_text(encoding="utf-8")).get(
-                            "offlineApproximation", False)
-                        ready_states[ready] = (stamp, approximate_ready)
+                        done = json.loads(ready.read_text(encoding="utf-8"))
+                        recook = landmark_recook(done, tile, source_for(tile)[1])
+                        if (not recook and landmarks.stale(done, tile.bounds)
+                                and not done.get("offlineApproximation")):
+                            print("LANDMARK-STALE-KEPT", tile.key,
+                                  "cooked before its landmark; its sources are not on disk",
+                                  flush=True)
+                        ready_states[ready] = (stamp, done.get("offlineApproximation", False),
+                                               recook)
                     if ready_states[ready][1]:
                         approximate.append(tile)
                 except (OSError, ValueError):
                     pass  # A concurrent atomic replacement; retry next poll.
-                continue
+                if (not ready_states.get(ready, (0, False, False))[2]
+                        or time.monotonic() < failures.get(tile.key, 0)):
+                    continue
+                # Cooked before its landmark, from observations on disk.
+                work = True
+                print("LANDMARK-STALE", tile.key, flush=True)
+                try:
+                    cook(tile, source_for(tile)[1])
+                    print("READY", tile.key, flush=True)
+                except Exception as error:
+                    failures[tile.key] = time.monotonic() + 60
+                    print("ERROR", tile.key, str(error), flush=True)
+                    traceback.print_exc()
+                break
             if time.monotonic() < failures.get(tile.key, 0):
                 continue
             work = True

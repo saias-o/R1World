@@ -229,6 +229,22 @@ baissent, tout revient quand on ralentit.
   port, ferries, barques dans les pays chauds, péniches-logements aux Pays-Bas.
   `F` prend la barre du bateau le plus proche, on ne débarque qu'à l'arrêt et
   contre une rive.
+- **Monuments** : vingt lieux qu'aucune extrusion ne peut dessiner (tour
+  Eiffel, statue de la Liberté, Big Ben, Colisée, Taj Mahal, pyramides de
+  Gizeh, Christ Rédempteur, opéra de Sydney, Burj Khalifa, Empire State
+  Building, tour de Pise, Arc de Triomphe, Notre-Dame, Sagrada Família, porte
+  de Brandebourg, Saint-Pierre, Saint-Basile, Parthénon, Tokyo Tower, tours
+  Petronas). Chacun reste une *description* : une recette de quelques dizaines
+  de lignes dans le vocabulaire de `r1/sculpt.py` (révolution, loft, treillis,
+  murs à arcades), régénérée à l'identique chez chaque joueur, sans modèle
+  téléchargé ni photogrammétrie. Ancre et orientation mesurées sur l'élément
+  OSM trouvé par son `wikidata`, hauteur officielle ; l'emprise OSM du
+  monument n'est plus extrudée (`r1/landmarks.py`). Trois niveaux de détail
+  tirés de la même recette : le modèle complet avec sa tuile (au plus 1/32 de
+  l'arène), puis deux modèles lointains posés par le runtime jusqu'à 1,8 km et
+  5 km, là où la brume les efface (visibilité 5 km, `fogDensity 0,00078`).
+  `tools/landmark_preview.py` dessine la planche contact de chaque niveau sans
+  le moteur.
 - **Voiture et circulation** : `F` pour monter/descendre, n'importe quelle voiture
   se prend ; trafic sur le graphe OSM, `maxspeed` tagué d'abord.
 - **Cache hors ligne** : un lieu déjà visité ne touche plus le réseau

@@ -124,6 +124,21 @@ class Mesh:
             self._vertex(c, n, uv[2]),
         ))
 
+    def add_smooth_triangle(
+        self,
+        points: tuple[Vec3, Vec3, Vec3],
+        normals: tuple[Vec3, Vec3, Vec3],
+        uvs: tuple[Vec2, Vec2, Vec2],
+    ) -> None:
+        """A triangle whose corners carry their own normals.
+
+        For surfaces that are curved in the world and faceted only by the
+        budget -- a dome, a robe -- where a flat normal per face would draw the
+        facets the budget was supposed to hide. The weld still applies, so a
+        corner shared by the triangles around it is one vertex.
+        """
+        self.indices.extend(self._vertex(p, n, uv) for p, n, uv in zip(points, normals, uvs))
+
     def add_up_triangle(
         self,
         a: Vec3,

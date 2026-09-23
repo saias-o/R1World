@@ -1562,6 +1562,7 @@ class World : public Rml::EventListener {
             engine.sceneTree().world().rebaseSubtree(*t.node,
                 position-turn*t.node->transform().position,turn);
         }
+        for(auto& f:farLandmarks)if(f.node)placeFar(f);
     }
     void trim() {
         engine.sceneTree().applyDeferred();
@@ -1666,6 +1667,103 @@ class World : public Rml::EventListener {
             }
         }
     }
+    // ── landmarks seen from afar ─────────────────────────────────────────────
+    //
+    // A landmark's full model belongs to its tile, and its tile is resident
+    // only within a few hundred metres (r1/landmarks.py). Beyond that the
+    // worker's far list (cache/world/landmarks/far.json) gives two lighter
+    // levels and the ground they stand on: level 1 across a district, level 2
+    // across a city, nothing past the haze. A far model is shown exactly when
+    // the near one is not -- its tile is not resident, or has not streamed
+    // it yet -- so the two are never drawn together and never both missing.
+    struct FarLevel { std::string path; double until=0; size_t vertices=0; };
+    struct FarLandmark {
+        std::string slug,tile; double lon=0,lat=0,alt=0;
+        std::vector<FarLevel> levels;
+        saida::Node* node=nullptr; int shown=-1;
+        // Where the near model sits in its tile's prop list, found once per mount.
+        const saida::Node* seenTile=nullptr; long nearIndex=-1;
+    };
+    std::vector<FarLandmark> farLandmarks; std::string farStamp; double farRead=1e9;
+    void readFarLandmarks() {
+        const fs::path p=game/"cache"/"world"/"landmarks"/"far.json";
+        std::error_code ec;
+        if(!fs::exists(p,ec))return;
+        const auto stamp=std::to_string(fs::last_write_time(p,ec).time_since_epoch().count());
+        if(ec||stamp==farStamp)return;
+        farStamp=stamp;
+        try {
+            json doc=readJson(p);
+            for(auto& f:farLandmarks)if(f.node)f.node->queueFree();
+            farLandmarks.clear();
+            for(auto& e:doc.at("landmarks")) {
+                FarLandmark f;
+                f.slug=e.at("slug");f.tile=e.at("tile");
+                f.lon=e.at("lon");f.lat=e.at("lat");f.alt=e.at("alt");
+                for(auto& l:e.at("levels"))
+                    f.levels.push_back({l.at("path"),l.at("until"),l.at("vertices")});
+                farLandmarks.push_back(std::move(f));
+            }
+            saida::Log::info("[World landmarks] ",farLandmarks.size()," landmarks visible from afar, to ",
+                             doc.value("range",0.)," m");
+        } catch(const std::exception& e) {
+            // Said, never silent: a missing far list looks exactly like a
+            // city without landmarks.
+            saida::Log::warn("[World landmarks] far list unreadable: ",e.what());
+            if(smoke){testFailed=true;engine.sceneTree().quit();}
+        }
+    }
+    bool nearModel(FarLandmark& f) {
+        auto it=loaded.find(f.tile);
+        if(it==loaded.end())return false;
+        auto& t=it->second;
+        if(f.seenTile!=t.node) {
+            f.seenTile=t.node;f.nearIndex=-1;
+            const std::string name="landmark "+f.slug;
+            for(size_t i=0;i<t.props.size();++i)
+                if(t.props[i].value("name",std::string())==name){f.nearIndex=long(i);break;}
+        }
+        // A tile cooked before its landmark carries none: keep the far model.
+        return f.nearIndex>=0&&long(t.nextProp)>f.nearIndex;
+    }
+    void placeFar(FarLandmark& f) {
+        const auto position=glm::vec3(origin.local(ecef(f.lon,f.lat,f.alt)));
+        const Frame own(f.lon,f.lat,f.alt);
+        const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*own.basis));
+        const auto turn=rotation*glm::inverse(f.node->transform().rotation);
+        engine.sceneTree().world().rebaseSubtree(*f.node,position-turn*f.node->transform().position,turn);
+    }
+    size_t farVertices() const {
+        size_t n=0;
+        for(const auto& f:farLandmarks)if(f.node&&f.shown>=0)n+=f.levels[size_t(f.shown)].vertices;
+        return n;
+    }
+    void updateFar() {
+        for(auto& f:farLandmarks) {
+            const glm::dvec3 here=origin.local(ecef(f.lon,f.lat,f.alt));
+            const double distance=std::hypot(here.x,here.z);
+            int want=-1;
+            if(playing&&!nearModel(f))
+                for(size_t i=0;i<f.levels.size();++i)if(distance<=f.levels[i].until){want=int(i);break;}
+            if(want==f.shown)continue;
+            if(f.node){f.node->queueFree();f.node=nullptr;}
+            f.shown=want;
+            if(want<0)continue;
+            const auto& level=f.levels[size_t(want)];
+            auto n=saida::SceneSerializer::nodeFromJson(json({{"type","Node"},{"name","far "+f.slug},
+                {"importedFrom",level.path}}).dump(),engine.resources());
+            if(!n) {
+                // Keeps `shown`, so a model that will not load is reported
+                // once per distance band rather than once a frame.
+                saida::Log::warn("[World landmarks] ",f.slug," level ",want+1," failed to load: ",level.path);
+                if(smoke){testFailed=true;engine.sceneTree().quit();}
+                continue;
+            }
+            f.node=engine.sceneTree().world().addChild(std::move(n));
+            placeFar(f);
+            saida::Log::info("[World landmarks] ",f.slug," level ",want+1," at ",int(distance)," m");
+        }
+    }
     void streamProps() {
         const auto start=std::chrono::steady_clock::now();
         // Scene/GPU APIs stay on the render thread. Yield between objects;
@@ -1716,6 +1814,8 @@ class World : public Rml::EventListener {
         if(removed)trim();
         size_t count=0;
         for(auto& [k,t]:loaded)if(wanted.count(k))count+=t.data["vertices"].get<size_t>();
+        // The far landmarks share the arena with the tiles (r1/landmarks.py).
+        count+=farVertices();
         for(auto t:want) {
             if(loaded.count(t.key()))continue;
             fs::path p=game/"cache"/"world"/t.key()/"ready.json";
@@ -2317,9 +2417,14 @@ public:
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
         if(!fast)streamProps();
+        farRead+=delta;
+        if(farRead>1.){farRead=0;readFarLandmarks();}
+        updateFar();
         updateNature(fast?.55:1.);
         updateTraffic(delta);
         updateSea(delta);
+        conditionsRead+=delta;
+        if(conditionsRead>.5){conditionsRead=0;readConditions();}
         engine.window().setCursorCaptured(true);
         auto mouse=saida::Input::mouseDelta();
         // At the wheel the mouse does not steer -- the car does -- so it turns

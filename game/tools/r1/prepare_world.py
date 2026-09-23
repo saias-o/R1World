@@ -30,6 +30,13 @@ DEFAULT_LON, DEFAULT_LAT = 2.3522, 48.8566
 # a real city car, and it is shorter than the saloon the kit drew.
 VEHICLE_SCALE = round(1.80 / 1.50, 4)
 
+# Haze as an extinction per metre, and how far the camera draws. A visibility of
+# 5 km (Koschmieder: 3.912 / V) is an ordinary city day; beyond it a monument is
+# more than 97% haze, so the far plane stops there too. `sun_cycle.js` carries
+# the same density every frame. See `landmarks.FAR_RANGE`.
+FOG_DENSITY = 0.00078
+FAR_PLANE = 5000
+
 
 def basemap():
     cache = GAME / "assets" / "world" / "land.geojson"
@@ -115,14 +122,14 @@ def main():
             node("Node","Body",importedFrom=external_assets.vehicle_model("sedan"),
                  transform={"position":[0,0,0],"rotation":[0,1,0,0],
                             "scale":[VEHICLE_SCALE]*3})]),
-        node("Camera","ExplorerCamera",groups=["camera"],fovDegrees=62,nearZ=.1,farZ=5000,priority=10,active=True),
+        node("Camera","ExplorerCamera",groups=["camera"],fovDegrees=62,nearZ=.1,farZ=FAR_PLANE,priority=10,active=True),
         node("WebCanvasNode","WorldMap",groups=["world-ui"],width=1440,height=900,referenceWidth=1440,referenceHeight=900,
              scaleMode=1,mode=0,url="ui/world.html",hotReload=False,interactive=True,renderOrder=1000),
     ]
     scene["settings"] = dict(ambient=[round(c,4) for c in sun.ambient],
                  clearColor=[round(c,4) for c in sun.horizon_color],giEnabled=False,
                  fogEnabled=True,fogColor=[round(c,4) for c in sun.horizon_color],
-                 fogStart=160,fogDensity=.0035,
+                 fogStart=160,fogDensity=FOG_DENSITY,
                  iblEnabled=False,aoEnabled=True,bloomEnabled=False,postProcessing=True,
                  changeRenderingAtLoad=True,
                  # The first frame's sky, from the same series and the same

@@ -73,6 +73,12 @@ const EPOCH_UNIX = props.useSystemClock ? Date.now() / 1000.0 : props.epochUnix;
 const TIME_SCALE = props.secondsPerSecond;
 const TURBIDITY = props.turbidity;
 const PEAK_INTENSITY = props.peakIntensity;
+// Haze, as an extinction per metre: a meteorological visibility of 5 km
+// (Koschmieder, 3.912 / V), the air of a city on an ordinary day. It used to be
+// 0.0035 -- a one-kilometre fog that hid the edge of the streamed neighbourhood
+// and, with it, every landmark more than a kilometre away. Kept equal to
+// `prepare_world.FOG_DENSITY`, which gives the scene its first frame.
+const FOG_DENSITY = 0.00078;
 let weatherCloud = 0.0;
 let weatherRain = 0.0;
 
@@ -530,7 +536,7 @@ function refreshSun() {
     // colour, because they are one scattering column.
     scene.setSetting("fogColor", sky.horizonColor);
     scene.setSetting("clearColor", sky.horizonColor);
-    scene.setSetting("fogDensity", 0.0035 + Math.min(weatherRain, 2.0) * 0.001);
+    scene.setSetting("fogDensity", FOG_DENSITY + Math.min(weatherRain, 2.0) * 0.001);
     scene.setSetting("iblDiffuseIntensity", sky.iblIntensity);
     scene.setSetting("iblSpecularIntensity", sky.iblIntensity);
 
