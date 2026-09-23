@@ -652,6 +652,10 @@ ZQSD/WASD drive it, **Space** is the handbrake, **F** gets out again — and the
 door refuses to open above 7 km/h, out loud, which is the first thing the E2E
 driver hit.
 
+Water is not a road: entering it ejects the driver into a swim while the car
+sinks below the surface. Walking into water also starts swimming. The swimmer
+keeps only their head above water and can move back to a bank or board a boat.
+
 At the wheel the mouse does not steer, so it turns the head instead: a free yaw
 around the car that eases back behind it once the mouse stops and the car is
 rolling. The first version locked the view to the heading and that was simply

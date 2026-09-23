@@ -65,6 +65,10 @@ constexpr double kCarSteerAngle=34.;    // degrees of visible lock on the front 
 constexpr double kCarWheelRadius=.36;   // 0.30 in the kit, scaled as the scene scales it
 constexpr double kCarReach=4.5;         // m -- how close you stand to open the door
 constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refused out loud
+constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for water
+constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
+constexpr double kPlayerHeight=1.8;     // measured from player.glb's mesh accessor
+constexpr double kSwimHeadAbove=.18;    // only the top of the head clears the water
 // §12.4: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
@@ -222,8 +226,9 @@ class World : public Rml::EventListener {
     // car, not a copy of it moved under his feet.
     struct Parked {saida::Node* node; double lon,lat,alt,yaw;};
     std::vector<Parked> parked;
-    bool driving=false,wasEnterKey=false,carParked=false,wheelsReported=false;
+    bool driving=false,wasEnterKey=false,carParked=false,carSinking=false,wheelsReported=false;
     double carLon=0,carLat=0,carAlt=0,carYaw=0,carSpeed=0,wheelSpin=0,steerShown=0;
+    double carWaterLevel=0,carSinkDepth=0;
     // Where the player is looking, measured from behind the car. The walk
     // steers the view and the view steers the walk, which is one angle; a
     // car steers itself, so looking out of the side window has to be a
@@ -237,7 +242,8 @@ class World : public Rml::EventListener {
         double length=8,beam=3,top=10,accel=2,turn=30;
         double lon=0,lat=0,alt=0,yaw=0,speed=0;
     };
-    bool sailing=false,swimming=false; Vessel boat; std::vector<Vessel> leftBoats; double seaTime=0,swimTime=0,swimHeading=0;
+    bool sailing=false,swimming=false; Vessel boat; std::vector<Vessel> leftBoats;
+    double seaTime=0,swimTime=0,swimHeading=0,swimLean=0;
     struct SeaShip {std::string id; Vessel v; double phase=0;};
     std::vector<SeaShip> seaShips; std::set<std::string> seaTaken;
     std::map<std::string,saida::Node*> hullPrototypes;
@@ -490,19 +496,11 @@ class World : public Rml::EventListener {
         return (double(g[low+size_t(ix)])*(1-u)+double(g[low+size_t(ix)+1])*u)*(1-v)
               +(double(g[high+size_t(ix)])*(1-u)+double(g[high+size_t(ix)+1])*u)*v;
     }
-    // Is this coordinate standing in water? The tile ships a bitmap of its own
-    // terrain grid (see world_service._water_grid), so this asks exactly the
-    // question the picture answers and cannot disagree with it about where the
-    // bank is. Fully oceanic tiles are deliberately not covered: they carry a
-    // WaterNode and no terrain, and walking out onto a square of Atlantic is
-    // behaviour this world has always had.
-    bool onWater(double x,double y) const {
-        for(const auto& [key,t]:loaded) {
-            if(t.water.empty()||!inside(t,x,y))continue;
-            if(onDeck(t,x,y))return false;
-            if(waterCode(t,x,y))return true;
-        }
-        return false;
+    // The tile's water grid and fully oceanic tiles must answer the same
+    // question for walkers, cars and boats. Piers remain dry walkable decks.
+    bool onWater(double x,double y) {
+        const auto* t=tile(x,y);
+        return t&&!onDeck(*t,x,y)&&(t->ocean||waterCode(*t,x,y)!=0);
     }
     int waterCode(const Loaded& t,double x,double y) const {
         if(t.water.empty())return 0;
@@ -514,10 +512,7 @@ class World : public Rml::EventListener {
     // is not under a pier. The same cells the terrain is drawn from, so a boat
     // stops at the shore the eye sees.
     bool navigable(double x,double y) {
-        auto* t=tile(x,y);
-        if(!t)return false;
-        if(t->ocean)return true;
-        return waterCode(*t,x,y)!=0&&!onDeck(*t,x,y);
+        return onWater(x,y);
     }
     // The surface a boat floats on: the sea's 0 m, or a lake's own level.
     double waterLevel(double x,double y) {
@@ -620,7 +615,8 @@ class World : public Rml::EventListener {
         }
         if(!carParked||!car)return;
         car->transform().position=glm::vec3(origin.local(ecef(carLon,carLat,carAlt+.06)));
-        car->transform().rotation=carRotation();
+        car->transform().rotation=carSinking
+            ?glm::angleAxis(float(-carYaw*rad),glm::vec3(0,1,0)):carRotation();
         // Wheels turn because a car whose wheels do not turn is a car sliding
         // on ice, and this one is visible from three metres behind it.
         auto spin=glm::angleAxis(float(-wheelSpin),glm::vec3(1,0,0));
@@ -644,7 +640,8 @@ class World : public Rml::EventListener {
     // Park the car beside wherever the player just arrived. Called from every
     // spawn, because the car goes where he goes.
     void parkCar() {
-        carParked=false;carSpeed=0;wheelSpin=0;steerShown=0;
+        carParked=false;carSinking=false;carSinkDepth=0;
+        carSpeed=0;wheelSpin=0;steerShown=0;
         // Half a planet away from where they were left, so they are not kept.
         clearAbandonedCars();
         if(!car)return;
@@ -688,7 +685,7 @@ class World : public Rml::EventListener {
             parked.front().node->queueFree();
             parked.erase(parked.begin());
         }
-        car=nullptr;carParked=false;
+        car=nullptr;carParked=false;carSinking=false;carSinkDepth=0;
     }
     void clearAbandonedCars() {
         for(auto& entry:parked)entry.node->queueFree();
@@ -710,7 +707,7 @@ class World : public Rml::EventListener {
         distance=kCarReach;
         bool found=false;
         const glm::dvec3 me=ecef(lon,lat,alt);
-        if(carParked&&car) {
+        if(carParked&&car&&!carSinking) {
             const double d=glm::length(me-ecef(carLon,carLat,carAlt));
             if(d<distance){distance=d;out={car,nullptr,0,0};found=true;}
         }
@@ -823,11 +820,29 @@ class World : public Rml::EventListener {
         request(lon,lat);
         return true;
     }
+    void sinkCar(double x,double y) {
+        carWaterLevel=waterLevel(x,y);carSinkDepth=0;carSinking=true;
+        carLon=x;carLat=y;carAlt=carWaterLevel;carSpeed=0;steerShown=0;
+        driving=false;swimming=true;swimTime=0;swimLean=0;
+        lon=x;lat=y;alt=carWaterLevel;yaw=wrap(carYaw+lookYaw);swimHeading=yaw;
+        lookYaw=0;lookIdle=0;jumpOffset=jumpVelocity=0;
+        followDistance=std::min(followDistance,kOnFootFollow);
+        player->setEnabled(true);
+        text("stream-status","La voiture coule — nagez vers la rive.");
+        saida::Log::info("[World car] sank at ",lon,", ",lat);
+        request(lon,lat);
+    }
+    void updateSinkingCar(double dt) {
+        if(!carSinking||!carParked||!car)return;
+        carSinkDepth=std::min(kCarSinkDepth,carSinkDepth+kCarSinkRate*dt);
+        carAlt=carWaterLevel-carSinkDepth;
+    }
     // One step of the car, in the tangent plane. Throttle and steering are the
     // same two axes the walk reads; what differs is that a car carries its
     // speed and its heading from one frame to the next, which is the whole of
     // what makes driving feel unlike walking.
     void driveCar(double dt,double throttle,double steerInput,bool handbrake) {
+        if(onWater(lon,lat)){sinkCar(lon,lat);return;}
         if(throttle>0)carSpeed=std::min(kCarTopSpeed,carSpeed+kCarAccel*throttle*dt);
         else if(throttle<0) {
             // Reverse is what the brake becomes once the car has stopped, which
@@ -863,6 +878,7 @@ class World : public Rml::EventListener {
             text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
             return;
         }
+        if(onWater(next.x,next.y)){sinkCar(next.x,next.y);return;}
         if(blocked(next.x,next.y)) {
             carSpeed=0;
             text("stream-status","Obstacle — la voiture s'arrête.");
@@ -1012,7 +1028,8 @@ class World : public Rml::EventListener {
         }
         sailing=false;keepBoat(boat);boat=Vessel{};
         yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
-        lon=exit->where.x;lat=exit->where.y;swimming=exit->swimming;swimTime=0;swimHeading=yaw;
+        lon=exit->where.x;lat=exit->where.y;swimming=exit->swimming;
+        swimTime=0;swimHeading=yaw;swimLean=0;
         alt=swimming?waterLevel(lon,lat):height(lon,lat);
         player->setEnabled(true);
         player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
@@ -2000,11 +2017,28 @@ public:
         smokeSailTime+=std::min(.05,double(delta));
         if(smokeSailTime<1.5)return;
         const double covered=glm::length(ecef(lon,lat,alt)-smokeSwimStart);
-        if(!swimming||!navigable(lon,lat)||covered<1.) {
-            saida::Log::error("[World E2E] FAIL swim: covered=",covered,"m, afloat=",navigable(lon,lat));
+        const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
+        if(!swimming||!onWater(lon,lat)||covered<1.||rootBelow<1.||rootBelow>1.7) {
+            saida::Log::error("[World E2E] FAIL swim: covered=",covered,"m, water=",onWater(lon,lat),
+                              ", body depth=",rootBelow,"m");
             testFailed=true;engine.sceneTree().quit();return;
         }
         smokeSwimming=false;
+        if(!car||!carParked) {
+            saida::Log::error("[World E2E] FAIL car sink: no car to test");
+            testFailed=true;engine.sceneTree().quit();return;
+        }
+        // A car already on this water cell must eject its driver and descend.
+        carLon=lon;carLat=lat;carAlt=alt;carYaw=yaw;
+        carSinking=false;driving=true;swimming=false;
+        driveCar(.05,1.,0.,false);
+        updateSinkingCar(1.);
+        if(driving||!swimming||!carSinking||carAlt>carWaterLevel-1.) {
+            saida::Log::error("[World E2E] FAIL car sink: driver afloat=",swimming,
+                              ", car depth=",carWaterLevel-carAlt,"m");
+            testFailed=true;engine.sceneTree().quit();return;
+        }
+        saida::Log::info("[World E2E] PASS car sink: driver swimming, car ",carWaterLevel-carAlt,"m below water");
         if(!enterBoat()||boat.node!=smokeSwimBoat) {
             saida::Log::error("[World E2E] FAIL swim: could not reboard the same boat");
             testFailed=true;engine.sceneTree().quit();return;
@@ -2203,6 +2237,9 @@ public:
         if(doorKey&&!wasEnterKey) {
             if(driving)leaveCar();
             else if(sailing){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
+            else if(swimming){
+                if(!enterBoat())text("stream-status","Aucun bateau à portée — nagez vers une embarcation.");
+            }
             else {
                 // The nearer of a car and a boat: one key for every vehicle.
                 Reach carReach;BoatReach boatReach;double carAway=0,boatAway=0;
@@ -2239,6 +2276,7 @@ public:
                 if(tile(next.x,next.y)) {
                     if(navigable(next.x,next.y)) {
                         lon=next.x;lat=next.y;alt=waterLevel(lon,lat);moving=true;
+                        swimHeading=wrap(std::atan2(east,north)/rad);
                     } else if(!blocked(next.x,next.y)) {
                         lon=next.x;lat=next.y;alt=height(lon,lat);swimming=false;moving=true;
                         text("stream-status","À terre.");
@@ -2254,7 +2292,14 @@ public:
             double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
             auto next=advance(lon,lat,east,north);
             if(tile(next.x,next.y)) {
-                if(!blocked(next.x,next.y)){
+                if(onWater(next.x,next.y)) {
+                    lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
+                    swimming=true;swimTime=0;swimLean=0;
+                    swimHeading=wrap(std::atan2(east,north)/rad);
+                    jumpOffset=jumpVelocity=0;moving=true;
+                    text("stream-status","À l'eau — nagez vers la rive.");
+                    saida::Log::info("[World swim] entered water at ",lon,", ",lat);
+                } else if(!blocked(next.x,next.y)){
                     lon=next.x;lat=next.y;alt=height(lon,lat);moving=true;
                     auto facing=glm::angleAxis(float(-std::atan2(east,north)),glm::vec3(0,1,0));
                     player->transform().rotation=glm::slerp(player->transform().rotation,facing,float(1-std::exp(-16*dt)));
@@ -2266,10 +2311,13 @@ public:
         if(!driving&&!sailing) {
             if(swimming) {
                 jumpOffset=jumpVelocity=0;wasJump=false;
-                const double heave=.06*std::sin(swimTime*4.);
-                player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt-.45+heave)));
+                swimLean+=(double(moving)-swimLean)*(1-std::exp(-5*dt));
+                const double lean=35.*rad*swimLean;
+                const double heave=.035*std::sin(swimTime*4.);
+                const double rootBelow=kPlayerHeight*std::cos(lean)-kSwimHeadAbove;
+                player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt-rootBelow+heave)));
                 player->transform().rotation=glm::angleAxis(float(-swimHeading*rad),glm::vec3(0,1,0))
-                                             *glm::angleAxis(float(-65.*rad),glm::vec3(1,0,0));
+                                             *glm::angleAxis(float(-lean),glm::vec3(1,0,0));
                 for(auto* a:animators)a->play(moving?"run":"idle");
             } else {
                 bool jump=w.keyDown(GLFW_KEY_SPACE);
@@ -2283,6 +2331,7 @@ public:
                 for(auto* a:animators)a->play(jumpOffset>0?"jump":moving?"run":"idle");
             }
         }
+        updateSinkingCar(dt);
         placeCar();
         placeBoats();
         if(smokeStarted&&worldCapture.pngPath.empty()){
@@ -2297,7 +2346,7 @@ public:
         // inside it.
         const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
                               :driving?kDrivingFollow:kOnFootFollow;
-        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):driving?2.:1.6;
+        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):driving?2.:swimming?2.1:1.6;
         const glm::vec3 anchor=sailing&&boat.node?boat.node->transform().position
                               :driving?car->transform().position:player->transform().position;
         const glm::vec3 target=anchor+glm::vec3(0,eye,0);
