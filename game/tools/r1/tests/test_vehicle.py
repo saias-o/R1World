@@ -148,8 +148,7 @@ class InTheEntryScene(unittest.TestCase):
             root = Path(directory)
             (root / "scenes").mkdir()
             with patch.object(prepare_world, "GAME", root), \
-                    patch.object(prepare_world, "basemap"), \
-                    patch.object(prepare_world, "facade"):
+                    patch.object(prepare_world, "basemap"):
                 prepare_world.main()
             scene = json.loads((root / "scenes" / "earth.scene").read_text(encoding="utf-8"))
         car = next(n for n in scene["scene"]["children"] if "vehicle" in n.get("groups", []))

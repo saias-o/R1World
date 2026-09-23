@@ -550,6 +550,32 @@ def _sanitize_kenney_glb(payload: bytes) -> bytes:
     )
 
 
+def surfaces_provenance() -> list[dict]:
+    """One record per scanned material of `r1/surfaces.py`, from its table."""
+    from . import surfaces
+    try:
+        families = surfaces.load_table()["families"]
+    except FileNotFoundError:
+        return []
+    by_asset: dict[tuple[str, str], list[str]] = {}
+    for entry in families.values():
+        files = by_asset.setdefault((entry["source"], entry["asset"]), [])
+        files += [entry["albedo"], entry["normal"], entry["mr"]]
+    records = []
+    for (origin, asset), files in sorted(by_asset.items()):
+        records.append({
+            "name": f"{asset} (surface material)",
+            "author": "Poly Haven" if origin == "polyhaven" else "ambientCG (Lennart Demes)",
+            "source": (f"https://polyhaven.com/a/{asset}" if origin == "polyhaven"
+                       else f"https://ambientcg.com/view?id={asset}"),
+            "license": "CC0 1.0",
+            "modified": "Colour normalised to the palette albedo, resized; walls baked "
+                        "into bay sheets with a window (r1/surfaces.py)",
+            "files": sorted(set(files)),
+        })
+    return records
+
+
 def ensure_external_assets() -> dict[str, object]:
     """Download, verify and extract the CC0 models/textures used by R1World."""
     for kit in PROP_KITS:
@@ -573,6 +599,13 @@ Dedicated to the public domain under CC0 1.0 Universal.
 http://creativecommons.org/publicdomain/zero/1.0/
 Crediting Kenney is appreciated and is not required.
 """,
+        encoding="utf-8",
+    )
+    (LICENSE_ROOT / "ambientCG-CC0.txt").write_text(
+        "Materials by ambientCG (Lennart Demes).\n"
+        "Dedicated to the public domain under CC0 1.0 Universal.\n"
+        "Source: https://ambientcg.com/\n"
+        "License: https://docs.ambientcg.com/license/\n",
         encoding="utf-8",
     )
     poly_license = LICENSE_ROOT / "Poly-Haven-CC0.txt"
@@ -651,7 +684,7 @@ Crediting Kenney is appreciated and is not required.
                 "files": [source.texture for source in skies.SOURCES]
                          + ["assets/skies/skies.json"],
             },
-        ],
+        ] + surfaces_provenance(),
     }
     PROVENANCE_PATH.write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
     return {

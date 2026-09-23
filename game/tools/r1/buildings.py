@@ -626,18 +626,19 @@ class MeshBook:
     what the renderer wants and what `MeshPart` expresses.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, uv_mode: str = "none") -> None:
         self._meshes: dict[str, Mesh] = {}
         self._swatches: dict[str, Swatch] = {}
+        self._uv_mode = uv_mode
 
     def mesh(self, swatch: Swatch) -> Mesh:
         if swatch.name not in self._meshes:
-            self._meshes[swatch.name] = Mesh()
+            self._meshes[swatch.name] = Mesh(uv_mode=self._uv_mode)
             self._swatches[swatch.name] = swatch
         return self._meshes[swatch.name]
 
     def parts(self, prefix: str, texture: str | None = None,
-              double_sided: bool = False) -> list[MeshPart]:
+              double_sided: bool = False, materials=None) -> list[MeshPart]:
         """One part per swatch, optionally all sharing one base-colour texture.
 
         The texture multiplies the swatch colour rather than replacing it, so a
@@ -651,11 +652,15 @@ class MeshBook:
             if not mesh.indices:
                 continue
             swatch = self._swatches[name]
-            colour = (swatch.color[0], swatch.color[1], swatch.color[2], 1.0)
-            out.append(MeshPart(f"{prefix} — {name}", mesh,
-                                Material(name, colour, swatch.roughness,
-                                         double_sided=double_sided,
-                                         base_color_texture=texture)))
+            if materials is not None:
+                # A material per swatch, from whoever knows what it is made of
+                # (`surfaces.py` in the world); the swatch keeps the albedo.
+                material = materials(swatch, double_sided)
+            else:
+                colour = (swatch.color[0], swatch.color[1], swatch.color[2], 1.0)
+                material = Material(name, colour, swatch.roughness,
+                                    double_sided=double_sided, base_color_texture=texture)
+            out.append(MeshPart(f"{prefix} — {name}", mesh, material))
         return out
 
     def triangle_count(self) -> int:
@@ -1191,6 +1196,8 @@ def build_buildings(
     detail_radius: float = 190.0,
     wall_texture: str | None = None,
     roof_thickness: float = ROOF_THICKNESS,
+    wall_materials=None,
+    roof_materials=None,
 ) -> tuple[list[MeshPart], list[list[Point]], BuildingStats]:
     """Turn OSM building ways into meshes, footprints and a provenance record.
 
@@ -1222,7 +1229,9 @@ def build_buildings(
 
     walls = MeshBook()
     foundations = MeshBook()
-    roofs = MeshBook()
+    # Roof faces get UVs across and up their own slope, so rows of tiles run
+    # along the eave however the roof is turned (see `Mesh.uv_mode`).
+    roofs = MeshBook("slope" if roof_materials is not None else "none")
     trim = Mesh()
     glass = Mesh()
     footprints: list[list[Point]] = []
@@ -1279,7 +1288,7 @@ def build_buildings(
                 # vertices to the dedup, since two quads that shared a corner
                 # stop sharing it once their texture coordinates differ.
                 scale = None
-                if wall_texture is not None:
+                if wall_texture is not None or wall_materials is not None:
                     bays = max(1.0, round(frame.length / profile.bay_width))
                     scale = (bays / frame.length,
                              gabarit.storeys / max(1e-3, gabarit.wall_height))
@@ -1322,9 +1331,10 @@ def build_buildings(
 
     # A roof with no thickness is one surface, so it has to be visible from
     # under the eave as well as from above; a slab closes itself and does not.
-    parts = (walls.parts("Walls", wall_texture)
+    parts = (walls.parts("Walls", wall_texture, materials=wall_materials)
              + foundations.parts("Foundations")
-             + roofs.parts("Roofs", double_sided=roof_thickness <= 0.0))
+             + roofs.parts("Roofs", double_sided=roof_thickness <= 0.0,
+                           materials=roof_materials))
     if trim.indices:
         parts.append(MeshPart("Openings — reveals", trim,
                               Material(profile.trim.name,

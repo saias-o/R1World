@@ -226,8 +226,23 @@ def _contains(ring, lon: float, lat: float) -> bool:
     return inside
 
 
+# What the cold does to a class (`surfaces.cold_suffix`): above the snowline it
+# is snow whatever it was, and just below it grass and fields are frosted.
+# Albedos: fresh snow 0.80-0.90; frost on grass sits between the two.
+SNOW = _sw("Snow", (0.83, 0.85, 0.89), 0.55)
+FROST = _sw("Frosted ground", (0.44, 0.47, 0.50), 0.85)
+
+
 def material_for(name: str, profile: RegionProfile) -> Swatch:
-    """The swatch a class renders with, the region answering for the unmapped."""
-    if name == INFERRED:
+    """The swatch a class renders with, the region answering for the unmapped.
+
+    `name` may carry a cold suffix, "@snow" or "@frost".
+    """
+    base, _, cold = name.partition("@")
+    if cold == "snow" and base != "water":
+        return SNOW
+    if cold == "frost" and base not in ("water", "urban", "rock", "sand"):
+        return FROST
+    if base == INFERRED:
         return profile.ground
-    return SWATCHES[name]
+    return SWATCHES[base]

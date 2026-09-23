@@ -26,7 +26,8 @@ from . import nature
 from .streets import build_streets, smooth_surface
 from . import traffic as road_traffic
 from .world_elevation import fetch_ground
-from .mesh import MeshPart, Material, write_glb
+from .mesh import MeshPart, write_glb
+from . import surfaces
 from .buildings import build_buildings
 from .terrain import (
     TERRAIN_MESH_SIZE, build_terrain, build_roads, ground_point)
@@ -44,11 +45,6 @@ CACHE = GAME / "cache" / "world"
 # footprint, the height, the roof, the material — is unaffected by this line,
 # which is exactly why it is the line that gives way.
 WORLD_DETAIL_RADIUS = -1.0
-
-# Relative to `cache/world/<key>/world.glb`, where the GLB is written. One
-# greyscale sheet of bays and floors, multiplied by each region's own render
-# colour, serves the whole planet.
-FACADE_TEXTURE = "../../../assets/world/facade.png"
 
 # Roofs without a fascia or a soffit, for the same reason as the radius above
 # and at a larger saving: the slab edges were 46% of every vertex in the
@@ -86,10 +82,17 @@ def compact_buildings(buildings, ground, profile: RegionProfile):
     tagged storey count and a tagged roof shape ahead of anything the profile
     offers, and the manifest still records which of the two answered (§4 I5).
     """
+    # Each wall and roof swatch is shown in the material its name says it is
+    # made of (`surfaces.py`), at the albedo the region gave it.
     return build_buildings(buildings, ground, profile,
                            detail_radius=WORLD_DETAIL_RADIUS,
-                           wall_texture=FACADE_TEXTURE,
-                           roof_thickness=WORLD_ROOF_THICKNESS)
+                           roof_thickness=WORLD_ROOF_THICKNESS,
+                           wall_materials=lambda swatch, double_sided: surfaces.material(
+                               swatch.name, swatch.color, swatch.roughness,
+                               surfaces.wall_family(swatch.name), double_sided=double_sided),
+                           roof_materials=lambda swatch, double_sided: surfaces.material(
+                               swatch.name, swatch.color, swatch.roughness,
+                               surfaces.roof_family(swatch.name), double_sided=double_sided))
 
 
 # One cell per terrain quad, so the bitmap and the picture cannot drift apart.
@@ -204,9 +207,17 @@ def cook(tile, osm_cache=None):
     # adds no vertices at all -- see ground.py -- and it is the difference
     # between a planet that is one green and a planet that has deserts.
     landcover = ground_materials.Landcover(osm.landcover)
-    terrain_meshes = build_terrain(
-        bounds, elevations, anchor,
-        classify=lambda x, y: landcover.at(x, y) or ground_materials.INFERRED)
+    # Which ground, where: the class OSM mapped (or the region's own), turned
+    # to snow above the snowline and to frost just below it (`surfaces.py`).
+    climate = surfaces.climate_at(profile.climate, lat)
+
+    def classify(x, y):
+        name = landcover.at(x, y) or ground_materials.INFERRED
+        if name == "water":
+            return name
+        return name + surfaces.cold_suffix(y, elevations.sample(x, y), climate)
+
+    terrain_meshes = build_terrain(bounds, elevations, anchor, classify=classify)
     # The terrain is continuous ground, not hard-edged masonry. Smooth normals
     # let adjacent triangles share vertices without changing the measured relief.
     terrain_meshes = {name: smooth_surface(mesh) for name,mesh in terrain_meshes.items()}
@@ -224,9 +235,10 @@ def cook(tile, osm_cache=None):
     for name in sorted(terrain_meshes):
         swatch = ground_materials.material_for(name, profile)
         ground_stats[name] = len(terrain_meshes[name].indices) // 3
+        family = surfaces.ground_family(name, profile.ground.name, climate)
         terrain_parts.append(MeshPart(
             f"Ground — {swatch.name}", terrain_meshes[name],
-            Material(swatch.name, (*swatch.color, 1.), swatch.roughness)))
+            surfaces.material(swatch.name, swatch.color, swatch.roughness, family)))
     clipped_roads = clip_roads(osm.roads, bounds)
     street_parts, street_stats = build_streets(clipped_roads, osm.features, elevations, anchor, footprints)
     # The road centre lines in engine metres, so a bench can be turned to face
@@ -249,7 +261,9 @@ def cook(tile, osm_cache=None):
     # region. It is the one number that says how much of what you are standing
     # on anybody actually looked at (§4 I5).
     triangles = sum(ground_stats.values()) or 1
-    measured_ground = 1. - ground_stats.get(ground_materials.INFERRED, 0)/triangles
+    inferred = sum(n for key, n in ground_stats.items()
+                   if key.partition("@")[0] == ground_materials.INFERRED)
+    measured_ground = 1. - inferred/triangles
     if not ocean: write_glb(folder / "world.glb", parts)
     # Props are scene nodes and not tile geometry, and that is the whole reason
     # they are affordable: Saida's MeshCache keys meshes by asset, so six
@@ -286,6 +300,7 @@ def cook(tile, osm_cache=None):
               # much authority it had, and how many buildings owe it their
               # height and their roof rather than owing them to a survey.
               "region": profile.name, "regionTier": profile.tier,
+              "climate": climate,
               "osmQueryVersion": osm_query_version,
               "ground": {"measuredFraction": round(measured_ground, 4),
                          "trianglesByClass": ground_stats},

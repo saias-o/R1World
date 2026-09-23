@@ -14,7 +14,12 @@ except ImportError as error:
     raise RuntimeError("Impossible de charger les dependances embarquees. Python="
                        + sys.executable + "; packages=" + str(dependency_path)
                        + "; shapely=" + str(getattr(sys.modules.get("shapely"),"__file__",None))) from error
-from .mesh import Mesh, MeshPart, Material
+from .mesh import Mesh, MeshPart
+from . import surfaces as surface_materials
+
+# OSM `surface` values laid as cobbles or setts.
+COBBLED = frozenset({"sett", "cobblestone", "unhewn_cobblestone", "cobblestone:flattened",
+                     "paving_stones"})
 from .streets import MOTOR, width, length_tag, sidewalk_sides, smooth_surface
 from .terrain import ground_point, TERRAIN_MESH_SIZE
 
@@ -39,7 +44,7 @@ def build_surfaces(roads,features,elevations,anchor,footprints=()):
     stats = {"sidewalkSidesTagged":0,"sidewalkSidesInferred":0,
              "zebraCrossingsTagged":0,"widthsTagged":0,"widthsInferred":0,
              "unsupportedGradeSeparatedWays":0}
-    road_polys, walk_polys, motor_lines = [],[],[]
+    road_polys, cobble_polys, walk_polys, motor_lines = [],[],[],[]
     for road in roads:
         tags = road.tags
         if tags.get("area")=="yes" or tags.get("footway")=="crossing":
@@ -57,7 +62,9 @@ def build_surfaces(roads,features,elevations,anchor,footprints=()):
         if tags.get("highway") not in MOTOR:
             walk_polys.append(strip)
             continue
-        road_polys.append(strip)
+        # A surveyed sett or cobbled street is laid in cobbles, everything
+        # else motorised in asphalt: the surface tag is a measurement (rule 4).
+        (cobble_polys if tags.get("surface") in COBBLED else road_polys).append(strip)
         motor_lines.append((road.osm_id,line,half))
         for side,inferred in sidewalk_sides(tags):
             stats["sidewalkSidesInferred" if inferred else "sidewalkSidesTagged"] += 1
@@ -68,10 +75,14 @@ def build_surfaces(roads,features,elevations,anchor,footprints=()):
                                           cap_style=2,join_style=2).difference(strip))
     buildings = unary_union([Polygon(r).buffer(0) for r in footprints if len(r)>=3])
     asphalt = unary_union(road_polys).difference(buildings)
-    paving = unary_union(walk_polys).difference(asphalt).difference(buildings)
+    cobbles = unary_union(cobble_polys).difference(buildings).difference(asphalt)
+    paving = (unary_union(walk_polys).difference(asphalt).difference(cobbles)
+              .difference(buildings))
     # Precision snapping removes submillimetre slivers, not surveyed detail.
     asphalt = shapely.set_precision(asphalt,.001)
-    paving = shapely.set_precision(paving,.001).difference(asphalt)
+    cobbles = shapely.set_precision(cobbles,.001).difference(asphalt)
+    paving = shapely.set_precision(paving,.001).difference(asphalt).difference(cobbles)
+    carriageway = unary_union([asphalt, cobbles])
     stripes = []
     seen = set()
     for f in features:
@@ -106,8 +117,12 @@ def build_surfaces(roads,features,elevations,anchor,footprints=()):
         stats["zebraCrossingsTagged"] += 1
     paint = unary_union(stripes).intersection(asphalt)
 
-    road_mesh,walk_mesh,paint_mesh,kerb_mesh = Mesh(),Mesh(),Mesh(),Mesh()
-    surfaces = [(asphalt,road_mesh,.06),(paving,walk_mesh,.21),(paint,paint_mesh,.075)]
+    # Planar UVs in metres, so a pattern runs on across triangles of different
+    # slope; the materials scale them by their scans' real sizes.
+    road_mesh,cobble_mesh,walk_mesh,paint_mesh,kerb_mesh = (
+        Mesh(uv_mode="planar"),Mesh(uv_mode="planar"),Mesh(uv_mode="planar"),Mesh(),Mesh())
+    surfaces = [(asphalt,road_mesh,.06),(cobbles,cobble_mesh,.06),(paving,walk_mesh,.21),
+                (paint,paint_mesh,.075)]
     bounds = elevations.bounds
     size = TERRAIN_MESH_SIZE-1
     grid = []
@@ -151,7 +166,7 @@ def build_surfaces(roads,features,elevations,anchor,footprints=()):
     # where it read on screen as a three-minute data timeout. Only the
     # polygonal part of each surface has a kerb, so only it is asked for one.
     contact = GeometryCollection()
-    kerb_paving, kerb_asphalt = surfaces_only(paving), surfaces_only(asphalt)
+    kerb_paving, kerb_asphalt = surfaces_only(paving), surfaces_only(carriageway)
     if not kerb_paving.is_empty and not kerb_asphalt.is_empty:
         contact = shapely.line_merge(
             kerb_paving.boundary.intersection(kerb_asphalt.boundary)).simplify(.02)
@@ -169,15 +184,18 @@ def build_surfaces(roads,features,elevations,anchor,footprints=()):
                 kerb_mesh.add_quad(p(i/n,.06),p((i+1)/n,.06),p((i+1)/n,.21),p(i/n,.21))
 
     parts = []
-    for name,mesh,color in (("Carriageway",road_mesh,(.10,.11,.12)),
-                             ("Sidewalks",walk_mesh,(.22,.215,.20)),
-                             ("Kerbs",kerb_mesh,(.26,.25,.23)),
-                             ("Surveyed zebra crossings",paint_mesh,(.50,.49,.46))):
+    for name,mesh,color,family in (("Carriageway",road_mesh,(.10,.11,.12),"asphalt"),
+                                   ("Cobbled carriageway",cobble_mesh,(.16,.155,.145),"cobbles"),
+                                   ("Sidewalks",walk_mesh,(.22,.215,.20),"pavement"),
+                                   ("Kerbs",kerb_mesh,(.26,.25,.23),None),
+                                   ("Surveyed zebra crossings",paint_mesh,(.50,.49,.46),None)):
         if mesh.indices:
             if name!="Kerbs":
                 mesh = smooth_surface(mesh)
-            parts.append(MeshPart(name,mesh,Material(name,(*color,1.),.88,double_sided=name=="Kerbs")))
+            parts.append(MeshPart(name,mesh,surface_materials.material(
+                name,color,.88,family,double_sided=name=="Kerbs")))
     stats["carriagewayAreaM2"] = round(asphalt.area,2)
+    stats["cobbledAreaM2"] = round(cobbles.area,2)
     stats["sidewalkAreaM2"] = round(paving.area,2)
     stats["surfaceOverlapM2"] = round(asphalt.intersection(paving).area,6)
     return parts,stats

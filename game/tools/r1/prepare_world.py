@@ -32,31 +32,6 @@ DEFAULT_LON, DEFAULT_LAT = 2.3522, 48.8566
 VEHICLE_SCALE = round(1.80 / 1.50, 4)
 
 
-def write_png(path,width,height,pixels):
-    def chunk(kind,data):
-        return struct.pack(">I",len(data))+kind+data+struct.pack(">I",zlib.crc32(kind+data))
-    raw=b"".join(b"\0"+pixels[y*width*3:(y+1)*width*3] for y in range(height))
-    path.write_bytes(b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">IIBBBBB",width,height,8,2,0,0,0))+chunk(b"IDAT",zlib.compress(raw))+chunk(b"IEND",b""))
-
-
-def facade():
-    # A deliberately generic, inferred window bay. Tiling its UVs gives every
-    # facade regular floors without adding geometry or claiming photographed art.
-    width=height=128
-    pixels=bytearray(bytes((183,178,166))*width*height)
-    for y in range(height):
-        for x in range(width):
-            color=None
-            if y<3:color=(146,141,133)
-            if 36<=x<92 and 20<=y<106:color=(107,105,98)
-            if 40<=x<88 and 24<=y<102:color=(48,66,75)
-            if 43<=x<62 and 27<=y<62:color=(77,96,103)
-            if 62<=x<66 and 24<=y<102 or 40<=x<88 and 63<=y<67:color=(189,185,173)
-            if 34<=x<94 and 103<=y<109:color=(219,214,200)
-            if color:pixels[(y*width+x)*3:(y*width+x)*3+3]=bytes(color)
-    write_png(GAME/"assets/world/facade.png",width,height,pixels)
-
-
 def basemap():
     cache = GAME / "assets" / "world" / "land.geojson"
     cache.parent.mkdir(parents=True, exist_ok=True)
@@ -97,7 +72,6 @@ def basemap():
 def main():
     (GAME/"ui").mkdir(exist_ok=True)
     basemap()
-    facade()
     # The fleet's colours live beside the world's other generated data rather
     # than in the C++ that reads them: they are albedos, and an albedo the
     # tests cannot see is a rule that is not held (CLAUDE.md rule 2).

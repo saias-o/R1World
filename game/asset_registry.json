@@ -1,8 +1,63 @@
 {
     "assets": {
+        "10013366607930000696": {
+            "hash": 7073655531894829955,
+            "path": "assets/textures/facades/brick_red_albedo.jpg",
+            "type": "Texture"
+        },
+        "10019608746895110490": {
+            "hash": 5111832850819002206,
+            "path": "assets/textures/surfaces/terrace_albedo.jpg",
+            "type": "Texture"
+        },
+        "10048449252355454706": {
+            "hash": 4629684667053892055,
+            "path": "assets/textures/facades/timber_normal.jpg",
+            "type": "Texture"
+        },
+        "10112632569739659639": {
+            "hash": 14709991560257586678,
+            "path": "assets/textures/surfaces/tropical_ground_mr.jpg",
+            "type": "Texture"
+        },
+        "10360716547519012448": {
+            "hash": 16552841851578453568,
+            "path": "assets/textures/surfaces/bare_normal.jpg",
+            "type": "Texture"
+        },
         "1039543789923029": {
             "hash": 7611281069464446547,
             "path": "assets/world/facade.png",
+            "type": "Texture"
+        },
+        "10450548850451262193": {
+            "hash": 5036677358440677263,
+            "path": "assets/textures/surfaces/forest_temperate_mr.jpg",
+            "type": "Texture"
+        },
+        "10550337974809317086": {
+            "hash": 15589912908490408827,
+            "path": "assets/textures/surfaces/soil_arid_mr.jpg",
+            "type": "Texture"
+        },
+        "10671961344610648181": {
+            "hash": 16534967604893544738,
+            "path": "assets/textures/surfaces/asphalt_normal.jpg",
+            "type": "Texture"
+        },
+        "10715968586009378878": {
+            "hash": 9090967675550982469,
+            "path": "assets/textures/surfaces/tile_grey_normal.jpg",
+            "type": "Texture"
+        },
+        "10855028712808085440": {
+            "hash": 9278163483302797793,
+            "path": "assets/textures/surfaces/tile_canal_normal.jpg",
+            "type": "Texture"
+        },
+        "1090310912744360637": {
+            "hash": 4702299393110673403,
+            "path": "assets/textures/surfaces/pavement_normal.jpg",
             "type": "Texture"
         },
         "10904127835492038582": {
@@ -15,10 +70,20 @@
             "path": "assets/models/external/polyhaven_trees/fir_sapling.bin",
             "type": "Unknown"
         },
+        "10935949093332970447": {
+            "hash": 5713723365341401500,
+            "path": "assets/textures/surfaces/rock_mr.jpg",
+            "type": "Texture"
+        },
         "10965556304463422824": {
             "hash": 11390647631395167607,
             "path": "assets/models/characters/player.glb",
             "type": "Mesh"
+        },
+        "1099925608537163141": {
+            "hash": 6093935909095271028,
+            "path": "assets/textures/surfaces/membrane_normal.jpg",
+            "type": "Texture"
         },
         "11077123032362222503": {
             "hash": 825924902146868092,
@@ -28,6 +93,11 @@
         "11103282204312302750": {
             "hash": 4066768423375957583,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_branches_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "11146477928572720099": {
+            "hash": 17693066730175199559,
+            "path": "assets/textures/surfaces/slate_mr.jpg",
             "type": "Texture"
         },
         "11180978023951836498": {
@@ -43,6 +113,21 @@
         "11284629021271802291": {
             "hash": 13124003244293947981,
             "path": "assets/models/external/nature_selected/shrub.png",
+            "type": "Texture"
+        },
+        "11325206094784922751": {
+            "hash": 14978359545312136695,
+            "path": "assets/textures/surfaces/forest_boreal_mr.jpg",
+            "type": "Texture"
+        },
+        "11381784806612477552": {
+            "hash": 818268933673101980,
+            "path": "assets/textures/surfaces/sand_beach_albedo.jpg",
+            "type": "Texture"
+        },
+        "1142104804982393000": {
+            "hash": 14226532417854634959,
+            "path": "assets/textures/facades/render_mr.jpg",
             "type": "Texture"
         },
         "11429220939861462731": {
@@ -65,15 +150,50 @@
             "path": "assets/models/external/kenney_props/bus_stop_sign.glb",
             "type": "Mesh"
         },
+        "1176457584870127476": {
+            "hash": 17321171425847707638,
+            "path": "assets/textures/surfaces/farmland_mr.jpg",
+            "type": "Texture"
+        },
+        "1186708753548117409": {
+            "hash": 2678215517298379653,
+            "path": "assets/textures/facades/concrete_panel_mr.jpg",
+            "type": "Texture"
+        },
         "11899036795517627642": {
             "hash": 2705990327908193934,
             "path": "assets/models/external/nature_cards/urban_tree.source.json",
             "type": "Unknown"
         },
+        "11944752436320655260": {
+            "hash": 13445207984317724304,
+            "path": "assets/textures/surfaces/soil_arid_normal.jpg",
+            "type": "Texture"
+        },
+        "11947922901825894502": {
+            "hash": 13131381384844103131,
+            "path": "assets/textures/surfaces/rock_normal.jpg",
+            "type": "Texture"
+        },
+        "11971458242131912229": {
+            "hash": 11002883388934090171,
+            "path": "assets/textures/surfaces/made_ground_normal.jpg",
+            "type": "Texture"
+        },
+        "11975260970263499753": {
+            "hash": 9936386943127218773,
+            "path": "assets/textures/surfaces/terrace_mr.jpg",
+            "type": "Texture"
+        },
         "11978198429533565905": {
             "hash": 8468455455463512619,
             "path": "assets/models/external/trees_lod/quiver_tree_slim.glb",
             "type": "Mesh"
+        },
+        "12190100396979270698": {
+            "hash": 6793497951419645721,
+            "path": "assets/textures/facades/concrete_panel_albedo.jpg",
+            "type": "Texture"
         },
         "12227418480313943961": {
             "hash": 4594778559482499855,
@@ -90,15 +210,30 @@
             "path": "assets/models/external/kenney_nature_kit/tree_pineRoundA.glb",
             "type": "Mesh"
         },
+        "12328019574957421701": {
+            "hash": 9339828496823619462,
+            "path": "assets/textures/facades/brick_red_normal.jpg",
+            "type": "Texture"
+        },
         "12461648921615326159": {
             "hash": 13251805563787844752,
             "path": "assets/world/land.geojson",
             "type": "Unknown"
         },
+        "1247512701693711658": {
+            "hash": 7947965953991019397,
+            "path": "assets/textures/surfaces/rock_albedo.jpg",
+            "type": "Texture"
+        },
         "12509758340714650534": {
             "hash": 14271210073685985065,
             "path": "assets/models/external/kenney_props/power_pole.glb",
             "type": "Mesh"
+        },
+        "12527864125674739420": {
+            "hash": 16680307341428626825,
+            "path": "assets/textures/surfaces/sand_desert_mr.jpg",
+            "type": "Texture"
         },
         "12531387616827636466": {
             "hash": 6777784807577565656,
@@ -110,15 +245,45 @@
             "path": "assets/models/external/nature_selected/grass_tall.glb",
             "type": "Mesh"
         },
+        "12626698960083496154": {
+            "hash": 13309360296643590621,
+            "path": "assets/textures/facades/render_rough_albedo.jpg",
+            "type": "Texture"
+        },
+        "12646767106854961925": {
+            "hash": 4859881655174385096,
+            "path": "assets/textures/surfaces/corrugated_normal.jpg",
+            "type": "Texture"
+        },
         "12651935706989951633": {
             "hash": 5136553767009596146,
             "path": "assets/models/external/kenney_nature_kit/fir_sapling.bin",
             "type": "Unknown"
         },
+        "12655232604598215204": {
+            "hash": 4753950159188546510,
+            "path": "assets/textures/surfaces/made_ground_albedo.jpg",
+            "type": "Texture"
+        },
         "12761409532284206640": {
             "hash": 10222159335742068639,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_01.bin",
             "type": "Unknown"
+        },
+        "12763075176032404977": {
+            "hash": 2160840037247510684,
+            "path": "assets/textures/facades/concrete_panel_normal.jpg",
+            "type": "Texture"
+        },
+        "12782171376060662388": {
+            "hash": 10883735808939277137,
+            "path": "assets/textures/surfaces/tile_flat_mr.jpg",
+            "type": "Texture"
+        },
+        "12790354790958849452": {
+            "hash": 4482457429769433768,
+            "path": "assets/textures/facades/stone_normal.jpg",
+            "type": "Texture"
         },
         "12796048582063600651": {
             "hash": 53490774506577914,
@@ -150,14 +315,44 @@
             "path": "assets/models/external/nature_cards/broadleaf.glb",
             "type": "Mesh"
         },
+        "13051476689686752837": {
+            "hash": 4346051299737322069,
+            "path": "assets/textures/surfaces/sand_red_mr.jpg",
+            "type": "Texture"
+        },
+        "13161986270884755553": {
+            "hash": 6813064377294465614,
+            "path": "assets/textures/surfaces/forest_boreal_albedo.jpg",
+            "type": "Texture"
+        },
         "13218949161719059758": {
             "hash": 10499384107617078218,
             "path": "assets/world/SOURCES.json",
             "type": "Unknown"
         },
+        "13286881622526078535": {
+            "hash": 1856952299990876652,
+            "path": "assets/textures/facades/render_rough_mr.jpg",
+            "type": "Texture"
+        },
+        "13413210018139794012": {
+            "hash": 16291479167162693180,
+            "path": "assets/textures/surfaces/forest_tropical_normal.jpg",
+            "type": "Texture"
+        },
+        "13480708375407620482": {
+            "hash": 8888880897758371419,
+            "path": "assets/textures/surfaces/forest_boreal_normal.jpg",
+            "type": "Texture"
+        },
         "13546313537533355355": {
             "hash": 14357097194554739423,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "13557532422569549822": {
+            "hash": 9121405982208130230,
+            "path": "assets/textures/surfaces/concrete_tile_mr.jpg",
             "type": "Texture"
         },
         "13653665000171179054": {
@@ -170,14 +365,29 @@
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_diff_1k.jpg",
             "type": "Texture"
         },
+        "13704060922364291126": {
+            "hash": 12544961104635484731,
+            "path": "assets/textures/surfaces/cracked_earth_mr.jpg",
+            "type": "Texture"
+        },
         "13751667415432449359": {
             "hash": 3859721668572772011,
             "path": "assets/models/external/nature_cards/pine_sapling-slice.png",
             "type": "Texture"
         },
+        "1376047023610803515": {
+            "hash": 15100453451946097044,
+            "path": "assets/textures/facades/stone_albedo.jpg",
+            "type": "Texture"
+        },
         "13763072129313637979": {
             "hash": 3386090509068969188,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_trunk_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "13767864467614102554": {
+            "hash": 12733432025329874927,
+            "path": "assets/textures/surfaces/shingle_normal.jpg",
             "type": "Texture"
         },
         "13775682973279280344": {
@@ -195,14 +405,49 @@
             "path": "assets/models/external/nature_selected/grass_dry.png",
             "type": "Texture"
         },
+        "13933287711219445478": {
+            "hash": 1931042266454149238,
+            "path": "assets/textures/surfaces/forest_tropical_albedo.jpg",
+            "type": "Texture"
+        },
         "13965676441189082780": {
             "hash": 5895801015985011760,
             "path": "assets/textures/ground/forrest_ground_01_diff_1k.jpg",
             "type": "Texture"
         },
+        "14061585559212852745": {
+            "hash": 4925463436855800410,
+            "path": "assets/textures/surfaces/mud_albedo.jpg",
+            "type": "Texture"
+        },
         "14219444032277492959": {
             "hash": 12435981215151756996,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "14314225292672339883": {
+            "hash": 15368889781494062867,
+            "path": "assets/textures/facades/brick_buff_albedo.jpg",
+            "type": "Texture"
+        },
+        "1434430233437263827": {
+            "hash": 17977948299204766024,
+            "path": "assets/textures/surfaces/shingle_albedo.jpg",
+            "type": "Texture"
+        },
+        "14491187732939635241": {
+            "hash": 16466337340063904140,
+            "path": "assets/textures/facades/concrete_albedo.jpg",
+            "type": "Texture"
+        },
+        "14679134943841200047": {
+            "hash": 4587081904526474108,
+            "path": "assets/textures/surfaces/sand_desert_albedo.jpg",
+            "type": "Texture"
+        },
+        "1468419917868029310": {
+            "hash": 1549862172765709774,
+            "path": "assets/textures/surfaces/cracked_earth_normal.jpg",
             "type": "Texture"
         },
         "14729980388479751198": {
@@ -235,9 +480,24 @@
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_arm_1k.jpg",
             "type": "Texture"
         },
+        "152887799373816789": {
+            "hash": 1237190496051115093,
+            "path": "assets/textures/surfaces/bare_albedo.jpg",
+            "type": "Texture"
+        },
         "15304996926377149398": {
             "hash": 7377755155727821441,
             "path": "assets/models/external/nature_cards/broadleaf-slice.png",
+            "type": "Texture"
+        },
+        "15306120452523047330": {
+            "hash": 17931892984775289801,
+            "path": "assets/textures/facades/timber_albedo.jpg",
+            "type": "Texture"
+        },
+        "15349313070310629554": {
+            "hash": 799691860116620249,
+            "path": "assets/textures/surfaces/farmland_albedo.jpg",
             "type": "Texture"
         },
         "15359456548730799010": {
@@ -275,6 +535,11 @@
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_trunk_nor_gl_1k.jpg",
             "type": "Texture"
         },
+        "15784727134325099236": {
+            "hash": 14674249759734331411,
+            "path": "assets/textures/facades/concrete_mr.jpg",
+            "type": "Texture"
+        },
         "15852081403785450949": {
             "hash": 7713755728187426623,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_01_1k.gltf",
@@ -288,6 +553,11 @@
         "16347591430840472236": {
             "hash": 9148229028813619266,
             "path": "assets/skies/qwantani_mid_morning.hdr",
+            "type": "Texture"
+        },
+        "16452394163001117220": {
+            "hash": 11997953820596656837,
+            "path": "assets/textures/facades/brick_buff_mr.jpg",
             "type": "Texture"
         },
         "16455620822867604554": {
@@ -315,9 +585,24 @@
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_diff_1k.jpg",
             "type": "Texture"
         },
+        "16905322378303811318": {
+            "hash": 9242731094720133082,
+            "path": "assets/textures/surfaces/pavement_mr.jpg",
+            "type": "Texture"
+        },
+        "16940723734641318219": {
+            "hash": 17450328844672430159,
+            "path": "assets/textures/facades/earth_mr.jpg",
+            "type": "Texture"
+        },
         "17127537684709276246": {
             "hash": 1423244832286821060,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "17144885591368180713": {
+            "hash": 7112002292851759388,
+            "path": "assets/textures/surfaces/grass_dry_mr.jpg",
             "type": "Texture"
         },
         "17206031431975535750": {
@@ -330,15 +615,40 @@
             "path": "assets/models/external/nature_cards/pine_sapling.png",
             "type": "Texture"
         },
+        "17383772637242777752": {
+            "hash": 813813283732436382,
+            "path": "assets/textures/surfaces/tile_grey_albedo.jpg",
+            "type": "Texture"
+        },
+        "17482462589103235886": {
+            "hash": 12864905088062525357,
+            "path": "assets/textures/surfaces/sand_red_albedo.jpg",
+            "type": "Texture"
+        },
         "17534997703788934449": {
             "hash": 1097544280952446221,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_branches_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "1768263024899672070": {
+            "hash": 5381730451797181041,
+            "path": "assets/textures/facades/render_normal.jpg",
+            "type": "Texture"
+        },
+        "17691392667013478571": {
+            "hash": 2882360106915338937,
+            "path": "assets/textures/facades/brick_dark_albedo.jpg",
             "type": "Texture"
         },
         "18082926178732186715": {
             "hash": 17168124704363852658,
             "path": "assets/models/external/kenney_nature_kit/pine_sapling_small_1k.gltf",
             "type": "Mesh"
+        },
+        "18152978422431930966": {
+            "hash": 6269590192546710446,
+            "path": "assets/textures/surfaces/snow_albedo.jpg",
+            "type": "Texture"
         },
         "18197928098729124870": {
             "hash": 16125958644359663234,
@@ -360,15 +670,35 @@
             "path": "assets/models/external/kenney_props/lamp_ornate.glb",
             "type": "Mesh"
         },
+        "18315190416860295361": {
+            "hash": 16673332415060304257,
+            "path": "assets/textures/surfaces/grass_dry_albedo.jpg",
+            "type": "Texture"
+        },
+        "18341835463333151221": {
+            "hash": 9209981017684157061,
+            "path": "assets/textures/surfaces/sand_beach_normal.jpg",
+            "type": "Texture"
+        },
         "18404651324015935747": {
             "hash": 3493117419224747185,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "1851528684546447240": {
+            "hash": 6858992088069327345,
+            "path": "assets/textures/facades/timber_mr.jpg",
             "type": "Texture"
         },
         "1887724836181236674": {
             "hash": 9495266911581820076,
             "path": "assets/models/external/nature_selected/shrub.glb",
             "type": "Mesh"
+        },
+        "2042137087847271605": {
+            "hash": 4935156889823412843,
+            "path": "assets/textures/surfaces/tropical_ground_normal.jpg",
+            "type": "Texture"
         },
         "2042591374650119539": {
             "hash": 12683091016541965439,
@@ -380,20 +710,75 @@
             "path": "assets/models/external/nature_cards/fir_sapling-slice.png",
             "type": "Texture"
         },
+        "2152751767129159869": {
+            "hash": 17407505676961943980,
+            "path": "assets/textures/surfaces/cobbles_mr.jpg",
+            "type": "Texture"
+        },
+        "2205518889075209034": {
+            "hash": 15143960580161654543,
+            "path": "assets/textures/surfaces/farmland_normal.jpg",
+            "type": "Texture"
+        },
+        "2207497608524842625": {
+            "hash": 18357485283247288005,
+            "path": "assets/textures/facades/render_rough_normal.jpg",
+            "type": "Texture"
+        },
         "2304441367332094151": {
             "hash": 6584764869503427778,
             "path": "assets/models/external/kenney_cars/sedan.glb",
             "type": "Mesh"
+        },
+        "2335748679951839597": {
+            "hash": 3749357259082498085,
+            "path": "assets/textures/facades/siding_albedo.jpg",
+            "type": "Texture"
+        },
+        "2444937345355907243": {
+            "hash": 14217257955108901957,
+            "path": "assets/textures/facades/brick_buff_normal.jpg",
+            "type": "Texture"
         },
         "2588424575745427250": {
             "hash": 5120502853837879303,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_diff_1k.jpg",
             "type": "Texture"
         },
+        "2761878184278259819": {
+            "hash": 13359917934413413209,
+            "path": "assets/textures/surfaces/pavement_albedo.jpg",
+            "type": "Texture"
+        },
         "2763471623495127685": {
-            "hash": 900989177846186600,
+            "hash": 9671477783728411321,
             "path": "scenes/earth.scene",
             "type": "Scene"
+        },
+        "2864240820762689910": {
+            "hash": 10355056984367396550,
+            "path": "assets/textures/surfaces/concrete_tile_normal.jpg",
+            "type": "Texture"
+        },
+        "2980352726614349373": {
+            "hash": 16312017068431950588,
+            "path": "assets/textures/surfaces/mud_mr.jpg",
+            "type": "Texture"
+        },
+        "3029752719360586765": {
+            "hash": 13521827301997456392,
+            "path": "assets/textures/surfaces/sand_red_normal.jpg",
+            "type": "Texture"
+        },
+        "3037467234169412496": {
+            "hash": 3752363489685489736,
+            "path": "assets/textures/surfaces/metal_seam_normal.jpg",
+            "type": "Texture"
+        },
+        "3095467060135935995": {
+            "hash": 8018319199023649198,
+            "path": "assets/textures/facades/brick_dark_mr.jpg",
+            "type": "Texture"
         },
         "3194250900702072948": {
             "hash": 18258682751161514885,
@@ -405,6 +790,16 @@
             "path": "assets/models/external/nature_cards/quiver_tree_slim.glb",
             "type": "Mesh"
         },
+        "3278156432482543887": {
+            "hash": 14895758828622531607,
+            "path": "assets/textures/surfaces/tropical_ground_albedo.jpg",
+            "type": "Texture"
+        },
+        "328705249163148561": {
+            "hash": 2364531665894016466,
+            "path": "assets/textures/facades/brick_dark_normal.jpg",
+            "type": "Texture"
+        },
         "3376422274018361149": {
             "hash": 1918727725939250380,
             "path": "assets/world/traffic_paints.json",
@@ -415,10 +810,30 @@
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_nor_gl_1k.jpg",
             "type": "Texture"
         },
+        "3459007977231208420": {
+            "hash": 16910708569790582966,
+            "path": "assets/textures/surfaces/slate_albedo.jpg",
+            "type": "Texture"
+        },
+        "3463586302001101794": {
+            "hash": 3062389328382744917,
+            "path": "assets/textures/surfaces/forest_tropical_mr.jpg",
+            "type": "Texture"
+        },
+        "3506125919486387626": {
+            "hash": 7796528969953956718,
+            "path": "assets/textures/surfaces/frost_albedo.jpg",
+            "type": "Texture"
+        },
         "3506467603817564788": {
             "hash": 16906919971634070160,
             "path": "assets/models/external/kenney_nature_kit/fir_sapling_1k.gltf",
             "type": "Mesh"
+        },
+        "3529604648429366441": {
+            "hash": 2483612571025245836,
+            "path": "assets/textures/surfaces/frost_normal.jpg",
+            "type": "Texture"
         },
         "3531514859552178091": {
             "hash": 7675569649326220548,
@@ -435,6 +850,21 @@
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_nor_gl_1k.jpg",
             "type": "Texture"
         },
+        "3664395053230164308": {
+            "hash": 14068764517051073234,
+            "path": "assets/textures/surfaces/grass_albedo.jpg",
+            "type": "Texture"
+        },
+        "3667988090912318240": {
+            "hash": 15798168767394264932,
+            "path": "assets/textures/facades/siding_normal.jpg",
+            "type": "Texture"
+        },
+        "3752522462855092985": {
+            "hash": 15223555387667516680,
+            "path": "assets/textures/surfaces/savanna_normal.jpg",
+            "type": "Texture"
+        },
         "381442657168135737": {
             "hash": 8318651115817926230,
             "path": "assets/models/external/nature_cards/urban_tree-slice.png",
@@ -444,6 +874,26 @@
             "hash": 16906919971634070160,
             "path": "assets/models/external/polyhaven_trees/fir_sapling_1k.gltf",
             "type": "Mesh"
+        },
+        "3926827857106185737": {
+            "hash": 11759329051566754776,
+            "path": "assets/textures/surfaces/snow_normal.jpg",
+            "type": "Texture"
+        },
+        "3944791419124806059": {
+            "hash": 15612578042945233429,
+            "path": "assets/textures/surfaces/grass_lush_mr.jpg",
+            "type": "Texture"
+        },
+        "4073064183386803616": {
+            "hash": 11131938107497164887,
+            "path": "assets/textures/facades/concrete_normal.jpg",
+            "type": "Texture"
+        },
+        "4083131862568003585": {
+            "hash": 11539402085564343805,
+            "path": "assets/textures/surfaces/sand_desert_normal.jpg",
+            "type": "Texture"
         },
         "4083765119651082369": {
             "hash": 7375749398478064353,
@@ -460,10 +910,30 @@
             "path": "assets/models/external/nature_cards/quiver_tree.png",
             "type": "Texture"
         },
+        "4225926003483545637": {
+            "hash": 4063917106782031473,
+            "path": "assets/textures/surfaces/tile_canal_mr.jpg",
+            "type": "Texture"
+        },
+        "4290734458697357226": {
+            "hash": 1433826694729551829,
+            "path": "assets/textures/surfaces/forest_temperate_albedo.jpg",
+            "type": "Texture"
+        },
+        "4478502281735259409": {
+            "hash": 15480681270268060542,
+            "path": "assets/textures/surfaces/grass_lush_normal.jpg",
+            "type": "Texture"
+        },
         "451724859607132657": {
             "hash": 7158798436449139825,
             "path": "assets/models/external/kenney_props/windmill.glb",
             "type": "Mesh"
+        },
+        "4565894782901207360": {
+            "hash": 524711282558976273,
+            "path": "assets/textures/surfaces/sand_beach_mr.jpg",
+            "type": "Texture"
         },
         "4684072016819061786": {
             "hash": 17426015823916506103,
@@ -475,6 +945,11 @@
             "path": "assets/models/external/nature_selected/urban_tree.glb",
             "type": "Mesh"
         },
+        "475720218130975161": {
+            "hash": 8079520555942666522,
+            "path": "assets/textures/surfaces/concrete_tile_albedo.jpg",
+            "type": "Texture"
+        },
         "4769638225154701393": {
             "hash": 5201842164630077379,
             "path": "assets/skies/skies.json",
@@ -485,9 +960,24 @@
             "path": "assets/skies/qwantani_dusk_2.hdr",
             "type": "Texture"
         },
+        "4825984085357343483": {
+            "hash": 9936386943127218773,
+            "path": "assets/textures/surfaces/made_ground_mr.jpg",
+            "type": "Texture"
+        },
         "4830286355288404843": {
             "hash": 12130353159444459608,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "5023495805175933025": {
+            "hash": 17831720104346183638,
+            "path": "assets/textures/surfaces/corrugated_mr.jpg",
+            "type": "Texture"
+        },
+        "5132301166652025866": {
+            "hash": 14497282502308850605,
+            "path": "assets/textures/surfaces/savanna_mr.jpg",
             "type": "Texture"
         },
         "5202884150791063354": {
@@ -495,9 +985,19 @@
             "path": "assets/models/external/nature_cards/pine_sapling.glb",
             "type": "Mesh"
         },
+        "5307690713196420171": {
+            "hash": 14650348645766277957,
+            "path": "assets/textures/surfaces/grass_mr.jpg",
+            "type": "Texture"
+        },
         "5361539092364710995": {
             "hash": 12350097303040955276,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "5503867232916445660": {
+            "hash": 11625763690871136936,
+            "path": "assets/textures/facades/brick_red_mr.jpg",
             "type": "Texture"
         },
         "5520843362233283661": {
@@ -515,10 +1015,20 @@
             "path": "assets/models/external/polyhaven_trees/island_tree_01_1k.gltf",
             "type": "Mesh"
         },
+        "5712385446238358383": {
+            "hash": 16080324967756643771,
+            "path": "assets/textures/surfaces/soil_arid_albedo.jpg",
+            "type": "Texture"
+        },
         "5743058879046846828": {
             "hash": 9681221167454989440,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_02_1k.gltf",
             "type": "Mesh"
+        },
+        "5761993470459516464": {
+            "hash": 3218471393475271324,
+            "path": "assets/textures/surfaces/snow_mr.jpg",
+            "type": "Texture"
         },
         "5811134762573635999": {
             "hash": 12634290776162895004,
@@ -528,6 +1038,16 @@
         "5916148923958700009": {
             "hash": 9444299277894483346,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "5918232585893235542": {
+            "hash": 4791383914432547371,
+            "path": "assets/textures/surfaces/cobbles_normal.jpg",
+            "type": "Texture"
+        },
+        "6021941552408368945": {
+            "hash": 3327070197725738622,
+            "path": "assets/textures/surfaces/tile_flat_albedo.jpg",
             "type": "Texture"
         },
         "6084285013785884658": {
@@ -545,9 +1065,24 @@
             "path": "assets/skies/qwantani_late_afternoon.hdr",
             "type": "Texture"
         },
+        "6319452198478534878": {
+            "hash": 6474124744609684219,
+            "path": "assets/textures/facades/siding_mr.jpg",
+            "type": "Texture"
+        },
+        "6374033010792675978": {
+            "hash": 2411806946296509479,
+            "path": "assets/textures/surfaces/membrane_mr.jpg",
+            "type": "Texture"
+        },
         "6499054439455032256": {
             "hash": 1474878172710831004,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "662309229210107610": {
+            "hash": 6188463635609699760,
+            "path": "assets/textures/surfaces/cobbles_albedo.jpg",
             "type": "Texture"
         },
         "6663075660738832623": {
@@ -555,10 +1090,45 @@
             "path": "assets/skies/qwantani_dawn.hdr",
             "type": "Texture"
         },
+        "6705464619695437735": {
+            "hash": 6672934107117788154,
+            "path": "assets/textures/surfaces/frost_mr.jpg",
+            "type": "Texture"
+        },
+        "6803919020727051817": {
+            "hash": 1023386320205281741,
+            "path": "assets/textures/surfaces/grass_normal.jpg",
+            "type": "Texture"
+        },
+        "6816399651733267283": {
+            "hash": 14440198282409149647,
+            "path": "assets/textures/surfaces/forest_temperate_normal.jpg",
+            "type": "Texture"
+        },
         "702396419434324797": {
             "hash": 9940349880960739191,
             "path": "assets/models/external/nature_cards/quiver_tree.source.json",
             "type": "Unknown"
+        },
+        "7088469241559345923": {
+            "hash": 11002883388934090171,
+            "path": "assets/textures/surfaces/terrace_normal.jpg",
+            "type": "Texture"
+        },
+        "7100516617555765886": {
+            "hash": 7576656958340322395,
+            "path": "assets/textures/surfaces/slate_normal.jpg",
+            "type": "Texture"
+        },
+        "7104645704268134774": {
+            "hash": 1996216251805297658,
+            "path": "assets/textures/surfaces/bare_mr.jpg",
+            "type": "Texture"
+        },
+        "716984850769847932": {
+            "hash": 2355117279102345055,
+            "path": "assets/textures/surfaces/tile_canal_albedo.jpg",
+            "type": "Texture"
         },
         "7287320863551833219": {
             "hash": 12377852095728387139,
@@ -590,18 +1160,53 @@
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_diff_1k.jpg",
             "type": "Texture"
         },
+        "7483397835349037867": {
+            "hash": 4655535784606540344,
+            "path": "assets/textures/facades/render_albedo.jpg",
+            "type": "Texture"
+        },
+        "7485864737716574759": {
+            "hash": 7702914113075337547,
+            "path": "assets/textures/facades/stone_mr.jpg",
+            "type": "Texture"
+        },
+        "7588351653206193245": {
+            "hash": 11339044442539784032,
+            "path": "assets/textures/surfaces/metal_seam_mr.jpg",
+            "type": "Texture"
+        },
+        "7593384123924276489": {
+            "hash": 5025363001738875168,
+            "path": "assets/textures/facades/earth_albedo.jpg",
+            "type": "Texture"
+        },
+        "7797738874632887161": {
+            "hash": 1128873468742548354,
+            "path": "assets/textures/surfaces/corrugated_albedo.jpg",
+            "type": "Texture"
+        },
         "7803497246469165791": {
             "hash": 18264312062401052432,
             "path": "assets/models/external/kenney_props/waste_bin.glb",
             "type": "Mesh"
+        },
+        "7865065919478493": {
+            "hash": 8936786594794127395,
+            "path": "assets/textures/surfaces/tile_grey_mr.jpg",
+            "type": "Texture"
         },
         "7918234061687626932": {
             "hash": 8716205158011175204,
             "path": "assets/models/external/nature_selected/grass_dry.glb",
             "type": "Mesh"
         },
+        "8032663291800872462": {
+            "hash": 3079672189988897448,
+            "path": "assets/textures/surfaces/cracked_earth_albedo.jpg",
+            "type": "Texture"
+        },
         "8048464438721485733": {
-            "hash": 11408779831307037881,
+            "hash": 14383682782805224042,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -610,9 +1215,39 @@
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_arm_1k.jpg",
             "type": "Texture"
         },
+        "8218557878174022791": {
+            "hash": 1556935747394834413,
+            "path": "assets/textures/surfaces/membrane_albedo.jpg",
+            "type": "Texture"
+        },
+        "8407279682963389319": {
+            "hash": 9482857347900368384,
+            "path": "assets/textures/surfaces/tile_flat_normal.jpg",
+            "type": "Texture"
+        },
+        "8421679419159190920": {
+            "hash": 12387480158694967165,
+            "path": "assets/textures/surfaces/shingle_mr.jpg",
+            "type": "Texture"
+        },
+        "8453146933582653217": {
+            "hash": 382952220692759452,
+            "path": "assets/textures/surfaces/metal_seam_albedo.jpg",
+            "type": "Texture"
+        },
+        "8461370359445157452": {
+            "hash": 14272083766030083516,
+            "path": "assets/textures/facades/earth_normal.jpg",
+            "type": "Texture"
+        },
         "860219286854826305": {
             "hash": 12435981215151756996,
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_twigs_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "8907292784001459383": {
+            "hash": 3967064986700298341,
+            "path": "assets/textures/surfaces/grass_lush_albedo.jpg",
             "type": "Texture"
         },
         "8907627116982713004": {
@@ -620,20 +1255,45 @@
             "path": "assets/models/external/kenney_nature_kit/tree_pineTallC.glb",
             "type": "Mesh"
         },
+        "9057514563124709177": {
+            "hash": 1233585823436327151,
+            "path": "assets/textures/surfaces/asphalt_mr.jpg",
+            "type": "Texture"
+        },
         "9097557980805502720": {
             "hash": 330874365689507085,
             "path": "assets/models/external/trees_lod/fir_sapling.glb",
             "type": "Mesh"
+        },
+        "9098493949262752514": {
+            "hash": 4635720359396822624,
+            "path": "assets/textures/surfaces/savanna_albedo.jpg",
+            "type": "Texture"
+        },
+        "9111420001524366654": {
+            "hash": 5813454761512618140,
+            "path": "assets/textures/surfaces/grass_dry_normal.jpg",
+            "type": "Texture"
         },
         "936423245872336619": {
             "hash": 2776834561249972152,
             "path": "assets/licenses/Poly-Haven-CC0.txt",
             "type": "Unknown"
         },
+        "9450334948697089296": {
+            "hash": 4922853095590361822,
+            "path": "assets/textures/surfaces/mud_normal.jpg",
+            "type": "Texture"
+        },
         "9569450703380592770": {
             "hash": 16127569152329881128,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
+        },
+        "9577763803278545684": {
+            "hash": 14120252162483721338,
+            "path": "assets/textures/surfaces/asphalt_albedo.jpg",
+            "type": "Texture"
         },
         "9579190252674911504": {
             "hash": 8631905787678880811,
@@ -643,6 +1303,16 @@
         "9661999023916983468": {
             "hash": 8625248630744489666,
             "path": "assets/models/external/polyhaven_trees/island_tree_01.bin",
+            "type": "Unknown"
+        },
+        "9707553953933687028": {
+            "hash": 4379079892377331886,
+            "path": "assets/textures/surfaces.json",
+            "type": "Unknown"
+        },
+        "996832913338963025": {
+            "hash": 4250714583943682792,
+            "path": "assets/licenses/ambientCG-CC0.txt",
             "type": "Unknown"
         }
     },

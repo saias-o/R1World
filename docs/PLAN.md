@@ -213,6 +213,11 @@ baissent, tout revient quand on ralentit.
   continentales. Le manifeste dit si c'est une `region`, une `band` ou `none`.
 - **Sols** : `r1/ground.py` partitionne le terrain par classe, sans sommet
   supplémentaire ; albédos mesurés ; l'eau bloque la marche.
+- **Matières** : `r1/surfaces.py` habille sols, rues, murs et toits de textures
+  photographiées CC0 (Poly Haven, ambientCG) à leur taille réelle. Le sol suit
+  le climat de la région (tropical, aride, méditerranéen, tempéré, boréal,
+  polaire) et la limite des neiges ; la texture apporte le détail, la palette
+  garde l'albédo mesuré.
 - **Mobilier** : props OSM posés comme nœuds de scène, budget réparti par espèce.
   Églises et mosquées reçoivent une flèche ou un minaret générés depuis
   l'emprise.

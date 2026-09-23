@@ -52,7 +52,7 @@ def smooth_surface(mesh):
     for position,total in normals.items():
         size = math.sqrt(sum(n*n for n in total)) or 1.
         normals[position] = tuple(n/size for n in total)
-    out = Mesh()
+    out = Mesh(uv_mode=mesh.uv_mode)
     remap = [out._vertex(p,normals[p],uv) for p,uv in zip(mesh.positions,mesh.texcoords)]
     out.indices = [remap[i] for i in mesh.indices]
     return out

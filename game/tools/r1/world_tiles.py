@@ -9,7 +9,7 @@ from .sources import Bounds
 
 ROWS = 36000
 STEP = 180 / ROWS
-VERSION = 13
+VERSION = 14
 
 
 def wrap(lon):

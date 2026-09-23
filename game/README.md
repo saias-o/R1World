@@ -915,6 +915,45 @@ nodes; the measured membership work averaged 56.8 indexed nodes/frame over the
 82-frame whole-run sample. This is a count of index updates, not an FPS benchmark.
 
 
+## What things are made of
+
+Every surface used to be a flat measured colour — right on average, wrong
+everywhere up close. `r1/surfaces.py` gives the ground, the streets, the walls
+and the roofs photographed, seamless CC0 materials (Poly Haven, ambientCG; 44
+families from 43 scans), and three rules keep them honest:
+
+- **A texture brings structure, never albedo.** Each colour map is normalised
+  per channel, and the glTF colour factor is the palette's albedo divided by
+  that level, so the rendered mean is the measured albedo the palette already
+  had (CLAUDE.md, rule 2) and the photograph only decides how it varies.
+- **Real size.** UVs are metres; each material divides them by its scan's
+  published size, so a brick, a slab or a tile is its own size. Three
+  ambientCG sets publish none, and the table says their size is estimated.
+- **Which ground, where.** Each region has a climate (`RegionProfile.climate`),
+  made colder by latitude. A park is lawn in Paris, withered grass in Rome,
+  lush in Bangkok; a forest floor is leaf litter, moss and needles in the taiga,
+  dark humus in the rainforest; bare ground is cracked earth in the Maghreb and
+  laterite in the savanna. Above the snowline (5 500 m in the tropics, ~2 750 m
+  in the Alps, sea level near 72°) it is snow, just below it frost, and polar
+  land is frosted.
+
+Streets are asphalt, sidewalks concrete slabs, and a way OSM tags `sett`,
+`cobblestone` or `paving_stones` is laid in cobbles. Roofs get UVs across and
+up their own slope, so rows of tiles follow the eave. Walls are baked sheets:
+one bay by one storey, the family's material tiled a whole number of times,
+with a window on top.
+
+None of it costs a vertex: UVs are functions of the position within a face, so
+the weld keeps every vertex it kept before (a Paris tile went from 119 645 to
+119 594). Texture memory does cost: about 90 MB for a city neighbourhood, so
+the game's GPU texture budget went from 256 to 512 MB (`native/world.cpp`),
+against the 4.5 GB the reference GTX 1060 allows. Ground and street colour
+maps are 1024², everything else 512².
+
+```powershell
+python -m r1.surfaces        # from game	ools: download (pinned), normalise, bake
+```
+
 ## The Sun follows the player
 
 A world you teleport across breaks an assumption every earlier phase held

@@ -84,7 +84,7 @@ struct Tile {
     // game and the worker are two processes, and they are kept equal by the
     // --geo-contract test rather than by anyone remembering: bump one alone and
     // test_world.py fails on the very next run with both keys side by side.
-    std::string key() const { return "v13_"+std::to_string(r)+"_"+std::to_string(c); }
+    std::string key() const { return "v14_"+std::to_string(r)+"_"+std::to_string(c); }
     bool operator<(const Tile& b) const { return std::tie(r,c)<std::tie(b.r,b.c); }
 };
 Tile tileAt(double lon,double lat) {
@@ -1289,7 +1289,12 @@ public:
         loadPaints();
         buildTrafficPrototype();
         saida::Log::info("[World traffic] ready, ",paints.size()," paints");
-        e.resources().setGpuBudget(256ull*1024*1024);
+        // Textures resident at once. A city neighbourhood shows about fifteen
+        // photographed materials (ground, streets, walls, roofs; see
+        // r1/surfaces.py), some 90 MB, on top of what 256 MB already held.
+        // The reference GTX 1060 has 4.5 GB of VRAM to spend (plan §3 I4), and
+        // the geometry arena takes about 50 MB of it.
+        e.resources().setGpuBudget(512ull*1024*1024);
         e.window().setCursorCaptured(false);
     }
     ~World(){for(auto* e:listeners)if(ui->isLiveElement(e,generation)){

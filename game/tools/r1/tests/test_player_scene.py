@@ -28,7 +28,7 @@ class PlayerScene(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root/'scenes').mkdir()
-            with patch.object(prepare_world, 'GAME', root), patch.object(prepare_world, 'basemap'), patch.object(prepare_world, 'facade'):
+            with patch.object(prepare_world, 'GAME', root), patch.object(prepare_world, 'basemap'):
                 prepare_world.main()
             regenerated = self.check_player(json.loads((root/'scenes/earth.scene').read_text(encoding='utf-8')))
         shipped = self.check_player(json.loads((GAME/'scenes/earth.scene').read_text(encoding='utf-8')))

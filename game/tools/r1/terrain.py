@@ -83,7 +83,9 @@ def build_terrain(
             cse = coordinates[row][column + 1]
             cne = coordinates[row + 1][column + 1]
             cnw = coordinates[row + 1][column]
-            uv = lambda point: (point[0] / 14.0, point[2] / 14.0)
+            # Metres on the ground plane, as the streets have them: each
+            # ground material divides them by its own scan's real size.
+            uv = lambda point: (point[0], -point[2])
             mesh_for(csw, cse, cne).add_up_triangle(
                 southwest, southeast, northeast,
                 (uv(southwest), uv(southeast), uv(northeast)),

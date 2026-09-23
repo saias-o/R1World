@@ -106,6 +106,525 @@
         "assets/skies/qwantani_dusk_2.hdr",
         "assets/skies/skies.json"
       ]
+    },
+    {
+      "name": "Grass001 (surface material)",
+      "author": "ambientCG (Lennart Demes)",
+      "source": "https://ambientcg.com/view?id=Grass001",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/grass_lush_albedo.jpg",
+        "assets/textures/surfaces/grass_lush_mr.jpg",
+        "assets/textures/surfaces/grass_lush_normal.jpg"
+      ]
+    },
+    {
+      "name": "Grass004 (surface material)",
+      "author": "ambientCG (Lennart Demes)",
+      "source": "https://ambientcg.com/view?id=Grass004",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/grass_albedo.jpg",
+        "assets/textures/surfaces/grass_mr.jpg",
+        "assets/textures/surfaces/grass_normal.jpg"
+      ]
+    },
+    {
+      "name": "Snow014 (surface material)",
+      "author": "ambientCG (Lennart Demes)",
+      "source": "https://ambientcg.com/view?id=Snow014",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/snow_albedo.jpg",
+        "assets/textures/surfaces/snow_mr.jpg",
+        "assets/textures/surfaces/snow_normal.jpg"
+      ]
+    },
+    {
+      "name": "Snow015 (surface material)",
+      "author": "ambientCG (Lennart Demes)",
+      "source": "https://ambientcg.com/view?id=Snow015",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/frost_albedo.jpg",
+        "assets/textures/surfaces/frost_mr.jpg",
+        "assets/textures/surfaces/frost_normal.jpg"
+      ]
+    },
+    {
+      "name": "WoodSiding009 (surface material)",
+      "author": "ambientCG (Lennart Demes)",
+      "source": "https://ambientcg.com/view?id=WoodSiding009",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/siding_albedo.jpg",
+        "assets/textures/facades/siding_mr.jpg",
+        "assets/textures/facades/siding_normal.jpg"
+      ]
+    },
+    {
+      "name": "asphalt_01 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/asphalt_01",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/asphalt_albedo.jpg",
+        "assets/textures/surfaces/asphalt_mr.jpg",
+        "assets/textures/surfaces/asphalt_normal.jpg"
+      ]
+    },
+    {
+      "name": "bitumen (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/bitumen",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/membrane_albedo.jpg",
+        "assets/textures/surfaces/membrane_mr.jpg",
+        "assets/textures/surfaces/membrane_normal.jpg"
+      ]
+    },
+    {
+      "name": "brick_wall_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/brick_wall_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/brick_red_albedo.jpg",
+        "assets/textures/facades/brick_red_mr.jpg",
+        "assets/textures/facades/brick_red_normal.jpg"
+      ]
+    },
+    {
+      "name": "brown_mud_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/brown_mud_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/mud_albedo.jpg",
+        "assets/textures/surfaces/mud_mr.jpg",
+        "assets/textures/surfaces/mud_normal.jpg"
+      ]
+    },
+    {
+      "name": "brown_mud_leaves_01 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/brown_mud_leaves_01",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/tropical_ground_albedo.jpg",
+        "assets/textures/surfaces/tropical_ground_mr.jpg",
+        "assets/textures/surfaces/tropical_ground_normal.jpg"
+      ]
+    },
+    {
+      "name": "clay_plaster (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/clay_plaster",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/earth_albedo.jpg",
+        "assets/textures/facades/earth_mr.jpg",
+        "assets/textures/facades/earth_normal.jpg"
+      ]
+    },
+    {
+      "name": "clay_roof_tiles_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/clay_roof_tiles_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/tile_canal_albedo.jpg",
+        "assets/textures/surfaces/tile_canal_mr.jpg",
+        "assets/textures/surfaces/tile_canal_normal.jpg"
+      ]
+    },
+    {
+      "name": "coast_sand_01 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/coast_sand_01",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/sand_beach_albedo.jpg",
+        "assets/textures/surfaces/sand_beach_mr.jpg",
+        "assets/textures/surfaces/sand_beach_normal.jpg"
+      ]
+    },
+    {
+      "name": "concrete (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/concrete",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/concrete_albedo.jpg",
+        "assets/textures/facades/concrete_mr.jpg",
+        "assets/textures/facades/concrete_normal.jpg"
+      ]
+    },
+    {
+      "name": "concrete_pavement (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/concrete_pavement",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/pavement_albedo.jpg",
+        "assets/textures/surfaces/pavement_mr.jpg",
+        "assets/textures/surfaces/pavement_normal.jpg"
+      ]
+    },
+    {
+      "name": "concrete_wall_004 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/concrete_wall_004",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/concrete_panel_albedo.jpg",
+        "assets/textures/facades/concrete_panel_mr.jpg",
+        "assets/textures/facades/concrete_panel_normal.jpg"
+      ]
+    },
+    {
+      "name": "corrugated_iron (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/corrugated_iron",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/corrugated_albedo.jpg",
+        "assets/textures/surfaces/corrugated_mr.jpg",
+        "assets/textures/surfaces/corrugated_normal.jpg"
+      ]
+    },
+    {
+      "name": "corrugated_iron_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/corrugated_iron_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/metal_seam_albedo.jpg",
+        "assets/textures/surfaces/metal_seam_mr.jpg",
+        "assets/textures/surfaces/metal_seam_normal.jpg"
+      ]
+    },
+    {
+      "name": "dry_ground_rocks (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/dry_ground_rocks",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/soil_arid_albedo.jpg",
+        "assets/textures/surfaces/soil_arid_mr.jpg",
+        "assets/textures/surfaces/soil_arid_normal.jpg"
+      ]
+    },
+    {
+      "name": "farm_soil (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/farm_soil",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/farmland_albedo.jpg",
+        "assets/textures/surfaces/farmland_mr.jpg",
+        "assets/textures/surfaces/farmland_normal.jpg"
+      ]
+    },
+    {
+      "name": "forest_leaves_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/forest_leaves_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/forest_boreal_albedo.jpg",
+        "assets/textures/surfaces/forest_boreal_mr.jpg",
+        "assets/textures/surfaces/forest_boreal_normal.jpg"
+      ]
+    },
+    {
+      "name": "forrest_ground_01 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/forrest_ground_01",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/forest_temperate_albedo.jpg",
+        "assets/textures/surfaces/forest_temperate_mr.jpg",
+        "assets/textures/surfaces/forest_temperate_normal.jpg"
+      ]
+    },
+    {
+      "name": "gravel_concrete (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/gravel_concrete",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/made_ground_albedo.jpg",
+        "assets/textures/surfaces/made_ground_mr.jpg",
+        "assets/textures/surfaces/made_ground_normal.jpg",
+        "assets/textures/surfaces/terrace_albedo.jpg",
+        "assets/textures/surfaces/terrace_mr.jpg",
+        "assets/textures/surfaces/terrace_normal.jpg"
+      ]
+    },
+    {
+      "name": "grey_roof_01 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/grey_roof_01",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/shingle_albedo.jpg",
+        "assets/textures/surfaces/shingle_mr.jpg",
+        "assets/textures/surfaces/shingle_normal.jpg"
+      ]
+    },
+    {
+      "name": "grey_roof_tiles (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/grey_roof_tiles",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/tile_grey_albedo.jpg",
+        "assets/textures/surfaces/tile_grey_mr.jpg",
+        "assets/textures/surfaces/tile_grey_normal.jpg"
+      ]
+    },
+    {
+      "name": "mud_cracked_dry_03 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/mud_cracked_dry_03",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/cracked_earth_albedo.jpg",
+        "assets/textures/surfaces/cracked_earth_mr.jpg",
+        "assets/textures/surfaces/cracked_earth_normal.jpg"
+      ]
+    },
+    {
+      "name": "mud_forest (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/mud_forest",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/forest_tropical_albedo.jpg",
+        "assets/textures/surfaces/forest_tropical_mr.jpg",
+        "assets/textures/surfaces/forest_tropical_normal.jpg"
+      ]
+    },
+    {
+      "name": "painted_plaster_wall (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/painted_plaster_wall",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/render_albedo.jpg",
+        "assets/textures/facades/render_mr.jpg",
+        "assets/textures/facades/render_normal.jpg"
+      ]
+    },
+    {
+      "name": "patterned_cobblestone (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/patterned_cobblestone",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/cobbles_albedo.jpg",
+        "assets/textures/surfaces/cobbles_mr.jpg",
+        "assets/textures/surfaces/cobbles_normal.jpg"
+      ]
+    },
+    {
+      "name": "red_brick_03 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/red_brick_03",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/brick_dark_albedo.jpg",
+        "assets/textures/facades/brick_dark_mr.jpg",
+        "assets/textures/facades/brick_dark_normal.jpg"
+      ]
+    },
+    {
+      "name": "red_laterite_soil_stones (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/red_laterite_soil_stones",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/savanna_albedo.jpg",
+        "assets/textures/surfaces/savanna_mr.jpg",
+        "assets/textures/surfaces/savanna_normal.jpg"
+      ]
+    },
+    {
+      "name": "red_sand (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/red_sand",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/sand_red_albedo.jpg",
+        "assets/textures/surfaces/sand_red_mr.jpg",
+        "assets/textures/surfaces/sand_red_normal.jpg"
+      ]
+    },
+    {
+      "name": "rock_ground (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/rock_ground",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/bare_albedo.jpg",
+        "assets/textures/surfaces/bare_mr.jpg",
+        "assets/textures/surfaces/bare_normal.jpg"
+      ]
+    },
+    {
+      "name": "rocks_ground_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/rocks_ground_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/rock_albedo.jpg",
+        "assets/textures/surfaces/rock_mr.jpg",
+        "assets/textures/surfaces/rock_normal.jpg"
+      ]
+    },
+    {
+      "name": "roof_07 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/roof_07",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/concrete_tile_albedo.jpg",
+        "assets/textures/surfaces/concrete_tile_mr.jpg",
+        "assets/textures/surfaces/concrete_tile_normal.jpg"
+      ]
+    },
+    {
+      "name": "roof_09 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/roof_09",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/tile_flat_albedo.jpg",
+        "assets/textures/surfaces/tile_flat_mr.jpg",
+        "assets/textures/surfaces/tile_flat_normal.jpg"
+      ]
+    },
+    {
+      "name": "roof_slates_03 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/roof_slates_03",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/slate_albedo.jpg",
+        "assets/textures/surfaces/slate_mr.jpg",
+        "assets/textures/surfaces/slate_normal.jpg"
+      ]
+    },
+    {
+      "name": "sand_01 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/sand_01",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/sand_desert_albedo.jpg",
+        "assets/textures/surfaces/sand_desert_mr.jpg",
+        "assets/textures/surfaces/sand_desert_normal.jpg"
+      ]
+    },
+    {
+      "name": "weathered_plank_siding (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/weathered_plank_siding",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/timber_albedo.jpg",
+        "assets/textures/facades/timber_mr.jpg",
+        "assets/textures/facades/timber_normal.jpg"
+      ]
+    },
+    {
+      "name": "white_plaster_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/white_plaster_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/render_rough_albedo.jpg",
+        "assets/textures/facades/render_rough_mr.jpg",
+        "assets/textures/facades/render_rough_normal.jpg"
+      ]
+    },
+    {
+      "name": "white_sandstone_blocks_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/white_sandstone_blocks_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/stone_albedo.jpg",
+        "assets/textures/facades/stone_mr.jpg",
+        "assets/textures/facades/stone_normal.jpg"
+      ]
+    },
+    {
+      "name": "withered_grass (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/withered_grass",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/surfaces/grass_dry_albedo.jpg",
+        "assets/textures/surfaces/grass_dry_mr.jpg",
+        "assets/textures/surfaces/grass_dry_normal.jpg"
+      ]
+    },
+    {
+      "name": "yellow_bricks (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/yellow_bricks",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/brick_buff_albedo.jpg",
+        "assets/textures/facades/brick_buff_mr.jpg",
+        "assets/textures/facades/brick_buff_normal.jpg"
+      ]
     }
   ]
 }

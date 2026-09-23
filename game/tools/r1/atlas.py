@@ -170,6 +170,12 @@ class RegionProfile:
     # desert sand in the same frame.
     ground: Swatch = Swatch("Ground, temperate", (0.148, 0.196, 0.110), 0.94)
 
+    # The broad climate the ground materials answer to (`surfaces.py`): one of
+    # tropical, arid, mediterranean, temperate, boreal. Latitude refines it —
+    # a temperate band turns boreal past 58° and everything polar past 66.5° —
+    # and the snowline overrides it with altitude.
+    climate: str = "temperate"
+
     # ── vegetation (rank 8: inferred by biome) ──────────────────────────────
     # Which species stands where OSM says "here is a tree" and nothing more,
     # which is what OSM almost always says. The tag carries a position and not a
@@ -252,6 +258,7 @@ def _sw(name: str, color: tuple[float, float, float], roughness: float,
 # a generic band would be visibly wrong (Tunis, Amsterdam, Manhattan).
 
 CHAMONIX = RegionProfile(
+    climate="temperate",
     tree_models=("fir_sapling", "pine_sapling"),
     name="Alpes du Nord — vallée de Chamonix",
     walls=(
@@ -278,6 +285,7 @@ CHAMONIX = RegionProfile(
 # reads as a steep hip in this generator, which is wrong in the detail and
 # right in the silhouette (§2.1: the silhouette is the rank that matters).
 PARIS = RegionProfile(
+    climate="temperate",
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Paris intra-muros",
     storey_height=3.05,
@@ -305,6 +313,7 @@ PARIS = RegionProfile(
 # the unit: party walls everywhere, which the generator already detects, and a
 # shallow eave because a London roof stops at the verge of its own gable.
 LONDON = RegionProfile(
+    climate="temperate",
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Londres — Grand Londres",
     storey_height=2.85,
@@ -331,6 +340,7 @@ LONDON = RegionProfile(
 # is the signature: narrow, tall, steeply gabled, and dark brick. A generic
 # Low Countries band would put the same buildings there two storeys shorter.
 AMSTERDAM = RegionProfile(
+    climate="temperate",
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Amsterdam — ceinture des canaux",
     storey_height=2.95,
@@ -356,6 +366,7 @@ AMSTERDAM = RegionProfile(
 # corners, ochre and pale render, flat roofs used as terraces. The parapet is
 # tall because those roofs are inhabited.
 BARCELONA = RegionProfile(
+    climate="mediterranean",
     tree_models=("broadleaf", "broadleaf", "pine_sapling"),
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Barcelone — Eixample",
@@ -382,6 +393,7 @@ BARCELONA = RegionProfile(
 # storeys, and the roof colour is doing most of the work: the city reads warm
 # from any hill, and nothing else in the palette does that.
 ROME = RegionProfile(
+    climate="mediterranean",
     tree_models=("broadleaf", "broadleaf", "pine_sapling"),
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Rome — centro storico",
@@ -409,6 +421,7 @@ ROME = RegionProfile(
 # palette is deliberately desaturated — the city is grey-cream far more than it
 # is the postcard's blue.
 ISTANBUL = RegionProfile(
+    climate="mediterranean",
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Istanbul — rive européenne",
     storey_height=2.95,
@@ -434,6 +447,7 @@ ISTANBUL = RegionProfile(
 # thing that matters here — whitewash and a flat roof with a real parapet. Get
 # either wrong and the city reads as southern Europe.
 TUNIS = RegionProfile(
+    climate="arid",
     tree_models=("quiver_tree", "quiver_tree_slim", "broadleaf"),
     ground=_sw("Ground, arid", (0.395, 0.352, 0.261), 0.94),
     name="Tunis — médina et ville nouvelle",
@@ -461,6 +475,7 @@ TUNIS = RegionProfile(
 # towers. A generic North American band would put a two-storey clapboard house
 # on Lexington Avenue.
 MANHATTAN = RegionProfile(
+    climate="temperate",
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="New York — Manhattan",
     storey_height=3.35,
@@ -488,6 +503,7 @@ MANHATTAN = RegionProfile(
 # are short, roofs are flat or a single shallow slope, and the palette is
 # almost colourless — which is the observation, not a shortcut.
 TOKYO = RegionProfile(
+    climate="temperate",
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Tokyo — 23 arrondissements",
     storey_height=2.85,
@@ -514,6 +530,7 @@ TOKYO = RegionProfile(
 # Sydney: single-storey brick under a hipped corrugated roof, with a deep eave
 # that exists because of the sun rather than the snow. The eave is the tell.
 SYDNEY = RegionProfile(
+    climate="temperate",
     tree_models=("broadleaf", "broadleaf", "fir_sapling"),
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Sydney — bassin côtier",
@@ -541,6 +558,7 @@ SYDNEY = RegionProfile(
 # to three storeys, with the Cape Dutch gable as the minority form that carries
 # the recognition.
 CAPE_TOWN = RegionProfile(
+    climate="mediterranean",
     ground=_sw("Made ground", (0.139, 0.135, 0.128), 0.93),
     name="Le Cap — City Bowl",
     storey_height=2.9,
@@ -581,6 +599,7 @@ CAPE_TOWN = RegionProfile(
 # what eventually replaces it with something said about a place.
 
 ALPINE = RegionProfile(
+    climate="temperate",
     tree_models=("fir_sapling", "pine_sapling"),
     name="Arc alpin", tier="band",
     storey_height=2.8, storey_weights=((2, 4.0), (3, 3.0), (4, 1.5)),
@@ -595,6 +614,7 @@ ALPINE = RegionProfile(
 )
 
 FRANCE = RegionProfile(
+    climate="temperate",
     name="France — hors Paris et arc alpin", tier="band",
     storey_height=2.85, ground_storey_height=3.6,
     storey_weights=((1, 2.0), (2, 5.0), (3, 3.0), (4, 1.0)),
@@ -610,6 +630,7 @@ FRANCE = RegionProfile(
 )
 
 IBERIA = RegionProfile(
+    climate="mediterranean",
     tree_models=("broadleaf", "broadleaf", "pine_sapling"),
     ground=_sw("Ground, dry grass", (0.236, 0.231, 0.136), 0.94),
     name="Péninsule ibérique", tier="band",
@@ -625,6 +646,7 @@ IBERIA = RegionProfile(
 )
 
 ITALY = RegionProfile(
+    climate="mediterranean",
     tree_models=("broadleaf", "broadleaf", "pine_sapling"),
     ground=_sw("Ground, dry grass", (0.222, 0.222, 0.132), 0.94),
     name="Italie", tier="band",
@@ -641,6 +663,7 @@ ITALY = RegionProfile(
 )
 
 BALKANS_AEGEAN = RegionProfile(
+    climate="mediterranean",
     tree_models=("broadleaf", "broadleaf", "pine_sapling"),
     ground=_sw("Ground, dry grass", (0.231, 0.226, 0.137), 0.94),
     name="Balkans et Égée", tier="band",
@@ -656,6 +679,7 @@ BALKANS_AEGEAN = RegionProfile(
 )
 
 BRITISH_ISLES = RegionProfile(
+    climate="temperate",
     name="Îles Britanniques", tier="band",
     storey_height=2.8, ground_storey_height=3.3,
     storey_weights=((2, 5.0), (3, 3.0), (1, 1.5), (4, 1.0)),
@@ -671,6 +695,7 @@ BRITISH_ISLES = RegionProfile(
 )
 
 LOW_COUNTRIES = RegionProfile(
+    climate="temperate",
     name="Pays-Bas et Flandre", tier="band",
     storey_height=2.9, ground_storey_height=3.4,
     storey_weights=((2, 4.0), (3, 4.0), (4, 2.0)),
@@ -685,6 +710,7 @@ LOW_COUNTRIES = RegionProfile(
 )
 
 CENTRAL_EUROPE = RegionProfile(
+    climate="temperate",
     name="Europe centrale et germanique", tier="band",
     storey_height=2.85, ground_storey_height=3.5,
     storey_weights=((2, 4.0), (3, 4.0), (4, 2.5), (5, 1.0)),
@@ -700,6 +726,7 @@ CENTRAL_EUROPE = RegionProfile(
 )
 
 NORDIC = RegionProfile(
+    climate="boreal",
     tree_models=("fir_sapling", "pine_sapling"),
     ground=_sw("Ground, boreal forest", (0.081, 0.119, 0.076), 0.95),
     name="Pays nordiques", tier="band",
@@ -717,6 +744,7 @@ NORDIC = RegionProfile(
 )
 
 EASTERN_EUROPE = RegionProfile(
+    climate="temperate",
     name="Europe orientale", tier="band",
     storey_height=2.75, ground_storey_height=3.3,
     storey_weights=((2, 4.0), (3, 3.0), (5, 2.5), (9, 1.5)),
@@ -732,6 +760,7 @@ EASTERN_EUROPE = RegionProfile(
 )
 
 RUSSIA_SIBERIA = RegionProfile(
+    climate="boreal",
     tree_models=("fir_sapling", "pine_sapling"),
     ground=_sw("Ground, taiga", (0.086, 0.119, 0.076), 0.95),
     name="Russie et Sibérie", tier="band",
@@ -749,6 +778,7 @@ RUSSIA_SIBERIA = RegionProfile(
 )
 
 MAGHREB_SAHARA = RegionProfile(
+    climate="arid",
     tree_models=("quiver_tree", "quiver_tree_slim", "broadleaf"),
     ground=_sw("Ground, desert sand", (0.437, 0.393, 0.293), 0.94),
     name="Maghreb et Sahara", tier="band",
@@ -765,6 +795,7 @@ MAGHREB_SAHARA = RegionProfile(
 )
 
 MIDDLE_EAST = RegionProfile(
+    climate="arid",
     tree_models=("quiver_tree", "quiver_tree_slim", "broadleaf"),
     ground=_sw("Ground, stony arid", (0.329, 0.301, 0.235), 0.95),
     name="Proche et Moyen-Orient", tier="band",
@@ -781,6 +812,7 @@ MIDDLE_EAST = RegionProfile(
 )
 
 SUB_SAHARAN = RegionProfile(
+    climate="tropical",
     tree_models=("broadleaf", "broadleaf", "quiver_tree"),
     ground=_sw("Ground, dry savanna", (0.283, 0.244, 0.142), 0.94),
     name="Afrique subsaharienne", tier="band",
@@ -798,6 +830,7 @@ SUB_SAHARAN = RegionProfile(
 )
 
 SOUTH_ASIA = RegionProfile(
+    climate="tropical",
     tree_models=("broadleaf", "broadleaf", "quiver_tree"),
     ground=_sw("Ground, cultivated", (0.213, 0.208, 0.117), 0.94),
     name="Asie du Sud", tier="band",
@@ -815,6 +848,7 @@ SOUTH_ASIA = RegionProfile(
 )
 
 SOUTHEAST_ASIA = RegionProfile(
+    climate="tropical",
     tree_models=("broadleaf", "broadleaf", "quiver_tree"),
     ground=_sw("Ground, humid tropics", (0.098, 0.147, 0.074), 0.95),
     name="Asie du Sud-Est", tier="band",
@@ -832,6 +866,7 @@ SOUTHEAST_ASIA = RegionProfile(
 )
 
 EAST_ASIA = RegionProfile(
+    climate="temperate",
     ground=_sw("Ground, cultivated", (0.186, 0.202, 0.114), 0.94),
     name="Asie de l'Est continentale", tier="band",
     storey_height=2.9, ground_storey_height=3.5,
@@ -848,6 +883,7 @@ EAST_ASIA = RegionProfile(
 )
 
 JAPAN = RegionProfile(
+    climate="temperate",
     name="Japon", tier="band",
     storey_height=2.85, ground_storey_height=3.3,
     storey_weights=((1, 2.5), (2, 5.0), (3, 3.0), (4, 1.0)),
@@ -863,6 +899,7 @@ JAPAN = RegionProfile(
 )
 
 OCEANIA = RegionProfile(
+    climate="arid",
     ground=_sw("Ground, dry bush", (0.248, 0.227, 0.134), 0.94),
     name="Australie et Pacifique", tier="band",
     storey_height=2.85, ground_storey_height=3.4,
@@ -879,6 +916,7 @@ OCEANIA = RegionProfile(
 )
 
 NORTH_AMERICA = RegionProfile(
+    climate="temperate",
     name="Amérique du Nord", tier="band",
     storey_height=2.9, ground_storey_height=3.6,
     storey_weights=((1, 4.0), (2, 5.0), (3, 2.0), (4, 1.0)),
@@ -894,6 +932,7 @@ NORTH_AMERICA = RegionProfile(
 )
 
 LATIN_AMERICA = RegionProfile(
+    climate="tropical",
     tree_models=("broadleaf", "broadleaf", "quiver_tree"),
     ground=_sw("Ground, subtropical", (0.134, 0.180, 0.098), 0.94),
     name="Amérique latine", tier="band",
@@ -915,6 +954,7 @@ LATIN_AMERICA = RegionProfile(
 # characterless: a region with no style is honest about knowing nothing, and a
 # scene built from it is visibly generic rather than confidently wrong (I5).
 GENERIC = RegionProfile(
+    climate="temperate",
     name="Générique — aucune région Atlas",
     tier="none",
     storey_height=3.0,

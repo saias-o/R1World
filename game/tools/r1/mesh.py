@@ -41,6 +41,22 @@ def _normal(a: Vec3, b: Vec3, c: Vec3) -> Vec3:
     return n[0] / length, n[1] / length, n[2] / length
 
 
+def _derived_uvs(mode: str, n: Vec3, points) -> tuple[Vec2, Vec2, Vec2]:
+    if mode == "planar" or abs(n[1]) > 0.999:
+        return tuple((p[0], -p[2]) for p in points)
+    # From the normal as the weld key rounds it: coplanar triangles whose
+    # normals differ by roundoff must get the same frame, or a shared corner
+    # gets two UVs and stops being shared.
+    n = tuple(round(c, 6) for c in n)
+    # Across the fall line (horizontal, in the face) and up it.
+    tx, tz = n[2], -n[0]
+    length = math.hypot(tx, tz)
+    tx, tz = tx / length, tz / length
+    bx, by, bz = n[1] * tz, n[2] * tx - n[0] * tz, -n[1] * tx
+    return tuple((round(p[0] * tx + p[2] * tz, 5), round(p[0] * bx + p[1] * by + p[2] * bz, 5))
+                 for p in points)
+
+
 @dataclass
 class Mesh:
     """Flat-shaded indexed triangle mesh.
@@ -66,6 +82,13 @@ class Mesh:
     normals: list[Vec3] = field(default_factory=list)
     texcoords: list[Vec2] = field(default_factory=list)
     indices: list[int] = field(default_factory=list)
+    # What a triangle added without UVs gets, in metres. "planar" projects on
+    # the ground plane, (x, -z): streets, where neighbouring triangles on
+    # different slopes must continue one pattern. "slope" lays each face out in
+    # its own frame, across the fall line and up it: roofs, so rows of tiles run
+    # along the eave whichever way the roof faces. Both are functions of the
+    # position within a face, so they cost no vertex the weld would have kept.
+    uv_mode: str = "none"
     _lookup: dict[tuple, int] = field(default_factory=dict, repr=False, compare=False)
 
     def _vertex(self, position: Vec3, normal: Vec3, uv: Vec2) -> int:
@@ -92,6 +115,8 @@ class Mesh:
         uvs: tuple[Vec2, Vec2, Vec2] | None = None,
     ) -> None:
         n = _normal(a, b, c)
+        if uvs is None and self.uv_mode != "none":
+            uvs = _derived_uvs(self.uv_mode, n, (a, b, c))
         uv = uvs or ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0))
         self.indices.extend((
             self._vertex(a, n, uv[0]),
@@ -270,6 +295,12 @@ class Material:
     metallic: float = 0.0
     double_sided: bool = False
     base_color_texture: str | None = None
+    normal_texture: str | None = None
+    # glTF packing: roughness in green, metallic in blue.
+    metallic_roughness_texture: str | None = None
+    # Mesh UVs are in metres (or bays and storeys, for walls); this turns them
+    # into texture repeats. Applied when the GLB is written.
+    uv_scale: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -281,6 +312,53 @@ class MeshPart:
 
 def _pad4(data: bytes, byte: bytes = b"\0") -> bytes:
     return data + byte * ((-len(data)) % 4)
+
+
+def _tangents(positions, normals, texcoords, indices) -> list[tuple[float, float, float, float]]:
+    """Per-vertex tangents, in the convention the engine reads.
+
+    The tangent is dP/du. The engine builds the bitangent as cross(N, T) * w,
+    and the normal maps are OpenGL-style (+Y towards the top of the image),
+    while glTF's v grows towards the bottom of it, so w makes the bitangent
+    point along -dP/dv.
+    """
+    count = len(positions)
+    tan = [[0.0, 0.0, 0.0] for _ in range(count)]
+    bit = [[0.0, 0.0, 0.0] for _ in range(count)]
+    for i in range(0, len(indices) - 2, 3):
+        i0, i1, i2 = indices[i], indices[i + 1], indices[i + 2]
+        p0, p1, p2 = positions[i0], positions[i1], positions[i2]
+        (u0, v0), (u1, v1), (u2, v2) = texcoords[i0], texcoords[i1], texcoords[i2]
+        e1 = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+        e2 = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+        du1, dv1, du2, dv2 = u1 - u0, v1 - v0, u2 - u0, v2 - v0
+        det = du1 * dv2 - du2 * dv1
+        if abs(det) < 1e-12:
+            continue
+        r = 1.0 / det
+        t = [(e1[k] * dv2 - e2[k] * dv1) * r for k in range(3)]
+        b = [(e2[k] * du1 - e1[k] * du2) * r for k in range(3)]
+        for j in (i0, i1, i2):
+            tj, bj = tan[j], bit[j]
+            tj[0] += t[0]; tj[1] += t[1]; tj[2] += t[2]
+            bj[0] += b[0]; bj[1] += b[1]; bj[2] += b[2]
+    out = []
+    for j in range(count):
+        n = normals[j]
+        t = tan[j]
+        d = n[0] * t[0] + n[1] * t[1] + n[2] * t[2]
+        t = [t[0] - n[0] * d, t[1] - n[1] * d, t[2] - n[2] * d]
+        length = math.sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2])
+        if length < 1e-9:
+            # No UV gradient here: any direction in the surface will do.
+            t = [n[1], -n[0], 0.0] if abs(n[2]) < 0.9 else [0.0, n[2], -n[1]]
+            length = math.sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]) or 1.0
+        t = [c / length for c in t]
+        c = (n[1] * t[2] - n[2] * t[1], n[2] * t[0] - n[0] * t[2], n[0] * t[1] - n[1] * t[0])
+        b = bit[j]
+        w = -1.0 if (c[0] * b[0] + c[1] * b[1] + c[2] * b[2]) > 0.0 else 1.0
+        out.append((t[0], t[1], t[2], w))
+    return out
 
 
 def write_glb(path: Path, parts: Sequence[MeshPart]) -> None:
@@ -349,7 +427,9 @@ def write_glb(path: Path, parts: Sequence[MeshPart]) -> None:
         mesh = part.mesh
         pos_payload = b"".join(struct.pack("<3f", *p) for p in mesh.positions)
         normal_payload = b"".join(struct.pack("<3f", *n) for n in mesh.normals)
-        uv_payload = b"".join(struct.pack("<2f", *uv) for uv in mesh.texcoords)
+        k = part.material.uv_scale
+        texcoords = mesh.texcoords if k == 1.0 else [(u * k, v * k) for u, v in mesh.texcoords]
+        uv_payload = b"".join(struct.pack("<2f", *uv) for uv in texcoords)
         index_payload = b"".join(struct.pack("<I", i) for i in mesh.indices)
         pos_view = append_view(pos_payload, 34962)
         normal_view = append_view(normal_payload, 34962)
@@ -370,6 +450,19 @@ def write_glb(path: Path, parts: Sequence[MeshPart]) -> None:
         index_accessor = append_accessor(
             index_view, 5125, len(mesh.indices), "SCALAR"
         )
+        attributes = {
+            "POSITION": pos_accessor,
+            "NORMAL": normal_accessor,
+            "TEXCOORD_0": uv_accessor,
+        }
+        # The engine disables a normal map whose primitive carries no tangents
+        # rather than guess them, so a normal-mapped part ships its own.
+        if part.material.normal_texture:
+            tangent_payload = b"".join(
+                struct.pack("<4f", *t) for t in _tangents(mesh.positions, mesh.normals,
+                                                          texcoords, mesh.indices))
+            attributes["TANGENT"] = append_accessor(
+                append_view(tangent_payload, 34962), 5126, len(mesh.positions), "VEC4")
 
         material_index = len(materials)
         pbr = {
@@ -381,19 +474,24 @@ def write_glb(path: Path, parts: Sequence[MeshPart]) -> None:
             pbr["baseColorTexture"] = {
                 "index": texture_index(part.material.base_color_texture)
             }
-        materials.append({
+        if part.material.metallic_roughness_texture:
+            pbr["metallicRoughnessTexture"] = {
+                "index": texture_index(part.material.metallic_roughness_texture)
+            }
+        material_json = {
             "name": part.material.name,
             "doubleSided": part.material.double_sided,
             "pbrMetallicRoughness": pbr,
-        })
+        }
+        if part.material.normal_texture:
+            material_json["normalTexture"] = {
+                "index": texture_index(part.material.normal_texture)
+            }
+        materials.append(material_json)
         meshes.append({
             "name": part.name,
             "primitives": [{
-                "attributes": {
-                    "POSITION": pos_accessor,
-                    "NORMAL": normal_accessor,
-                    "TEXCOORD_0": uv_accessor,
-                },
+                "attributes": attributes,
                 "indices": index_accessor,
                 "material": material_index,
                 "mode": 4,
