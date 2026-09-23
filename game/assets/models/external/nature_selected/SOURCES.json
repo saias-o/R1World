@@ -1,0 +1,85 @@
+[
+  {
+    "output": "urban_tree.glb",
+    "input": "scene.gltf",
+    "selectedChildren": [
+      "crown merged_normal leaves_0",
+      "br_low_trunk_0",
+      "trunk_low_trunk_0"
+    ],
+    "sourceSha256": "facc9198458e31a01c42ac23f10cf7bc521f77917e45486d336aa9781c82daa3",
+    "attribution": {
+      "author": "Daniel (https://sketchfab.com/danielpetrov)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/realistic-tree-d989c0f801d847b9a74992ec4ddcfdfc",
+      "title": "Realistic Tree"
+    },
+    "normalizedHeight": 1,
+    "vertices": 28629
+  },
+  {
+    "output": "grass_fresh.glb",
+    "input": "grass_pack_lowpoly_game-ready.glb",
+    "selectedChildren": [
+      "Grass main fresh_Grass_Mat_0"
+    ],
+    "sourceSha256": "27cb21ce36285a307de055d68bf02cdf9d50a2a458e0a2044162e4765594155c",
+    "attribution": {
+      "author": "LOLIPOP (https://sketchfab.com/lolipop_1707)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/grass-pack-lowpoly-game-ready-422f42f618d342c6958b02613dc57403",
+      "title": "Grass pack (lowpoly, game-ready)"
+    },
+    "normalizedHeight": 1,
+    "vertices": 44
+  },
+  {
+    "output": "grass_dry.glb",
+    "input": "grass_pack_lowpoly_game-ready.glb",
+    "selectedChildren": [
+      "Grass main dry_Grass_Mat_0"
+    ],
+    "sourceSha256": "27cb21ce36285a307de055d68bf02cdf9d50a2a458e0a2044162e4765594155c",
+    "attribution": {
+      "author": "LOLIPOP (https://sketchfab.com/lolipop_1707)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/grass-pack-lowpoly-game-ready-422f42f618d342c6958b02613dc57403",
+      "title": "Grass pack (lowpoly, game-ready)"
+    },
+    "normalizedHeight": 1,
+    "vertices": 32
+  },
+  {
+    "output": "grass_tall.glb",
+    "input": "grass_pack_lowpoly_game-ready.glb",
+    "selectedChildren": [
+      "Grass tall high_Tall_grass_Mat_0"
+    ],
+    "sourceSha256": "27cb21ce36285a307de055d68bf02cdf9d50a2a458e0a2044162e4765594155c",
+    "attribution": {
+      "author": "LOLIPOP (https://sketchfab.com/lolipop_1707)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/grass-pack-lowpoly-game-ready-422f42f618d342c6958b02613dc57403",
+      "title": "Grass pack (lowpoly, game-ready)"
+    },
+    "normalizedHeight": 1,
+    "vertices": 74
+  },
+  {
+    "output": "shrub.glb",
+    "input": "stylized_foliage.glb",
+    "selectedChildren": [
+      "BIG FOLLIAGE.013_leaves_0",
+      "BIG FOLLIAGE.013_branch_0"
+    ],
+    "sourceSha256": "e17cad2daf93066c9f998070cab3d3b0a7dfeef9bd69189132cd9faaeb80a32e",
+    "attribution": {
+      "author": "Daniel (https://sketchfab.com/danielpetrov)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/stylized-foliage-01b1dc5e75ab4ae9802cafc7e2d9de58",
+      "title": "Stylized Foliage"
+    },
+    "normalizedHeight": 1,
+    "vertices": 4911
+  }
+]

@@ -1,0 +1,203 @@
+{
+  "schema": 2,
+  "version": 2,
+  "scene": {
+    "type": "Scene",
+    "name": "R1WorldEarth",
+    "enabled": true,
+    "children": [
+      {
+        "type": "LightNode",
+        "name": "Sun",
+        "enabled": true,
+        "children": [],
+        "behaviours": [
+          {
+            "type": "ScriptBehaviour",
+            "enabled": true,
+            "script": "scripts/sun_cycle.js",
+            "hotReload": false,
+            "properties": {
+              "anchorLon": 2.3522,
+              "anchorLat": 48.8566,
+              "epochUnix": 1782052200.0,
+              "secondsPerSecond": 60.0,
+              "turbidity": 2.4,
+              "altitude": 0.0,
+              "peakIntensity": 4.6
+            }
+          }
+        ],
+        "groups": [
+          "sun"
+        ],
+        "lightType": 0,
+        "castShadows": true,
+        "color": [
+          1.0,
+          0.9454,
+          0.8141
+        ],
+        "intensity": 3.6773,
+        "direction": [
+          0.582242,
+          -0.766067,
+          -0.272277
+        ]
+      },
+      {
+        "type": "Node",
+        "name": "Player",
+        "enabled": true,
+        "children": [
+          {
+            "type": "Node",
+            "name": "Body",
+            "enabled": true,
+            "children": [],
+            "behaviours": [],
+            "importedFrom": "assets/models/characters/player.glb",
+            "transform": {
+              "position": [
+                0,
+                0,
+                0
+              ],
+              "rotation": [
+                0,
+                1,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        ],
+        "behaviours": [],
+        "groups": [
+          "player"
+        ]
+      },
+      {
+        "type": "Node",
+        "name": "Car",
+        "enabled": false,
+        "children": [
+          {
+            "type": "Node",
+            "name": "Body",
+            "enabled": true,
+            "children": [],
+            "behaviours": [],
+            "importedFrom": "assets/models/external/kenney_cars/sedan.glb",
+            "transform": {
+              "position": [
+                0,
+                0,
+                0
+              ],
+              "rotation": [
+                0,
+                1,
+                0,
+                0
+              ],
+              "scale": [
+                1.2,
+                1.2,
+                1.2
+              ]
+            }
+          }
+        ],
+        "behaviours": [],
+        "groups": [
+          "vehicle"
+        ]
+      },
+      {
+        "type": "Camera",
+        "name": "ExplorerCamera",
+        "enabled": true,
+        "children": [],
+        "behaviours": [],
+        "groups": [
+          "camera"
+        ],
+        "fovDegrees": 62,
+        "nearZ": 0.1,
+        "farZ": 5000,
+        "priority": 10,
+        "active": true
+      },
+      {
+        "type": "WebCanvasNode",
+        "name": "WorldMap",
+        "enabled": true,
+        "children": [],
+        "behaviours": [],
+        "groups": [
+          "world-ui"
+        ],
+        "width": 1440,
+        "height": 900,
+        "referenceWidth": 1440,
+        "referenceHeight": 900,
+        "scaleMode": 1,
+        "mode": 0,
+        "url": "ui/world.html",
+        "hotReload": false,
+        "interactive": true,
+        "renderOrder": 1000
+      }
+    ],
+    "behaviours": [],
+    "settings": {
+      "ambient": [
+        0.0977,
+        0.1272,
+        0.2
+      ],
+      "clearColor": [
+        0.5496,
+        0.593,
+        0.7
+      ],
+      "giEnabled": false,
+      "fogEnabled": true,
+      "fogColor": [
+        0.5496,
+        0.593,
+        0.7
+      ],
+      "fogStart": 160,
+      "fogDensity": 0.0035,
+      "iblEnabled": false,
+      "aoEnabled": true,
+      "bloomEnabled": false,
+      "postProcessing": true,
+      "changeRenderingAtLoad": true,
+      "skyboxTexture": "assets/skies/qwantani_noon.hdr",
+      "skyboxBlendTexture": "assets/skies/qwantani_noon.hdr",
+      "skyboxBlend": 0.0,
+      "skyboxExposure": 1.6901,
+      "skyboxRotation": 2.075223,
+      "skyboxBlendRotation": 2.075223,
+      "skySunDirection": [
+        -0.582242,
+        0.766067,
+        0.272277
+      ],
+      "skySunColor": [
+        15988.3138,
+        15115.7997,
+        13016.6279
+      ],
+      "skySunSize": 0.265
+    }
+  }
+}

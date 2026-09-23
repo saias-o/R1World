@@ -1,0 +1,28 @@
+body { margin: 0; font-family: NextSans; font-size: 18px; color: #edf3ee; }
+#menu { position: absolute; width: 1440px; height: 900px; background-color: #0b1b25; }
+#brand { position: absolute; top: 26px; left: 48px; font-size: 26px; font-weight: bold; letter-spacing: 2px; }
+#brand span { color: #94bbae; }
+#engine { position: absolute; right: 48px; top: 35px; font-size: 13px; letter-spacing: 2px; color: #8da5b0; }
+h1 { position: absolute; top: 74px; left: 48px; margin: 0; font-size: 40px; font-weight: bold; }
+#intro { position: absolute; top: 128px; left: 48px; margin: 0; color: #a4b8bf; }
+#map { position: absolute; left: 48px; top: 176px; width: 1344px; height: 560px; overflow: hidden; background-color: #0e2330; }
+#earth { position: absolute; left: 0; top: 0; width: 1344px; height: 560px; }
+#pin { position: absolute; left: 680px; top: 124px; width: 26px; height: 26px; margin-left: -13px; margin-top: -13px; background-color: #d5f5a4; color: #162326; font-size: 24px; text-align: center; border-radius: 13px; }
+#map-tools { position: absolute; top: 188px; right: 60px; }
+button { display: inline-block; background-color: #243c47; color: #e4eee9; border-width: 0; padding: 10px 18px; margin-right: 6px; font-size: 16px; }
+button:hover { background-color: #3c5962; }
+button:focus { border: 1px #d5f5a4; }
+#places { position: absolute; top: 687px; left: 64px; }
+#destination { position: absolute; top: 760px; left: 48px; }
+label { display: inline-block; font-size: 12px; color: #9fb5bf; margin-right: 8px; vertical-align: middle; }
+input { display: inline-block; width: 150px; height: 28px; padding: 8px; background-color: #172e3a; color: #ffffff; margin-right: 22px; border: 1px #34505e; font-size: 18px; }
+#go { background-color: #d5f5a4; color: #122427; font-size: 22px; font-weight: bold; width: 130px; }
+#go:hover { background-color: #e7ffc5; }
+#resume { display: none; }
+#status { position: absolute; top: 817px; left: 48px; margin: 0; color: #d5f5a4; font-size: 16px; }
+#credits { position: absolute; top: 869px; left: 48px; font-size: 12px; color: #8da5b0; }
+#hud { display: none; position: absolute; width: 1440px; height: 900px; }
+#coordinates { position: absolute; top: 28px; left: 32px; width: 580px; background-color: #142934; padding: 12px 18px; }
+#stream-status { position: absolute; top: 80px; left: 32px; width: 580px; background-color: #142934; padding: 8px 14px; font-size: 14px; }
+#controls { position: absolute; bottom: 28px; left: 32px; width: 780px; background-color: #142934; padding: 10px 16px; font-size: 15px; }
+#crosshair { position: absolute; left: 714px; top: 440px; font-size: 20px; }

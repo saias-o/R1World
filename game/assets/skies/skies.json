@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "source": "Poly Haven, Qwantani series (CC0), photographed by Greg Zaal",
+  "site": [
+    -28.48533209827116,
+    29.012639559934758
+  ],
+  "sunDiscRadiance": 20000.0,
+  "sunAngularRadius": 0.265,
+  "frames": [
+    {
+      "name": "night",
+      "texture": "assets/skies/qwantani_night.hdr",
+      "branch": "both",
+      "elevation": -13.3082,
+      "sunU": 0.62256,
+      "horizon": 2.1216,
+      "luminance": 0.89011,
+      "sunRemovedDegrees": 0.0,
+      "captured": "2024-08-22T16:43:00+00:00",
+      "capturedAzimuth": 275.936
+    },
+    {
+      "name": "dawn",
+      "texture": "assets/skies/qwantani_dawn.hdr",
+      "branch": "rising",
+      "elevation": -1.3802,
+      "sunU": 0.59717,
+      "horizon": 1.20562,
+      "luminance": 1.40997,
+      "sunRemovedDegrees": 0.0,
+      "captured": "2024-08-19T04:28:00+00:00",
+      "capturedAzimuth": 76.494
+    },
+    {
+      "name": "sunrise",
+      "texture": "assets/skies/qwantani_sunrise.hdr",
+      "branch": "rising",
+      "elevation": 1.9177,
+      "sunU": 0.59912,
+      "horizon": 1.28874,
+      "luminance": 1.38878,
+      "sunRemovedDegrees": 2.5,
+      "captured": "2024-08-19T04:43:00+00:00",
+      "capturedAzimuth": 74.708
+    },
+    {
+      "name": "morning",
+      "texture": "assets/skies/qwantani_morning.hdr",
+      "branch": "rising",
+      "elevation": 19.5373,
+      "sunU": 0.6001,
+      "horizon": 0.92853,
+      "luminance": 0.48427,
+      "sunRemovedDegrees": 5.0,
+      "captured": "2024-08-20T06:09:00+00:00",
+      "capturedAzimuth": 63.358
+    },
+    {
+      "name": "mid_morning",
+      "texture": "assets/skies/qwantani_mid_morning.hdr",
+      "branch": "rising",
+      "elevation": 39.7005,
+      "sunU": 0.6001,
+      "horizon": 0.48062,
+      "luminance": 0.29076,
+      "sunRemovedDegrees": 6.0,
+      "captured": "2024-08-20T08:05:00+00:00",
+      "capturedAzimuth": 40.224
+    },
+    {
+      "name": "noon",
+      "texture": "assets/skies/qwantani_noon.hdr",
+      "branch": "both",
+      "elevation": 49.5685,
+      "sunU": 0.6001,
+      "horizon": 0.34998,
+      "luminance": 0.1786,
+      "sunRemovedDegrees": 6.5,
+      "captured": "2024-08-21T10:18:00+00:00",
+      "capturedAzimuth": 355.85
+    },
+    {
+      "name": "afternoon",
+      "texture": "assets/skies/qwantani_afternoon.hdr",
+      "branch": "setting",
+      "elevation": 40.7553,
+      "sunU": 0.6001,
+      "horizon": 0.45183,
+      "luminance": 0.21257,
+      "sunRemovedDegrees": 6.5,
+      "captured": "2024-08-21T12:04:00+00:00",
+      "capturedAzimuth": 320.861
+    },
+    {
+      "name": "late_afternoon",
+      "texture": "assets/skies/qwantani_late_afternoon.hdr",
+      "branch": "setting",
+      "elevation": 19.5957,
+      "sunU": 0.6001,
+      "horizon": 0.81737,
+      "luminance": 0.52865,
+      "sunRemovedDegrees": 5.0,
+      "captured": "2024-08-18T14:04:00+00:00",
+      "capturedAzimuth": 297.415
+    },
+    {
+      "name": "sunset",
+      "texture": "assets/skies/qwantani_sunset.hdr",
+      "branch": "setting",
+      "elevation": 6.5274,
+      "sunU": 0.6001,
+      "horizon": 1.82757,
+      "luminance": 1.04348,
+      "sunRemovedDegrees": 3.5,
+      "captured": "2024-08-18T15:09:00+00:00",
+      "capturedAzimuth": 288.325
+    },
+    {
+      "name": "dusk_1",
+      "texture": "assets/skies/qwantani_dusk_1.hdr",
+      "branch": "setting",
+      "elevation": -0.9175,
+      "sunU": 0.59619,
+      "horizon": 0.69201,
+      "luminance": 1.2212,
+      "sunRemovedDegrees": 0.0,
+      "captured": "2024-08-22T15:47:00+00:00",
+      "capturedAzimuth": 282.401
+    },
+    {
+      "name": "dusk_2",
+      "texture": "assets/skies/qwantani_dusk_2.hdr",
+      "branch": "setting",
+      "elevation": -5.2245,
+      "sunU": 0.604,
+      "horizon": 0.75773,
+      "luminance": 1.24615,
+      "sunRemovedDegrees": 0.0,
+      "captured": "2024-08-22T16:06:00+00:00",
+      "capturedAzimuth": 280.177
+    }
+  ]
+}

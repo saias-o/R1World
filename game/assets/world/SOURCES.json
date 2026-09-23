@@ -1,0 +1,7 @@
+{
+  "map": {
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
+    "license": "Natural Earth public domain",
+    "use": "Selection map only; not terrain or elevation"
+  }
+}

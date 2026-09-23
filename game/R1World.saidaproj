@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "version": 1,
+  "name": "R1World",
+  "engineVersion": "1.0.0",
+  "mainScene": "scenes/earth.scene",
+  "runtime": {
+    "maxFps": 60,
+    "vsync": true
+  },
+  "rendering": {
+    "autoMeshLods": false,
+    "shadowDistance": 100.0,
+    "shadowResolution": 2048,
+    "shadowSoftness": 1.0,
+    "showColliders": false
+  },
+  "audio": {
+    "masterVolume": 1.0,
+    "aliases": {}
+  },
+  "autoloads": {}
+}

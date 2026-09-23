@@ -1,0 +1,651 @@
+{
+    "assets": {
+        "1039543789923029": {
+            "hash": 7611281069464446547,
+            "path": "assets/world/facade.png",
+            "type": "Texture"
+        },
+        "10904127835492038582": {
+            "hash": 15975646641787523043,
+            "path": "assets/models/external/kenney_props/street_lamp.glb",
+            "type": "Mesh"
+        },
+        "10904342543438094544": {
+            "hash": 5136553767009596146,
+            "path": "assets/models/external/polyhaven_trees/fir_sapling.bin",
+            "type": "Unknown"
+        },
+        "10965556304463422824": {
+            "hash": 11390647631395167607,
+            "path": "assets/models/characters/player.glb",
+            "type": "Mesh"
+        },
+        "11077123032362222503": {
+            "hash": 825924902146868092,
+            "path": "assets/models/external/nature_cards/broadleaf.png",
+            "type": "Texture"
+        },
+        "11103282204312302750": {
+            "hash": 4066768423375957583,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_branches_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "11180978023951836498": {
+            "hash": 9670824747320362889,
+            "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "11269016273604948363": {
+            "hash": 16827834328507936012,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "11284629021271802291": {
+            "hash": 13124003244293947981,
+            "path": "assets/models/external/nature_selected/shrub.png",
+            "type": "Texture"
+        },
+        "11429220939861462731": {
+            "hash": 14357097194554739423,
+            "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "11433213957736538787": {
+            "hash": 11724757769050074760,
+            "path": "assets/models/external/kenney_props/street_lamp_curved.glb",
+            "type": "Mesh"
+        },
+        "11440353464273778066": {
+            "hash": 5616087402005649536,
+            "path": "assets/skies/qwantani_dusk_1.hdr",
+            "type": "Texture"
+        },
+        "11636612132228961816": {
+            "hash": 12696014756993588771,
+            "path": "assets/models/external/kenney_props/bus_stop_sign.glb",
+            "type": "Mesh"
+        },
+        "11899036795517627642": {
+            "hash": 2705990327908193934,
+            "path": "assets/models/external/nature_cards/urban_tree.source.json",
+            "type": "Unknown"
+        },
+        "11978198429533565905": {
+            "hash": 8468455455463512619,
+            "path": "assets/models/external/trees_lod/quiver_tree_slim.glb",
+            "type": "Mesh"
+        },
+        "12227418480313943961": {
+            "hash": 4594778559482499855,
+            "path": "assets/models/external/nature_selected/grass_fresh.glb",
+            "type": "Mesh"
+        },
+        "12307046234654400368": {
+            "hash": 12136370461614285011,
+            "path": "assets/skies/qwantani_afternoon.hdr",
+            "type": "Texture"
+        },
+        "1232612602026647445": {
+            "hash": 1579391940564413743,
+            "path": "assets/models/external/kenney_nature_kit/tree_pineRoundA.glb",
+            "type": "Mesh"
+        },
+        "12461648921615326159": {
+            "hash": 13251805563787844752,
+            "path": "assets/world/land.geojson",
+            "type": "Unknown"
+        },
+        "12509758340714650534": {
+            "hash": 14271210073685985065,
+            "path": "assets/models/external/kenney_props/power_pole.glb",
+            "type": "Mesh"
+        },
+        "12531387616827636466": {
+            "hash": 6777784807577565656,
+            "path": "assets/models/external/trees_lod/broadleaf.glb",
+            "type": "Mesh"
+        },
+        "12540536489643177383": {
+            "hash": 9288235085679399351,
+            "path": "assets/models/external/nature_selected/grass_tall.glb",
+            "type": "Mesh"
+        },
+        "12651935706989951633": {
+            "hash": 5136553767009596146,
+            "path": "assets/models/external/kenney_nature_kit/fir_sapling.bin",
+            "type": "Unknown"
+        },
+        "12761409532284206640": {
+            "hash": 10222159335742068639,
+            "path": "assets/models/external/kenney_nature_kit/quiver_tree_01.bin",
+            "type": "Unknown"
+        },
+        "12796048582063600651": {
+            "hash": 53490774506577914,
+            "path": "assets/models/external/kenney_props/post_box.glb",
+            "type": "Mesh"
+        },
+        "12890509710164325837": {
+            "hash": 5882390638137486309,
+            "path": "assets/models/external/kenney_nature_kit/pine_sapling_small.bin",
+            "type": "Unknown"
+        },
+        "12900305429000009921": {
+            "hash": 12350097303040955276,
+            "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_twigs_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "12929456298767095054": {
+            "hash": 18333104427538115738,
+            "path": "assets/models/external/nature_cards/pine_sapling.source.json",
+            "type": "Unknown"
+        },
+        "12937963623100372488": {
+            "hash": 10611242029052484264,
+            "path": "assets/models/external/nature_cards/fir_sapling.glb",
+            "type": "Mesh"
+        },
+        "1304167319427229716": {
+            "hash": 17135883166685228244,
+            "path": "assets/models/external/nature_cards/broadleaf.glb",
+            "type": "Mesh"
+        },
+        "13218949161719059758": {
+            "hash": 10499384107617078218,
+            "path": "assets/world/SOURCES.json",
+            "type": "Unknown"
+        },
+        "13546313537533355355": {
+            "hash": 14357097194554739423,
+            "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "13653665000171179054": {
+            "hash": 4680064562558377052,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "13672937213131462899": {
+            "hash": 5347993614936994189,
+            "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "13751667415432449359": {
+            "hash": 3859721668572772011,
+            "path": "assets/models/external/nature_cards/pine_sapling-slice.png",
+            "type": "Texture"
+        },
+        "13763072129313637979": {
+            "hash": 3386090509068969188,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_trunk_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "13775682973279280344": {
+            "hash": 9345409107480066723,
+            "path": "assets/textures/ground/forrest_ground_01_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "13831206957248338408": {
+            "hash": 2877875873424678174,
+            "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_twigs_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "13837621724918736106": {
+            "hash": 7622692989291294756,
+            "path": "assets/models/external/nature_selected/grass_dry.png",
+            "type": "Texture"
+        },
+        "13965676441189082780": {
+            "hash": 5895801015985011760,
+            "path": "assets/textures/ground/forrest_ground_01_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "14219444032277492959": {
+            "hash": 12435981215151756996,
+            "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "14729980388479751198": {
+            "hash": 9565856580366798135,
+            "path": "assets/models/external/nature_cards/quiver_tree_slim.png",
+            "type": "Texture"
+        },
+        "14834222913782364802": {
+            "hash": 5063559829734088901,
+            "path": "assets/textures/ground/forrest_ground_01_rough_1k.jpg",
+            "type": "Texture"
+        },
+        "14922746739256743631": {
+            "hash": 8205072317706118071,
+            "path": "assets/skies/qwantani_sunrise.hdr",
+            "type": "Texture"
+        },
+        "15211902689359524263": {
+            "hash": 281503270715636753,
+            "path": "assets/models/external/kenney_nature_kit/tree_pineTallB.glb",
+            "type": "Mesh"
+        },
+        "15217002626894241759": {
+            "hash": 11533829585515294398,
+            "path": "assets/models/external/nature_selected/urban_tree.png",
+            "type": "Texture"
+        },
+        "15219161670436218162": {
+            "hash": 9670824747320362889,
+            "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "15304996926377149398": {
+            "hash": 7377755155727821441,
+            "path": "assets/models/external/nature_cards/broadleaf-slice.png",
+            "type": "Texture"
+        },
+        "15359456548730799010": {
+            "hash": 9355882243525975633,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_trunk_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "15432293181181506706": {
+            "hash": 6957729338219418389,
+            "path": "assets/models/external/nature_selected/grass_fresh.png",
+            "type": "Texture"
+        },
+        "1557929129814296348": {
+            "hash": 5023509231941440061,
+            "path": "assets/models/external/nature_cards/broadleaf.source.json",
+            "type": "Unknown"
+        },
+        "15599572178276433470": {
+            "hash": 17690186527046223947,
+            "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "15685313678389118020": {
+            "hash": 10917355006684245255,
+            "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "15774656852943925629": {
+            "hash": 8665393270455373631,
+            "path": "assets/models/external/nature_cards/urban_tree.png",
+            "type": "Texture"
+        },
+        "15774867508384711925": {
+            "hash": 13992298916715710593,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_trunk_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "15852081403785450949": {
+            "hash": 7713755728187426623,
+            "path": "assets/models/external/kenney_nature_kit/quiver_tree_01_1k.gltf",
+            "type": "Mesh"
+        },
+        "1605000721459229932": {
+            "hash": 3375162135368542473,
+            "path": "assets/skies/qwantani_morning.hdr",
+            "type": "Texture"
+        },
+        "16347591430840472236": {
+            "hash": 9148229028813619266,
+            "path": "assets/skies/qwantani_mid_morning.hdr",
+            "type": "Texture"
+        },
+        "16455620822867604554": {
+            "hash": 17239871382869383530,
+            "path": "assets/models/external/kenney_nature_kit/quiver_tree_02.bin",
+            "type": "Unknown"
+        },
+        "16674097435083625614": {
+            "hash": 654653369609063748,
+            "path": "assets/models/external/kenney_nature_kit/tree_pineTallA.glb",
+            "type": "Mesh"
+        },
+        "16713317384767212454": {
+            "hash": 6575906128995571157,
+            "path": "assets/models/external/nature_cards/urban_tree.glb",
+            "type": "Mesh"
+        },
+        "1677692118262414434": {
+            "hash": 12612768739838237659,
+            "path": "assets/models/external/nature_cards/quiver_tree_slim-slice.png",
+            "type": "Texture"
+        },
+        "1690029853685214259": {
+            "hash": 13028677314035306415,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "17127537684709276246": {
+            "hash": 1423244832286821060,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "17206031431975535750": {
+            "hash": 8168474711570661932,
+            "path": "assets/skies/qwantani_night.hdr",
+            "type": "Texture"
+        },
+        "1725044341931803965": {
+            "hash": 14066447046842696334,
+            "path": "assets/models/external/nature_cards/pine_sapling.png",
+            "type": "Texture"
+        },
+        "17534997703788934449": {
+            "hash": 1097544280952446221,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_branches_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "18082926178732186715": {
+            "hash": 17168124704363852658,
+            "path": "assets/models/external/kenney_nature_kit/pine_sapling_small_1k.gltf",
+            "type": "Mesh"
+        },
+        "18197928098729124870": {
+            "hash": 16125958644359663234,
+            "path": "assets/models/external/trees_lod/pine_sapling.glb",
+            "type": "Mesh"
+        },
+        "18234333140933753513": {
+            "hash": 8839871898332649537,
+            "path": "assets/licenses/Kenney-CC0.txt",
+            "type": "Unknown"
+        },
+        "18269509320279703244": {
+            "hash": 8069797850845266635,
+            "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "18269909160996766092": {
+            "hash": 6937217485307718187,
+            "path": "assets/models/external/kenney_props/lamp_ornate.glb",
+            "type": "Mesh"
+        },
+        "18404651324015935747": {
+            "hash": 3493117419224747185,
+            "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "1887724836181236674": {
+            "hash": 9495266911581820076,
+            "path": "assets/models/external/nature_selected/shrub.glb",
+            "type": "Mesh"
+        },
+        "2042591374650119539": {
+            "hash": 12683091016541965439,
+            "path": "assets/models/external/trees_lod/quiver_tree.glb",
+            "type": "Mesh"
+        },
+        "2136220535477230864": {
+            "hash": 396472515186318662,
+            "path": "assets/models/external/nature_cards/fir_sapling-slice.png",
+            "type": "Texture"
+        },
+        "2304441367332094151": {
+            "hash": 6584764869503427778,
+            "path": "assets/models/external/kenney_cars/sedan.glb",
+            "type": "Mesh"
+        },
+        "2588424575745427250": {
+            "hash": 5120502853837879303,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "2763471623495127685": {
+            "hash": 900989177846186600,
+            "path": "scenes/earth.scene",
+            "type": "Scene"
+        },
+        "3194250900702072948": {
+            "hash": 18258682751161514885,
+            "path": "assets/models/external/kenney_props/fountain.glb",
+            "type": "Mesh"
+        },
+        "3213767207549960069": {
+            "hash": 1732985676158581691,
+            "path": "assets/models/external/nature_cards/quiver_tree_slim.glb",
+            "type": "Mesh"
+        },
+        "3376422274018361149": {
+            "hash": 1918727725939250380,
+            "path": "assets/world/traffic_paints.json",
+            "type": "Unknown"
+        },
+        "3427590393430696350": {
+            "hash": 2877875873424678174,
+            "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "3506467603817564788": {
+            "hash": 16906919971634070160,
+            "path": "assets/models/external/kenney_nature_kit/fir_sapling_1k.gltf",
+            "type": "Mesh"
+        },
+        "3531514859552178091": {
+            "hash": 7675569649326220548,
+            "path": "assets/models/external/kenney_props/bench.glb",
+            "type": "Mesh"
+        },
+        "3573493971231466178": {
+            "hash": 6712599153697446676,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_02_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "3646472572193558201": {
+            "hash": 12960205455773315071,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "381442657168135737": {
+            "hash": 8318651115817926230,
+            "path": "assets/models/external/nature_cards/urban_tree-slice.png",
+            "type": "Texture"
+        },
+        "3916916485640998989": {
+            "hash": 16906919971634070160,
+            "path": "assets/models/external/polyhaven_trees/fir_sapling_1k.gltf",
+            "type": "Mesh"
+        },
+        "4083765119651082369": {
+            "hash": 7375749398478064353,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_02_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "414178416894724734": {
+            "hash": 10464662091219399383,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_branches_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "4163539250931200203": {
+            "hash": 9369623192516621773,
+            "path": "assets/models/external/nature_cards/quiver_tree.png",
+            "type": "Texture"
+        },
+        "451724859607132657": {
+            "hash": 7158798436449139825,
+            "path": "assets/models/external/kenney_props/windmill.glb",
+            "type": "Mesh"
+        },
+        "4684072016819061786": {
+            "hash": 17426015823916506103,
+            "path": "assets/models/external/nature_cards/fir_sapling.source.json",
+            "type": "Unknown"
+        },
+        "4741489824240185612": {
+            "hash": 5525194153959170927,
+            "path": "assets/models/external/nature_selected/urban_tree.glb",
+            "type": "Mesh"
+        },
+        "4769638225154701393": {
+            "hash": 5201842164630077379,
+            "path": "assets/skies/skies.json",
+            "type": "Unknown"
+        },
+        "4823534181187174828": {
+            "hash": 9316844486064432843,
+            "path": "assets/skies/qwantani_dusk_2.hdr",
+            "type": "Texture"
+        },
+        "4830286355288404843": {
+            "hash": 12130353159444459608,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "5202884150791063354": {
+            "hash": 6432200755524730565,
+            "path": "assets/models/external/nature_cards/pine_sapling.glb",
+            "type": "Mesh"
+        },
+        "5361539092364710995": {
+            "hash": 12350097303040955276,
+            "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "5520843362233283661": {
+            "hash": 9439052391537797016,
+            "path": "assets/models/external/nature_cards/quiver_tree-slice.png",
+            "type": "Texture"
+        },
+        "5590390086830389759": {
+            "hash": 17591118370853374907,
+            "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "5663266627066784433": {
+            "hash": 3826452604390600411,
+            "path": "assets/models/external/polyhaven_trees/island_tree_01_1k.gltf",
+            "type": "Mesh"
+        },
+        "5743058879046846828": {
+            "hash": 9681221167454989440,
+            "path": "assets/models/external/kenney_nature_kit/quiver_tree_02_1k.gltf",
+            "type": "Mesh"
+        },
+        "5811134762573635999": {
+            "hash": 12634290776162895004,
+            "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_02_nor_gl_1k.jpg",
+            "type": "Texture"
+        },
+        "5916148923958700009": {
+            "hash": 9444299277894483346,
+            "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "6084285013785884658": {
+            "hash": 7597585586211863537,
+            "path": "assets/skies/qwantani_sunset.hdr",
+            "type": "Texture"
+        },
+        "6273056517051813324": {
+            "hash": 7583278959217565498,
+            "path": "assets/skies/qwantani_noon.hdr",
+            "type": "Texture"
+        },
+        "6310095750273266274": {
+            "hash": 14223950233871882504,
+            "path": "assets/skies/qwantani_late_afternoon.hdr",
+            "type": "Texture"
+        },
+        "6499054439455032256": {
+            "hash": 1474878172710831004,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "6663075660738832623": {
+            "hash": 16897487418655341571,
+            "path": "assets/skies/qwantani_dawn.hdr",
+            "type": "Texture"
+        },
+        "702396419434324797": {
+            "hash": 9940349880960739191,
+            "path": "assets/models/external/nature_cards/quiver_tree.source.json",
+            "type": "Unknown"
+        },
+        "7287320863551833219": {
+            "hash": 12377852095728387139,
+            "path": "assets/licenses/Kenney-Nature-Kit-CC0.txt",
+            "type": "Unknown"
+        },
+        "7314010697726977604": {
+            "hash": 8139057011118366164,
+            "path": "assets/models/external/nature_cards/quiver_tree.glb",
+            "type": "Mesh"
+        },
+        "7331644693607710951": {
+            "hash": 13340635321685871106,
+            "path": "assets/models/external/nature_cards/fir_sapling.png",
+            "type": "Texture"
+        },
+        "7455158753150242283": {
+            "hash": 14684432706986996583,
+            "path": "assets/models/external/kenney_props/boulder.glb",
+            "type": "Mesh"
+        },
+        "7471390401848400661": {
+            "hash": 22342455787258648,
+            "path": "assets/models/external/nature_cards/quiver_tree_slim.source.json",
+            "type": "Unknown"
+        },
+        "747212517342979813": {
+            "hash": 10917355006684245255,
+            "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_diff_1k.jpg",
+            "type": "Texture"
+        },
+        "7803497246469165791": {
+            "hash": 18264312062401052432,
+            "path": "assets/models/external/kenney_props/waste_bin.glb",
+            "type": "Mesh"
+        },
+        "7918234061687626932": {
+            "hash": 8716205158011175204,
+            "path": "assets/models/external/nature_selected/grass_dry.glb",
+            "type": "Mesh"
+        },
+        "8048464438721485733": {
+            "hash": 11408779831307037881,
+            "path": "assets/THIRD_PARTY_ASSETS.json",
+            "type": "Unknown"
+        },
+        "8051289168186980294": {
+            "hash": 7048921282168540915,
+            "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "860219286854826305": {
+            "hash": 12435981215151756996,
+            "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_twigs_arm_1k.jpg",
+            "type": "Texture"
+        },
+        "8907627116982713004": {
+            "hash": 13740037881141145756,
+            "path": "assets/models/external/kenney_nature_kit/tree_pineTallC.glb",
+            "type": "Mesh"
+        },
+        "9097557980805502720": {
+            "hash": 330874365689507085,
+            "path": "assets/models/external/trees_lod/fir_sapling.glb",
+            "type": "Mesh"
+        },
+        "936423245872336619": {
+            "hash": 2776834561249972152,
+            "path": "assets/licenses/Poly-Haven-CC0.txt",
+            "type": "Unknown"
+        },
+        "9569450703380592770": {
+            "hash": 16127569152329881128,
+            "path": "assets/models/external/nature_selected/SOURCES.json",
+            "type": "Unknown"
+        },
+        "9579190252674911504": {
+            "hash": 8631905787678880811,
+            "path": "assets/models/external/nature_selected/grass_tall.png",
+            "type": "Texture"
+        },
+        "9661999023916983468": {
+            "hash": 8625248630744489666,
+            "path": "assets/models/external/polyhaven_trees/island_tree_01.bin",
+            "type": "Unknown"
+        }
+    },
+    "schema": 2,
+    "version": 2
+}

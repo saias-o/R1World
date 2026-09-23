@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "assets": [
+    {
+      "name": "Poly Haven Trees (Pine Sapling & Fir Sapling)",
+      "source": "https://polyhaven.com/models",
+      "license": "CC0 1.0",
+      "files": [
+        "assets/models/external/kenney_nature_kit/pine_sapling_small_1k.gltf",
+        "assets/models/external/kenney_nature_kit/pine_sapling_small.bin",
+        "assets/models/external/kenney_nature_kit/fir_sapling_1k.gltf",
+        "assets/models/external/kenney_nature_kit/fir_sapling.bin",
+        "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_diff_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_nor_gl_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_arm_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_diff_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_nor_gl_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_arm_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_diff_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_nor_gl_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_arm_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_diff_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_nor_gl_1k.jpg",
+        "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_arm_1k.jpg"
+      ]
+    },
+    {
+      "name": "Kenney Nature Kit \u2014 conifers",
+      "usedInScene": false,
+      "author": "Kenney",
+      "source": "https://kenney.nl/assets/nature-kit",
+      "license": "CC0 1.0",
+      "files": [
+        "assets/models/external/kenney_nature_kit/tree_pineTallA.glb",
+        "assets/models/external/kenney_nature_kit/tree_pineTallB.glb",
+        "assets/models/external/kenney_nature_kit/tree_pineTallC.glb",
+        "assets/models/external/kenney_nature_kit/tree_pineRoundA.glb"
+      ]
+    },
+    {
+      "name": "Kenney props \u2014 street furniture and vegetation",
+      "author": "Kenney",
+      "source": "https://kenney.nl/assets/city-kit-roads, https://kenney.nl/assets/graveyard-kit, https://kenney.nl/assets/fantasy-town-kit, https://kenney.nl/assets/nature-kit",
+      "license": "CC0 1.0",
+      "extractedFrom": [
+        "kenney_city-kit-roads.zip",
+        "kenney_graveyard-kit_5.0.zip",
+        "kenney_fantasy-town-kit_2.0.zip",
+        "kenney_nature-kit.zip",
+        "kenney_car-kit.zip"
+      ],
+      "files": [
+        "assets/models/external/kenney_props/street_lamp.glb",
+        "assets/models/external/kenney_props/street_lamp_curved.glb",
+        "assets/models/external/kenney_props/bus_stop_sign.glb",
+        "assets/models/external/kenney_props/power_pole.glb",
+        "assets/models/external/kenney_props/waste_bin.glb",
+        "assets/models/external/kenney_props/bench.glb",
+        "assets/models/external/kenney_props/lamp_ornate.glb",
+        "assets/models/external/kenney_props/fountain.glb",
+        "assets/models/external/kenney_props/post_box.glb",
+        "assets/models/external/kenney_props/windmill.glb",
+        "assets/models/external/kenney_props/boulder.glb"
+      ]
+    },
+    {
+      "name": "Kenney Car Kit \u2014 the player's car",
+      "author": "Kenney",
+      "source": "https://kenney.nl/assets/car-kit",
+      "license": "CC0 1.0",
+      "extractedFrom": [
+        "kenney_car-kit.zip"
+      ],
+      "files": [
+        "assets/models/external/kenney_cars/sedan.glb"
+      ]
+    },
+    {
+      "name": "Forest Ground 01",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/",
+      "license": "CC0 1.0",
+      "files": [
+        "assets/textures/ground/forrest_ground_01_diff_1k.jpg",
+        "assets/textures/ground/forrest_ground_01_nor_gl_1k.jpg",
+        "assets/textures/ground/forrest_ground_01_rough_1k.jpg"
+      ]
+    },
+    {
+      "name": "Qwantani sky series (pure sky)",
+      "author": "Poly Haven (photography Greg Zaal, processing Jarod Guest)",
+      "source": "https://polyhaven.com/hdris",
+      "license": "CC0 1.0",
+      "modified": "Sun disc, aureole and lens streaks removed (r1/skies.py)",
+      "files": [
+        "assets/skies/qwantani_night.hdr",
+        "assets/skies/qwantani_dawn.hdr",
+        "assets/skies/qwantani_sunrise.hdr",
+        "assets/skies/qwantani_morning.hdr",
+        "assets/skies/qwantani_mid_morning.hdr",
+        "assets/skies/qwantani_noon.hdr",
+        "assets/skies/qwantani_afternoon.hdr",
+        "assets/skies/qwantani_late_afternoon.hdr",
+        "assets/skies/qwantani_sunset.hdr",
+        "assets/skies/qwantani_dusk_1.hdr",
+        "assets/skies/qwantani_dusk_2.hdr",
+        "assets/skies/skies.json"
+      ]
+    }
+  ]
+}
