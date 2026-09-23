@@ -996,10 +996,17 @@ when the world map says so.
 **Taking the helm.** `F` boards the nearer of the closest car and the closest
 boat. A boat keeps its hull length's handling (`ready.json` → `boats`): drag
 grows with the square of speed, the rudder needs way on, and the bow refuses
-land — a boat runs aground rather than climbing a beach. You step ashore only
-under 1.5 m/s and against a bank or a deck; otherwise the refusal is said, not
-silently ignored. The sea is continuous across tiles, so a boat can leave its
-harbour for the open ocean.
+land — a boat runs aground rather than climbing a beach. Below 1.5 m/s, `F`
+steps onto a bank or deck when one is alongside, or drops the player into the
+water. ZQSD/WASD swim toward shore; `F` boards the same boat again when its
+hull is within reach. A faster boat refuses the exit out loud. The sea is
+continuous across tiles, so a boat can leave its harbour for the open ocean.
+
+**Ships at sea.** The worker places up to 40 vessels from the shipped AIS prior,
+the game's date and cached weather; optional live AIS observations refine the
+prediction when available. They keep moving after appearing. A player can take
+the helm with `F` from the water, or transfer from a nearby boat when their
+speeds match. The same steering and throttle controls then drive that hull.
 
 ```powershell
 python tools\play_world.py --smoke --sail --spawn 5.3698 43.2951   # Vieux-Port

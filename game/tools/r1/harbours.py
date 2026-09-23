@@ -851,6 +851,15 @@ def plan_boats(maritime, coastlines, landcover, features, anchor, cells: Cells, 
     return placed
 
 
+def hull_beam(kind: BoatKind, game_root: Path) -> float:
+    """The beam a hull is moored and sailed with: measured on the model, or
+    its length over `length_ratio` where the model's width lies (oars)."""
+    if kind.length_ratio:
+        return kind.length / kind.length_ratio
+    low, high = _model_extent(game_root, "assets/models/external/kenney_boats/" + kind.model + ".glb")
+    return (high[0] - low[0]) * kind.length / max(1e-3, high[2] - low[2])
+
+
 def boat_nodes(berths, anchor, game_root: Path):
     """Scene nodes for the berths, and the manifest entries the game boards them by."""
     nodes, manifest = [], []

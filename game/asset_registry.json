@@ -470,6 +470,11 @@
             "path": "assets/models/external/kenney_boats/ship_cargo_b.glb",
             "type": "Mesh"
         },
+        "14655921647795101785": {
+            "hash": 14978879175135018970,
+            "path": "assets/world/shipping/prior.bin",
+            "type": "Unknown"
+        },
         "14679134943841200047": {
             "hash": 4587081904526474108,
             "path": "assets/textures/surfaces/sand_desert_albedo.jpg",

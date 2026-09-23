@@ -488,8 +488,15 @@ function compass(azimuth) {
 // at 60x every one of them moves visibly within a few frames at dusk, and a
 // threshold that held one back while the others advanced would put the beam and
 // the sky it sits in at different hours.
+// The instant the world is at, in Unix seconds. The game asks for it to tell
+// the sea's traffic which day and hour it is (`r1/sea_traffic.py`), so the
+// ships and the Sun cannot disagree about the time.
+function gameTime() {
+    return EPOCH_UNIX + (inspectionMode ? 0.0 : elapsed * TIME_SCALE);
+}
+
 function refreshSun() {
-    const light = sunLight(EPOCH_UNIX + (inspectionMode ? 0.0 : elapsed * TIME_SCALE));
+    const light = sunLight(gameTime());
     node.setProperty("direction", light.direction);
     node.setProperty("color", light.color);
     node.setProperty("intensity", light.intensity);

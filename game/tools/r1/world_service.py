@@ -394,9 +394,18 @@ def serve(session):
     stopped = threading.Event()
     pulse = threading.Thread(target=heartbeat, args=(session, stopped), daemon=True)
     pulse.start()
+    # Ships at sea: planned from the local base on the game's requests, and
+    # the base realigned whenever the network answers (r1/sea_traffic.py).
+    # Its own threads and its own log: tiles never wait for the sea.
+    from .sea_traffic import Sea
+    sea = None
     try:
+        sea = Sea(session)
+        sea.start()
         serve_requests(session)
     finally:
+        if sea is not None:
+            sea.close()
         stopped.set()
         pulse.join()
 
