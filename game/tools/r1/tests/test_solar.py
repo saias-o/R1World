@@ -242,11 +242,14 @@ class SunStateTests(unittest.TestCase):
         self.assertFalse(night.is_up)
         self.assertTrue(day.is_up)
 
-    def test_night_keeps_a_navigable_ambient_floor(self):
+    def test_night_is_dark_but_not_black(self):
+        # A real night: the ambient falls to a few thousandths, which is what
+        # a moonless valley is, and never to zero, which is a hole. It stays
+        # bluer than it is red.
         lon, lat = CHAMONIX
         night = sun_state(lon, lat, datetime(2026, 12, 21, 1, tzinfo=UTC), 1035.0)
-        self.assertGreater(min(night.ambient), 0.01)
-        self.assertLess(max(night.ambient), 0.06)
+        self.assertGreater(min(night.ambient), 0.0005)
+        self.assertLess(max(night.ambient), 0.01)
         self.assertGreater(night.ambient[2], night.ambient[0])   # blue night
 
     def test_daylight_ambient_is_blue_and_brighter_than_night(self):

@@ -68,10 +68,12 @@ constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refu
 constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for water
 constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
 constexpr double kPlayerHeight=1.8;     // measured from player.glb's mesh accessor
-constexpr double kSwimHeadAbove=.42;    // show the full head above the water
+constexpr double kSwimHeadAbove=.60;    // keep the head and neck clear of the water
 // §12.4: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
+constexpr double kStreamAheadSeconds=45.; // prepare the road before the car reaches it
+constexpr size_t kStreamRequestLimit=25; // worker's bounded priority queue
 constexpr double kOnFootFollow=4.5,kDrivingFollow=8.5;
 // ── boats ───────────────────────────────────────────────────────────────────
 // A boat is sailed the way the car is driven: a longitude, a latitude and a
@@ -107,6 +109,7 @@ struct Tile {
     // test_world.py fails on the very next run with both keys side by side.
     std::string key() const { return "v14_"+std::to_string(r)+"_"+std::to_string(c); }
     bool operator<(const Tile& b) const { return std::tie(r,c)<std::tie(b.r,b.c); }
+    bool operator==(const Tile& b) const { return r==b.r&&c==b.c; }
 };
 Tile tileAt(double lon,double lat) {
     int r=std::clamp(int(std::floor((lat+90.)*200.)),0,35999);
@@ -248,6 +251,8 @@ class World : public Rml::EventListener {
     std::vector<SeaShip> seaShips; std::set<std::string> seaTaken;
     std::map<std::string,saida::Node*> hullPrototypes;
     fs::file_time_type seaStamp{}; double seaAsk=5.,seaRead=0; bool seaFirst=true; std::string seaSaid;
+    fs::file_time_type conditionsStamp{}; double conditionsRead=0;
+    json conditions=json::object();
     bool smokeSeaWait=false; double captureSeaWait=0;
     bool smokeSail=false,smokeSailWait=false,smokeSailing=false,smokeSailBrake=false,smokeSwimming=false;
     glm::dvec3 smokeSwimStart{0}; saida::Node* smokeSwimBoat=nullptr;
@@ -347,11 +352,69 @@ class World : public Rml::EventListener {
         style("earth","width",number(1344*zoom,1)+"px");style("earth","height",number(560*zoom,1)+"px");
         style("earth","left",number(-mapX,1)+"px");style("earth","top",number(-mapY,1)+"px");select(pickLon,pickLat);
     }
+    double streamPriority(Tile t,double x,double y,double heading) const {
+        const double tileLat=-90.+(t.r+.5)*.005;
+        const double tileLon=-180.+(t.c+.5)*360./columns(t.r);
+        const double east=wrap(tileLon-x)*111320.*std::cos(y*rad);
+        const double north=(tileLat-y)*111320.;
+        const double ahead=east*std::sin(heading*rad)+north*std::cos(heading*rad);
+        return std::hypot(east,north)-.8*std::max(0.,ahead);
+    }
+    bool streamMotion(double& heading,double& speed) const {
+        const double velocity=driving?carSpeed:sailing?boat.speed:0.;
+        if(!playing||pending||warming||std::abs(velocity)<kFastDetail)return false;
+        heading=wrap((driving?carYaw:boat.yaw)+(velocity<0?180.:0.));
+        speed=std::abs(velocity);
+        return true;
+    }
+    std::vector<Tile> orderedNearby(double x,double y) const {
+        auto tiles=nearby(x,y);
+        double heading=0,speed=0;
+        if(streamMotion(heading,speed))
+            std::stable_sort(tiles.begin()+1,tiles.end(),[&](Tile a,Tile b){
+                return streamPriority(a,x,y,heading)<streamPriority(b,x,y,heading);
+            });
+        return tiles;
+    }
     void request(double x,double y) {
         refused.clear();
-        json tiles=json::array();for(auto t:nearby(x,y))tiles.push_back({t.r,t.c});
-        std::string signature=tiles.dump();if(signature==requested)return;
-        writeRequest(session/"request.json",{{"tiles",tiles}});requested=signature;
+        auto local=orderedNearby(x,y);
+        std::vector<std::vector<Tile>> groups{local};
+        std::vector<Tile> forecast;
+        std::set<Tile> seen(local.begin(),local.end());
+        double heading=0,speed=0;
+        if(streamMotion(heading,speed)) {
+            const double horizon=std::clamp(speed*kStreamAheadSeconds,600.,1500.);
+            for(double fraction:{1./3.,2./3.,1.}) {
+                const double distance=horizon*fraction;
+                const auto q=advance(x,y,std::sin(heading*rad)*distance,
+                                            std::cos(heading*rad)*distance);
+                auto group=nearby(q.x,q.y);
+                groups.push_back(group);
+                for(Tile t:group)if(seen.insert(t).second)forecast.push_back(t);
+            }
+            std::stable_sort(forecast.begin(),forecast.end(),[&](Tile a,Tile b){
+                return streamPriority(a,x,y,heading)<streamPriority(b,x,y,heading);
+            });
+        }
+        std::vector<Tile> priority{local.front()};
+        auto append=[&](Tile t){
+            if(priority.size()<kStreamRequestLimit&&
+               std::find(priority.begin(),priority.end(),t)==priority.end())priority.push_back(t);
+        };
+        for(size_t i=1;i<std::min(size_t(3),local.size());++i)append(local[i]);
+        for(size_t i=0;i<std::min(size_t(3),forecast.size());++i)append(forecast[i]);
+        for(size_t i=3;i<local.size();++i)append(local[i]);
+        for(size_t i=3;i<forecast.size();++i)append(forecast[i]);
+        json tiles=json::array(),sourceGroups=json::array();
+        for(Tile t:priority)tiles.push_back({t.r,t.c});
+        for(const auto& group:groups) {
+            json members=json::array();for(Tile t:group)members.push_back({t.r,t.c});
+            sourceGroups.push_back(std::move(members));
+        }
+        json payload={{"tiles",tiles},{"groups",sourceGroups}};
+        std::string signature=payload.dump();if(signature==requested)return;
+        writeRequest(session/"request.json",payload);requested=signature;
     }
     int goCount=0;
     void go() {
@@ -870,6 +933,7 @@ class World : public Rml::EventListener {
         yaw=carYaw;
         if(v<=1e-3){carLon=lon;carLat=lat;carAlt=alt;return;}
         auto next=advance(lon,lat,sin(carYaw*rad)*carSpeed*dt,cos(carYaw*rad)*carSpeed*dt);
+        if(!tile(next.x,next.y))stream(); // Mount a prefetched tile before stopping at its edge.
         if(!tile(next.x,next.y)) {
             // Outrunning the streamer. Said rather than shown as a stutter: at
             // 130 km/h a car reaches the edge of the loaded world in seconds,
@@ -1092,6 +1156,7 @@ class World : public Rml::EventListener {
         auto next=advance(lon,lat,s*boat.speed*dt,c*boat.speed*dt);
         const double lead=boat.length*.5*(boat.speed>=0?1.:-1.);
         auto bow=advance(next.x,next.y,s*lead,c*lead);
+        if(!tile(next.x,next.y)||!tile(bow.x,bow.y))stream();
         if(!tile(next.x,next.y)||!tile(bow.x,bow.y)) {
             boat.speed=0;
             text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
@@ -1147,6 +1212,49 @@ class World : public Rml::EventListener {
            ||!result.is_number())return false;
         out=result.get<double>();
         return true;
+    }
+    bool localConditions() const {
+        return conditions.is_object()&&conditions.contains("lon")&&conditions.contains("lat")
+            &&std::abs(conditions.value("lon",1000.)-lon)<.12
+            &&std::abs(conditions.value("lat",1000.)-lat)<.12;
+    }
+    void readConditions() {
+        std::error_code ec;
+        const auto stamp=fs::last_write_time(session/"atmosphere.json",ec);
+        if(ec||stamp==conditionsStamp)return;
+        try {conditions=readJson(session/"atmosphere.json");conditionsStamp=stamp;}
+        catch(const std::exception& e){saida::Log::warn("[World sky] conditions unreadable: ",e.what());return;}
+        if(!localConditions()||!sunScript)return;
+        const auto weather=conditions.value("weather",json());
+        const double cover=weather.is_object()?std::clamp(weather.value("cloudCover",0.)/100.,0.,1.):0.;
+        const double rain=weather.is_object()?std::max(0.,weather.value("precipitation",0.)):0.;
+        json result;
+        sunScript->callExport("setWeather",json::array({cover,rain}),result);
+    }
+    std::string localClock() {
+        double unixSeconds=double(std::time(nullptr));gameTime(unixSeconds);
+        const bool known=localConditions()&&conditions.value("timeSource","")=="zone";
+        const int offset=known?conditions.value("utcOffsetSeconds",0):int(std::round(lon/15.))*3600;
+        const std::time_t local=std::time_t(unixSeconds)+offset;
+        std::tm parts{};gmtime_s(&parts,&local);
+        std::ostringstream out;out<<std::put_time(&parts,"%d/%m %H:%M");
+        if(known) {
+            std::string zone=conditions.value("timezone",std::string(""));
+            const auto slash=zone.rfind('/');if(slash!=std::string::npos)zone=zone.substr(slash+1);
+            std::replace(zone.begin(),zone.end(),'_',' ');
+            return out.str()+" · "+zone;
+        }
+        return out.str()+" · fuseau estimé par longitude";
+    }
+    std::string weatherLabel() {
+        if(!localConditions())return "Météo locale indisponible";
+        const auto weather=conditions.value("weather",json());
+        if(!weather.is_object())return "Météo locale indisponible";
+        const int code=weather.value("code",-1);
+        const char* state=code==0?"dégagé":code<=3?"nuageux":code<=48?"brouillard"
+                          :code<=67?"pluie":code<=77?"neige":code<=82?"averses":"orage";
+        return std::string("prévision : ")+state+" · "+number(weather.value("temperature",0.),0)+" °C"
+             +" · "+number(weather.value("cloudCover",0.),0)+" % nuages";
     }
     double metresFrom(double x,double y) const {
         const glm::dvec3 d=origin.local(ecef(x,y,0.))-origin.local(ecef(lon,lat,0.));
@@ -1591,7 +1699,7 @@ class World : public Rml::EventListener {
     }
     void stream() {
         double x=(pending||warming)?pickLon:lon,y=(pending||warming)?pickLat:lat;
-        auto want=nearby(x,y);std::set<std::string> wanted;for(auto t:want)wanted.insert(t.key());
+        auto want=orderedNearby(x,y);std::set<std::string> wanted;for(auto t:want)wanted.insert(t.key());
         std::set<std::string> keep=wanted;
         // Retain the current tile during an in-progress teleport, so the player
         // does not stand on nothing while the destination cooks. It is kept out
@@ -1630,7 +1738,8 @@ class World : public Rml::EventListener {
                     continue;
                 }
                 auto mountStarted=std::chrono::steady_clock::now();
-                json root=readJson(p.parent_path()/"tile.scene").at("scene");
+                const bool approximate=data.value("offlineApproximation",false);
+                json root=readJson(p.parent_path()/(approximate?"offline/tile.scene":"tile.scene")).at("scene");
                 json props=json::array();
                 // Tile contract: first child is geography (or ocean), the
                 // remaining children are decorative props using shared assets.
@@ -1701,6 +1810,8 @@ class World : public Rml::EventListener {
             }
             lon=x0;lat=y0;alt=waterSpawn?waterLevel(lon,lat):height(lon,lat);
             origin=Frame(lon,lat,alt);placeTiles();moveSun();
+            conditions=json::object();
+            if(sunScript){json result;sunScript->callExport("setWeather",json::array({0.,0.}),result);}
             jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
             // Teleporting leaves the current vehicle. A water arrival starts
             // swimming at the selected coordinate, including in the open sea.
@@ -1711,7 +1822,9 @@ class World : public Rml::EventListener {
             parkCar();
             playing=true;pending=false;warming=false;showMap(false);request(lon,lat);
             saida::Log::info("[World] spawned ",lon,", ",lat," altitude=",alt,
-                             waterSpawn?" swimming":" on foot");
+                             waterSpawn?" swimming":" on foot",
+                             tile(lon,lat)->data.value("offlineApproximation",false)
+                                 ?" (simplified offline terrain)":"");
             saida::Log::info("[World streaming] go_to_play_ms=",
                 std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-goStarted).count(),
                 " resident=",loaded.size()," target=",want.size());
@@ -2017,7 +2130,7 @@ public:
         if(smokeSailTime<1.5)return;
         const double covered=glm::length(ecef(lon,lat,alt)-smokeSwimStart);
         const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
-        if(!swimming||!onWater(lon,lat)||covered<1.||rootBelow<1.||rootBelow>1.7) {
+        if(!swimming||!onWater(lon,lat)||covered<1.||rootBelow<.7||rootBelow>1.4) {
             saida::Log::error("[World E2E] FAIL swim: covered=",covered,"m, water=",onWater(lon,lat),
                               ", body depth=",rootBelow,"m");
             testFailed=true;engine.sceneTree().quit();return;
@@ -2405,6 +2518,7 @@ public:
         }
         if(hud>.5) {
             hud=0;
+            text("local-conditions",localClock()+"  |  "+weatherLabel());
             text("coordinates",number(lat)+"°  /  "+number(lon)+"°     "+number(alt,1)+" m"
                  +(driving?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":"")
                  +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" nœuds":""));
@@ -2415,13 +2529,16 @@ public:
                 :swimming?" · À l'eau · ZQSD/WASD : nager · F : remonter à bord"
                 :nearestBoat(moored,boatFar)?" · F : prendre le bateau"
                 :(nearestCar(within,howFar)?" · F : monter dans la voiture":" · M : carte");
+            const auto* currentTile=tile(lon,lat);
+            if(currentTile&&currentTile->data.value("offlineApproximation",false))
+                mode+=" · Hors ligne : terrain simplifié";
             text("stream-status",std::to_string(loaded.size())+" tuiles actives · Relief réel / bâtiments OSM"+mode
                  +(fast?" · détail réduit à cette vitesse":""));
         }
         if(smokeWaterSpawn&&smokeWalk>1.5) {
             const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
             const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
-            testFailed=!swimming||!onWater(lon,lat)||carParked||covered<1.||rootBelow<1.||rootBelow>1.7;
+            testFailed=!swimming||!onWater(lon,lat)||carParked||covered<1.||rootBelow<.7||rootBelow>1.4;
             saida::Log::info("[World E2E] ",testFailed?"FAIL":"PASS"," water spawn: swam ",covered,
                              "m, body depth=",rootBelow,"m, car parked=",carParked);
             engine.sceneTree().quit();return;

@@ -826,7 +826,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 7841580623253430989,
+            "hash": 1454867443949574629,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },
@@ -1039,6 +1039,11 @@
             "hash": 17426015823916506103,
             "path": "assets/models/external/nature_cards/fir_sapling.source.json",
             "type": "Unknown"
+        },
+        "471167531370919525": {
+            "hash": 11922712352328901733,
+            "path": "assets/skies/overcast_soil_puresky.hdr",
+            "type": "Texture"
         },
         "4741489824240185612": {
             "hash": 5525194153959170927,
@@ -1346,7 +1351,7 @@
             "type": "Texture"
         },
         "8048464438721485733": {
-            "hash": 2160859055584564942,
+            "hash": 12203699437731494092,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },

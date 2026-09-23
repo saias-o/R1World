@@ -11,9 +11,12 @@ GAME = Path(__file__).resolve().parents[1]
 def main():
     # Fail before starting either process if authoring dependencies are missing.
     from r1 import street_surfaces
-    exe = GAME / "generated" / "world-windows" / "R1World.exe"
-    if not exe.exists():
+    primary = GAME / "generated" / "world-windows" / "R1World.exe"
+    alternate = GAME / "generated" / "world-windows-next" / "R1World.exe"
+    if not primary.exists() and not alternate.exists():
         subprocess.run([sys.executable, str(GAME/"tools"/"build_world.py")],check=True)
+    exe = max((path for path in (primary, alternate) if path.exists()),
+              key=lambda path: path.stat().st_mtime)
     session = GAME / "cache" / "sessions" / uuid.uuid4().hex
     session.mkdir(parents=True)
     env = os.environ.copy()

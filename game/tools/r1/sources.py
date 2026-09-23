@@ -7,8 +7,10 @@ or Open-Meteo while the player is moving.
 
 from __future__ import annotations
 
+import errno
 import json
 import math
+import socket
 import time
 import urllib.error
 import urllib.parse
@@ -30,6 +32,12 @@ OSM_ENDPOINTS = (
     "https://overpass-api.de/api/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 )
+
+
+class SourceUnavailable(RuntimeError):
+    """Remote observations are unavailable; callers may use local data."""
+
+
 ELEVATION_ENDPOINT = "https://api.open-meteo.com/v1/elevation"
 USER_AGENT = "R1World-generator/1.0"
 
@@ -174,7 +182,13 @@ def _request_json(
             wait = _retry_after(error)
             wait = delay if wait is None else wait
         except (TimeoutError, urllib.error.URLError, ConnectionError) as error:
-            if attempt == attempts:
+            reason = error.reason if isinstance(error, urllib.error.URLError) else error
+            no_network = isinstance(reason, socket.gaierror) or (
+                isinstance(reason, OSError) and
+                (reason.errno in {errno.ENETDOWN, errno.ENETUNREACH, errno.EHOSTUNREACH,
+                                  errno.ECONNREFUSED} or
+                 getattr(reason, "winerror", None) in {10051, 10061, 11001}))
+            if attempt == attempts or no_network:
                 raise
             wait = delay
         sleep(wait)
@@ -271,7 +285,7 @@ out skel qt;
             time.sleep(1.0)
     if stale is not None:
         return stale
-    raise RuntimeError("all Overpass endpoints failed: " + " | ".join(failures))
+    raise SourceUnavailable("all Overpass endpoints failed: " + " | ".join(failures))
 
 
 # Keys whose presence makes a closed way a statement about the ground. The
@@ -380,10 +394,13 @@ def fetch_elevation_grid(
             "latitude": ",".join(f"{lat:.8f}" for _, lat in batch),
             "longitude": ",".join(f"{lon:.8f}" for lon, _ in batch),
         }, safe=",")
-        response = _request_json(f"{ELEVATION_ENDPOINT}?{query}")
+        try:
+            response = _request_json(f"{ELEVATION_ENDPOINT}?{query}")
+        except (OSError, TimeoutError, ValueError) as error:
+            raise SourceUnavailable(f"elevation service unavailable: {error}") from error
         elevations = response.get("elevation")
         if not isinstance(elevations, list) or len(elevations) != len(batch):
-            raise RuntimeError("Open-Meteo returned an incomplete elevation batch")
+            raise SourceUnavailable("Open-Meteo returned an incomplete elevation batch")
         values.extend(float(value) for value in elevations)
 
     rows = tuple(

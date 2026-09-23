@@ -12,9 +12,8 @@ GAME = Path(__file__).resolve().parents[2]
 URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson"
 
 # The world opens on the map, so nothing is lit until the player picks a place.
-# These are only what the first frame after a spawn starts from, and the runtime
-# cycle replaces them with the destination's sun as soon as it runs. The default
-# is the summer solstice at 14:30 UTC.
+# These values are only a placeholder before the runtime script reads the
+# computer's UTC clock. The scene is kept deterministic during generation.
 WORLD_EPOCH = datetime(2026, 6, 21, 14, 30, tzinfo=timezone.utc)
 WORLD_TURBIDITY = 2.4
 # The map's own default destination, so the opening light is not a place the
@@ -97,7 +96,8 @@ def main():
                           "script":"scripts/sun_cycle.js","hotReload":False,
                           "properties":{"anchorLon":DEFAULT_LON,"anchorLat":DEFAULT_LAT,
                                         "epochUnix":WORLD_EPOCH.timestamp(),
-                                        "secondsPerSecond":60.0,
+                                        "useSystemClock":True,
+                                        "secondsPerSecond":1.0,
                                         "turbidity":WORLD_TURBIDITY,"altitude":0.0,
                                         "peakIntensity":solar.PEAK_INTENSITY}}]),
         node("Node","Player",groups=["player"],children=[

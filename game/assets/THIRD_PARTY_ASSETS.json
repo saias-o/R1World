@@ -141,6 +141,15 @@
       ]
     },
     {
+      "name": "Overcast Soil (Pure Sky)",
+      "author": "Poly Haven (sky edit Jarod Guest)",
+      "source": "https://polyhaven.com/a/overcast_soil_puresky",
+      "license": "CC0 1.0",
+      "files": [
+        "assets/skies/overcast_soil_puresky.hdr"
+      ]
+    },
+    {
       "name": "Grass001 (surface material)",
       "author": "ambientCG (Lennart Demes)",
       "source": "https://ambientcg.com/view?id=Grass001",

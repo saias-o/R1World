@@ -17,7 +17,8 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .world_tiles import Tile, VERSION
-from .sources import fetch_osm, fetch_elevation_grid, normalize_osm, OsmWay, Bounds
+from .sources import (fetch_osm, fetch_elevation_grid, normalize_osm,
+                      ElevationGrid, SourceUnavailable, OsmWay, Bounds)
 from .geodesy import Anchor
 from .atlas import RegionProfile, profile_for
 from . import ground as ground_materials
@@ -29,6 +30,7 @@ from .world_elevation import fetch_ground
 from .mesh import MeshPart, write_glb
 from . import surfaces
 from . import harbours
+from . import offline_world
 from .polygons import point_in_polygon
 from .buildings import build_buildings
 from .terrain import (
@@ -157,34 +159,36 @@ def atomic_json(path, value):
             time.sleep(REPLACE_PAUSE)
 
 
-def cook(tile, osm_cache=None):
-    folder = CACHE / tile.key
-    ready = folder / "ready.json"
-    if ready.exists():
+def cook(tile, osm_cache=None, *, offline=False, upgrade=False):
+    root = CACHE / tile.key
+    ready = root / "ready.json"
+    if ready.exists() and not upgrade:
         return json.loads(ready.read_text(encoding="utf-8"))
+    folder = root / "offline" if offline else root
     folder.mkdir(parents=True, exist_ok=True)
-    # Reuse raw observations across generator revisions, never old geometry.
-    # Every earlier version is searched, newest first, rather than only the one
-    # immediately before: a player who skips a release would otherwise
-    # re-download a tile whose observations are already sitting on their disk.
-    for older in range(VERSION - 1, 0, -1):
-        previous = CACHE / f"v{older}_{tile.row}_{tile.col}"
-        for name in ("osm.json", "elevation.json", "ground-elevation.json"):
-            if not (folder / name).exists() and (previous / name).exists():
-                shutil.copy2(previous / name, folder / name)
     bounds = tile.bounds
     lon, lat = tile.center
-    refresh = False
-    if (folder / "elevation.json").exists():
-        saved = json.loads((folder / "elevation.json").read_text(encoding="utf-8"))
-        refresh = any(abs(saved["bounds"][k]-v)>1e-9 for k,v in asdict(bounds).items())
-    # ~90 m spacing matches GLO-90: more samples only oversample the source
-    # and consume public-service quota without adding measured detail.
-    elevations, elevation_source = fetch_ground(bounds, folder)
+    if offline:
+        elevations = ElevationGrid(bounds, 2, ((0., 0.), (0., 0.)))
+        elevation_source = "flat offline approximation"
+        document = {"elements": [], "r1QueryVersion": 0}
+    else:
+        # Reuse raw observations across generator revisions, never old geometry.
+        for older in range(VERSION - 1, 0, -1):
+            previous = CACHE / f"v{older}_{tile.row}_{tile.col}"
+            for name in ("osm.json", "elevation.json", "ground-elevation.json"):
+                if not (folder / name).exists() and (previous / name).exists():
+                    shutil.copy2(previous / name, folder / name)
+        refresh = False
+        if (folder / "elevation.json").exists():
+            saved = json.loads((folder / "elevation.json").read_text(encoding="utf-8"))
+            refresh = any(abs(saved["bounds"][k]-v)>1e-9 for k,v in asdict(bounds).items())
+        # ~90 m spacing matches GLO-90: more samples only oversample the source.
+        elevations, elevation_source = fetch_ground(bounds, folder)
+        document = fetch_osm(bounds, osm_cache or folder / "osm.json",
+                             refresh=refresh and osm_cache is None)
     if any(not math.isfinite(h) for row in elevations.values for h in row):
         raise ValueError("Elevation source returned non-finite data")
-    document = fetch_osm(bounds, osm_cache or folder / "osm.json",
-                         refresh=refresh and osm_cache is None)
     # A tile built from observations answering an older question keeps saying so
     # rather than looking like a place OSM never mapped (see `fetch_osm`).
     osm_query_version = int(document.get("r1QueryVersion", 1))
@@ -221,7 +225,12 @@ def cook(tile, osm_cache=None):
     # water, sea-level water (harbours.py). The terrain under the sea is sunk
     # beneath the animated surface that covers it.
     harbour_stats = harbours.HarbourStats()
-    sea, harbour_stats.coastline = harbours.sea_geometry(osm.coastlines, bounds, elevations.sample)
+    if offline:
+        sea = offline_world.sea_in(bounds)
+        harbour_stats.coastline = "Natural Earth 1:110m approximation"
+    else:
+        sea, harbour_stats.coastline = harbours.sea_geometry(
+            osm.coastlines, bounds, elevations.sample)
     cells = harbours.Cells(bounds, WATER_GRID, sea, landcover, elevations.sample,
                            harbours.tidal_water(osm.landcover, osm.maritime))
     harbour_stats.sea_cells = sum(line.count(2) for line in cells.codes)
@@ -292,7 +301,10 @@ def cook(tile, osm_cache=None):
     if vertices > TILE_VERTEX_BUDGET:
         raise ValueError(f"Tile exceeds geometry budget ({vertices} vertices): " +
                          str({p.name: len(p.mesh.positions) for p in parts}))
-    ocean = not buildings and not osm.roads and all(abs(h)<.01 for row in elevations.values for h in row)
+    ocean = (sea is not None and sea.area >=
+             (bounds.east-bounds.west)*(bounds.north-bounds.south)*(1-1e-9)) if offline else (
+             not buildings and not osm.roads and
+             all(abs(h)<.01 for row in elevations.values for h in row))
     # Fraction of the tile whose ground came from a survey rather than from the
     # region. It is the one number that says how much of what you are standing
     # on anybody actually looked at (§4 I5).
@@ -314,7 +326,7 @@ def cook(tile, osm_cache=None):
         nature_stats = {"revision":nature.REVISION,"placed":0}
     else:
         children = [{"type": "Node", "name": "Geography", "enabled": True,
-                     "importedFrom": f"cache/world/{tile.key}/world.glb"}]
+                     "importedFrom": f"cache/world/{tile.key}/{'offline/' if offline else ''}world.glb"}]
         in_tile = tuple(f for f in osm.features
                         if bounds.west <= f.lon <= bounds.east
                         and bounds.south <= f.lat <= bounds.north)
@@ -341,8 +353,9 @@ def cook(tile, osm_cache=None):
               "elevations": elevations.values, "footprints": footprints,
               "vertices": 0 if ocean else vertices, "buildings": len(buildings),
               "surface": "ocean" if ocean else "land",
-              "source": "OpenStreetMap; " + elevation_source,
+              "source": ("Natural Earth 1:110m; " if offline else "OpenStreetMap; ") + elevation_source,
               "elevationSource": elevation_source,
+              "offlineApproximation": offline,
               # I5 in the file the game reads: the region that answered, how
               # much authority it had, and how many buildings owe it their
               # height and their roof rather than owing them to a survey.
@@ -398,22 +411,54 @@ def serve(session):
     # the base realigned whenever the network answers (r1/sea_traffic.py).
     # Its own threads and its own log: tiles never wait for the sea.
     from .sea_traffic import Sea
+    from .local_conditions import LocalConditions
     sea = None
+    conditions = LocalConditions(session, stopped, atomic_json)
     try:
         sea = Sea(session)
         sea.start()
+        conditions.start()
         serve_requests(session)
     finally:
         if sea is not None:
             sea.close()
         stopped.set()
+        conditions.close()
         pulse.join()
+
+
+def _cached_sources(tile):
+    """Can this tile be rebuilt without contacting either remote source?"""
+    folders = (CACHE / f"v{version}_{tile.row}_{tile.col}"
+               for version in range(VERSION, 0, -1))
+    have_osm = have_elevation = False
+    for folder in folders:
+        have_osm |= (folder / "osm.json").exists()
+        have_elevation |= ((folder / "ground-elevation.json").exists() or
+                           (folder / "elevation.json").exists())
+        if have_osm and have_elevation:
+            return True
+    return False
+
+
+def _shared_source(tiles):
+    """The neighborhood query is optional when local observations suffice."""
+    if not tiles:
+        return None, None
+    bb = [tile.bounds for tile in tiles]
+    region = Bounds(min(b.south for b in bb), min(b.west for b in bb),
+                    max(b.north for b in bb), max(b.east for b in bb))
+    if region.east-region.west >= .15:
+        return None, None
+    key = hashlib.sha256(json.dumps(asdict(region), sort_keys=True).encode()).hexdigest()[:20]
+    return region, CACHE / "sources" / (key + ".json")
 
 
 def serve_requests(session):
     request = session / "request.json"
     failures = {}
-    next_download = 0.
+    ready_states = {}
+    offline_until = 0.
     cooldown = 0.
     while not (session / "stop").exists():
         try:
@@ -424,44 +469,86 @@ def serve_requests(session):
         if time.monotonic()<cooldown:
             time.sleep(.2)
             continue
+        desired = [Tile(int(item[0]), int(item[1])) for item in doc.get("tiles", [])[:25]]
+        groups = [[Tile(int(item[0]), int(item[1])) for item in group]
+                  for group in doc.get("groups", [])]
+        if not groups:
+            groups = [desired]  # requests from older game binaries
+        def source_for(tile):
+            return _shared_source(next((group for group in groups if tile in group), [tile]))
         work = False
-        for item in doc.get("tiles", [])[:25]:
-            tile = Tile(int(item[0]), int(item[1]))
-            if (CACHE / tile.key / "ready.json").exists():
+        approximate = []
+        for tile in desired:
+            ready = CACHE / tile.key / "ready.json"
+            if ready.exists():
+                try:
+                    stamp = ready.stat().st_mtime_ns
+                    if ready not in ready_states or ready_states[ready][0] != stamp:
+                        approximate_ready = json.loads(ready.read_text(encoding="utf-8")).get(
+                            "offlineApproximation", False)
+                        ready_states[ready] = (stamp, approximate_ready)
+                    if ready_states[ready][1]:
+                        approximate.append(tile)
+                except (OSError, ValueError):
+                    pass  # A concurrent atomic replacement; retry next poll.
                 continue
             if time.monotonic() < failures.get(tile.key, 0):
                 continue
             work = True
             report(session, {"key": tile.key, "state": "preparing"})
             try:
-                # One OSM query for the complete current neighborhood, rather
-                # than nine almost-identical queries at every spawn.
-                desired = [Tile(int(t[0]),int(t[1])) for t in doc.get("tiles",[])[:25]]
-                bb = [t.bounds for t in desired]
-                region = Bounds(min(b.south for b in bb),min(b.west for b in bb),
-                                max(b.north for b in bb),max(b.east for b in bb))
-                shared = None
-                if region.east-region.west<.15:
-                    key=hashlib.sha256(json.dumps(asdict(region),sort_keys=True).encode()).hexdigest()[:20]
-                    shared=CACHE/"sources"/(key+".json")
-                    if not shared.exists():
-                        if time.monotonic()<next_download:
-                            time.sleep(.2)
-                            break
-                        next_download=time.monotonic()+20.
-                        fetch_osm(region,shared)
-                result = cook(tile,shared)
-                report(session, {"key": tile.key, "state": "ready",
-                                 "buildings": result["buildings"]})
-                print("READY", tile.key, flush=True)
+                region, shared = source_for(tile)
+                cached = _cached_sources(tile)
+                if time.monotonic() < offline_until and not cached:
+                    result = cook(tile, offline=True)
+                else:
+                    # Shared Overpass saves eight queries, but is never a
+                    # prerequisite for a tile with its own saved observations.
+                    if shared and not shared.exists() and not cached:
+                        fetch_osm(region, shared)
+                    result = cook(tile, shared if shared and shared.exists() else None)
+            except SourceUnavailable as error:
+                offline_until = time.monotonic() + 60
+                print("OFFLINE", tile.key, str(error), flush=True)
+                try:
+                    result = cook(tile, offline=True)
+                except Exception as fallback_error:
+                    failures[tile.key] = time.monotonic() + 60
+                    report(session, {"key": tile.key, "state": "error", "error": str(fallback_error)})
+                    print("ERROR", tile.key, str(fallback_error), flush=True)
+                    traceback.print_exc()
+                    break
             except Exception as error:
                 failures[tile.key] = time.monotonic() + 60
-                next_download = time.monotonic() + 60
                 cooldown = time.monotonic() + 60
                 report(session, {"key": tile.key, "state": "error", "error": str(error)})
                 print("ERROR", tile.key, str(error), flush=True)
                 traceback.print_exc()
+                break
+            if ready.exists():
+                report(session, {"key": tile.key, "state": "ready",
+                                 "buildings": result["buildings"],
+                                 "offlineApproximation": result.get("offlineApproximation", False)})
+                print("OFFLINE-READY" if result.get("offlineApproximation") else "READY",
+                      tile.key, flush=True)
             break
+        if not work and approximate and time.monotonic() >= offline_until:
+            # A provisional tile remains playable while detailed observations
+            # are fetched into separate files. ready.json changes only last.
+            tile = approximate[0]
+            try:
+                region, shared = source_for(tile)
+                if shared and not shared.exists():
+                    fetch_osm(region, shared)
+                cook(tile, shared if shared and shared.exists() else None, upgrade=True)
+                print("UPGRADED", tile.key, flush=True)
+            except SourceUnavailable:
+                offline_until = time.monotonic() + 60
+            except Exception as error:
+                failures[tile.key] = time.monotonic() + 60
+                offline_until = time.monotonic() + 60
+                print("UPGRADE-FAILED", tile.key, str(error), flush=True)
+                traceback.print_exc()
         if not work:
             time.sleep(.2)
 

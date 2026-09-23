@@ -152,12 +152,18 @@ with an empty worker log. These are internal steady-clock measurements, not
 input-to-present latency or a guarantee on other machines. Logs contain
 `[World streaming] go_to_play_ms` and `mount_ms` for repeatable diagnosis.
 
-For the next performance tier, the engine needs CPU asset decoding jobs and
-incremental GPU uploads, with a measured frame budget, plus cached coarse
-terrain for first visits and prefetch based on velocity. Current full-tile
-imports can still exceed a 16.7 ms frame; this implementation does not claim
-stutter-free 60 FPS. A new destination still needs real source data before it
-can become playable, and that network delay has no near-zero guarantee.
+While driving or sailing, the request queue now covers the surrounding nine
+tiles plus a corridor projected up to 45 seconds ahead (at most 25 tiles in
+total). The imminent road tiles are prepared first; all immediate neighbors
+remain in the queue. Each projected neighborhood gets its own bounded OSM
+query so prefetch never mistakes observations from another area for local data.
+The game mounts the next prefetched tile as the vehicle reaches its edge. The
+resident geometry remains limited to the nearby ring, independent of the
+larger disk prefetch queue. New areas can first appear as explicitly marked
+simplified terrain when their detailed observations are unavailable.
+
+Full-tile imports can still exceed a 16.7 ms frame. CPU asset decoding jobs
+and incremental GPU uploads remain necessary for consistently smooth 60 FPS.
 
 Verification: `PYTHONPATH=tools python -m unittest discover -s tools/r1/tests`
 (166 tests), then the offline smoke command below with
@@ -185,24 +191,30 @@ is the tile and the generator version — no session id, no spawn point, no cloc
 Quit the game, come back, return somewhere already visited, and **nothing
 touches the network**: `cook` returns `ready.json` before it can open a socket.
 
-Each tile keeps four files, and the order they are written in is the whole
-recovery story: `osm.json` and `elevation.json` are the raw observations,
-`world.glb` and `tile.scene` the geometry built from them, and `ready.json` is
-written **last**. A run killed mid-cook therefore leaves no ready file and the
-tile is simply cooked again — offline, because the observations it needs are
-already beside it. Only `--refresh` goes back to the source.
+Each surveyed tile keeps its raw observations (`osm.json` and elevation), its
+geometry (`world.glb` and `tile.scene`), and a `ready.json` published **last**.
+A run killed mid-cook can therefore rebuild from saved observations. A missing
+shared neighborhood query never prevents reuse of a tile's own cached data.
+
+If no observations exist and the network is unavailable, Go still opens a
+playable, simplified tile. Its land/sea outline comes from the bundled Natural
+Earth map; elevation is flat and local streets and buildings are absent. The
+HUD says **Hors ligne : terrain simplifié** and `ready.json` records
+`offlineApproximation: true`. The temporary geometry lives in `offline/` so a
+later network sync can build detailed geometry beside it and replace the
+manifest only when complete. The next visit loads those detailed tiles.
 
 Measured on the real cache: about **1 MB per tile**, nine tiles per spawn, so a
 visited place costs roughly 10 MB and is free forever after. Raw OSM responses
 shared across a neighbourhood live in `cache/world/sources/`.
 
-Two runs prove it end to end, and the second is what makes the first mean
-something:
+The cached path and the simplified path can both be exercised with closed
+proxies:
 
 ```powershell
 $env:HTTP_PROXY = "http://127.0.0.1:9"; $env:HTTPS_PROXY = "http://127.0.0.1:9"
-python tools\play_world.py --smoke --spawn 2.3522 48.8566    # visited: passes, worker log empty
-python tools\play_world.py --smoke --spawn -58.3816 -34.6037 # new: fails, both mirrors refused
+python tools\play_world.py --smoke --spawn 2.3522 48.8566    # visited: saved terrain
+python tools\play_world.py --smoke --spawn -58.3816 -34.6037 # new: simplified terrain
 ```
 
 `tests/test_world_cache.py` holds the same guarantee where it does not need a
@@ -1053,14 +1065,20 @@ branches in — and a fourth test requires a non-finite coordinate to be refused
 rather than propagated into the light's direction, where it would black the
 frame out with nothing on screen to explain why.
 
-**Arriving in the dark is the model being right.** At the world's default epoch
-(summer solstice, 14:30 UTC) Paris is 50° above the horizon and Sydney is 77°
-*below* it, because it is half past midnight there. Landing in the dark is
-therefore kept, deliberately: forcing every arrival to a fixed local morning
-was considered and rejected, because a world that is always 10 a.m. is no longer
-the Earth at the hour it actually is — and the night reads well. The instant is
-a parameter of the scene (`WORLD_EPOCH` in `r1/prepare_world.py`), not of the
-model; `solar.py` only answers the question it is asked.
+**The default clock is the real UTC clock.** At each location the Sun is computed
+from that instant and the player's latitude and longitude; one real day takes
+one real day. `WORLD_EPOCH` in `r1/prepare_world.py` only lights the generated
+scene before the runtime script starts. The scene can opt into a fixed instant
+with `useSystemClock: false` and can deliberately accelerate time with
+`secondsPerSecond`.
+
+The HUD shows the destination's civil time when Open-Meteo supplies its time
+zone. Without a recent saved zone or a connection it labels a longitude-based
+time-zone estimate, rather than showing the computer's local time as if it
+belonged to the destination. The worker also fetches a local current forecast
+in the background: cloud cover softens the Sun and blends in a CC0 overcast
+sky; precipitation increases haze. A forecast older than two hours is marked
+unavailable. Tile loading and offline exploration never wait for weather.
 
 ## The sky follows the hour
 

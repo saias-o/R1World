@@ -21,7 +21,8 @@
               "anchorLon": 2.3522,
               "anchorLat": 48.8566,
               "epochUnix": 1782052200.0,
-              "secondsPerSecond": 60.0,
+              "useSystemClock": true,
+              "secondsPerSecond": 1.0,
               "turbidity": 2.4,
               "altitude": 0.0,
               "peakIntensity": 4.6

@@ -436,7 +436,7 @@ def sun_state(
     # thing a dawn sky is not.
     sky = _normalise(tuple(1.0 - c for c in transmittance(90.0, altitude, turbidity)))
     daylight = _smoothstep(ASTRONOMICAL_TWILIGHT, 6.0, elevation)
-    night_ambient = (0.020, 0.028, 0.045)
+    night_ambient = (0.001, 0.0015, 0.0025)
     ambient_peak = AMBIENT_PEAK * (0.83 * _smoothstep(-8.0, 25.0, elevation) + 0.17)
     ambient = tuple(
         night + (ambient_peak * s - night) * daylight
@@ -458,7 +458,7 @@ def sun_state(
     warmth = (1.0 - _smoothstep(0.0, 22.0, elevation)) * beam
     pale = tuple(0.58 + 0.42 * s for s in sky)
     warm = _normalise(direct)
-    night_horizon = (0.028, 0.038, 0.068)
+    night_horizon = (0.0015, 0.002, 0.004)
     horizon_color = tuple(
         night + (HORIZON_PEAK * (p + (w - p) * warmth) - night) * daylight
         for night, p, w in zip(night_horizon, pale, warm)

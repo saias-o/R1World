@@ -46,12 +46,12 @@ const HORIZON_PEAK = 0.70;
 
 exportProperty("anchorLon", 2.3522);
 exportProperty("anchorLat", 48.8566);
-// Unix seconds of the instant the scene was generated for. Time in game starts
-// here so the first frame matches the baked light exactly.
+// The generator uses this instant for the scene's placeholder first frame.
+// Fixed-time scenes can opt out of the system clock for reproducible captures.
 exportProperty("epochUnix", 1782052200.0);
-// Game seconds per real second. 60 walks a full day in 24 minutes, which is
-// what makes the cycle observable in a play session; 1.0 is real time.
-exportProperty("secondsPerSecond", 60.0);
+exportProperty("useSystemClock", true);
+// 1.0 follows real UTC. A scene may deliberately accelerate its own clock.
+exportProperty("secondsPerSecond", 1.0);
 exportProperty("turbidity", 2.4);
 exportProperty("altitude", 0.0);
 // Engine light intensity for an overhead Sun through a clear column. The
@@ -69,10 +69,19 @@ exportProperty("peakIntensity", 4.6);
 let observerLon = props.anchorLon;
 let observerLat = props.anchorLat;
 let observerAltitude = props.altitude;
-const EPOCH_UNIX = props.epochUnix;
+const EPOCH_UNIX = props.useSystemClock ? Date.now() / 1000.0 : props.epochUnix;
 const TIME_SCALE = props.secondsPerSecond;
 const TURBIDITY = props.turbidity;
 const PEAK_INTENSITY = props.peakIntensity;
+let weatherCloud = 0.0;
+let weatherRain = 0.0;
+
+function setWeather(cloudFraction, precipitation) {
+    if (!isFinite(cloudFraction) || !isFinite(precipitation)) return false;
+    weatherRain = Math.max(0.0, precipitation);
+    weatherCloud = Math.max(0.0, Math.min(1.0, Math.max(cloudFraction, weatherRain * 0.5)));
+    return true;
+}
 
 // Called from the game (ScriptBehaviour::callExport) whenever the player lands
 // somewhere new or walks far enough for the difference to be visible. Refusing
@@ -92,10 +101,11 @@ function setObserver(lon, lat, altitude) {
     return true;
 }
 
-let elapsed = 0.0;
 let inspectionMode = false;
+let inspectionUnix = EPOCH_UNIX;
 function setInspectionMode(enabled) {
     if (typeof enabled !== "boolean") return false;
+    if (enabled && !inspectionMode) inspectionUnix = gameTime();
     inspectionMode = enabled;
     return true;
 }
@@ -266,7 +276,7 @@ function sunLight(unixSeconds) {
         sun: sun,
         direction: travelDirection(sun.azimuth, sun.trueElevation),
         color: normalise(direct),
-        intensity: PEAK_INTENSITY * luminance * visibility
+        intensity: PEAK_INTENSITY * luminance * visibility * (1.0 - 0.92 * weatherCloud)
     };
 }
 
@@ -280,14 +290,14 @@ function skyLight(elevation) {
         return 1.0 - c;
     }));
     const daylight = smoothstep(ASTRONOMICAL_TWILIGHT, 6.0, elevation);
-    const nightAmbient = [0.020, 0.028, 0.045];
+    const nightAmbient = [0.001, 0.0015, 0.0025];
     const ambientPeak = AMBIENT_PEAK * (0.83 * smoothstep(-8.0, 25.0, elevation) + 0.17);
 
     const beam = smoothstep(NAUTICAL_TWILIGHT, 1.0, elevation);
     const warmth = (1.0 - smoothstep(0.0, 22.0, elevation)) * beam;
     const pale = sky.map(function (s) { return 0.58 + 0.42 * s; });
     const warm = normalise(transmittance(elevation, observerAltitude, TURBIDITY));
-    const nightHorizon = [0.028, 0.038, 0.068];
+    const nightHorizon = [0.0015, 0.002, 0.004];
 
     const ambient = [];
     const horizon = [];
@@ -295,6 +305,13 @@ function skyLight(elevation) {
         ambient.push(nightAmbient[i] + (ambientPeak * sky[i] - nightAmbient[i]) * daylight);
         horizon.push(nightHorizon[i] +
             (HORIZON_PEAK * (pale[i] + (warm[i] - pale[i]) * warmth) - nightHorizon[i]) * daylight);
+    }
+    const cloud = weatherCloud * daylight;
+    const ambientGrey = 0.85 * (0.2126 * ambient[0] + 0.7152 * ambient[1] + 0.0722 * ambient[2]);
+    const horizonGrey = 0.78 * (0.2126 * horizon[0] + 0.7152 * horizon[1] + 0.0722 * horizon[2]);
+    for (let i = 0; i < 3; i++) {
+        ambient[i] = ambient[i] * (1.0 - cloud) + ambientGrey * cloud;
+        horizon[i] = horizon[i] * (1.0 - cloud) + horizonGrey * cloud;
     }
     // IBL is a correction to a stand-in, not a measurement:
     // `solar.py::hdri_daylight` carries the reasoning and this is its port.
@@ -454,17 +471,22 @@ function skyState(light, horizon) {
     const pick = selectSkies(sun.elevation, sun.azimuth);
     const a = SKIES.frames[pick.a];
     const b = SKIES.frames[pick.b];
-    const band = a.horizon * (1.0 - pick.blend) + b.horizon * pick.blend;
+    const cloud = weatherCloud * smoothstep(-8.0, 4.0, sun.elevation);
+    const base = pick.blend < 0.5 ? a : b;
+    const baseBand = cloud > 0.0 ? base.horizon : a.horizon * (1.0 - pick.blend) + b.horizon * pick.blend;
+    const band = baseBand * (1.0 - cloud) + 0.75632 * cloud;
     const radiance = SKIES.sunDiscRadiance * light.intensity / PEAK_INTENSITY;
     return {
-        texture: a.texture,
-        blendTexture: b.texture,
-        blend: pick.blend,
-        rotation: skyRotation(a, sun.azimuth),
-        blendRotation: skyRotation(b, sun.azimuth),
+        texture: cloud > 0.0 ? base.texture : a.texture,
+        blendTexture: cloud > 0.0 ? "assets/skies/overcast_soil_puresky.hdr" : b.texture,
+        blend: cloud > 0.0 ? cloud : pick.blend,
+        rotation: skyRotation(cloud > 0.0 ? base : a, sun.azimuth),
+        blendRotation: cloud > 0.0 ? 0.0 : skyRotation(b, sun.azimuth),
         exposure: (0.2126 * horizon[0] + 0.7152 * horizon[1] + 0.0722 * horizon[2]) / band,
         sunDirection: [-light.direction[0], -light.direction[1], -light.direction[2]],
-        sunColor: [radiance * light.color[0], radiance * light.color[1], radiance * light.color[2]]
+        sunColor: [radiance * (1.0 - cloud) * light.color[0],
+                   radiance * (1.0 - cloud) * light.color[1],
+                   radiance * (1.0 - cloud) * light.color[2]]
     };
 }
 
@@ -492,7 +514,8 @@ function compass(azimuth) {
 // the sea's traffic which day and hour it is (`r1/sea_traffic.py`), so the
 // ships and the Sun cannot disagree about the time.
 function gameTime() {
-    return EPOCH_UNIX + (inspectionMode ? 0.0 : elapsed * TIME_SCALE);
+    if (inspectionMode) return inspectionUnix;
+    return EPOCH_UNIX + (Date.now() / 1000.0 - EPOCH_UNIX) * TIME_SCALE;
 }
 
 function refreshSun() {
@@ -507,6 +530,7 @@ function refreshSun() {
     // colour, because they are one scattering column.
     scene.setSetting("fogColor", sky.horizonColor);
     scene.setSetting("clearColor", sky.horizonColor);
+    scene.setSetting("fogDensity", 0.0035 + Math.min(weatherRain, 2.0) * 0.001);
     scene.setSetting("iblDiffuseIntensity", sky.iblIntensity);
     scene.setSetting("iblSpecularIntensity", sky.iblIntensity);
 
@@ -549,6 +573,5 @@ function onReady() {
 }
 
 function onUpdate(deltaSeconds) {
-    elapsed += deltaSeconds;
     refreshSun();
 }
