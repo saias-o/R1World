@@ -68,7 +68,7 @@ constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refu
 constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for water
 constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
 constexpr double kPlayerHeight=1.8;     // measured from player.glb's mesh accessor
-constexpr double kSwimHeadAbove=.18;    // only the top of the head clears the water
+constexpr double kSwimHeadAbove=.42;    // show the full head above the water
 // §12.4: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
@@ -279,7 +279,7 @@ class World : public Rml::EventListener {
     std::vector<Tile> ring;
     // Index work accumulated across refreshes, including render-time LOD changes.
     uint64_t indexedAtFrame=0; double churn=0,churnFrames=0,dirtyFrames=0;
-    bool smoke=false,smokeStarted=false; glm::dvec3 smokeStart;
+    bool smoke=false,smokeStarted=false,smokeWaterSpawn=false; glm::dvec3 smokeStart;
     bool testFailed=false,testResume=false; double testElapsed=0,resumeWait=0;
     // Set when a tile the spawn is waiting for will not fit in the resident
     // budget. Without it the spawn simply never completes: `surroundingReady`
@@ -637,8 +637,7 @@ class World : public Rml::EventListener {
         }
         return false;
     }
-    // Park the car beside wherever the player just arrived. Called from every
-    // spawn, because the car goes where he goes.
+    // Park the car beside a dry spawn. A swimmer cannot arrive with a car.
     void parkCar() {
         carParked=false;carSinking=false;carSinkDepth=0;
         carSpeed=0;wheelSpin=0;steerShown=0;
@@ -646,6 +645,7 @@ class World : public Rml::EventListener {
         clearAbandonedCars();
         if(!car)return;
         car->setEnabled(false);
+        if(swimming)return;
         // Three metres to his right, which is where a car that dropped him off
         // would be, and a spiral out from there when that spot is a wall.
         auto beside=advance(lon,lat,cos(yaw*rad)*3.,-sin(yaw*rad)*3.);
@@ -1673,7 +1673,8 @@ class World : public Rml::EventListener {
         }
         if(pending)text("status","Préparation du terrain de départ… Les alentours chargeront pendant la partie.");
         if(pending && tile(pickLon,pickLat)) {
-            double x0=pickLon,y0=pickLat;bool found=!blocked(x0,y0);
+            const bool waterSpawn=onWater(pickLon,pickLat);
+            double x0=pickLon,y0=pickLat;bool found=waterSpawn||!blocked(x0,y0);
             for(int i=1;!found&&i<=160;++i) {
                 double a=i*2.39996323,d=2.*std::sqrt(double(i));auto q=advance(pickLon,pickLat,d*cos(a),d*sin(a));
                 if(tile(q.x,q.y)&&!blocked(q.x,q.y)){x0=q.x;y0=q.y;found=true;}
@@ -1683,10 +1684,7 @@ class World : public Rml::EventListener {
                 // that exceptional spawn waits for the rest of the search area.
                 if(!surroundingReady && refused.empty())return;
                 pending=false;
-                const bool water=onWater(pickLon,pickLat);
-                text("status",water
-                        ? "Point situé dans l'eau. Choisissez une berge voisine."
-                        : "Point situé dans un bâtiment. Choisissez une rue voisine.");
+                text("status","Point situé dans un bâtiment. Choisissez une rue voisine.");
                 // Third time this shape of bug appears in this file, so it is
                 // written down rather than rediscovered: a spawn that is
                 // *refused* used to leave the E2E waiting for one that would
@@ -1694,27 +1692,26 @@ class World : public Rml::EventListener {
                 // timeout. The refusal is the answer; it has to be said out
                 // loud, and the test has to fail on the reason.
                 saida::Log::warn("[World] no standable ground within 25 m of ",
-                                 pickLon,", ",pickLat,water?" (water)":" (buildings)");
+                                 pickLon,", ",pickLat," (buildings)");
                 if(smoke) {
-                    saida::Log::error("[World E2E] FAIL spawn refused: ",
-                                      water?"in water":"inside a building");
+                    saida::Log::error("[World E2E] FAIL spawn refused: inside a building");
                     testFailed=true;engine.sceneTree().quit();
                 }
                 return;
             }
-            lon=x0;lat=y0;alt=height(lon,lat);origin=Frame(lon,lat,alt);placeTiles();moveSun();
+            lon=x0;lat=y0;alt=waterSpawn?waterLevel(lon,lat):height(lon,lat);
+            origin=Frame(lon,lat,alt);placeTiles();moveSun();
             jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
-            // Every arrival is on foot, including one made while driving: the
-            // map is opened from the driver's seat as readily as from the
-            // pavement, and a teleport that kept him seated would drop a car
-            // into a neighbourhood chosen for a pedestrian.
-            driving=false;swimming=false;
+            // Teleporting leaves the current vehicle. A water arrival starts
+            // swimming at the selected coordinate, including in the open sea.
+            driving=false;swimming=waterSpawn;swimTime=0;swimLean=0;swimHeading=yaw;
             clearBoats();
             player->setEnabled(true);
             player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
             parkCar();
             playing=true;pending=false;warming=false;showMap(false);request(lon,lat);
-            saida::Log::info("[World] spawned ",lon,", ",lat," altitude=",alt);
+            saida::Log::info("[World] spawned ",lon,", ",lat," altitude=",alt,
+                             waterSpawn?" swimming":" on foot");
             saida::Log::info("[World streaming] go_to_play_ms=",
                 std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-goStarted).count(),
                 " resident=",loaded.size()," target=",want.size());
@@ -1729,7 +1726,9 @@ class World : public Rml::EventListener {
                 }
                 if(!tellSun()){saida::Log::error("[World E2E] FAIL the sun cycle did not take the observer");testFailed=true;engine.sceneTree().quit();return;}
                 saida::Log::info("[World E2E] sun follows the observer");
-                smokeStarted=!smokeSail;smokeSailWait=smokeSail;smokeSailTime=0;
+                smokeWaterSpawn=waterSpawn&&!smokeSail&&worldCapture.pngPath.empty();
+                smokeStarted=!smokeSail&&!waterSpawn;
+                smokeSailWait=smokeSail;smokeSailTime=0;
                 smokeWalk=0;smokeStart=ecef(lon,lat,alt);smokeRan=smokeJumped=false;
                 saida::Log::info("[World E2E] spawn complete with ",loaded.size()," tiles resident");
             }
@@ -2024,11 +2023,12 @@ public:
             testFailed=true;engine.sceneTree().quit();return;
         }
         smokeSwimming=false;
-        if(!car||!carParked) {
-            saida::Log::error("[World E2E] FAIL car sink: no car to test");
+        if(!car) {
+            saida::Log::error("[World E2E] FAIL car sink: no car model to test");
             testFailed=true;engine.sceneTree().quit();return;
         }
         // A car already on this water cell must eject its driver and descend.
+        carParked=true;car->setEnabled(true);
         carLon=lon;carLat=lat;carAlt=alt;carYaw=yaw;
         carSinking=false;driving=true;swimming=false;
         driveCar(.05,1.,0.,false);
@@ -2268,6 +2268,7 @@ public:
         } else if(swimming) {
             swimTime+=dt;
             if(smokeSwimming){f=1.;r=0.;length=1.;}
+            if(smokeWaterSpawn){f=1.;r=0.;length=1.;smokeWalk+=dt;}
             if(length>0) {
                 const double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?2.2:1.5;
                 const double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
@@ -2416,6 +2417,14 @@ public:
                 :(nearestCar(within,howFar)?" · F : monter dans la voiture":" · M : carte");
             text("stream-status",std::to_string(loaded.size())+" tuiles actives · Relief réel / bâtiments OSM"+mode
                  +(fast?" · détail réduit à cette vitesse":""));
+        }
+        if(smokeWaterSpawn&&smokeWalk>1.5) {
+            const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
+            const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
+            testFailed=!swimming||!onWater(lon,lat)||carParked||covered<1.||rootBelow<1.||rootBelow>1.7;
+            saida::Log::info("[World E2E] ",testFailed?"FAIL":"PASS"," water spawn: swam ",covered,
+                             "m, body depth=",rootBelow,"m, car parked=",carParked);
+            engine.sceneTree().quit();return;
         }
         if(smokeSailWait||smokeSailing){runSmokeSail(delta);return;}
         if(smokeSwimming){runSmokeSwim(delta);return;}

@@ -454,14 +454,9 @@ on**, as forty rows of forty characters. It is a kilobyte, it is exactly what
 the eye sees, and testing it is two divisions instead of a walk over every ring
 in the neighbourhood.
 
-Spawning in the middle of the Herengracht now fails in four seconds with
-`FAIL spawn refused: in water` instead of sitting for the full three-minute
-data timeout — the third time in this file that a *refusal* had been left
-looking like slowness, and the reason it is now written down next to the code.
-
-Fully oceanic tiles are deliberately left out: they carry a `WaterNode` and no
-terrain, and walking out onto a square of Atlantic is behaviour this world has
-always had.
+Spawning in a canal or the open sea starts the player swimming at the chosen
+coordinate. A spawn inside a building still searches for nearby clear ground
+and reports a refusal if none exists.
 
 ### The query widened, so the cache had to learn what it had asked
 
@@ -655,6 +650,7 @@ driver hit.
 Water is not a road: entering it ejects the driver into a swim while the car
 sinks below the surface. Walking into water also starts swimming. The swimmer
 keeps only their head above water and can move back to a bank or board a boat.
+Choosing a point in the water on the map starts directly in this swimming state.
 
 At the wheel the mouse does not steer, so it turns the head instead: a free yaw
 around the car that eases back behind it once the mouse stops and the car is
