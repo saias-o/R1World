@@ -40,20 +40,21 @@ from __future__ import annotations
 import json
 import math
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable
 
 from . import landmark_recipes as recipes
 from . import surfaces
 from .mesh import Material, MeshPart, write_glb
-from .polygons import point_in_polygon
 from .sculpt import Finish, Sculpt, detail
 
 Vec2 = tuple[float, float]
 
 GAME = Path(__file__).resolve().parents[2]
-MODEL_DIR = GAME / "cache" / "world" / "landmarks"
+# Shipped with the game: the recipes run here, at authoring time, and the
+# game only places what they drew (`native/gen/landmarks.cpp`).
+MODEL_DIR = GAME / "assets" / "world" / "landmarks"
 
 # Bumped whenever a recipe or the vocabulary changes what it draws. It is part
 # of every model's file name, so an old model is never served for a new recipe
@@ -106,7 +107,7 @@ class Landmark:
     view: float = 35.0
     # The ground under the anchor, metres above the geoid, and where it was
     # read: the same terrain source and grid the tile draws, so the far models
-    # stand exactly where the near one does (see `far_manifest`).
+    # stand exactly where the near one does (see `ship`).
     ground: tuple[float, str] = (0.0, "none")
     # Where the bearing came from, when it is not the OSM element's own axis:
     # a statue's footprint is its plinth, and a plinth does not say which way
@@ -311,164 +312,49 @@ def bake(landmark: Landmark, lod: int = 0) -> tuple[str, int]:
 _vertex_counts: dict[tuple[str, int], int] = {}
 
 
-def far_manifest() -> Path:
-    """Bake every far model and write the list the game draws them from.
-
-    Near a landmark its tile carries the full model (level 0). Everywhere
-    else within `FAR_RANGE` the game draws level 1 or 2 from this list, at
-    the anchor's measured ground, because the tile that holds the landmark is
-    not resident: that is the whole point of seeing it from across the city.
-    The worker writes it at start-up; it is derived, deterministic and cheap
-    (a second or two), so it lives in the cache, not in the repository.
-    """
-    from .world_tiles import tile_at
-    path = MODEL_DIR / "far.json"
-    entries = []
-    for landmark in LANDMARKS:
-        levels = []
-        for lod, until in ((1, LOD1_UNTIL), (2, FAR_RANGE)):
-            model, vertices = bake(landmark, lod)
-            levels.append({"path": model, "until": until, "vertices": vertices})
-        entries.append({
-            "slug": landmark.slug, "lon": landmark.lon, "lat": landmark.lat,
-            "alt": landmark.ground[0], "altSource": landmark.ground[1],
-            "tile": tile_at(landmark.lon, landmark.lat).key, "levels": levels,
-        })
-    document = {"revision": REVISION, "range": FAR_RANGE, "landmarks": entries}
-    text = json.dumps(document, indent=1, ensure_ascii=False)
-    if not path.exists() or path.read_text(encoding="utf-8") != text:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_suffix(f".{os.getpid()}.tmp")
-        temporary.write_text(text, encoding="utf-8")
-        os.replace(temporary, path)
-    return path
-
-
-# ── placement ───────────────────────────────────────────────────────────────
-
-def _turn(bearing: float, point: Vec2, origin: Sequence[float]) -> Vec2:
-    """A recipe-frame (x, z) point in the tile's engine frame (see Sculpt.parts)."""
-    b = math.radians(bearing)
-    x, z = point
-    return (origin[0] + x * math.sin(b) + z * math.cos(b),
-            origin[2] - x * math.cos(b) + z * math.sin(b))
-
-
-# The widest clearance of any landmark (Khufu's half-diagonal, 165 m), plus a
-# margin: how far from a tile a landmark can reach into it.
-REACH = 250.0
-
-
-def near(lon: float, lat: float, radius_m: float) -> list[Landmark]:
-    """Landmarks whose anchor is within `radius_m` of a point."""
-    out = []
-    for landmark in LANDMARKS:
-        dx = (landmark.lon - lon) * 111_320.0 * math.cos(math.radians(lat))
-        dy = (landmark.lat - lat) * 110_540.0
-        if math.hypot(dx, dy) <= radius_m:
-            out.append(landmark)
-    return out
-
-
-def around(bounds) -> list[Landmark]:
-    """The landmarks that can touch a tile: anchored in it, or close enough
-    for their clearance to reach one of its buildings."""
-    centre_lon = (bounds.west + bounds.east) * 0.5
-    centre_lat = (bounds.south + bounds.north) * 0.5
-    half = math.hypot((bounds.east - bounds.west) * 111_320.0 * math.cos(math.radians(centre_lat)),
-                      (bounds.north - bounds.south) * 110_540.0) * 0.5
-    return near(centre_lon, centre_lat, half + REACH)
-
-
-def stale(ready: dict, bounds) -> bool:
-    """Whether a cooked tile predates the landmarks it should carry.
-
-    A tile cooked before a recipe changed -- or before landmarks existed --
-    would keep the old answer forever, because a ready tile is never cooked
-    again. Only the few tiles a landmark can touch are ever stale, so this
-    re-cooks a neighbourhood, not the planet (§4 I3).
-    """
-    if ready.get("surface") == "ocean" or not around(bounds):
-        return False
-    return ready.get("landmarkRevision") != REVISION
-
-
-@dataclass
-class Placement:
-    """What one tile does about the landmarks near it."""
-
-    nodes: list[dict] = field(default_factory=list)
-    solids: list[list[Vec2]] = field(default_factory=list)
-    vertices: int = 0
-    manifest: list[dict] = field(default_factory=list)
-    replaced: list[int] = field(default_factory=list)
-
-
-def is_replaced(way, candidates: Sequence[Landmark], ground) -> bool:
-    """Whether a building way is a landmark's own trace (see module doc)."""
-    qid = way.tags.get("wikidata")
-    if qid and any(landmark.wikidata == qid for landmark in candidates):
-        return True
-    points = way.points[:-1] if way.points[0] == way.points[-1] else way.points
-    lon = sum(p[0] for p in points) / len(points)
-    lat = sum(p[1] for p in points) / len(points)
-    centre = ground(lon, lat)
-    for landmark in candidates:
-        origin = ground(landmark.lon, landmark.lat)
-        for ring in _rings(landmark.clearance):
-            turned = [_turn(landmark.bearing, p, origin) for p in ring]
-            if point_in_polygon((centre[0], centre[2]), turned):
-                return True
-    return False
-
+# ── the list the game reads ─────────────────────────────────────────────────
+# The game places the models (native/gen/landmarks.cpp): which buildings are a
+# landmark's own trace, where its solids stand, when a far level shows.
 
 def _rings(shape) -> tuple:
     """A clearance is one ring or several; always hand back several."""
     return (shape,) if isinstance(shape[0][0], (int, float)) else shape
 
 
-def place(bounds, ground, buildings) -> tuple[tuple, Placement]:
-    """The tile's buildings without the landmarks' traces, and the landmarks.
+# ── shipping ────────────────────────────────────────────────────────────────
 
-    `ground(lon, lat)` is the tile's own terrain function, so a landmark stands
-    where the terrain the player walks on says the ground is.
+def ship() -> Path:
+    """Bake every level of every landmark into the game's assets, with the list
+    the game places them from (`assets/world/landmarks/landmarks.json`).
+
+    The game reads nothing else about a landmark: its anchor, bearing, height,
+    clearance and solids, the ground it stands on, and each level's model and
+    the distance it is drawn to. Run it after changing a recipe; the revision
+    in the file names keeps an old model from answering for a new one.
     """
-    placement = Placement()
-    candidates = around(bounds)
-    if not candidates:
-        return buildings, placement
-    kept = []
-    for way in buildings:
-        if is_replaced(way, candidates, ground):
-            placement.replaced.append(way.osm_id)
-        else:
-            kept.append(way)
-    for landmark in candidates:
-        if not (bounds.west <= landmark.lon < bounds.east
-                and bounds.south <= landmark.lat < bounds.north):
-            continue
-        path, vertices = bake(landmark)
-        x, y, z = ground(landmark.lon, landmark.lat)
-        placement.nodes.append({
-            "type": "Node", "name": f"landmark {landmark.slug}", "enabled": True,
-            "groups": ["landmark"],
-            "transform": {"position": [x, y, z], "rotation": [0.0, 0.0, 0.0, 1.0],
-                          "scale": [1.0, 1.0, 1.0]},
-            "importedFrom": path,
-        })
-        for ring in landmark.solids:
-            placement.solids.append([_turn(landmark.bearing, p, (x, y, z)) for p in ring])
-        placement.vertices += vertices
-        placement.manifest.append({
+    from .world_tiles import tile_at
+    entries = []
+    for landmark in LANDMARKS:
+        levels = []
+        for lod, until in ((0, 0.0), (1, LOD1_UNTIL), (2, FAR_RANGE)):
+            model, vertices = bake(landmark, lod)
+            levels.append({"path": model, "until": until, "vertices": vertices})
+        entries.append({
             "slug": landmark.slug, "name": landmark.name, "wikidata": landmark.wikidata,
-            "anchor": {"source": f"osm:{landmark.osm}", "lon": landmark.lon, "lat": landmark.lat},
-            "bearing": {"source": (f"osm:{landmark.osm}" if landmark.bearing_source == "osm"
-                                   else landmark.bearing_source),
-                        "degrees": landmark.bearing},
-            "height": {"source": "official", "metres": landmark.height},
-            "shape": {"source": "recipe", "revision": REVISION},
-            "vertices": vertices,
+            "osm": landmark.osm, "lon": landmark.lon, "lat": landmark.lat,
+            "bearing": landmark.bearing, "bearingSource": landmark.bearing_source,
+            "height": landmark.height,
+            "alt": landmark.ground[0], "altSource": landmark.ground[1],
+            "tile": tile_at(landmark.lon, landmark.lat).key,
+            "clearance": [list(map(list, ring)) for ring in _rings(landmark.clearance)],
+            "solids": [list(map(list, ring)) for ring in landmark.solids],
+            "levels": levels,
         })
-    placement.manifest.sort(key=lambda entry: entry["slug"])
-    return tuple(kept), placement
+    document = {"revision": REVISION, "range": FAR_RANGE, "landmarks": entries}
+    path = MODEL_DIR / "landmarks.json"
+    path.write_text(json.dumps(document, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
 
+
+if __name__ == "__main__":
+    print(ship())

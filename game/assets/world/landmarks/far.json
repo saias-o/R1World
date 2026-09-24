@@ -1,0 +1,446 @@
+{
+ "revision": 3,
+ "range": 5000.0,
+ "landmarks": [
+  {
+   "slug": "eiffel_tower",
+   "lon": 2.294501,
+   "lat": 48.85826,
+   "alt": 33.9,
+   "altSource": "IGN RGE ALTI via Geoplateforme",
+   "tile": "v14_27771_23987",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/eiffel_tower-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 6963
+    },
+    {
+     "path": "assets/world/landmarks/eiffel_tower-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 771
+    }
+   ]
+  },
+  {
+   "slug": "statue_of_liberty",
+   "lon": -74.044537,
+   "lat": 40.689243,
+   "alt": 6.9,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_26137_16068",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/statue_of_liberty-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 1657
+    },
+    {
+     "path": "assets/world/landmarks/statue_of_liberty-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1181
+    }
+   ]
+  },
+  {
+   "slug": "big_ben",
+   "lon": -0.124573,
+   "lat": 51.500701,
+   "alt": 12.3,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_28300_22393",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/big_ben-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 1124
+    },
+    {
+     "path": "assets/world/landmarks/big_ben-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 780
+    }
+   ]
+  },
+  {
+   "slug": "colosseum",
+   "lon": 12.492392,
+   "lat": 41.890317,
+   "alt": 28.0,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_26378_28658",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/colosseum-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 8723
+    },
+    {
+     "path": "assets/world/landmarks/colosseum-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1281
+    }
+   ]
+  },
+  {
+   "slug": "taj_mahal",
+   "lon": 78.04209,
+   "lat": 27.175009,
+   "alt": 146.9,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_23435_45910",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/taj_mahal-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 7241
+    },
+    {
+     "path": "assets/world/landmarks/taj_mahal-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 3045
+    }
+   ]
+  },
+  {
+   "slug": "pyramid_of_khufu",
+   "lon": 31.134216,
+   "lat": 29.979171,
+   "alt": 66.1,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_23995_36577",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/pyramid_of_khufu-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 40
+    },
+    {
+     "path": "assets/world/landmarks/pyramid_of_khufu-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 40
+    }
+   ]
+  },
+  {
+   "slug": "pyramid_of_khafre",
+   "lon": 31.130737,
+   "lat": 29.97599,
+   "alt": 74.3,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_23995_36577",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/pyramid_of_khafre-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 56
+    },
+    {
+     "path": "assets/world/landmarks/pyramid_of_khafre-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 56
+    }
+   ]
+  },
+  {
+   "slug": "pyramid_of_menkaure",
+   "lon": 31.128261,
+   "lat": 29.97251,
+   "alt": 76.6,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_23994_36578",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/pyramid_of_menkaure-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 40
+    },
+    {
+     "path": "assets/world/landmarks/pyramid_of_menkaure-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 40
+    }
+   ]
+  },
+  {
+   "slug": "christ_the_redeemer",
+   "lon": -43.210459,
+   "lat": -22.951917,
+   "alt": 565.0,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_13409_25192",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/christ_the_redeemer-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 838
+    },
+    {
+     "path": "assets/world/landmarks/christ_the_redeemer-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 552
+    }
+   ]
+  },
+  {
+   "slug": "sydney_opera_house",
+   "lon": 151.215159,
+   "lat": -33.857117,
+   "alt": 0.7,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_11228_55010",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/sydney_opera_house-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 1996
+    },
+    {
+     "path": "assets/world/landmarks/sydney_opera_house-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1036
+    }
+   ]
+  },
+  {
+   "slug": "burj_khalifa",
+   "lon": 55.274227,
+   "lat": 25.197046,
+   "alt": 15.2,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_23039_42577",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/burj_khalifa-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 1242
+    },
+    {
+     "path": "assets/world/landmarks/burj_khalifa-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1206
+    }
+   ]
+  },
+  {
+   "slug": "empire_state_building",
+   "lon": -73.985659,
+   "lat": 40.748442,
+   "alt": 34.1,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_26149_16063",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/empire_state_building-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 8802
+    },
+    {
+     "path": "assets/world/landmarks/empire_state_building-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 457
+    }
+   ]
+  },
+  {
+   "slug": "leaning_tower_of_pisa",
+   "lon": 10.396632,
+   "lat": 43.723007,
+   "alt": 6.6,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_26744_27519",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/leaning_tower_of_pisa-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 1543
+    },
+    {
+     "path": "assets/world/landmarks/leaning_tower_of_pisa-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 805
+    }
+   ]
+  },
+  {
+   "slug": "arc_de_triomphe",
+   "lon": 2.295039,
+   "lat": 48.873779,
+   "alt": 58.6,
+   "altSource": "IGN RGE ALTI via Geoplateforme",
+   "tile": "v14_27774_23980",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/arc_de_triomphe-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 668
+    },
+    {
+     "path": "assets/world/landmarks/arc_de_triomphe-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 540
+    }
+   ]
+  },
+  {
+   "slug": "notre_dame_de_paris",
+   "lon": 2.349918,
+   "lat": 48.853006,
+   "alt": 34.2,
+   "altSource": "IGN RGE ALTI via Geoplateforme",
+   "tile": "v14_27770_23997",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/notre_dame_de_paris-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 3980
+    },
+    {
+     "path": "assets/world/landmarks/notre_dame_de_paris-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1172
+    }
+   ]
+  },
+  {
+   "slug": "sagrada_familia",
+   "lon": 2.17428,
+   "lat": 41.403505,
+   "alt": 39.3,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_26280_27329",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/sagrada_familia-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 6737
+    },
+    {
+     "path": "assets/world/landmarks/sagrada_familia-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 3859
+    }
+   ]
+  },
+  {
+   "slug": "brandenburg_gate",
+   "lon": 13.377702,
+   "lat": 52.516275,
+   "alt": 40.2,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_28503_23534",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/brandenburg_gate-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 1733
+    },
+    {
+     "path": "assets/world/landmarks/brandenburg_gate-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1217
+    }
+   ]
+  },
+  {
+   "slug": "st_peters_basilica",
+   "lon": 12.45371,
+   "lat": 41.902164,
+   "alt": 45.7,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_26380_28647",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/st_peters_basilica-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 6895
+    },
+    {
+     "path": "assets/world/landmarks/st_peters_basilica-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1985
+    }
+   ]
+  },
+  {
+   "slug": "st_basils_cathedral",
+   "lon": 37.623097,
+   "lat": 55.752469,
+   "alt": 145.2,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_29150_24494",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/st_basils_cathedral-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 3904
+    },
+    {
+     "path": "assets/world/landmarks/st_basils_cathedral-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1818
+    }
+   ]
+  },
+  {
+   "slug": "parthenon",
+   "lon": 23.726618,
+   "lat": 37.971503,
+   "alt": 129.4,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_25594_32119",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/parthenon-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 7774
+    },
+    {
+     "path": "assets/world/landmarks/parthenon-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 3160
+    }
+   ]
+  },
+  {
+   "slug": "tokyo_tower",
+   "lon": 139.745446,
+   "lat": 35.65859,
+   "alt": 29.5,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_25131_51959",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/tokyo_tower-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 539
+    },
+    {
+     "path": "assets/world/landmarks/tokyo_tower-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 396
+    }
+   ]
+  },
+  {
+   "slug": "petronas_towers",
+   "lon": 101.711717,
+   "lat": 3.158006,
+   "alt": 43.7,
+   "altSource": "Copernicus DEM GLO-90 via Open-Meteo",
+   "tile": "v14_18631_56257",
+   "levels": [
+    {
+     "path": "assets/world/landmarks/petronas_towers-r3-lod1.glb",
+     "until": 1800.0,
+     "vertices": 2958
+    },
+    {
+     "path": "assets/world/landmarks/petronas_towers-r3-lod2.glb",
+     "until": 5000.0,
+     "vertices": 1580
+    }
+   ]
+  }
+ ]
+}

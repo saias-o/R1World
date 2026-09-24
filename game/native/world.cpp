@@ -26,6 +26,10 @@
 #include <glm/gtc/quaternion.hpp>
 #include <nlohmann/json.hpp>
 #include "saida/traffic/Traffic.hpp"
+#include "gen/landmarks.hpp"
+#include "gen/palette.hpp"
+#include "gen/sea.hpp"
+#include "gen/service.hpp"
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -73,16 +77,19 @@ constexpr double kSwimHeadAbove=.60;    // keep the head and neck clear of the w
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
 constexpr double kStreamAheadSeconds=45.; // prepare the road before the car reaches it
-constexpr size_t kStreamRequestLimit=25; // worker's bounded priority queue
+constexpr size_t kStreamRequestLimit=25; // the world service's bounded priority list
 constexpr double kOnFootFollow=4.5,kDrivingFollow=8.5;
+// One message for the whole wait after Go: every change of the status line
+// re-renders the interface, a quarter of a second on the map screen.
+constexpr const char* kPreparing="Préparation du terrain de départ… Vous pouvez changer de destination.";
 // ── boats ───────────────────────────────────────────────────────────────────
 // A boat is sailed the way the car is driven: a longitude, a latitude and a
 // heading moved in the tangent plane, with one authority on position for the
 // streamer, the origin and the Sun. Its handling -- top speed, acceleration,
-// turn rate -- comes with it from the tile manifest (r1/harbours.py), because
+// turn rate -- comes with it from the tile manifest (gen/harbours.cpp), because
 // a container ship and a speedboat are not one boat with two paint jobs.
 constexpr double kBoatReach=3.5;        // m from the hull's side to take the helm
-// Ships at sea (r1/sea_traffic.py): how many the neighbourhood shows, how far
+// Ships at sea (gen/sea.cpp): how many the neighbourhood shows, how far
 // away a new one may appear (never in plain view), and how far one sails on
 // before it is dropped.
 constexpr size_t kSeaShips=40;
@@ -103,11 +110,10 @@ constexpr size_t kAbandonedCars=6;
 
 struct Tile {
     int r,c;
-    // Must equal r1.world_tiles.VERSION. The two are written twice because the
-    // game and the worker are two processes, and they are kept equal by the
-    // --geo-contract test rather than by anyone remembering: bump one alone and
-    // test_world.py fails on the very next run with both keys side by side.
-    std::string key() const { return "v14_"+std::to_string(r)+"_"+std::to_string(c); }
+    // The generator's own key (gen/common.hpp), so the tile the game streams
+    // and the tile the generator cooks cannot disagree about their version.
+    std::string key() const { return r1::Tile{r,c}.key(); }
+    r1::Tile gen() const { return {r,c}; }
     bool operator<(const Tile& b) const { return std::tie(r,c)<std::tie(b.r,b.c); }
     bool operator==(const Tile& b) const { return r==b.r&&c==b.c; }
 };
@@ -159,16 +165,6 @@ glm::dvec2 advance(double lon,double lat,double east,double north) {
     return {wrap(l/rad),q/rad};
 }
 json readJson(const fs::path& p) { std::ifstream f(p); return json::parse(f); }
-void writeRequest(const fs::path& p,const json& j) {
-    fs::path tmp=p;tmp+=".tmp"; {std::ofstream f(tmp);f<<j.dump();}
-#ifdef _WIN32
-    // Atomic replace on Windows, including an existing destination.
-    if(!MoveFileExW(tmp.c_str(),p.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
-        throw std::runtime_error("Cannot publish world request");
-#else
-    fs::rename(tmp,p);
-#endif
-}
 struct Plant {
     saida::Node* node=nullptr;
     bool grass=false;
@@ -192,8 +188,64 @@ struct Mooring {
     saida::Node* node=nullptr;
     bool taken=false;
 };
+// A cooked part as the GPU takes it, made on the worker that cooked it
+// (WorldService's `prepare`), so the frame only uploads.
+struct PartUpload {
+    std::string name;
+    std::vector<saida::Vertex> vertices;
+    std::vector<uint32_t> indices;
+    size_t material=0;  // index into the cooked tile's parts
+};
+// Everything the frame needs of a cooked tile, made on the worker that cooked
+// it: the parts as the GPU takes them, and the footprints `blocked` walks.
+struct PreparedTile {
+    std::vector<PartUpload> parts;
+    std::vector<Footprint> footprints;
+};
+
+PreparedTile prepareTile(const r1::CookedTile& tile) {
+    PreparedTile prepared;
+    auto& out=prepared.parts;
+    out.reserve(tile.parts.size());
+    for(size_t i=0;i<tile.parts.size();++i) {
+        const r1::MeshPart& part=tile.parts[i];
+        const r1::Mesh& m=part.mesh;
+        const double k=part.material.uvScale;
+        const auto tangents=r1::tangents(m,k);
+        PartUpload up{part.name,{},m.indices,i};
+        up.vertices.resize(m.positions.size());
+        for(size_t v=0;v<m.positions.size();++v) {
+            saida::Vertex& x=up.vertices[v];
+            x.pos=glm::vec3(m.positions[v].x,m.positions[v].y,m.positions[v].z);
+            x.normal=glm::vec3(m.normals[v].x,m.normals[v].y,m.normals[v].z);
+            x.color=glm::vec3(1.f);
+            x.texCoord=glm::vec2(m.texcoords[v].u*k,m.texcoords[v].v*k);
+            x.tangent=glm::vec4(tangents[v][0],tangents[v][1],tangents[v][2],tangents[v][3]);
+        }
+        out.push_back(std::move(up));
+    }
+    for(const auto& polygon:tile.manifest.at("footprints")) {
+        Footprint shape;
+        for(const auto& point:polygon) {
+            const glm::dvec2 p{point[0].get<double>(),point[1].get<double>()};
+            shape.points.push_back(p);shape.low=glm::min(shape.low,p);shape.high=glm::max(shape.high,p);
+        }
+        prepared.footprints.push_back(std::move(shape));
+    }
+    return prepared;
+}
+
 struct Loaded {
-    saida::Node* node; json data; Frame frame; json props; size_t nextProp=0;
+    saida::Node* node=nullptr;
+    // The cooked tile this was mounted from. Its manifest and its prop list
+    // are read where they are, never copied.
+    std::shared_ptr<const r1::ServedTile> served;
+    const json& data; Frame frame; const json& props; size_t nextProp=0;
+    // The tile's own geometry goes up a few parts a frame (World::uploadParts).
+    saida::Node* geography=nullptr; size_t nextPart=0;
+    Loaded(saida::Node* n,std::shared_ptr<const r1::ServedTile> s)
+        :node(n),served(std::move(s)),data(served->cooked.manifest),
+         frame(data.at("lon").get<double>(),data.at("lat").get<double>()),props(served->cooked.props){}
     std::vector<Footprint> footprints; std::vector<Plant> vegetation;
     // This tile's road network and the cars on it. The graph must not move
     // once the flow points at it, which is why both live here rather than in
@@ -203,7 +255,7 @@ struct Loaded {
     std::vector<saida::Node*> cars;       // keyed by agent index, pooled
     std::vector<uint32_t> carPaint;       // the seed each pooled node wears
     size_t wanted=0;                      // cars this tile's density asks for
-    // `ready.json` unpacked once at mount, because a frame cannot afford to
+    // The manifest unpacked once at mount, because a frame cannot afford to
     // read JSON. See World::unpack.
     double west=0,east=0,south=0,north=0;
     int gridSize=0; std::vector<float> elevation;
@@ -215,7 +267,7 @@ struct Loaded {
 };
 
 class World : public Rml::EventListener {
-    saida::Engine& engine; fs::path game,session;
+    saida::Engine& engine; fs::path game;
     saida::WebCanvasNode* ui; saida::CameraNode* camera;
     saida::Node* player=nullptr;
     // The player's car. A member of the entry scene beside him, not a prop of
@@ -250,8 +302,13 @@ class World : public Rml::EventListener {
     struct SeaShip {std::string id; Vessel v; double phase=0;};
     std::vector<SeaShip> seaShips; std::set<std::string> seaTaken;
     std::map<std::string,saida::Node*> hullPrototypes;
-    fs::file_time_type seaStamp{}; double seaAsk=5.,seaRead=0; bool seaFirst=true; std::string seaSaid;
-    fs::file_time_type conditionsStamp{}; double conditionsRead=0;
+    // The sea and the sky, on their own threads (gen/sea.hpp). A new answer
+    // is a new pointer, so "has it changed" is one comparison.
+    std::unique_ptr<r1::SeaService> sea;
+    std::unique_ptr<r1::ConditionsService> sky;
+    std::shared_ptr<const json> seaDoc,conditionsDoc;
+    double seaAsk=5.,seaRead=0; bool seaFirst=true; std::string seaSaid;
+    double conditionsRead=0;
     json conditions=json::object();
     bool smokeSeaWait=false; double captureSeaWait=0;
     bool smokeSail=false,smokeSailWait=false,smokeSailing=false,smokeSailBrake=false,smokeSwimming=false;
@@ -272,12 +329,25 @@ class World : public Rml::EventListener {
     std::map<std::string,saida::Node*> naturePrototypes;
     saida::Node* trafficPrototype=nullptr;
     std::vector<glm::vec3> paints;
+    // Tiles are cooked in this process, on the service's threads (gen/).
+    std::unique_ptr<r1::WorldService> service;
+    std::map<std::string,saida::AssetID> textures;
     size_t residentVertexBudget=0;
     Frame origin; double lon=2.3522,lat=48.8566,alt=0,yaw=0,pitch=-12;
     double pickLon=2.3522,pickLat=48.8566,zoom=1,mapX=0,mapY=0;
     bool menu=true,playing=false,pending=false,warming=false,wasMenuKey=false;
     std::chrono::steady_clock::time_point goStarted;
     double lastMountMs=0;
+    // How smooth the arrival was: frames over 33 ms in the ten seconds after
+    // Go, and the worst of them. The one number "it freezes" becomes.
+    std::chrono::steady_clock::time_point lastFrame{};
+    int arrivalFrames=0,arrivalHitches=0; double arrivalWorst=0; bool arrivalSaid=true;
+    // What the last update spent, by step, so a slow arrival frame says why.
+    struct FrameCost { double stream=0,parts=0,warm=0,props=0,distant=0,world=0; } cost;
+    template<class F> double timed(F&& f) {
+        const auto t=std::chrono::steady_clock::now();f();
+        return std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-t).count();
+    }
     double poll=0,hud=0,smokeWalk=0; std::string requested;
     // The nine tiles around the player, computed once a frame. `nearby` sorts
     // and allocates, and three callers wanted the same answer.
@@ -311,15 +381,31 @@ class World : public Rml::EventListener {
     saida::runtime::CaptureViewpoint captureView;
     bool captureQueued=false;
     std::string number(double n,int precision=6) {std::ostringstream s;s<<std::fixed<<std::setprecision(precision)<<n;return s.str();}
+    // Every write re-lays and re-renders the whole interface -- the map is
+    // 1.3 million pixels, some 240 ms -- so a write that changes nothing is
+    // not made. The status line used to be rewritten every 16 ms while a
+    // destination loaded: that was the freeze after Go.
+    std::map<std::string,std::string> written;
     void style(const std::string& id,const std::string& key,const std::string& value) {
-        if(auto* e=ui->findElementById(id)){e->SetProperty(key,value);ui->notifyJsMutation();}
+        auto& last=written["style:"+id+":"+key];
+        if(last==value)return;
+        if(auto* e=ui->findElementById(id)){e->SetProperty(key,value);ui->notifyJsMutation();last=value;}
     }
-    void text(const std::string& id,const std::string& s){ui->setElementText(id,s);}
+    void text(const std::string& id,const std::string& s) {
+        auto& last=written["text:"+id];
+        if(last==s)return;
+        if(ui->setElementText(id,s))last=s;
+    }
     std::string value(const std::string& id) {
         auto* e=dynamic_cast<Rml::ElementFormControl*>(ui->findElementById(id));return e?e->GetValue():"";
     }
+    // Compared with what the field shows, not with what was last written: the
+    // player may have typed in it since.
     void field(const std::string& id,double x) {
-        if(auto* e=dynamic_cast<Rml::ElementFormControl*>(ui->findElementById(id)))e->SetValue(number(x));
+        const std::string value=number(x);
+        auto* e=dynamic_cast<Rml::ElementFormControl*>(ui->findElementById(id));
+        if(!e||e->GetValue()==value)return;
+        e->SetValue(value);
         ui->notifyJsMutation();
     }
     // release=false is what a real click actually delivers: the engine consumes
@@ -414,7 +500,10 @@ class World : public Rml::EventListener {
         }
         json payload={{"tiles",tiles},{"groups",sourceGroups}};
         std::string signature=payload.dump();if(signature==requested)return;
-        writeRequest(session/"request.json",payload);requested=signature;
+        std::vector<r1::Tile> genTiles;for(Tile t:priority)genTiles.push_back(t.gen());
+        std::vector<std::vector<r1::Tile>> genGroups;
+        for(const auto& group:groups){genGroups.emplace_back();for(Tile t:group)genGroups.back().push_back(t.gen());}
+        service->want(std::move(genTiles),std::move(genGroups));requested=signature;
     }
     int goCount=0;
     void go() {
@@ -425,7 +514,8 @@ class World : public Rml::EventListener {
             if(a!=x.size()||b!=y.size()||!std::isfinite(lo)||!std::isfinite(la)||la< -90||la>90||lo< -180||lo>180)throw std::runtime_error("coordinate");
             select(lo,la);pending=true;request(pickLon,pickLat);
             goStarted=std::chrono::steady_clock::now();poll=1;
-            text("status","Préparation du relief et des bâtiments… Vous pouvez changer de destination.");
+            arrivalFrames=arrivalHitches=0;arrivalWorst=0;arrivalSaid=false;
+            text("status",kPreparing);
             saida::Log::info("[World] destination ",lo,", ",la);
         } catch(...) {text("status","Coordonnées invalides : latitude −90 à 90, longitude −180 à 180 (point décimal).");}
     }
@@ -467,7 +557,7 @@ class World : public Rml::EventListener {
     }
     // ── the tile's data, in the form the frame reads it ─────────────────────
     //
-    // `ready.json` is the contract with the worker and stays the contract. What
+    // The tile's manifest is the contract with the generator. What
     // it must not be is the thing a hot loop reads: every `data["bounds"]` is a
     // hash lookup, every `poly[i][0]` is a bounds-checked variant unwrap, and
     // `water[row].get<std::string>()` allocates a string per query. Walking or
@@ -1198,9 +1288,9 @@ class World : public Rml::EventListener {
 
     // ── ships at sea ────────────────────────────────────────────────────────
     //
-    // The worker predicts the ships around the player -- six years of real
-    // AIS, the day, the weather, and whatever live AIS it last heard
-    // (r1/sea_traffic.py) -- and writes them to sea.json. The game sails them.
+    // The sea service predicts the ships around the player -- six years of
+    // real AIS, the day, the weather, and whatever live AIS it last heard
+    // (gen/sea.cpp) -- on its own thread. The game sails them.
     // A ship keeps its own state once it is out: a later prediction that no
     // longer lists it does not pull it from under the player's eyes, it sails
     // on and is dropped beyond kSeaKeep; a new one appears only beyond
@@ -1219,11 +1309,9 @@ class World : public Rml::EventListener {
             &&std::abs(conditions.value("lat",1000.)-lat)<.12;
     }
     void readConditions() {
-        std::error_code ec;
-        const auto stamp=fs::last_write_time(session/"atmosphere.json",ec);
-        if(ec||stamp==conditionsStamp)return;
-        try {conditions=readJson(session/"atmosphere.json");conditionsStamp=stamp;}
-        catch(const std::exception& e){saida::Log::warn("[World sky] conditions unreadable: ",e.what());return;}
+        auto latest=sky->latest();
+        if(!latest||latest==conditionsDoc)return;
+        conditionsDoc=latest;conditions=*latest;
         if(!localConditions()||!sunScript)return;
         const auto weather=conditions.value("weather",json());
         const double cover=weather.is_object()?std::clamp(weather.value("cloudCover",0.)/100.,0.,1.):0.;
@@ -1269,13 +1357,10 @@ class World : public Rml::EventListener {
         return p;
     }
     void readSea() {
-        std::error_code ec;
-        const auto stamp=fs::last_write_time(session/"sea.json",ec);
-        if(ec||stamp==seaStamp)return;
-        seaStamp=stamp;
-        json doc;
-        try {doc=readJson(session/"sea.json");}
-        catch(const std::exception& e){saida::Log::warn("[World sea] unreadable sea.json: ",e.what());return;}
+        auto latest=sea->latest();
+        if(!latest||latest==seaDoc)return;
+        seaDoc=latest;
+        const json& doc=*latest;
         const json source=doc.value("source",json::object());
         const json hulls=doc.value("hulls",json::object());
         std::set<std::string> have;
@@ -1322,10 +1407,7 @@ class World : public Rml::EventListener {
         seaAsk+=dt;seaRead+=dt;
         if(seaAsk>5.) {
             seaAsk=0;double t=0;
-            if(gameTime(t)) {
-                try {writeRequest(session/"sea_request.json",{{"lon",lon},{"lat",lat},{"time",t}});}
-                catch(const std::exception& e){saida::Log::warn("[World sea] ",e.what());}
-            }
+            if(gameTime(t)){sea->ask(lon,lat,t);sky->ask(lon,lat);}
         }
         if(seaRead>1.){seaRead=0;readSea();}
         for(size_t i=0;i<seaShips.size();) {
@@ -1367,7 +1449,7 @@ class World : public Rml::EventListener {
     //
     // The simulation is `engine/plugins/traffic`, which knows nothing about
     // this project: no geodesy, no tiles, no scene. Everything below is the
-    // half that only R1World can do — read the lane graph the worker cooked,
+    // half that only R1World can do — read the lane graph the generator cooked,
     // give each tile its own flow, put a scene node on each agent, and hand
     // the player's car back as an obstacle.
     //
@@ -1376,26 +1458,13 @@ class World : public Rml::EventListener {
     // origin moves them for free (placeTiles) and evicting the tile evicts its
     // traffic without a single pointer to update.
     void loadPaints() {
-        // Albedos, from `r1/traffic.py`, generated beside the world's other
-        // data. Reading them rather than writing them here is what lets a test
-        // check them against rule 2 -- a colour the tests cannot see is a rule
-        // that is not held.
-        try {
-            // The document is held in a named local on purpose. A range-for over
-            // `readJson(path).at("paints")` binds to a reference into a temporary
-            // that dies at the end of the full expression, and the loop then walks
-            // freed memory -- which is how this shipped one paint instead of ten
-            // and said nothing.
-            const json table=readJson(game/"assets/world/traffic_paints.json");
-            for(const auto& entry:table.at("paints")) {
-                const auto& albedo=entry.at("albedo");
-                paints.push_back(glm::vec3(albedo[0],albedo[1],albedo[2]));
-            }
-        } catch(const std::exception& e) {
-            saida::Log::warn("[World traffic] no paint table (",e.what(),
-                             "); the fleet will be one colour");
+        // Albedos, from the Atlas (assets/world/atlas.json), where a test holds
+        // them to rule 2 -- a colour the tests cannot see is a rule not held.
+        for(const auto& albedo:r1::palette().carPaints)paints.push_back(glm::vec3(albedo[0],albedo[1],albedo[2]));
+        if(paints.empty()){
+            saida::Log::warn("[World traffic] the Atlas lists no car paint; the fleet will be one colour");
+            paints.push_back(glm::vec3(.30f,.30f,.31f));
         }
-        if(paints.empty())paints.push_back(glm::vec3(.30f,.30f,.31f));
     }
     // Disabled scene ownership keeps shared prototype resources resident.
     void buildTrafficPrototype() {
@@ -1421,7 +1490,7 @@ class World : public Rml::EventListener {
         rules.despawn=260.f;
         // Deterministic per tile, so the same street is the same street on
         // every visit and a capture can be compared with itself.
-        tile.flow.reset(&tile.graph,rules,uint32_t(std::hash<std::string>{}(tile.data["key"]))|1u);
+        tile.flow.reset(&tile.graph,rules,uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u);
         tile.wanted=doc.value("cars",0);
     }
     glm::vec3 paintFor(uint32_t seed) const {
@@ -1554,6 +1623,58 @@ class World : public Rml::EventListener {
         return n;
     }
 
+    // A photographed surface's texture, registered once per path and colour space.
+    saida::AssetID texture(const std::string& path,bool srgb) {
+        if(path.empty())return saida::kAssetInvalid;
+        auto [it,inserted]=textures.try_emplace(path+(srgb?"#srgb":"#linear"),saida::kAssetInvalid);
+        if(inserted)it->second=engine.resources().getOrRegister((game/path).string(),saida::AssetType::Texture,srgb);
+        return it->second;
+    }
+    saida::Material* material(const r1::Material& m) {
+        saida::MaterialDesc d;
+        d.baseColor=glm::vec4(m.color[0],m.color[1],m.color[2],m.color[3]);
+        d.metallic=float(m.metallic);d.roughness=float(m.roughness);d.doubleSided=m.doubleSided;
+        d.albedoId=texture(m.baseColorTexture,true);
+        d.normalId=texture(m.normalTexture,false);
+        d.metallicRoughnessId=texture(m.metallicRoughnessTexture,false);
+        return engine.resources().getMaterial(d);
+    }
+    // The tile's node, empty but for its sea when it is all ocean: its own
+    // ground, streets, works and buildings are uploaded a few parts a frame
+    // by `uploadParts`, straight from what the worker prepared.
+    std::unique_ptr<saida::Node> buildTile(const std::string& key,const r1::ServedTile& served) {
+        auto root=std::make_unique<saida::Node>(key);
+        const r1::CookedTile& cooked=served.cooked;
+        if(!cooked.ocean.is_null()) {
+            auto sea=saida::SceneSerializer::nodeFromJson(cooked.ocean.dump(),engine.resources());
+            if(!sea)throw std::runtime_error("sea node refused by the scene loader");
+            root->addChild(std::move(sea));
+        } else root->createChild<saida::Node>("Geography");
+        return root;
+    }
+    // A mount used to upload a whole tile in one frame -- 30 to 60 ms, the
+    // hitch every new tile was felt as. Now the ground goes first, a few
+    // milliseconds of parts a frame, and the rest follows over the next frames.
+    // Collision never waits: it reads the manifest, which is there at mount.
+    void uploadParts() {
+        const auto start=std::chrono::steady_clock::now();
+        for(auto& [key,t]:loaded) {
+            if(!t.geography)continue;
+            const auto& parts=std::any_cast<const PreparedTile&>(t.served->prepared).parts;
+            while(t.nextPart<parts.size()) {
+                const PartUpload& part=parts[t.nextPart++];
+                auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(part.vertices,part.indices));
+                if(!mesh) {
+                    // Said, never silent: a tile missing a part looks like OSM missing it.
+                    saida::Log::warn("[World streaming] the geometry arena refused ",part.name," of ",key);
+                    continue;
+                }
+                t.geography->addChild(std::make_unique<saida::MeshNode>(part.name,mesh,
+                    material(t.served->cooked.parts[part.material].material)));
+                if(std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count()>=3.)return;
+            }
+        }
+    }
     void placeTiles() {
         for(auto& [key,t]:loaded) {
             const auto position=glm::vec3(origin.local(t.frame.origin));
@@ -1601,19 +1722,32 @@ class World : public Rml::EventListener {
         }
         for(auto& child:source.children())collectMeshes(*child,here,out);
     }
+    // Each shared model parsed once: instances share its mesh and material
+    // pointers, avoiding thousands of repeated GLB and texture decodes.
+    saida::Node* prototype(const std::string& path) {
+        auto& found=naturePrototypes[path];
+        if(!found) {
+            auto imported=saida::SceneSerializer::nodeFromJson(json({{"type","Node"},{"importedFrom",path}}).dump(),engine.resources());
+            if(imported)found=prototypes->addChild(std::move(imported));
+        }
+        return found;
+    }
+    // The shared models a tile may ask for, parsed one a frame while the map is
+    // on screen: the first import of a photoscanned tree is 50 to 150 ms, and
+    // it belongs on the map, not in the first seconds of play.
+    std::vector<std::string> warmList;
+    void warm() {
+        if(warmList.empty())return;
+        const std::string path=warmList.back();warmList.pop_back();
+        if(!prototype(path))saida::Log::warn("[World streaming] shared model will not load: ",path);
+    }
     std::unique_ptr<saida::Node> plantNode(json doc) {
-        // Parse each static plant asset once. Instances share mesh/material
-        // pointers, avoiding thousands of repeated GLB and texture decodes.
         auto path=doc.value("importedFrom",std::string());
         auto children=doc.value("children",json::array());
         doc.erase("importedFrom");doc.erase("children");
         auto node=saida::SceneSerializer::nodeFromJson(doc.dump(),engine.resources());
         if(!path.empty()){
-            auto& prototype=naturePrototypes[path];
-            if(!prototype) {
-                auto imported=saida::SceneSerializer::nodeFromJson(json({{"type","Node"},{"importedFrom",path}}).dump(),engine.resources());
-                if(imported)prototype=prototypes->addChild(std::move(imported));
-            }
+            saida::Node* prototype=this->prototype(path);
             if(!prototype)throw std::runtime_error("Nature prototype failed: "+path);
             if(flattenable(*prototype)) {
                 std::vector<std::unique_ptr<saida::Node>> meshes;
@@ -1670,8 +1804,8 @@ class World : public Rml::EventListener {
     // ── landmarks seen from afar ─────────────────────────────────────────────
     //
     // A landmark's full model belongs to its tile, and its tile is resident
-    // only within a few hundred metres (r1/landmarks.py). Beyond that the
-    // worker's far list (cache/world/landmarks/far.json) gives two lighter
+    // only within a few hundred metres (gen/landmarks.cpp). Beyond that the
+    // shipped list (assets/world/landmarks/landmarks.json) gives two lighter
     // levels and the ground they stand on: level 1 across a district, level 2
     // across a city, nothing past the haze. A far model is shown exactly when
     // the near one is not -- its tile is not resident, or has not streamed
@@ -1684,34 +1818,19 @@ class World : public Rml::EventListener {
         // Where the near model sits in its tile's prop list, found once per mount.
         const saida::Node* seenTile=nullptr; long nearIndex=-1;
     };
-    std::vector<FarLandmark> farLandmarks; std::string farStamp; double farRead=1e9;
+    std::vector<FarLandmark> farLandmarks;
+    // Levels 1 and 2 of every landmark, from the list shipped with its models
+    // (assets/world/landmarks/landmarks.json, read by the generator).
     void readFarLandmarks() {
-        const fs::path p=game/"cache"/"world"/"landmarks"/"far.json";
-        std::error_code ec;
-        if(!fs::exists(p,ec))return;
-        const auto stamp=std::to_string(fs::last_write_time(p,ec).time_since_epoch().count());
-        if(ec||stamp==farStamp)return;
-        farStamp=stamp;
-        try {
-            json doc=readJson(p);
-            for(auto& f:farLandmarks)if(f.node)f.node->queueFree();
-            farLandmarks.clear();
-            for(auto& e:doc.at("landmarks")) {
-                FarLandmark f;
-                f.slug=e.at("slug");f.tile=e.at("tile");
-                f.lon=e.at("lon");f.lat=e.at("lat");f.alt=e.at("alt");
-                for(auto& l:e.at("levels"))
-                    f.levels.push_back({l.at("path"),l.at("until"),l.at("vertices")});
-                farLandmarks.push_back(std::move(f));
-            }
-            saida::Log::info("[World landmarks] ",farLandmarks.size()," landmarks visible from afar, to ",
-                             doc.value("range",0.)," m");
-        } catch(const std::exception& e) {
-            // Said, never silent: a missing far list looks exactly like a
-            // city without landmarks.
-            saida::Log::warn("[World landmarks] far list unreadable: ",e.what());
-            if(smoke){testFailed=true;engine.sceneTree().quit();}
+        for(const auto& l:r1::landmarks()) {
+            FarLandmark f;
+            f.slug=l.slug;f.tile=r1::tileAt(l.lon,l.lat).key();
+            f.lon=l.lon;f.lat=l.lat;f.alt=l.groundAlt;
+            for(size_t i=1;i<l.levels.size();++i)f.levels.push_back({l.levels[i].path,l.levels[i].until,l.levels[i].vertices});
+            farLandmarks.push_back(std::move(f));
         }
+        saida::Log::info("[World landmarks] ",farLandmarks.size()," landmarks visible from afar, to ",
+                         r1::landmarkFarRange()," m");
     }
     bool nearModel(FarLandmark& f) {
         auto it=loaded.find(f.tile);
@@ -1809,20 +1928,26 @@ class World : public Rml::EventListener {
         if(playing)keep.insert(tileAt(lon,lat).key());
         bool removed=false;
         for(auto it=loaded.begin();it!=loaded.end();) {
-            if(!keep.count(it->first)){it->second.node->queueFree();it=loaded.erase(it);removed=true;}else ++it;
+            // A tile the service cooked again -- offline first, then from real
+            // observations -- is taken down and mounted anew below.
+            const auto current=service->find(it->second.served->cooked.tile);
+            const bool stale=current&&current->serial!=it->second.served->serial;
+            if(!keep.count(it->first)||stale){it->second.node->queueFree();it=loaded.erase(it);removed=true;}else ++it;
         }
         if(removed)trim();
         size_t count=0;
-        for(auto& [k,t]:loaded)if(wanted.count(k))count+=t.data["vertices"].get<size_t>();
-        // The far landmarks share the arena with the tiles (r1/landmarks.py).
+        for(auto& [k,t]:loaded)if(wanted.count(k))count+=t.data.at("vertices").get<size_t>();
+        // The far landmarks share the arena with the tiles (gen/landmarks.cpp).
         count+=farVertices();
+        const auto tick=std::chrono::steady_clock::now();
         for(auto t:want) {
             if(loaded.count(t.key()))continue;
-            fs::path p=game/"cache"/"world"/t.key()/"ready.json";
-            if(!fs::exists(p))continue;
+            auto served=service->find(t.gen());
+            if(!served)continue;
+            const json& data=served->cooked.manifest;
             try {
-                json data=readJson(p);
-                if(count+data["vertices"].get<size_t>()>residentVertexBudget) {
+                const size_t vertices=data.at("vertices").get<size_t>();
+                if(count+vertices>residentVertexBudget) {
                     text("stream-status","Limite de détail atteinte dans cette zone.");
                     if(refused.empty()) {
                         refused=t.key();
@@ -1832,43 +1957,29 @@ class World : public Rml::EventListener {
                         // a failure can take, and the same one the frozen tile
                         // counter took before the heartbeat was read.
                         saida::Log::warn("[World] ",t.key()," does not fit: ",count,
-                                         " + ",data["vertices"].get<size_t>(),
-                                         " > ",residentVertexBudget," resident vertices");
+                                         " + ",vertices," > ",residentVertexBudget," resident vertices");
                     }
                     continue;
                 }
-                auto mountStarted=std::chrono::steady_clock::now();
-                const bool approximate=data.value("offlineApproximation",false);
-                json root=readJson(p.parent_path()/(approximate?"offline/tile.scene":"tile.scene")).at("scene");
-                json props=json::array();
-                // Tile contract: first child is geography (or ocean), the
-                // remaining children are decorative props using shared assets.
-                auto& children=root.at("children");
-                for(size_t i=1;i<children.size();++i)props.push_back(std::move(children[i]));
-                if(children.size()>1)children.erase(children.begin()+1,children.end());
-                auto n=saida::SceneSerializer::nodeFromJson(root.dump(),engine.resources());
-                if(!n)throw std::runtime_error("Terrain illisible");
-                // The factory may deserialize Scene; adding to World preserves the player and UI.
-                auto* ptr=engine.sceneTree().world().addChild(std::move(n));
-                auto [entry,inserted]=loaded.emplace(t.key(),Loaded{ptr,data,Frame(data["lon"],data["lat"]),std::move(props),0,{},{},{},{},{},{},{},0});
-                for(auto& polygon:data["footprints"]){
-                    Footprint shape;
-                    for(auto& point:polygon){
-                        glm::dvec2 p{double(point[0]),double(point[1])};
-                        shape.points.push_back(p);shape.low=glm::min(shape.low,p);shape.high=glm::max(shape.high,p);
-                    }
-                    entry->second.footprints.push_back(std::move(shape));
-                }
+                const auto mountStarted=std::chrono::steady_clock::now();
+                auto* ptr=engine.sceneTree().world().addChild(buildTile(t.key(),*served));
+                auto [entry,inserted]=loaded.try_emplace(t.key(),ptr,served);
+                entry->second.geography=ptr->findByPath("Geography");
+                entry->second.footprints=std::any_cast<const PreparedTile&>(served->prepared).footprints;
                 // After the emplace, never before: the flow holds a pointer to
                 // the graph, and a graph built in a temporary would be moved
                 // out from under it.
                 unpack(entry->second);
                 readGraph(entry->second);
-                placeTiles();saida::Log::info("[World] mounted ",t.key());
+                placeTiles();
                 lastMountMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-mountStarted).count();
-                saida::Log::info("[World streaming] mount_ms=",lastMountMs," tile=",t.key());
+                saida::Log::info("[World streaming] mounted ",t.key()," mount_ms=",lastMountMs,
+                                 " cook_ms=",served->cooked.cookMs," since_go_ms=",
+                                 std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-goStarted).count());
             }catch(const std::exception& e){text("status",std::string("Tuile indisponible : ")+e.what());}
-            break; // At most one geometry integration per polling tick.
+            // Mounting is cheap now that the parts go up over the next frames;
+            // several tiles fit in one tick, as long as the tick stays short.
+            if(std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-tick).count()>=4.)break;
         }
         bool surroundingReady=std::all_of(want.begin(),want.end(),[&](Tile t){return loaded.count(t.key())>0;});
         if(pending && refused==tileAt(pickLon,pickLat).key() && !smoke) {
@@ -1880,7 +1991,7 @@ class World : public Rml::EventListener {
             text("status","Ce quartier dépasse la mémoire géométrique disponible. Choisissez un point voisin.");
             return;
         }
-        if(pending)text("status","Préparation du terrain de départ… Les alentours chargeront pendant la partie.");
+        if(pending)text("status",kPreparing);
         if(pending && tile(pickLon,pickLat)) {
             const bool waterSpawn=onWater(pickLon,pickLat);
             double x0=pickLon,y0=pickLat;bool found=waterSpawn||!blocked(x0,y0);
@@ -1947,22 +2058,13 @@ class World : public Rml::EventListener {
             }
         }
         if(pending) {
-            try {auto s=readJson(session/"status.json");if(s.value("state","")=="error")text("status","Erreur de chargement, nouvelle tentative automatique. "+s.value("error",""));}catch(...){}
-            // The worker publishes a heartbeat every loop and nothing used to
-            // read it, which is why a worker that died mid-teleport looked
-            // exactly like a slow one: the tile counter simply stopped, with no
-            // error on screen and nothing to tell a player to restart. A stall
-            // that says so is a different bug from a stall that does not.
-            try {
-                double beat=readJson(session/"heartbeat.json").value("time",0.);
-                double age=double(std::time(nullptr))-beat;
-                if(age>15.)text("status","Le service de données ne répond plus depuis "
-                    +std::to_string(int(age))+" s. Quittez la partie et relancez avec Play.ps1.");
-            }catch(...){}
+            const auto status=service->status();
+            if(!status.error.empty())text("status","Erreur de chargement, nouvelle tentative automatique. "+status.error);
+            else if(status.offline)text("status","Réseau indisponible : terrain simplifié en attendant.");
         }
     }
 public:
-    World(saida::Engine& e,fs::path g,fs::path s,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false):engine(e),game(g),session(s),smokeSail(sail),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
+    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false):engine(e),game(g),smokeSail(sail),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
@@ -1993,10 +2095,28 @@ public:
         saida::Log::info("[World traffic] ready, ",paints.size()," paints");
         // Textures resident at once. A city neighbourhood shows about fifteen
         // photographed materials (ground, streets, walls, roofs; see
-        // r1/surfaces.py), some 90 MB, on top of what 256 MB already held.
+        // assets/textures/surfaces.json), some 90 MB, on top of what 256 MB already held.
         // The reference GTX 1060 has 4.5 GB of VRAM to spend (plan §3 I4), and
         // the geometry arena takes about 50 MB of it.
         e.resources().setGpuBudget(512ull*1024*1024);
+        r1::WorldService::Options options;
+        options.gameRoot=game.string();
+        options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);};
+        options.log=[](const std::string& line){saida::Log::info("[World service] ",line);};
+        service=std::make_unique<r1::WorldService>(std::move(options));
+        // Nearest first to be needed last: warm() takes from the back.
+        for(const auto& b:r1::palette().boats)warmList.push_back("assets/models/external/kenney_boats/"+b.model+".glb");
+        for(const auto& k:r1::palette().props)for(const auto& m:k.models)warmList.push_back(m);
+        for(const char* dir:{"assets/models/external/nature_selected","assets/models/external/nature_cards"}) {
+            std::error_code ec;
+            for(const auto& f:fs::directory_iterator(game/dir,ec))
+                if(f.path().extension()==".glb")warmList.push_back(std::string(dir)+"/"+f.path().filename().string());
+        }
+        std::sort(warmList.begin(),warmList.end());
+        warmList.erase(std::unique(warmList.begin(),warmList.end()),warmList.end());
+        sea=std::make_unique<r1::SeaService>(game.string(),[](const std::string& line){saida::Log::info("[World sea] ",line);});
+        sky=std::make_unique<r1::ConditionsService>(game.string(),[](const std::string& line){saida::Log::info("[World sky] ",line);});
+        readFarLandmarks();
         e.window().setCursorCaptured(false);
     }
     ~World(){for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
@@ -2290,9 +2410,8 @@ public:
             } else saida::Log::info("[World E2E] PASS sea helm: took over the same moving hull at ",boat.speed," m/s");
             engine.sceneTree().quit();
         } else if(smokeSailTime>30.) {
-            std::string last="no sea.log";
-            std::ifstream f(session/"sea.log");
-            for(std::string line;std::getline(f,line);)last=line;
+            std::string last=sea->lastLine();
+            if(last.empty())last="the sea said nothing";
             saida::Log::error("[World E2E] FAIL sea: no ship at sea after 30 s (",last,")");
             testFailed=true;engine.sceneTree().quit();
         }
@@ -2347,6 +2466,24 @@ public:
         showMap(true);testResume=true;
     }
     void update(float delta) {
+        const auto now=std::chrono::steady_clock::now();
+        if(!arrivalSaid&&lastFrame.time_since_epoch().count()) {
+            const double frameMs=std::chrono::duration<double,std::milli>(now-lastFrame).count();
+            ++arrivalFrames;arrivalHitches+=frameMs>33.;arrivalWorst=std::max(arrivalWorst,frameMs);
+            if(frameMs>50.) {
+                const double ours=cost.stream+cost.parts+cost.warm+cost.props+cost.distant+cost.world;
+                saida::Log::info("[World frame] ",frameMs," ms: stream ",cost.stream," parts ",cost.parts," warm ",cost.warm,
+                                 " props ",cost.props," distant ",cost.distant," world ",cost.world,
+                                 " engine ",frameMs-ours);
+            }
+            if(std::chrono::duration<double>(now-goStarted).count()>10.) {
+                saida::Log::info("[World streaming] arrival: ",arrivalHitches," of ",arrivalFrames,
+                                 " frames over 33 ms, worst ",arrivalWorst," ms");
+                arrivalSaid=true;
+            }
+        }
+        lastFrame=now;
+        cost=FrameCost{};
         if(generation!=ui->documentGeneration()||listeners.empty()) {
             generation=ui->documentGeneration();listeners.clear();
             for(auto id:{"map","go","resume","zoom-in","zoom-out","reset-map","paris","tokyo","newyork","cape","sydney"})
@@ -2403,7 +2540,9 @@ public:
         bool key=engine.window().keyDown(GLFW_KEY_M)||engine.window().keyDown(GLFW_KEY_ESCAPE);
         if(key&&!wasMenuKey){if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
         poll+=delta;hud+=delta;
-        if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)stream();}
+        if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)cost.stream=timed([&]{stream();});}
+        cost.parts=timed([&]{uploadParts();});
+        if(!playing)cost.warm=timed([&]{warm();});
         if(!playing||menu)return;
         const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail);
         seaTime+=delta;
@@ -2416,13 +2555,9 @@ public:
         const uint64_t moved=engine.sceneTree().world().indexedNodesTotal()-indexedAtFrame;
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
-        if(!fast)streamProps();
-        farRead+=delta;
-        if(farRead>1.){farRead=0;readFarLandmarks();}
-        updateFar();
-        updateNature(fast?.55:1.);
-        updateTraffic(delta);
-        updateSea(delta);
+        if(!fast)cost.props=timed([&]{streamProps();});
+        cost.distant=timed([&]{updateFar();});
+        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateSea(delta);});
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
         engine.window().setCursorCaptured(true);
@@ -2758,10 +2893,9 @@ int main(int argc,char** argv) {
             std::cout<<result.dump()<<std::endl;return 0;
         }
         fs::path game=fs::absolute(fs::path(argv[0])).parent_path().parent_path().parent_path();
-        fs::path session;bool smoke=false,sail=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
-        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--session"&&i+1<argc)session=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
+        bool smoke=false,sail=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
+        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
         if(!std::isfinite(startLon)||!std::isfinite(startLat)||std::abs(startLat)>90||std::abs(startLon)>180)throw std::runtime_error("Invalid --spawn coordinate");
-        if(session.empty())throw std::runtime_error("Launch R1World with game/Play.ps1 so the data worker is started.");
         // This development executable uses the existing engine's baked paths
         // for shaders/fonts, and the project's root for content.
         saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),false);
@@ -2769,7 +2903,10 @@ int main(int argc,char** argv) {
         engine.mountWorld();saida::Time::setScale(1);
         saida::CaptureRequest capture;saida::runtime::CaptureViewpoint view;std::string error;
         if(!saida::runtime::parseCaptureArgs(argc,argv,capture,view,error))throw std::runtime_error(error);
-        World world(engine,game,session,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail);
+        // The Atlas, the ground classes and the surfaces: data the generator
+        // reads before any tile is cooked, and refuses to run without.
+        r1::loadPalette(game.string());
+        World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail);
         engine.setOnFrame([&](float dt){world.update(dt);});
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
         engine.run();return engine.captureFailed()||world.failed()?1:0;

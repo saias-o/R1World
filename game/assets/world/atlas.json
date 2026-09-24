@@ -1,0 +1,7729 @@
+{
+ "schema": 1,
+ "note": "Albedos, not colours (CLAUDE.md rule 2). Order matters in every list: the first region, ground class or prop kind that matches wins.",
+ "profiles": [
+  {
+   "key": "PARIS",
+   "name": "Paris intra-muros",
+   "tier": "region",
+   "storey_height": 3.05,
+   "ground_storey_height": 4.2,
+   "storey_weights": [
+    [
+     4,
+     1.0
+    ],
+    [
+     5,
+     3.0
+    ],
+    [
+     6,
+     5.0
+    ],
+    [
+     7,
+     2.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     6.0
+    ],
+    [
+     "flat",
+     2.5
+    ],
+    [
+     "gabled",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    38.0,
+    54.0
+   ],
+   "eave_overhang": 0.28,
+   "parapet_height": 0.75,
+   "bay_width": 2.9,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Pierre de taille, cream",
+     "color": [
+      0.8,
+      0.76,
+      0.66
+     ],
+     "roughness": 0.88,
+     "weight": 5.0
+    },
+    {
+     "name": "Pierre de taille, pale grey",
+     "color": [
+      0.74,
+      0.72,
+      0.68
+     ],
+     "roughness": 0.88,
+     "weight": 4.0
+    },
+    {
+     "name": "Plâtre, warm grey",
+     "color": [
+      0.66,
+      0.63,
+      0.58
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Brique, faded red",
+     "color": [
+      0.48,
+      0.31,
+      0.26
+     ],
+     "roughness": 0.92,
+     "weight": 1.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Zinc, grey",
+     "color": [
+      0.3,
+      0.31,
+      0.33
+     ],
+     "roughness": 0.52,
+     "weight": 6.0
+    },
+    {
+     "name": "Ardoise, blue-black",
+     "color": [
+      0.12,
+      0.13,
+      0.16
+     ],
+     "roughness": 0.7,
+     "weight": 3.0
+    },
+    {
+     "name": "Zinc, oxidised",
+     "color": [
+      0.36,
+      0.37,
+      0.36
+     ],
+     "roughness": 0.6,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "CHAMONIX",
+   "name": "Alpes du Nord — vallée de Chamonix",
+   "tier": "region",
+   "storey_height": 2.75,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     6.0
+    ],
+    [
+     "hipped",
+     3.0
+    ],
+    [
+     "flat",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    24.0,
+    40.0
+   ],
+   "eave_overhang": 0.85,
+   "parapet_height": 0.45,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Lime render, cream",
+     "color": [
+      0.78,
+      0.73,
+      0.63
+     ],
+     "roughness": 0.9,
+     "weight": 4.0
+    },
+    {
+     "name": "Lime render, warm grey",
+     "color": [
+      0.68,
+      0.65,
+      0.6
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Lime render, pale ochre",
+     "color": [
+      0.8,
+      0.72,
+      0.56
+     ],
+     "roughness": 0.88,
+     "weight": 2.0
+    },
+    {
+     "name": "Rendered stone, grey",
+     "color": [
+      0.55,
+      0.53,
+      0.5
+     ],
+     "roughness": 0.94,
+     "weight": 2.0
+    },
+    {
+     "name": "Weathered larch",
+     "color": [
+      0.35,
+      0.26,
+      0.18
+     ],
+     "roughness": 0.85,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Slate, dark",
+     "color": [
+      0.13,
+      0.14,
+      0.16
+     ],
+     "roughness": 0.72,
+     "weight": 4.0
+    },
+    {
+     "name": "Grey standing seam",
+     "color": [
+      0.24,
+      0.25,
+      0.27
+     ],
+     "roughness": 0.55,
+     "weight": 3.0
+    },
+    {
+     "name": "Aged zinc",
+     "color": [
+      0.31,
+      0.32,
+      0.33
+     ],
+     "roughness": 0.62,
+     "weight": 2.0
+    },
+    {
+     "name": "Weathered shingle",
+     "color": [
+      0.28,
+      0.24,
+      0.2
+     ],
+     "roughness": 0.88,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "fir_sapling",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "LONDON",
+   "name": "Londres — Grand Londres",
+   "tier": "region",
+   "storey_height": 2.85,
+   "ground_storey_height": 3.4,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     2.0
+    ],
+    [
+     5,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     6.0
+    ],
+    [
+     "hipped",
+     2.0
+    ],
+    [
+     "flat",
+     2.0
+    ]
+   ],
+   "roof_pitch_range": [
+    33.0,
+    45.0
+   ],
+   "eave_overhang": 0.18,
+   "parapet_height": 0.55,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "London stock brick",
+     "color": [
+      0.52,
+      0.44,
+      0.35
+     ],
+     "roughness": 0.93,
+     "weight": 5.0
+    },
+    {
+     "name": "Red brick",
+     "color": [
+      0.46,
+      0.28,
+      0.23
+     ],
+     "roughness": 0.93,
+     "weight": 4.0
+    },
+    {
+     "name": "Stucco, off-white",
+     "color": [
+      0.82,
+      0.8,
+      0.75
+     ],
+     "roughness": 0.85,
+     "weight": 2.0
+    },
+    {
+     "name": "Portland stone",
+     "color": [
+      0.76,
+      0.74,
+      0.69
+     ],
+     "roughness": 0.86,
+     "weight": 1.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Welsh slate",
+     "color": [
+      0.16,
+      0.17,
+      0.19
+     ],
+     "roughness": 0.72,
+     "weight": 6.0
+    },
+    {
+     "name": "Clay tile, dark red",
+     "color": [
+      0.32,
+      0.18,
+      0.14
+     ],
+     "roughness": 0.88,
+     "weight": 2.0
+    },
+    {
+     "name": "Bitumen deck",
+     "color": [
+      0.14,
+      0.14,
+      0.14
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "AMSTERDAM",
+   "name": "Amsterdam — ceinture des canaux",
+   "tier": "region",
+   "storey_height": 2.95,
+   "ground_storey_height": 3.5,
+   "storey_weights": [
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     5.0
+    ],
+    [
+     5,
+     2.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     7.0
+    ],
+    [
+     "hipped",
+     1.5
+    ],
+    [
+     "flat",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    45.0,
+    58.0
+   ],
+   "eave_overhang": 0.12,
+   "parapet_height": 0.5,
+   "bay_width": 2.7,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Dark brick",
+     "color": [
+      0.28,
+      0.2,
+      0.17
+     ],
+     "roughness": 0.93,
+     "weight": 5.0
+    },
+    {
+     "name": "Red brick",
+     "color": [
+      0.44,
+      0.27,
+      0.22
+     ],
+     "roughness": 0.93,
+     "weight": 3.0
+    },
+    {
+     "name": "Painted brick, cream",
+     "color": [
+      0.78,
+      0.74,
+      0.66
+     ],
+     "roughness": 0.88,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Dutch pantile, dark",
+     "color": [
+      0.24,
+      0.17,
+      0.14
+     ],
+     "roughness": 0.85,
+     "weight": 4.0
+    },
+    {
+     "name": "Slate, grey",
+     "color": [
+      0.19,
+      0.2,
+      0.22
+     ],
+     "roughness": 0.72,
+     "weight": 3.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "BARCELONA",
+   "name": "Barcelone — Eixample",
+   "tier": "region",
+   "storey_height": 3.0,
+   "ground_storey_height": 4.0,
+   "storey_weights": [
+    [
+     5,
+     3.0
+    ],
+    [
+     6,
+     5.0
+    ],
+    [
+     7,
+     2.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     7.0
+    ],
+    [
+     "hipped",
+     2.0
+    ],
+    [
+     "gabled",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    16.0,
+    26.0
+   ],
+   "eave_overhang": 0.45,
+   "parapet_height": 0.95,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Estuco, ochre",
+     "color": [
+      0.78,
+      0.68,
+      0.48
+     ],
+     "roughness": 0.89,
+     "weight": 4.0
+    },
+    {
+     "name": "Estuco, pale cream",
+     "color": [
+      0.83,
+      0.79,
+      0.7
+     ],
+     "roughness": 0.88,
+     "weight": 4.0
+    },
+    {
+     "name": "Estuco, terracotta wash",
+     "color": [
+      0.72,
+      0.55,
+      0.44
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Rendered grey",
+     "color": [
+      0.64,
+      0.62,
+      0.59
+     ],
+     "roughness": 0.9,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Terrace deck, pale",
+     "color": [
+      0.6,
+      0.57,
+      0.52
+     ],
+     "roughness": 0.92,
+     "weight": 5.0
+    },
+    {
+     "name": "Teja árabe",
+     "color": [
+      0.55,
+      0.31,
+      0.2
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "mediterranean",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "ROME",
+   "name": "Rome — centro storico",
+   "tier": "region",
+   "storey_height": 3.1,
+   "ground_storey_height": 4.0,
+   "storey_weights": [
+    [
+     3,
+     2.0
+    ],
+    [
+     4,
+     4.0
+    ],
+    [
+     5,
+     3.0
+    ],
+    [
+     6,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     5.0
+    ],
+    [
+     "gabled",
+     2.0
+    ],
+    [
+     "flat",
+     3.0
+    ]
+   ],
+   "roof_pitch_range": [
+    15.0,
+    25.0
+   ],
+   "eave_overhang": 0.75,
+   "parapet_height": 0.7,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Intonaco, ochre",
+     "color": [
+      0.79,
+      0.63,
+      0.4
+     ],
+     "roughness": 0.89,
+     "weight": 5.0
+    },
+    {
+     "name": "Intonaco, sienna",
+     "color": [
+      0.71,
+      0.48,
+      0.32
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Intonaco, cream",
+     "color": [
+      0.83,
+      0.78,
+      0.66
+     ],
+     "roughness": 0.88,
+     "weight": 3.0
+    },
+    {
+     "name": "Travertine",
+     "color": [
+      0.8,
+      0.77,
+      0.68
+     ],
+     "roughness": 0.85,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Coppi, terracotta",
+     "color": [
+      0.58,
+      0.31,
+      0.19
+     ],
+     "roughness": 0.9,
+     "weight": 6.0
+    },
+    {
+     "name": "Coppi, weathered",
+     "color": [
+      0.47,
+      0.3,
+      0.22
+     ],
+     "roughness": 0.92,
+     "weight": 3.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "mediterranean",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "ISTANBUL",
+   "name": "Istanbul — rive européenne",
+   "tier": "region",
+   "storey_height": 2.95,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     4,
+     3.0
+    ],
+    [
+     5,
+     4.0
+    ],
+    [
+     6,
+     2.5
+    ],
+    [
+     7,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     4.0
+    ],
+    [
+     "flat",
+     4.0
+    ],
+    [
+     "gabled",
+     2.0
+    ]
+   ],
+   "roof_pitch_range": [
+    14.0,
+    24.0
+   ],
+   "eave_overhang": 0.65,
+   "parapet_height": 0.7,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, pale grey",
+     "color": [
+      0.72,
+      0.71,
+      0.68
+     ],
+     "roughness": 0.9,
+     "weight": 4.0
+    },
+    {
+     "name": "Render, cream",
+     "color": [
+      0.8,
+      0.76,
+      0.66
+     ],
+     "roughness": 0.89,
+     "weight": 3.0
+    },
+    {
+     "name": "Render, dusty rose",
+     "color": [
+      0.72,
+      0.6,
+      0.55
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Bare concrete",
+     "color": [
+      0.58,
+      0.58,
+      0.56
+     ],
+     "roughness": 0.93,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Clay tile, red",
+     "color": [
+      0.53,
+      0.28,
+      0.18
+     ],
+     "roughness": 0.9,
+     "weight": 5.0
+    },
+    {
+     "name": "Membrane deck, grey",
+     "color": [
+      0.36,
+      0.36,
+      0.35
+     ],
+     "roughness": 0.92,
+     "weight": 4.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "mediterranean",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "TUNIS",
+   "name": "Tunis — médina et ville nouvelle",
+   "tier": "region",
+   "storey_height": 3.0,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     2.0
+    ],
+    [
+     5,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     9.0
+    ],
+    [
+     "hipped",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    10.0,
+    18.0
+   ],
+   "eave_overhang": 0.3,
+   "parapet_height": 1.0,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Whitewash",
+     "color": [
+      0.88,
+      0.87,
+      0.84
+     ],
+     "roughness": 0.88,
+     "weight": 6.0
+    },
+    {
+     "name": "Whitewash, sun-bleached",
+     "color": [
+      0.84,
+      0.83,
+      0.79
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Render, sand",
+     "color": [
+      0.79,
+      0.72,
+      0.58
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Render, pale ochre",
+     "color": [
+      0.82,
+      0.74,
+      0.57
+     ],
+     "roughness": 0.89,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Roof terrace, whitewashed",
+     "color": [
+      0.8,
+      0.79,
+      0.75
+     ],
+     "roughness": 0.9,
+     "weight": 6.0
+    },
+    {
+     "name": "Roof terrace, weathered",
+     "color": [
+      0.66,
+      0.64,
+      0.59
+     ],
+     "roughness": 0.92,
+     "weight": 3.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, arid",
+    "color": [
+     0.395,
+     0.352,
+     0.261
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "arid",
+   "tree_models": [
+    "quiver_tree",
+    "quiver_tree_slim",
+    "broadleaf"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "MANHATTAN",
+   "name": "New York — Manhattan",
+   "tier": "region",
+   "storey_height": 3.35,
+   "ground_storey_height": 4.6,
+   "storey_weights": [
+    [
+     5,
+     2.0
+    ],
+    [
+     6,
+     4.0
+    ],
+    [
+     8,
+     3.0
+    ],
+    [
+     12,
+     1.5
+    ],
+    [
+     20,
+     0.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     9.5
+    ],
+    [
+     "hipped",
+     0.5
+    ]
+   ],
+   "roof_pitch_range": [
+    10.0,
+    18.0
+   ],
+   "eave_overhang": 0.2,
+   "parapet_height": 1.1,
+   "bay_width": 3.3,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Red brick",
+     "color": [
+      0.42,
+      0.26,
+      0.21
+     ],
+     "roughness": 0.92,
+     "weight": 5.0
+    },
+    {
+     "name": "Buff brick",
+     "color": [
+      0.62,
+      0.54,
+      0.43
+     ],
+     "roughness": 0.92,
+     "weight": 3.0
+    },
+    {
+     "name": "Limestone",
+     "color": [
+      0.74,
+      0.72,
+      0.67
+     ],
+     "roughness": 0.86,
+     "weight": 2.0
+    },
+    {
+     "name": "Glass curtain wall",
+     "color": [
+      0.22,
+      0.27,
+      0.31
+     ],
+     "roughness": 0.25,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Tar and gravel",
+     "color": [
+      0.22,
+      0.21,
+      0.2
+     ],
+     "roughness": 0.93,
+     "weight": 6.0
+    },
+    {
+     "name": "Membrane, pale",
+     "color": [
+      0.55,
+      0.55,
+      0.53
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "TOKYO",
+   "name": "Tokyo — 23 arrondissements",
+   "tier": "region",
+   "storey_height": 2.85,
+   "ground_storey_height": 3.3,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     5.0
+    ],
+    [
+     4,
+     2.5
+    ],
+    [
+     5,
+     1.0
+    ],
+    [
+     8,
+     0.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     6.0
+    ],
+    [
+     "skillion",
+     2.0
+    ],
+    [
+     "hipped",
+     1.5
+    ],
+    [
+     "gabled",
+     0.5
+    ]
+   ],
+   "roof_pitch_range": [
+    12.0,
+    26.0
+   ],
+   "eave_overhang": 0.55,
+   "parapet_height": 0.6,
+   "bay_width": 2.6,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Panel, off-white",
+     "color": [
+      0.82,
+      0.81,
+      0.78
+     ],
+     "roughness": 0.86,
+     "weight": 5.0
+    },
+    {
+     "name": "Panel, pale grey",
+     "color": [
+      0.7,
+      0.7,
+      0.69
+     ],
+     "roughness": 0.87,
+     "weight": 4.0
+    },
+    {
+     "name": "Tile cladding, beige",
+     "color": [
+      0.68,
+      0.63,
+      0.55
+     ],
+     "roughness": 0.88,
+     "weight": 2.0
+    },
+    {
+     "name": "Bare concrete",
+     "color": [
+      0.56,
+      0.56,
+      0.55
+     ],
+     "roughness": 0.92,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Waterproof deck, grey",
+     "color": [
+      0.38,
+      0.38,
+      0.37
+     ],
+     "roughness": 0.92,
+     "weight": 6.0
+    },
+    {
+     "name": "Kawara tile, blue-grey",
+     "color": [
+      0.22,
+      0.24,
+      0.26
+     ],
+     "roughness": 0.8,
+     "weight": 2.5
+    },
+    {
+     "name": "Galvanised sheet",
+     "color": [
+      0.46,
+      0.47,
+      0.47
+     ],
+     "roughness": 0.55,
+     "weight": 1.5
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "SYDNEY",
+   "name": "Sydney — bassin côtier",
+   "tier": "region",
+   "storey_height": 2.85,
+   "ground_storey_height": 3.4,
+   "storey_weights": [
+    [
+     1,
+     4.0
+    ],
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     6.0
+    ],
+    [
+     "gabled",
+     2.5
+    ],
+    [
+     "flat",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    20.0,
+    30.0
+   ],
+   "eave_overhang": 0.7,
+   "parapet_height": 0.5,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Face brick, red",
+     "color": [
+      0.47,
+      0.29,
+      0.24
+     ],
+     "roughness": 0.92,
+     "weight": 4.0
+    },
+    {
+     "name": "Face brick, cream",
+     "color": [
+      0.72,
+      0.66,
+      0.55
+     ],
+     "roughness": 0.92,
+     "weight": 3.0
+    },
+    {
+     "name": "Render, white",
+     "color": [
+      0.84,
+      0.83,
+      0.8
+     ],
+     "roughness": 0.88,
+     "weight": 2.5
+    },
+    {
+     "name": "Weatherboard, pale",
+     "color": [
+      0.76,
+      0.75,
+      0.71
+     ],
+     "roughness": 0.87,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Corrugated steel, charcoal",
+     "color": [
+      0.2,
+      0.21,
+      0.22
+     ],
+     "roughness": 0.55,
+     "weight": 4.0
+    },
+    {
+     "name": "Terracotta tile",
+     "color": [
+      0.48,
+      0.27,
+      0.19
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Corrugated steel, pale",
+     "color": [
+      0.6,
+      0.61,
+      0.6
+     ],
+     "roughness": 0.5,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "CAPE_TOWN",
+   "name": "Le Cap — City Bowl",
+   "tier": "region",
+   "storey_height": 2.9,
+   "ground_storey_height": 3.5,
+   "storey_weights": [
+    [
+     1,
+     3.0
+    ],
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     2.0
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     4.0
+    ],
+    [
+     "flat",
+     3.5
+    ],
+    [
+     "gabled",
+     2.5
+    ]
+   ],
+   "roof_pitch_range": [
+    18.0,
+    32.0
+   ],
+   "eave_overhang": 0.55,
+   "parapet_height": 0.65,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, white",
+     "color": [
+      0.86,
+      0.85,
+      0.82
+     ],
+     "roughness": 0.88,
+     "weight": 5.0
+    },
+    {
+     "name": "Render, pastel blue",
+     "color": [
+      0.66,
+      0.72,
+      0.75
+     ],
+     "roughness": 0.88,
+     "weight": 2.0
+    },
+    {
+     "name": "Render, pastel ochre",
+     "color": [
+      0.82,
+      0.73,
+      0.55
+     ],
+     "roughness": 0.88,
+     "weight": 2.0
+    },
+    {
+     "name": "Face brick, red",
+     "color": [
+      0.46,
+      0.29,
+      0.24
+     ],
+     "roughness": 0.92,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Corrugated steel, dark green",
+     "color": [
+      0.16,
+      0.22,
+      0.18
+     ],
+     "roughness": 0.6,
+     "weight": 4.0
+    },
+    {
+     "name": "Corrugated steel, grey",
+     "color": [
+      0.32,
+      0.33,
+      0.34
+     ],
+     "roughness": 0.58,
+     "weight": 3.0
+    },
+    {
+     "name": "Flat deck, pale",
+     "color": [
+      0.62,
+      0.61,
+      0.58
+     ],
+     "roughness": 0.92,
+     "weight": 2.5
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Made ground",
+    "color": [
+     0.139,
+     0.135,
+     0.128
+    ],
+    "roughness": 0.93,
+    "weight": 1.0
+   },
+   "climate": "mediterranean",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "ALPINE",
+   "name": "Arc alpin",
+   "tier": "band",
+   "storey_height": 2.8,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     6.0
+    ],
+    [
+     "hipped",
+     3.0
+    ],
+    [
+     "flat",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    26.0,
+    42.0
+   ],
+   "eave_overhang": 0.8,
+   "parapet_height": 0.45,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, cream",
+     "color": [
+      0.79,
+      0.74,
+      0.64
+     ],
+     "roughness": 0.9,
+     "weight": 4.0
+    },
+    {
+     "name": "Render, warm grey",
+     "color": [
+      0.68,
+      0.65,
+      0.6
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Weathered timber",
+     "color": [
+      0.36,
+      0.27,
+      0.19
+     ],
+     "roughness": 0.86,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Slate, dark",
+     "color": [
+      0.14,
+      0.15,
+      0.17
+     ],
+     "roughness": 0.72,
+     "weight": 4.0
+    },
+    {
+     "name": "Shingle, brown",
+     "color": [
+      0.29,
+      0.25,
+      0.2
+     ],
+     "roughness": 0.88,
+     "weight": 3.0
+    },
+    {
+     "name": "Grey sheet metal",
+     "color": [
+      0.26,
+      0.27,
+      0.29
+     ],
+     "roughness": 0.58,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "fir_sapling",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "IBERIA",
+   "name": "Péninsule ibérique",
+   "tier": "band",
+   "storey_height": 2.95,
+   "ground_storey_height": 3.7,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     2.0
+    ],
+    [
+     5,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     4.0
+    ],
+    [
+     "flat",
+     3.5
+    ],
+    [
+     "gabled",
+     2.5
+    ]
+   ],
+   "roof_pitch_range": [
+    15.0,
+    26.0
+   ],
+   "eave_overhang": 0.6,
+   "parapet_height": 0.75,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Cal, white",
+     "color": [
+      0.87,
+      0.86,
+      0.83
+     ],
+     "roughness": 0.88,
+     "weight": 4.0
+    },
+    {
+     "name": "Estuco, ochre",
+     "color": [
+      0.79,
+      0.69,
+      0.49
+     ],
+     "roughness": 0.89,
+     "weight": 3.0
+    },
+    {
+     "name": "Estuco, cream",
+     "color": [
+      0.83,
+      0.79,
+      0.7
+     ],
+     "roughness": 0.88,
+     "weight": 3.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Teja árabe",
+     "color": [
+      0.56,
+      0.31,
+      0.2
+     ],
+     "roughness": 0.9,
+     "weight": 6.0
+    },
+    {
+     "name": "Flat deck, pale",
+     "color": [
+      0.62,
+      0.6,
+      0.55
+     ],
+     "roughness": 0.92,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, dry grass",
+    "color": [
+     0.236,
+     0.231,
+     0.136
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "mediterranean",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "ITALY",
+   "name": "Italie",
+   "tier": "band",
+   "storey_height": 3.0,
+   "ground_storey_height": 3.8,
+   "storey_weights": [
+    [
+     2,
+     3.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     3.0
+    ],
+    [
+     5,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     5.0
+    ],
+    [
+     "gabled",
+     2.5
+    ],
+    [
+     "flat",
+     2.5
+    ]
+   ],
+   "roof_pitch_range": [
+    14.0,
+    24.0
+   ],
+   "eave_overhang": 0.75,
+   "parapet_height": 0.65,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Intonaco, ochre",
+     "color": [
+      0.79,
+      0.64,
+      0.42
+     ],
+     "roughness": 0.89,
+     "weight": 4.0
+    },
+    {
+     "name": "Intonaco, cream",
+     "color": [
+      0.83,
+      0.78,
+      0.66
+     ],
+     "roughness": 0.88,
+     "weight": 3.0
+    },
+    {
+     "name": "Intonaco, sienna",
+     "color": [
+      0.71,
+      0.49,
+      0.33
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Intonaco, pale grey",
+     "color": [
+      0.71,
+      0.7,
+      0.67
+     ],
+     "roughness": 0.9,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Coppi, terracotta",
+     "color": [
+      0.57,
+      0.31,
+      0.19
+     ],
+     "roughness": 0.9,
+     "weight": 6.0
+    },
+    {
+     "name": "Coppi, weathered",
+     "color": [
+      0.46,
+      0.3,
+      0.22
+     ],
+     "roughness": 0.92,
+     "weight": 3.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, dry grass",
+    "color": [
+     0.222,
+     0.222,
+     0.132
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "mediterranean",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "BRITISH_ISLES",
+   "name": "Îles Britanniques",
+   "tier": "band",
+   "storey_height": 2.8,
+   "ground_storey_height": 3.3,
+   "storey_weights": [
+    [
+     2,
+     5.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     1,
+     1.5
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     6.5
+    ],
+    [
+     "hipped",
+     2.0
+    ],
+    [
+     "flat",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    33.0,
+    45.0
+   ],
+   "eave_overhang": 0.2,
+   "parapet_height": 0.5,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Stock brick",
+     "color": [
+      0.53,
+      0.45,
+      0.36
+     ],
+     "roughness": 0.93,
+     "weight": 4.0
+    },
+    {
+     "name": "Red brick",
+     "color": [
+      0.46,
+      0.28,
+      0.23
+     ],
+     "roughness": 0.93,
+     "weight": 4.0
+    },
+    {
+     "name": "Pebbledash, grey",
+     "color": [
+      0.68,
+      0.67,
+      0.64
+     ],
+     "roughness": 0.94,
+     "weight": 2.0
+    },
+    {
+     "name": "Render, white",
+     "color": [
+      0.84,
+      0.83,
+      0.8
+     ],
+     "roughness": 0.88,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Slate, dark",
+     "color": [
+      0.16,
+      0.17,
+      0.19
+     ],
+     "roughness": 0.72,
+     "weight": 5.0
+    },
+    {
+     "name": "Concrete tile, grey",
+     "color": [
+      0.34,
+      0.34,
+      0.33
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Clay tile, red",
+     "color": [
+      0.36,
+      0.2,
+      0.15
+     ],
+     "roughness": 0.89,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "LOW_COUNTRIES",
+   "name": "Pays-Bas et Flandre",
+   "tier": "band",
+   "storey_height": 2.9,
+   "ground_storey_height": 3.4,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     2.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     6.5
+    ],
+    [
+     "hipped",
+     2.0
+    ],
+    [
+     "flat",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    40.0,
+    55.0
+   ],
+   "eave_overhang": 0.15,
+   "parapet_height": 0.5,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Brick, dark",
+     "color": [
+      0.31,
+      0.22,
+      0.19
+     ],
+     "roughness": 0.93,
+     "weight": 4.0
+    },
+    {
+     "name": "Brick, red",
+     "color": [
+      0.45,
+      0.28,
+      0.23
+     ],
+     "roughness": 0.93,
+     "weight": 4.0
+    },
+    {
+     "name": "Brick, buff",
+     "color": [
+      0.62,
+      0.55,
+      0.45
+     ],
+     "roughness": 0.93,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Pantile, dark",
+     "color": [
+      0.25,
+      0.18,
+      0.15
+     ],
+     "roughness": 0.86,
+     "weight": 4.0
+    },
+    {
+     "name": "Pantile, red",
+     "color": [
+      0.44,
+      0.24,
+      0.17
+     ],
+     "roughness": 0.88,
+     "weight": 3.0
+    },
+    {
+     "name": "Slate, grey",
+     "color": [
+      0.2,
+      0.21,
+      0.23
+     ],
+     "roughness": 0.72,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "FRANCE",
+   "name": "France — hors Paris et arc alpin",
+   "tier": "band",
+   "storey_height": 2.85,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     1,
+     2.0
+    ],
+    [
+     2,
+     5.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     5.0
+    ],
+    [
+     "hipped",
+     3.5
+    ],
+    [
+     "flat",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    28.0,
+    42.0
+   ],
+   "eave_overhang": 0.45,
+   "parapet_height": 0.5,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Enduit, cream",
+     "color": [
+      0.8,
+      0.76,
+      0.66
+     ],
+     "roughness": 0.89,
+     "weight": 4.0
+    },
+    {
+     "name": "Enduit, sand",
+     "color": [
+      0.78,
+      0.71,
+      0.57
+     ],
+     "roughness": 0.89,
+     "weight": 3.0
+    },
+    {
+     "name": "Enduit, pale grey",
+     "color": [
+      0.7,
+      0.69,
+      0.66
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Pierre calcaire",
+     "color": [
+      0.75,
+      0.72,
+      0.64
+     ],
+     "roughness": 0.88,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Tuile, terracotta",
+     "color": [
+      0.53,
+      0.3,
+      0.2
+     ],
+     "roughness": 0.9,
+     "weight": 4.0
+    },
+    {
+     "name": "Ardoise",
+     "color": [
+      0.15,
+      0.16,
+      0.18
+     ],
+     "roughness": 0.72,
+     "weight": 3.0
+    },
+    {
+     "name": "Tuile, brown",
+     "color": [
+      0.38,
+      0.26,
+      0.19
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "CENTRAL_EUROPE",
+   "name": "Europe centrale et germanique",
+   "tier": "band",
+   "storey_height": 2.85,
+   "ground_storey_height": 3.5,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     2.5
+    ],
+    [
+     5,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     6.0
+    ],
+    [
+     "hipped",
+     3.0
+    ],
+    [
+     "flat",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    32.0,
+    48.0
+   ],
+   "eave_overhang": 0.55,
+   "parapet_height": 0.5,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Putz, cream",
+     "color": [
+      0.81,
+      0.77,
+      0.67
+     ],
+     "roughness": 0.89,
+     "weight": 4.0
+    },
+    {
+     "name": "Putz, pale yellow",
+     "color": [
+      0.83,
+      0.78,
+      0.58
+     ],
+     "roughness": 0.89,
+     "weight": 2.5
+    },
+    {
+     "name": "Putz, pale grey",
+     "color": [
+      0.71,
+      0.7,
+      0.68
+     ],
+     "roughness": 0.9,
+     "weight": 2.5
+    },
+    {
+     "name": "Brick, red",
+     "color": [
+      0.46,
+      0.29,
+      0.24
+     ],
+     "roughness": 0.93,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Clay tile, red",
+     "color": [
+      0.5,
+      0.27,
+      0.18
+     ],
+     "roughness": 0.89,
+     "weight": 5.0
+    },
+    {
+     "name": "Clay tile, anthracite",
+     "color": [
+      0.2,
+      0.2,
+      0.21
+     ],
+     "roughness": 0.88,
+     "weight": 3.0
+    },
+    {
+     "name": "Slate",
+     "color": [
+      0.16,
+      0.17,
+      0.19
+     ],
+     "roughness": 0.72,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "NORDIC",
+   "name": "Pays nordiques",
+   "tier": "band",
+   "storey_height": 2.8,
+   "ground_storey_height": 3.3,
+   "storey_weights": [
+    [
+     1,
+     2.5
+    ],
+    [
+     2,
+     5.0
+    ],
+    [
+     3,
+     2.5
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     7.0
+    ],
+    [
+     "hipped",
+     2.0
+    ],
+    [
+     "flat",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    30.0,
+    45.0
+   ],
+   "eave_overhang": 0.6,
+   "parapet_height": 0.45,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Falu red timber",
+     "color": [
+      0.36,
+      0.14,
+      0.11
+     ],
+     "roughness": 0.9,
+     "weight": 4.0
+    },
+    {
+     "name": "Painted timber, ochre",
+     "color": [
+      0.72,
+      0.57,
+      0.32
+     ],
+     "roughness": 0.89,
+     "weight": 2.5
+    },
+    {
+     "name": "Painted timber, white",
+     "color": [
+      0.85,
+      0.84,
+      0.81
+     ],
+     "roughness": 0.87,
+     "weight": 2.5
+    },
+    {
+     "name": "Render, pale grey",
+     "color": [
+      0.71,
+      0.71,
+      0.69
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Corrugated steel, dark",
+     "color": [
+      0.19,
+      0.2,
+      0.21
+     ],
+     "roughness": 0.58,
+     "weight": 4.0
+    },
+    {
+     "name": "Clay tile, red",
+     "color": [
+      0.46,
+      0.25,
+      0.17
+     ],
+     "roughness": 0.89,
+     "weight": 3.0
+    },
+    {
+     "name": "Bitumen shingle",
+     "color": [
+      0.22,
+      0.22,
+      0.21
+     ],
+     "roughness": 0.92,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, boreal forest",
+    "color": [
+     0.081,
+     0.119,
+     0.076
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "climate": "boreal",
+   "tree_models": [
+    "fir_sapling",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "BALKANS_AEGEAN",
+   "name": "Balkans et Égée",
+   "tier": "band",
+   "storey_height": 2.9,
+   "ground_storey_height": 3.5,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     2.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     4.0
+    ],
+    [
+     "flat",
+     3.0
+    ],
+    [
+     "gabled",
+     3.0
+    ]
+   ],
+   "roof_pitch_range": [
+    16.0,
+    28.0
+   ],
+   "eave_overhang": 0.65,
+   "parapet_height": 0.7,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, white",
+     "color": [
+      0.87,
+      0.86,
+      0.84
+     ],
+     "roughness": 0.88,
+     "weight": 5.0
+    },
+    {
+     "name": "Render, cream",
+     "color": [
+      0.81,
+      0.77,
+      0.68
+     ],
+     "roughness": 0.89,
+     "weight": 3.0
+    },
+    {
+     "name": "Render, pale grey",
+     "color": [
+      0.7,
+      0.7,
+      0.68
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Clay tile, red",
+     "color": [
+      0.54,
+      0.29,
+      0.19
+     ],
+     "roughness": 0.9,
+     "weight": 5.0
+    },
+    {
+     "name": "Flat deck, pale",
+     "color": [
+      0.63,
+      0.62,
+      0.58
+     ],
+     "roughness": 0.92,
+     "weight": 3.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, dry grass",
+    "color": [
+     0.231,
+     0.226,
+     0.137
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "mediterranean",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "EASTERN_EUROPE",
+   "name": "Europe orientale",
+   "tier": "band",
+   "storey_height": 2.75,
+   "ground_storey_height": 3.3,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     5,
+     2.5
+    ],
+    [
+     9,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     4.0
+    ],
+    [
+     "flat",
+     4.0
+    ],
+    [
+     "hipped",
+     2.0
+    ]
+   ],
+   "roof_pitch_range": [
+    24.0,
+    38.0
+   ],
+   "eave_overhang": 0.45,
+   "parapet_height": 0.6,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, cream",
+     "color": [
+      0.8,
+      0.76,
+      0.65
+     ],
+     "roughness": 0.9,
+     "weight": 3.5
+    },
+    {
+     "name": "Render, pale grey",
+     "color": [
+      0.7,
+      0.7,
+      0.68
+     ],
+     "roughness": 0.9,
+     "weight": 3.5
+    },
+    {
+     "name": "Panel concrete",
+     "color": [
+      0.62,
+      0.62,
+      0.6
+     ],
+     "roughness": 0.93,
+     "weight": 2.5
+    },
+    {
+     "name": "Brick, red",
+     "color": [
+      0.45,
+      0.29,
+      0.24
+     ],
+     "roughness": 0.93,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Sheet metal, grey",
+     "color": [
+      0.32,
+      0.33,
+      0.34
+     ],
+     "roughness": 0.6,
+     "weight": 4.0
+    },
+    {
+     "name": "Clay tile, red",
+     "color": [
+      0.48,
+      0.27,
+      0.18
+     ],
+     "roughness": 0.89,
+     "weight": 3.0
+    },
+    {
+     "name": "Bitumen deck",
+     "color": [
+      0.18,
+      0.18,
+      0.18
+     ],
+     "roughness": 0.92,
+     "weight": 2.5
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "RUSSIA_SIBERIA",
+   "name": "Russie et Sibérie",
+   "tier": "band",
+   "storey_height": 2.75,
+   "ground_storey_height": 3.2,
+   "storey_weights": [
+    [
+     1,
+     2.5
+    ],
+    [
+     2,
+     3.0
+    ],
+    [
+     5,
+     3.0
+    ],
+    [
+     9,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     5.0
+    ],
+    [
+     "flat",
+     4.0
+    ],
+    [
+     "hipped",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    24.0,
+    38.0
+   ],
+   "eave_overhang": 0.5,
+   "parapet_height": 0.6,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, pale yellow",
+     "color": [
+      0.81,
+      0.76,
+      0.55
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Panel concrete",
+     "color": [
+      0.63,
+      0.63,
+      0.61
+     ],
+     "roughness": 0.93,
+     "weight": 3.0
+    },
+    {
+     "name": "Timber, weathered",
+     "color": [
+      0.38,
+      0.3,
+      0.22
+     ],
+     "roughness": 0.9,
+     "weight": 2.5
+    },
+    {
+     "name": "Brick, buff",
+     "color": [
+      0.62,
+      0.55,
+      0.45
+     ],
+     "roughness": 0.93,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Sheet metal, green",
+     "color": [
+      0.18,
+      0.26,
+      0.2
+     ],
+     "roughness": 0.58,
+     "weight": 3.5
+    },
+    {
+     "name": "Sheet metal, grey",
+     "color": [
+      0.33,
+      0.34,
+      0.35
+     ],
+     "roughness": 0.58,
+     "weight": 3.5
+    },
+    {
+     "name": "Bitumen deck",
+     "color": [
+      0.18,
+      0.18,
+      0.18
+     ],
+     "roughness": 0.92,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, taiga",
+    "color": [
+     0.086,
+     0.119,
+     0.076
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "climate": "boreal",
+   "tree_models": [
+    "fir_sapling",
+    "pine_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "JAPAN",
+   "name": "Japon",
+   "tier": "band",
+   "storey_height": 2.85,
+   "ground_storey_height": 3.3,
+   "storey_weights": [
+    [
+     1,
+     2.5
+    ],
+    [
+     2,
+     5.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     3.5
+    ],
+    [
+     "hipped",
+     3.0
+    ],
+    [
+     "flat",
+     2.5
+    ],
+    [
+     "skillion",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    18.0,
+    30.0
+   ],
+   "eave_overhang": 0.75,
+   "parapet_height": 0.55,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Panel, off-white",
+     "color": [
+      0.82,
+      0.81,
+      0.78
+     ],
+     "roughness": 0.86,
+     "weight": 4.5
+    },
+    {
+     "name": "Panel, pale grey",
+     "color": [
+      0.7,
+      0.7,
+      0.69
+     ],
+     "roughness": 0.87,
+     "weight": 3.0
+    },
+    {
+     "name": "Timber, dark",
+     "color": [
+      0.3,
+      0.24,
+      0.19
+     ],
+     "roughness": 0.89,
+     "weight": 2.0
+    },
+    {
+     "name": "Bare concrete",
+     "color": [
+      0.57,
+      0.57,
+      0.56
+     ],
+     "roughness": 0.92,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Kawara tile, blue-grey",
+     "color": [
+      0.22,
+      0.24,
+      0.26
+     ],
+     "roughness": 0.8,
+     "weight": 5.0
+    },
+    {
+     "name": "Kawara tile, black",
+     "color": [
+      0.13,
+      0.13,
+      0.14
+     ],
+     "roughness": 0.78,
+     "weight": 2.5
+    },
+    {
+     "name": "Galvanised sheet",
+     "color": [
+      0.46,
+      0.47,
+      0.47
+     ],
+     "roughness": 0.55,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "MAGHREB_SAHARA",
+   "name": "Maghreb et Sahara",
+   "tier": "band",
+   "storey_height": 3.0,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     1,
+     3.0
+    ],
+    [
+     2,
+     5.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     9.0
+    ],
+    [
+     "hipped",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    10.0,
+    18.0
+   ],
+   "eave_overhang": 0.3,
+   "parapet_height": 0.95,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, sand",
+     "color": [
+      0.8,
+      0.72,
+      0.56
+     ],
+     "roughness": 0.9,
+     "weight": 4.0
+    },
+    {
+     "name": "Whitewash",
+     "color": [
+      0.87,
+      0.86,
+      0.83
+     ],
+     "roughness": 0.88,
+     "weight": 3.5
+    },
+    {
+     "name": "Render, ochre",
+     "color": [
+      0.78,
+      0.65,
+      0.44
+     ],
+     "roughness": 0.9,
+     "weight": 2.5
+    },
+    {
+     "name": "Earth render, pink",
+     "color": [
+      0.74,
+      0.55,
+      0.42
+     ],
+     "roughness": 0.92,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Roof terrace, sand",
+     "color": [
+      0.72,
+      0.66,
+      0.53
+     ],
+     "roughness": 0.92,
+     "weight": 6.0
+    },
+    {
+     "name": "Roof terrace, whitewashed",
+     "color": [
+      0.79,
+      0.78,
+      0.74
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, desert sand",
+    "color": [
+     0.437,
+     0.393,
+     0.293
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "arid",
+   "tree_models": [
+    "quiver_tree",
+    "quiver_tree_slim",
+    "broadleaf"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "MIDDLE_EAST",
+   "name": "Proche et Moyen-Orient",
+   "tier": "band",
+   "storey_height": 3.05,
+   "ground_storey_height": 3.7,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     4.0
+    ],
+    [
+     4,
+     2.5
+    ],
+    [
+     6,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     9.0
+    ],
+    [
+     "hipped",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    10.0,
+    18.0
+   ],
+   "eave_overhang": 0.35,
+   "parapet_height": 0.95,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Limestone, pale",
+     "color": [
+      0.81,
+      0.76,
+      0.63
+     ],
+     "roughness": 0.89,
+     "weight": 4.5
+    },
+    {
+     "name": "Render, sand",
+     "color": [
+      0.79,
+      0.71,
+      0.55
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Bare concrete",
+     "color": [
+      0.6,
+      0.59,
+      0.57
+     ],
+     "roughness": 0.93,
+     "weight": 2.0
+    },
+    {
+     "name": "Render, cream",
+     "color": [
+      0.83,
+      0.79,
+      0.69
+     ],
+     "roughness": 0.89,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Roof terrace, sand",
+     "color": [
+      0.71,
+      0.66,
+      0.54
+     ],
+     "roughness": 0.92,
+     "weight": 6.0
+    },
+    {
+     "name": "Membrane deck, grey",
+     "color": [
+      0.4,
+      0.4,
+      0.39
+     ],
+     "roughness": 0.92,
+     "weight": 2.5
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, stony arid",
+    "color": [
+     0.329,
+     0.301,
+     0.235
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "climate": "arid",
+   "tree_models": [
+    "quiver_tree",
+    "quiver_tree_slim",
+    "broadleaf"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "SUB_SAHARAN",
+   "name": "Afrique subsaharienne",
+   "tier": "band",
+   "storey_height": 2.9,
+   "ground_storey_height": 3.4,
+   "storey_weights": [
+    [
+     1,
+     5.0
+    ],
+    [
+     2,
+     3.5
+    ],
+    [
+     3,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     4.0
+    ],
+    [
+     "gabled",
+     3.5
+    ],
+    [
+     "flat",
+     2.5
+    ]
+   ],
+   "roof_pitch_range": [
+    16.0,
+    28.0
+   ],
+   "eave_overhang": 0.6,
+   "parapet_height": 0.6,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, sand",
+     "color": [
+      0.79,
+      0.71,
+      0.55
+     ],
+     "roughness": 0.91,
+     "weight": 4.0
+    },
+    {
+     "name": "Render, ochre",
+     "color": [
+      0.77,
+      0.62,
+      0.41
+     ],
+     "roughness": 0.91,
+     "weight": 3.0
+    },
+    {
+     "name": "Blockwork, grey",
+     "color": [
+      0.63,
+      0.62,
+      0.59
+     ],
+     "roughness": 0.93,
+     "weight": 2.5
+    },
+    {
+     "name": "Render, pale blue",
+     "color": [
+      0.63,
+      0.71,
+      0.74
+     ],
+     "roughness": 0.9,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Corrugated steel, rusted",
+     "color": [
+      0.4,
+      0.27,
+      0.19
+     ],
+     "roughness": 0.85,
+     "weight": 4.5
+    },
+    {
+     "name": "Corrugated steel, grey",
+     "color": [
+      0.44,
+      0.45,
+      0.45
+     ],
+     "roughness": 0.55,
+     "weight": 3.5
+    },
+    {
+     "name": "Flat deck, sand",
+     "color": [
+      0.68,
+      0.63,
+      0.52
+     ],
+     "roughness": 0.92,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, dry savanna",
+    "color": [
+     0.283,
+     0.244,
+     0.142
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "tropical",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "quiver_tree"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "SOUTH_ASIA",
+   "name": "Asie du Sud",
+   "tier": "band",
+   "storey_height": 2.95,
+   "ground_storey_height": 3.5,
+   "storey_weights": [
+    [
+     1,
+     3.0
+    ],
+    [
+     2,
+     4.5
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     7.0
+    ],
+    [
+     "hipped",
+     1.5
+    ],
+    [
+     "skillion",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    12.0,
+    22.0
+   ],
+   "eave_overhang": 0.45,
+   "parapet_height": 0.9,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, cream",
+     "color": [
+      0.81,
+      0.77,
+      0.66
+     ],
+     "roughness": 0.9,
+     "weight": 3.5
+    },
+    {
+     "name": "Render, pale green",
+     "color": [
+      0.68,
+      0.74,
+      0.63
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Render, ochre",
+     "color": [
+      0.78,
+      0.65,
+      0.44
+     ],
+     "roughness": 0.9,
+     "weight": 2.5
+    },
+    {
+     "name": "Bare concrete",
+     "color": [
+      0.58,
+      0.58,
+      0.56
+     ],
+     "roughness": 0.93,
+     "weight": 2.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Concrete deck",
+     "color": [
+      0.55,
+      0.54,
+      0.51
+     ],
+     "roughness": 0.93,
+     "weight": 5.0
+    },
+    {
+     "name": "Corrugated steel, grey",
+     "color": [
+      0.43,
+      0.44,
+      0.44
+     ],
+     "roughness": 0.58,
+     "weight": 2.5
+    },
+    {
+     "name": "Clay tile, red",
+     "color": [
+      0.51,
+      0.28,
+      0.18
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, cultivated",
+    "color": [
+     0.213,
+     0.208,
+     0.117
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "tropical",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "quiver_tree"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "SOUTHEAST_ASIA",
+   "name": "Asie du Sud-Est",
+   "tier": "band",
+   "storey_height": 3.0,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     1,
+     3.0
+    ],
+    [
+     2,
+     4.5
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     4.5
+    ],
+    [
+     "hipped",
+     3.0
+    ],
+    [
+     "flat",
+     2.5
+    ]
+   ],
+   "roof_pitch_range": [
+    20.0,
+    34.0
+   ],
+   "eave_overhang": 0.8,
+   "parapet_height": 0.7,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, white",
+     "color": [
+      0.85,
+      0.84,
+      0.81
+     ],
+     "roughness": 0.89,
+     "weight": 4.0
+    },
+    {
+     "name": "Render, pastel yellow",
+     "color": [
+      0.82,
+      0.77,
+      0.56
+     ],
+     "roughness": 0.89,
+     "weight": 2.5
+    },
+    {
+     "name": "Render, pale grey",
+     "color": [
+      0.7,
+      0.7,
+      0.68
+     ],
+     "roughness": 0.9,
+     "weight": 2.5
+    },
+    {
+     "name": "Bare concrete",
+     "color": [
+      0.58,
+      0.58,
+      0.56
+     ],
+     "roughness": 0.93,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Corrugated steel, red",
+     "color": [
+      0.45,
+      0.22,
+      0.16
+     ],
+     "roughness": 0.7,
+     "weight": 4.0
+    },
+    {
+     "name": "Corrugated steel, blue",
+     "color": [
+      0.2,
+      0.28,
+      0.4
+     ],
+     "roughness": 0.65,
+     "weight": 3.0
+    },
+    {
+     "name": "Clay tile, terracotta",
+     "color": [
+      0.53,
+      0.29,
+      0.19
+     ],
+     "roughness": 0.9,
+     "weight": 2.5
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, humid tropics",
+    "color": [
+     0.098,
+     0.147,
+     0.074
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "climate": "tropical",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "quiver_tree"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "EAST_ASIA",
+   "name": "Asie de l'Est continentale",
+   "tier": "band",
+   "storey_height": 2.9,
+   "ground_storey_height": 3.5,
+   "storey_weights": [
+    [
+     2,
+     3.0
+    ],
+    [
+     3,
+     3.5
+    ],
+    [
+     6,
+     3.0
+    ],
+    [
+     12,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     6.5
+    ],
+    [
+     "hipped",
+     2.0
+    ],
+    [
+     "gabled",
+     1.5
+    ]
+   ],
+   "roof_pitch_range": [
+    14.0,
+    26.0
+   ],
+   "eave_overhang": 0.6,
+   "parapet_height": 0.8,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Tile cladding, cream",
+     "color": [
+      0.78,
+      0.75,
+      0.67
+     ],
+     "roughness": 0.88,
+     "weight": 4.0
+    },
+    {
+     "name": "Render, pale grey",
+     "color": [
+      0.71,
+      0.71,
+      0.69
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Bare concrete",
+     "color": [
+      0.58,
+      0.58,
+      0.56
+     ],
+     "roughness": 0.93,
+     "weight": 2.0
+    },
+    {
+     "name": "Tile cladding, pale blue",
+     "color": [
+      0.64,
+      0.7,
+      0.74
+     ],
+     "roughness": 0.87,
+     "weight": 1.5
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Waterproof deck, grey",
+     "color": [
+      0.38,
+      0.38,
+      0.37
+     ],
+     "roughness": 0.92,
+     "weight": 5.5
+    },
+    {
+     "name": "Glazed tile, grey",
+     "color": [
+      0.24,
+      0.25,
+      0.27
+     ],
+     "roughness": 0.78,
+     "weight": 2.0
+    },
+    {
+     "name": "Sheet metal, blue",
+     "color": [
+      0.19,
+      0.27,
+      0.38
+     ],
+     "roughness": 0.62,
+     "weight": 1.5
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, cultivated",
+    "color": [
+     0.186,
+     0.202,
+     0.114
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "OCEANIA",
+   "name": "Australie et Pacifique",
+   "tier": "band",
+   "storey_height": 2.85,
+   "ground_storey_height": 3.4,
+   "storey_weights": [
+    [
+     1,
+     5.0
+    ],
+    [
+     2,
+     3.5
+    ],
+    [
+     3,
+     1.5
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "hipped",
+     5.0
+    ],
+    [
+     "gabled",
+     3.0
+    ],
+    [
+     "flat",
+     2.0
+    ]
+   ],
+   "roof_pitch_range": [
+    18.0,
+    30.0
+   ],
+   "eave_overhang": 0.7,
+   "parapet_height": 0.5,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Face brick, red",
+     "color": [
+      0.47,
+      0.29,
+      0.24
+     ],
+     "roughness": 0.92,
+     "weight": 3.5
+    },
+    {
+     "name": "Weatherboard, pale",
+     "color": [
+      0.77,
+      0.76,
+      0.72
+     ],
+     "roughness": 0.87,
+     "weight": 3.0
+    },
+    {
+     "name": "Render, white",
+     "color": [
+      0.85,
+      0.84,
+      0.81
+     ],
+     "roughness": 0.88,
+     "weight": 2.5
+    },
+    {
+     "name": "Face brick, cream",
+     "color": [
+      0.72,
+      0.66,
+      0.55
+     ],
+     "roughness": 0.92,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Corrugated steel, charcoal",
+     "color": [
+      0.2,
+      0.21,
+      0.22
+     ],
+     "roughness": 0.55,
+     "weight": 4.5
+    },
+    {
+     "name": "Corrugated steel, pale",
+     "color": [
+      0.6,
+      0.61,
+      0.6
+     ],
+     "roughness": 0.5,
+     "weight": 2.5
+    },
+    {
+     "name": "Concrete tile, brown",
+     "color": [
+      0.36,
+      0.26,
+      0.2
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, dry bush",
+    "color": [
+     0.248,
+     0.227,
+     0.134
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "arid",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "NORTH_AMERICA",
+   "name": "Amérique du Nord",
+   "tier": "band",
+   "storey_height": 2.9,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     1,
+     4.0
+    ],
+    [
+     2,
+     5.0
+    ],
+    [
+     3,
+     2.0
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     5.5
+    ],
+    [
+     "hipped",
+     2.5
+    ],
+    [
+     "flat",
+     2.0
+    ]
+   ],
+   "roof_pitch_range": [
+    22.0,
+    38.0
+   ],
+   "eave_overhang": 0.45,
+   "parapet_height": 0.7,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Clapboard, pale grey",
+     "color": [
+      0.72,
+      0.72,
+      0.7
+     ],
+     "roughness": 0.88,
+     "weight": 3.5
+    },
+    {
+     "name": "Clapboard, white",
+     "color": [
+      0.85,
+      0.84,
+      0.82
+     ],
+     "roughness": 0.87,
+     "weight": 3.0
+    },
+    {
+     "name": "Face brick, red",
+     "color": [
+      0.45,
+      0.28,
+      0.23
+     ],
+     "roughness": 0.92,
+     "weight": 2.5
+    },
+    {
+     "name": "Vinyl siding, beige",
+     "color": [
+      0.74,
+      0.69,
+      0.58
+     ],
+     "roughness": 0.88,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Asphalt shingle, charcoal",
+     "color": [
+      0.19,
+      0.19,
+      0.19
+     ],
+     "roughness": 0.93,
+     "weight": 5.5
+    },
+    {
+     "name": "Asphalt shingle, brown",
+     "color": [
+      0.3,
+      0.24,
+      0.19
+     ],
+     "roughness": 0.93,
+     "weight": 2.5
+    },
+    {
+     "name": "Membrane deck, pale",
+     "color": [
+      0.55,
+      0.55,
+      0.53
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "LATIN_AMERICA",
+   "name": "Amérique latine",
+   "tier": "band",
+   "storey_height": 2.9,
+   "ground_storey_height": 3.5,
+   "storey_weights": [
+    [
+     1,
+     3.5
+    ],
+    [
+     2,
+     4.5
+    ],
+    [
+     3,
+     2.5
+    ],
+    [
+     5,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "flat",
+     5.0
+    ],
+    [
+     "hipped",
+     3.0
+    ],
+    [
+     "gabled",
+     2.0
+    ]
+   ],
+   "roof_pitch_range": [
+    14.0,
+    26.0
+   ],
+   "eave_overhang": 0.55,
+   "parapet_height": 0.85,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Render, white",
+     "color": [
+      0.85,
+      0.84,
+      0.81
+     ],
+     "roughness": 0.89,
+     "weight": 3.5
+    },
+    {
+     "name": "Render, ochre",
+     "color": [
+      0.79,
+      0.66,
+      0.44
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Render, terracotta",
+     "color": [
+      0.72,
+      0.48,
+      0.37
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    },
+    {
+     "name": "Render, pale blue",
+     "color": [
+      0.63,
+      0.71,
+      0.75
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Concrete deck",
+     "color": [
+      0.55,
+      0.54,
+      0.51
+     ],
+     "roughness": 0.93,
+     "weight": 4.5
+    },
+    {
+     "name": "Teja, terracotta",
+     "color": [
+      0.55,
+      0.3,
+      0.19
+     ],
+     "roughness": 0.9,
+     "weight": 3.5
+    },
+    {
+     "name": "Corrugated steel, grey",
+     "color": [
+      0.44,
+      0.45,
+      0.45
+     ],
+     "roughness": 0.58,
+     "weight": 2.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, subtropical",
+    "color": [
+     0.134,
+     0.18,
+     0.098
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "tropical",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "quiver_tree"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  },
+  {
+   "key": "GENERIC",
+   "name": "Générique — aucune région Atlas",
+   "tier": "none",
+   "storey_height": 3.0,
+   "ground_storey_height": 3.6,
+   "storey_weights": [
+    [
+     2,
+     4.0
+    ],
+    [
+     3,
+     3.0
+    ],
+    [
+     4,
+     1.0
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     3.0
+    ],
+    [
+     "flat",
+     3.0
+    ],
+    [
+     "hipped",
+     1.0
+    ]
+   ],
+   "roof_pitch_range": [
+    20.0,
+    30.0
+   ],
+   "eave_overhang": 0.35,
+   "parapet_height": 0.45,
+   "bay_width": 3.1,
+   "window_width": 1.15,
+   "window_height": 1.45,
+   "window_sill": 0.95,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.78,
+   "shopfront_height": 2.35,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Neutral render",
+     "color": [
+      0.72,
+      0.7,
+      0.67
+     ],
+     "roughness": 0.9,
+     "weight": 3.0
+    },
+    {
+     "name": "Neutral render, grey",
+     "color": [
+      0.62,
+      0.61,
+      0.6
+     ],
+     "roughness": 0.9,
+     "weight": 2.0
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Neutral roofing",
+     "color": [
+      0.26,
+      0.26,
+      0.27
+     ],
+     "roughness": 0.75,
+     "weight": 1.0
+    }
+   ],
+   "trim": {
+    "name": "Trim",
+    "color": [
+     0.86,
+     0.84,
+     0.79
+    ],
+    "roughness": 0.7,
+    "weight": 1.0
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ]
+  }
+ ],
+ "regions": [
+  {
+   "box": [
+    2.22,
+    48.81,
+    2.47,
+    48.91
+   ],
+   "profile": "PARIS"
+  },
+  {
+   "box": [
+    6.55,
+    45.75,
+    7.15,
+    46.1
+   ],
+   "profile": "CHAMONIX"
+  },
+  {
+   "box": [
+    -0.51,
+    51.28,
+    0.33,
+    51.69
+   ],
+   "profile": "LONDON"
+  },
+  {
+   "box": [
+    4.72,
+    52.31,
+    5.05,
+    52.43
+   ],
+   "profile": "AMSTERDAM"
+  },
+  {
+   "box": [
+    2.05,
+    41.32,
+    2.25,
+    41.47
+   ],
+   "profile": "BARCELONA"
+  },
+  {
+   "box": [
+    12.38,
+    41.8,
+    12.62,
+    41.99
+   ],
+   "profile": "ROME"
+  },
+  {
+   "box": [
+    28.85,
+    40.95,
+    29.2,
+    41.15
+   ],
+   "profile": "ISTANBUL"
+  },
+  {
+   "box": [
+    10.05,
+    36.7,
+    10.35,
+    36.9
+   ],
+   "profile": "TUNIS"
+  },
+  {
+   "box": [
+    -74.03,
+    40.68,
+    -73.9,
+    40.88
+   ],
+   "profile": "MANHATTAN"
+  },
+  {
+   "box": [
+    139.55,
+    35.52,
+    139.92,
+    35.82
+   ],
+   "profile": "TOKYO"
+  },
+  {
+   "box": [
+    150.85,
+    -34.1,
+    151.35,
+    -33.65
+   ],
+   "profile": "SYDNEY"
+  },
+  {
+   "box": [
+    18.3,
+    -34.15,
+    18.75,
+    -33.85
+   ],
+   "profile": "CAPE_TOWN"
+  },
+  {
+   "box": [
+    5.6,
+    44.0,
+    16.2,
+    48.2
+   ],
+   "profile": "ALPINE"
+  },
+  {
+   "box": [
+    -9.6,
+    35.9,
+    3.4,
+    43.9
+   ],
+   "profile": "IBERIA"
+  },
+  {
+   "box": [
+    6.5,
+    36.5,
+    18.7,
+    47.1
+   ],
+   "profile": "ITALY"
+  },
+  {
+   "box": [
+    -11.0,
+    49.7,
+    2.1,
+    61.0
+   ],
+   "profile": "BRITISH_ISLES"
+  },
+  {
+   "box": [
+    2.3,
+    50.6,
+    7.3,
+    53.7
+   ],
+   "profile": "LOW_COUNTRIES"
+  },
+  {
+   "box": [
+    -5.3,
+    42.2,
+    8.3,
+    51.2
+   ],
+   "profile": "FRANCE"
+  },
+  {
+   "box": [
+    5.8,
+    45.5,
+    19.5,
+    55.1
+   ],
+   "profile": "CENTRAL_EUROPE"
+  },
+  {
+   "box": [
+    -25.0,
+    54.5,
+    32.0,
+    71.5
+   ],
+   "profile": "NORDIC"
+  },
+  {
+   "box": [
+    18.5,
+    34.8,
+    30.5,
+    42.5
+   ],
+   "profile": "BALKANS_AEGEAN"
+  },
+  {
+   "box": [
+    14.0,
+    40.0,
+    41.0,
+    60.0
+   ],
+   "profile": "EASTERN_EUROPE"
+  },
+  {
+   "box": [
+    26.0,
+    41.0,
+    180.0,
+    78.0
+   ],
+   "profile": "RUSSIA_SIBERIA"
+  },
+  {
+   "box": [
+    129.0,
+    30.0,
+    146.5,
+    46.0
+   ],
+   "profile": "JAPAN"
+  },
+  {
+   "box": [
+    -17.5,
+    18.0,
+    37.0,
+    37.6
+   ],
+   "profile": "MAGHREB_SAHARA"
+  },
+  {
+   "box": [
+    32.0,
+    12.0,
+    63.5,
+    42.5
+   ],
+   "profile": "MIDDLE_EAST"
+  },
+  {
+   "box": [
+    -20.0,
+    -35.5,
+    52.0,
+    18.5
+   ],
+   "profile": "SUB_SAHARAN"
+  },
+  {
+   "box": [
+    60.0,
+    5.0,
+    92.5,
+    37.5
+   ],
+   "profile": "SOUTH_ASIA"
+  },
+  {
+   "box": [
+    92.0,
+    -11.0,
+    141.0,
+    24.0
+   ],
+   "profile": "SOUTHEAST_ASIA"
+  },
+  {
+   "box": [
+    73.0,
+    18.0,
+    148.0,
+    54.0
+   ],
+   "profile": "EAST_ASIA"
+  },
+  {
+   "box": [
+    110.0,
+    -48.0,
+    180.0,
+    -8.0
+   ],
+   "profile": "OCEANIA"
+  },
+  {
+   "box": [
+    -170.0,
+    23.5,
+    -52.0,
+    72.0
+   ],
+   "profile": "NORTH_AMERICA"
+  },
+  {
+   "box": [
+    -118.0,
+    -56.0,
+    -34.0,
+    33.0
+   ],
+   "profile": "LATIN_AMERICA"
+  }
+ ],
+ "ground": {
+  "classes": [
+   {
+    "name": "water",
+    "swatch": {
+     "name": "Water",
+     "color": [
+      0.021,
+      0.034,
+      0.047
+     ],
+     "roughness": 0.08,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "natural",
+      [
+       "bay",
+       "strait",
+       "water"
+      ]
+     ],
+     [
+      "waterway",
+      [
+       "canal",
+       "dock",
+       "riverbank"
+      ]
+     ],
+     [
+      "landuse",
+      [
+       "basin",
+       "reservoir",
+       "salt_pond"
+      ]
+     ],
+     [
+      "water",
+      [
+       "*"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "glacier",
+    "swatch": {
+     "name": "Glacier ice",
+     "color": [
+      0.81,
+      0.85,
+      0.9
+     ],
+     "roughness": 0.45,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "natural",
+      [
+       "glacier"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "rock",
+    "swatch": {
+     "name": "Bare rock",
+     "color": [
+      0.225,
+      0.213,
+      0.195
+     ],
+     "roughness": 0.95,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "natural",
+      [
+       "bare_rock",
+       "cliff",
+       "rock",
+       "scree",
+       "shingle"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "sand",
+    "swatch": {
+     "name": "Sand",
+     "color": [
+      0.425,
+      0.372,
+      0.271
+     ],
+     "roughness": 0.94,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "natural",
+      [
+       "beach",
+       "dune",
+       "sand"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "wetland",
+    "swatch": {
+     "name": "Wetland",
+     "color": [
+      0.126,
+      0.145,
+      0.104
+     ],
+     "roughness": 0.93,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "natural",
+      [
+       "marsh",
+       "mud",
+       "wetland"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "forest",
+    "swatch": {
+     "name": "Forest floor",
+     "color": [
+      0.072,
+      0.108,
+      0.058
+     ],
+     "roughness": 0.96,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "landuse",
+      [
+       "forest"
+      ]
+     ],
+     [
+      "natural",
+      [
+       "wood"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "scrub",
+    "swatch": {
+     "name": "Scrub",
+     "color": [
+      0.132,
+      0.148,
+      0.091
+     ],
+     "roughness": 0.95,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "natural",
+      [
+       "heath",
+       "scrub",
+       "shrubbery",
+       "tundra"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "orchard",
+    "swatch": {
+     "name": "Orchard",
+     "color": [
+      0.144,
+      0.183,
+      0.093
+     ],
+     "roughness": 0.94,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "landuse",
+      [
+       "allotments",
+       "orchard",
+       "plant_nursery",
+       "vineyard"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "grass",
+    "swatch": {
+     "name": "Grass",
+     "color": [
+      0.152,
+      0.213,
+      0.107
+     ],
+     "roughness": 0.94,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "landuse",
+      [
+       "cemetery",
+       "flowerbed",
+       "grass",
+       "meadow",
+       "recreation_ground",
+       "village_green"
+      ]
+     ],
+     [
+      "natural",
+      [
+       "fell",
+       "grassland"
+      ]
+     ],
+     [
+      "leisure",
+      [
+       "dog_park",
+       "garden",
+       "golf_course",
+       "park",
+       "pitch"
+      ]
+     ],
+     [
+      "amenity",
+      [
+       "grave_yard"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "farmland",
+    "swatch": {
+     "name": "Farmland",
+     "color": [
+      0.237,
+      0.213,
+      0.127
+     ],
+     "roughness": 0.94,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "landuse",
+      [
+       "aquaculture",
+       "farmland",
+       "farmyard",
+       "field",
+       "greenhouse_horticulture"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "bare",
+    "swatch": {
+     "name": "Bare ground",
+     "color": [
+      0.271,
+      0.25,
+      0.219
+     ],
+     "roughness": 0.95,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "landuse",
+      [
+       "brownfield",
+       "construction",
+       "greenfield",
+       "landfill",
+       "quarry"
+      ]
+     ],
+     [
+      "natural",
+      [
+       "bare_ground"
+      ]
+     ]
+    ]
+   },
+   {
+    "name": "urban",
+    "swatch": {
+     "name": "Made ground",
+     "color": [
+      0.139,
+      0.135,
+      0.128
+     ],
+     "roughness": 0.93,
+     "weight": 1.0
+    },
+    "tags": [
+     [
+      "landuse",
+      [
+       "commercial",
+       "education",
+       "garages",
+       "industrial",
+       "institutional",
+       "military",
+       "parking",
+       "port",
+       "railway",
+       "religious",
+       "residential",
+       "retail"
+      ]
+     ],
+     [
+      "amenity",
+      [
+       "bus_station",
+       "parking"
+      ]
+     ]
+    ]
+   }
+  ],
+  "snow": {
+   "name": "Snow",
+   "color": [
+    0.83,
+    0.85,
+    0.89
+   ],
+   "roughness": 0.55,
+   "weight": 1.0
+  },
+  "frost": {
+   "name": "Frosted ground",
+   "color": [
+    0.44,
+    0.47,
+    0.5
+   ],
+   "roughness": 0.85,
+   "weight": 1.0
+  }
+ },
+ "props": [
+  {
+   "name": "tree",
+   "models": [],
+   "height": 9.0,
+   "share": 0.0,
+   "priority": 0,
+   "facesRoad": false,
+   "jitter": 0.3,
+   "tags": [
+    [
+     "natural",
+     [
+      "tree"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "street lamp",
+   "models": [
+    "assets/models/external/kenney_props/street_lamp.glb",
+    "assets/models/external/kenney_props/street_lamp_curved.glb"
+   ],
+   "height": 5.0,
+   "share": 0.28,
+   "priority": 1,
+   "facesRoad": true,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "highway",
+     [
+      "street_lamp"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "bench",
+   "models": [
+    "assets/models/external/kenney_props/bench.glb"
+   ],
+   "height": 0.85,
+   "share": 0.12,
+   "priority": 2,
+   "facesRoad": true,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "amenity",
+     [
+      "bench"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "bus stop",
+   "models": [
+    "assets/models/external/kenney_props/bus_stop_sign.glb"
+   ],
+   "height": 2.6,
+   "share": 0.06,
+   "priority": 3,
+   "facesRoad": true,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "highway",
+     [
+      "bus_stop"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "fountain",
+   "models": [
+    "assets/models/external/kenney_props/fountain.glb"
+   ],
+   "height": 1.1,
+   "share": 0.03,
+   "priority": 4,
+   "facesRoad": false,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "amenity",
+     [
+      "fountain"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "post box",
+   "models": [
+    "assets/models/external/kenney_props/post_box.glb"
+   ],
+   "height": 1.4,
+   "share": 0.04,
+   "priority": 5,
+   "facesRoad": true,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "amenity",
+     [
+      "clock",
+      "drinking_water",
+      "post_box",
+      "telephone"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "waste bin",
+   "models": [
+    "assets/models/external/kenney_props/waste_bin.glb"
+   ],
+   "height": 1.2,
+   "share": 0.06,
+   "priority": 6,
+   "facesRoad": true,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "amenity",
+     [
+      "waste_basket"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "pylon",
+   "models": [
+    "assets/models/external/kenney_props/power_pole.glb"
+   ],
+   "height": 11.0,
+   "share": 0.05,
+   "priority": 7,
+   "facesRoad": false,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "power",
+     [
+      "pole",
+      "tower"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "windmill",
+   "models": [
+    "assets/models/external/kenney_props/windmill.glb"
+   ],
+   "height": 20.0,
+   "share": 0.02,
+   "priority": 8,
+   "facesRoad": false,
+   "jitter": 0.0,
+   "tags": [
+    [
+     "man_made",
+     [
+      "lighthouse",
+      "water_tower",
+      "windmill"
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "boulder",
+   "models": [
+    "assets/models/external/kenney_props/boulder.glb"
+   ],
+   "height": 1.4,
+   "share": 0.04,
+   "priority": 9,
+   "facesRoad": false,
+   "jitter": 0.4,
+   "tags": [
+    [
+     "natural",
+     [
+      "rock",
+      "stone"
+     ]
+    ]
+   ]
+  }
+ ],
+ "boats": [
+  {
+   "name": "speed_a",
+   "model": "boat_speed_a",
+   "kind": "motor",
+   "length": 7.5,
+   "top": 17.0,
+   "accel": 3.0,
+   "turn": 38.0,
+   "length_ratio": null,
+   "draft": 0.25
+  },
+  {
+   "name": "speed_c",
+   "model": "boat_speed_c",
+   "kind": "motor",
+   "length": 7.0,
+   "top": 17.0,
+   "accel": 3.0,
+   "turn": 40.0,
+   "length_ratio": null,
+   "draft": 0.25
+  },
+  {
+   "name": "speed_e",
+   "model": "boat_speed_e",
+   "kind": "motor",
+   "length": 6.0,
+   "top": 15.0,
+   "accel": 3.2,
+   "turn": 42.0,
+   "length_ratio": null,
+   "draft": 0.25
+  },
+  {
+   "name": "speed_g",
+   "model": "boat_speed_g",
+   "kind": "motor",
+   "length": 8.5,
+   "top": 18.0,
+   "accel": 2.8,
+   "turn": 36.0,
+   "length_ratio": null,
+   "draft": 0.25
+  },
+  {
+   "name": "speed_j",
+   "model": "boat_speed_j",
+   "kind": "motor",
+   "length": 9.5,
+   "top": 19.0,
+   "accel": 2.6,
+   "turn": 32.0,
+   "length_ratio": null,
+   "draft": 0.25
+  },
+  {
+   "name": "sail_a",
+   "model": "boat_sail_a",
+   "kind": "sail",
+   "length": 10.0,
+   "top": 4.5,
+   "accel": 0.7,
+   "turn": 22.0,
+   "length_ratio": null,
+   "draft": 0.12
+  },
+  {
+   "name": "sail_b",
+   "model": "boat_sail_b",
+   "kind": "sail",
+   "length": 11.0,
+   "top": 4.5,
+   "accel": 0.7,
+   "turn": 20.0,
+   "length_ratio": null,
+   "draft": 0.12
+  },
+  {
+   "name": "fishing",
+   "model": "boat_fishing_small",
+   "kind": "fishing",
+   "length": 11.0,
+   "top": 5.0,
+   "accel": 0.8,
+   "turn": 22.0,
+   "length_ratio": null,
+   "draft": 0.25
+  },
+  {
+   "name": "row_large",
+   "model": "boat_row_large",
+   "kind": "rowing",
+   "length": 5.0,
+   "top": 1.8,
+   "accel": 0.6,
+   "turn": 30.0,
+   "length_ratio": 3.0,
+   "draft": 0.35
+  },
+  {
+   "name": "row_small",
+   "model": "boat_row_small",
+   "kind": "rowing",
+   "length": 3.8,
+   "top": 1.6,
+   "accel": 0.6,
+   "turn": 34.0,
+   "length_ratio": 3.0,
+   "draft": 0.35
+  },
+  {
+   "name": "tug",
+   "model": "boat_tug_a",
+   "kind": "tug",
+   "length": 28.0,
+   "top": 6.0,
+   "accel": 0.6,
+   "turn": 22.0,
+   "length_ratio": null,
+   "draft": 0.25
+  },
+  {
+   "name": "cargo_a",
+   "model": "ship_cargo_a",
+   "kind": "cargo",
+   "length": 190.0,
+   "top": 9.0,
+   "accel": 0.1,
+   "turn": 3.0,
+   "length_ratio": 6.5,
+   "draft": 0.25
+  },
+  {
+   "name": "cargo_b",
+   "model": "ship_cargo_b",
+   "kind": "cargo",
+   "length": 170.0,
+   "top": 9.0,
+   "accel": 0.11,
+   "turn": 3.2,
+   "length_ratio": 6.5,
+   "draft": 0.25
+  },
+  {
+   "name": "container_a",
+   "model": "ship_cargo_c",
+   "kind": "cargo",
+   "length": 180.0,
+   "top": 9.0,
+   "accel": 0.11,
+   "turn": 3.2,
+   "length_ratio": 6.5,
+   "draft": 0.25
+  },
+  {
+   "name": "container_b",
+   "model": "ship_cargo_c",
+   "kind": "cargo",
+   "length": 150.0,
+   "top": 9.0,
+   "accel": 0.12,
+   "turn": 3.5,
+   "length_ratio": 6.5,
+   "draft": 0.25
+  },
+  {
+   "name": "ferry",
+   "model": "ship_ocean_liner",
+   "kind": "liner",
+   "length": 170.0,
+   "top": 11.0,
+   "accel": 0.15,
+   "turn": 3.5,
+   "length_ratio": 7.0,
+   "draft": 0.25
+  },
+  {
+   "name": "house_a",
+   "model": "boat_house_a",
+   "kind": "houseboat",
+   "length": 16.0,
+   "top": 2.5,
+   "accel": 0.4,
+   "turn": 12.0,
+   "length_ratio": 4.2,
+   "draft": 0.25
+  },
+  {
+   "name": "house_b",
+   "model": "boat_house_b",
+   "kind": "houseboat",
+   "length": 19.0,
+   "top": 2.5,
+   "accel": 0.4,
+   "turn": 12.0,
+   "length_ratio": 4.2,
+   "draft": 0.25
+  },
+  {
+   "name": "house_c",
+   "model": "boat_house_c",
+   "kind": "houseboat",
+   "length": 18.0,
+   "top": 2.5,
+   "accel": 0.4,
+   "turn": 12.0,
+   "length_ratio": 4.2,
+   "draft": 0.25
+  },
+  {
+   "name": "house_d",
+   "model": "boat_house_d",
+   "kind": "houseboat",
+   "length": 16.0,
+   "top": 2.5,
+   "accel": 0.4,
+   "turn": 12.0,
+   "length_ratio": 4.2,
+   "draft": 0.25
+  }
+ ],
+ "carPaints": [
+  {
+   "name": "silver",
+   "albedo": [
+    0.3,
+    0.3,
+    0.31
+   ]
+  },
+  {
+   "name": "white",
+   "albedo": [
+    0.34,
+    0.34,
+    0.33
+   ]
+  },
+  {
+   "name": "graphite",
+   "albedo": [
+    0.09,
+    0.09,
+    0.1
+   ]
+  },
+  {
+   "name": "slate",
+   "albedo": [
+    0.16,
+    0.16,
+    0.17
+   ]
+  },
+  {
+   "name": "midnight",
+   "albedo": [
+    0.05,
+    0.05,
+    0.06
+   ]
+  },
+  {
+   "name": "navy",
+   "albedo": [
+    0.06,
+    0.09,
+    0.19
+   ]
+  },
+  {
+   "name": "burgundy",
+   "albedo": [
+    0.19,
+    0.05,
+    0.06
+   ]
+  },
+  {
+   "name": "moss",
+   "albedo": [
+    0.07,
+    0.12,
+    0.08
+   ]
+  },
+  {
+   "name": "sand",
+   "albedo": [
+    0.28,
+    0.24,
+    0.16
+   ]
+  },
+  {
+   "name": "ochre",
+   "albedo": [
+    0.3,
+    0.22,
+    0.06
+   ]
+  }
+ ]
+}

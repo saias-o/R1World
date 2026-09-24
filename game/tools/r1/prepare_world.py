@@ -6,7 +6,7 @@ import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import external_assets, skies, solar, traffic
+from . import external_assets, skies, solar
 
 GAME = Path(__file__).resolve().parents[2]
 URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson"
@@ -78,12 +78,6 @@ def basemap():
 def main():
     (GAME/"ui").mkdir(exist_ok=True)
     basemap()
-    # The fleet's colours live beside the world's other generated data rather
-    # than in the C++ that reads them: they are albedos, and an albedo the
-    # tests cannot see is a rule that is not held (CLAUDE.md rule 2).
-    (GAME/"assets"/"world").mkdir(parents=True, exist_ok=True)
-    (GAME/"assets"/"world"/"traffic_paints.json").write_text(
-        json.dumps(traffic.paint_table(), indent=2) + chr(10), encoding="utf-8")
     node = lambda t,n,**kw: dict({"type":t,"name":n,"enabled":True,"children":[],"behaviours":[]},**kw)
     scene = node("Scene","R1WorldEarth")
     # No lighting value below is chosen. Direction, colour, intensity, ambient,

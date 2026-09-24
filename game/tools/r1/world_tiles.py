@@ -5,11 +5,18 @@ current floating origin. Cache keys do not depend on a journey's spawn point.
 """
 import math
 from dataclasses import dataclass
-from .sources import Bounds
+
+
+@dataclass(frozen=True)
+class Bounds:
+    south: float
+    west: float
+    north: float
+    east: float
 
 ROWS = 36000
 STEP = 180 / ROWS
-VERSION = 14
+VERSION = 15
 
 
 def wrap(lon):

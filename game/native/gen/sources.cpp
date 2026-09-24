@@ -1,0 +1,375 @@
+#include "sources.hpp"
+
+#include "net.hpp"
+
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <thread>
+
+namespace fs = std::filesystem;
+
+namespace r1 {
+
+nlohmann::json readJson(const std::string& path) {
+    // Whole file, then parse: nlohmann reading a stream is several times slower.
+    std::ifstream f(path, std::ios::binary | std::ios::ate);
+    if (!f) throw std::runtime_error("cannot read " + path);
+    std::string text(size_t(f.tellg()), ' ');
+    f.seekg(0);
+    f.read(text.data(), std::streamsize(text.size()));
+    return nlohmann::json::parse(text);
+}
+
+namespace {
+
+// Written whole, then moved into place: a reader never sees half a file.
+void writeJson(const std::string& path, const nlohmann::json& value) {
+    fs::create_directories(fs::path(path).parent_path());
+    const std::string tmp = path + ".tmp" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
+    { std::ofstream f(tmp, std::ios::binary); f << value.dump() << "\n"; }
+    std::error_code ec;
+    fs::rename(tmp, path, ec);
+    if (ec) { fs::remove(path, ec); fs::rename(tmp, path); }
+}
+
+// Python's repr of a float: the shortest text that reads back the same.
+std::string pyFloat(double v) {
+    std::string s = nlohmann::json(v).dump();
+    if (s.find_first_of(".eE") == std::string::npos) s += ".0";
+    return s;
+}
+
+bool sameBounds(const nlohmann::json& j, const Bounds& b) {
+    return j.at("south").get<double>() == b.south && j.at("west").get<double>() == b.west &&
+           j.at("north").get<double>() == b.north && j.at("east").get<double>() == b.east;
+}
+
+ElevationGrid gridFrom(const nlohmann::json& doc, const Bounds& b) {
+    ElevationGrid g;
+    g.bounds = b;
+    g.size = doc.at("size").get<int>();
+    for (const auto& row : doc.at("values")) for (const auto& v : row) g.values.push_back(v.get<double>());
+    if (int(g.values.size()) != g.size * g.size) throw std::runtime_error("elevation grid of the wrong size");
+    return g;
+}
+
+nlohmann::json boundsJson(const Bounds& b) {
+    return {{"south", b.south}, {"west", b.west}, {"north", b.north}, {"east", b.east}};
+}
+
+const char* kOverpass[] = {"https://overpass-api.de/api/interpreter",
+                           "https://maps.mail.ru/osm/tools/overpass/api/interpreter"};
+}  // namespace
+
+std::string ObservationStore::tileFolder(const Tile& tile) const {
+    return root_ + "/cache/world/" + tile.key(kVersion);
+}
+
+std::optional<std::string> ObservationStore::find(const Tile& tile, const char* name) const {
+    for (int version = kVersion; version >= kFirstVersion; --version) {
+        const std::string path = root_ + "/cache/world/" + tile.key(version) + "/" + name;
+        std::error_code ec;
+        if (fs::exists(path, ec)) return path;
+    }
+    return std::nullopt;
+}
+
+std::optional<ObservationStore::Shared> ObservationStore::shared(const std::vector<Tile>& group) const {
+    if (group.empty()) return std::nullopt;
+    Bounds r{1e300, 1e300, -1e300, -1e300};
+    for (const Tile& t : group) {
+        const Bounds b = t.bounds();
+        r.south = std::min(r.south, b.south); r.west = std::min(r.west, b.west);
+        r.north = std::max(r.north, b.north); r.east = std::max(r.east, b.east);
+    }
+    if (r.east - r.west >= 0.15) return std::nullopt;
+    // The key is the one the Python worker hashed: json.dumps(asdict(region), sort_keys=True).
+    const std::string text = "{\"east\": " + pyFloat(r.east) + ", \"north\": " + pyFloat(r.north) +
+                             ", \"south\": " + pyFloat(r.south) + ", \"west\": " + pyFloat(r.west) + "}";
+    return Shared{r, root_ + "/cache/world/sources/" + sha256Hex(text).substr(0, 20) + ".json"};
+}
+
+std::vector<std::string> ObservationStore::candidates(const Tile& tile, const std::optional<Shared>& current) const {
+    std::vector<std::string> out;
+    std::error_code ec;
+    auto add = [&](const std::string& path) {
+        if (fs::exists(path, ec) && std::find(out.begin(), out.end(), path) == out.end()) out.push_back(path);
+    };
+    if (current) add(current->path);
+    // A group is the three rows around a centre row, each taking the three
+    // columns around the column its own ring puts the player's longitude in
+    // (world.cpp `nearby`). Between two column boundaries of those rows the
+    // group cannot change, so one longitude per interval visits every group.
+    const Bounds b = tile.bounds();
+    const double width = b.east - b.west;
+    for (int centre = tile.row - 1; centre <= tile.row + 1; ++centre) {
+        if (centre < 0 || centre >= kRows) continue;
+        std::vector<double> cuts{b.west - 2 * width, b.east + 2 * width};
+        for (int row = centre - 1; row <= centre + 1; ++row) {
+            const int n = columns(std::max(0, std::min(kRows - 1, row)));
+            for (int k = int(std::floor((b.west - 2 * width + 180.0) / 360.0 * n));
+                 k <= int(std::ceil((b.east + 2 * width + 180.0) / 360.0 * n)); ++k)
+                cuts.push_back(-180.0 + 360.0 * k / n);
+        }
+        std::sort(cuts.begin(), cuts.end());
+        for (size_t i = 0; i + 1 < cuts.size(); ++i) {
+            const double lon = (cuts[i] + cuts[i + 1]) / 2;
+            if (cuts[i + 1] - cuts[i] < 1e-12 || lon < b.west - 2 * width || lon > b.east + 2 * width) continue;
+            std::vector<Tile> group;
+            for (int row = centre - 1; row <= centre + 1; ++row) {
+                const int r = std::max(0, std::min(kRows - 1, row)), n = columns(r);
+                const int c = int(std::floor((wrap(lon) + 180.0) / 360.0 * n));
+                for (int dc = -1; dc <= 1; ++dc) group.push_back({r, (c + dc + n) % n});
+            }
+            if (std::find(group.begin(), group.end(), tile) == group.end()) continue;
+            if (const auto s = shared(group)) add(s->path);
+        }
+    }
+    // A tile asked for on its own, outside any group, had a query of its own.
+    if (const auto s = shared({tile})) add(s->path);
+    if (auto path = find(tile, "osm.json")) add(*path);
+    return out;
+}
+
+namespace {
+// The question an answer on disk replied to, read from its last bytes: the
+// Python worker wrote its keys sorted, so `r1QueryVersion` is near the end,
+// and parsing ten megabytes to learn one number is what this avoids.
+int queryVersionOf(const std::string& path) {
+    std::ifstream f(path, std::ios::binary | std::ios::ate);
+    const std::streamoff size = f.tellg();
+    const std::streamoff take = std::min<std::streamoff>(size, 4096);
+    f.seekg(size - take);
+    std::string tail(size_t(take), ' ');
+    f.read(tail.data(), take);
+    const auto at = tail.rfind("\"r1QueryVersion\"");
+    if (at == std::string::npos) return 1;
+    const auto colon = tail.find(':', at);
+    return colon == std::string::npos ? 1 : std::atoi(tail.c_str() + colon + 1);
+}
+}  // namespace
+
+bool ObservationStore::cached(const Tile& tile, const std::optional<Shared>& shared) const {
+    return !candidates(tile, shared).empty() && (find(tile, "ground-elevation.json") || find(tile, "elevation.json"));
+}
+
+std::optional<nlohmann::json> ObservationStore::osm(const Tile& tile, const std::optional<Shared>& shared, bool* stale) const {
+    const auto path = osmPath(tile, shared, stale);
+    if (!path) return std::nullopt;
+    return readJson(*path);
+}
+
+std::optional<std::string> ObservationStore::osmPath(const Tile& tile, const std::optional<Shared>& shared, bool* stale) const {
+    const auto paths = candidates(tile, shared);
+    if (paths.empty()) return std::nullopt;
+    std::string best;
+    std::uintmax_t bestSize = 0;
+    std::error_code ec;
+    for (const auto& path : paths) {
+        if (queryVersionOf(path) != kOsmQueryVersion) continue;
+        const auto size = fs::file_size(path, ec);
+        if (best.empty() || size > bestSize) { best = path; bestSize = size; }
+    }
+    if (stale) *stale = best.empty();
+    return best.empty() ? paths.front() : best;
+}
+
+std::optional<std::pair<ElevationGrid, std::string>> ObservationStore::ground(const Tile& tile) const {
+    const Bounds b = tile.bounds();
+    if (auto path = find(tile, "ground-elevation.json")) {
+        const auto doc = readJson(*path);
+        if (!sameBounds(doc.at("bounds"), b)) throw std::runtime_error("Ground elevation cache bounds mismatch");
+        return std::make_pair(gridFrom(doc, b), doc.at("source").get<std::string>());
+    }
+    // The GLO-90 grid an older worker fetched and never converted.
+    if (auto path = find(tile, "elevation.json")) {
+        const auto doc = readJson(*path);
+        if (sameBounds(doc.at("bounds"), b))
+            return std::make_pair(gridFrom(doc, b), std::string("Copernicus DEM GLO-90 via Open-Meteo (fallback)"));
+    }
+    return std::nullopt;
+}
+
+nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& path) const {
+    std::optional<nlohmann::json> stale;
+    std::error_code ec;
+    if (fs::exists(path, ec)) {
+        auto doc = readJson(path);
+        if (doc.value("r1QueryVersion", 1) == kOsmQueryVersion) return doc;
+        stale = std::move(doc);
+    }
+    char bbox[160];
+    std::snprintf(bbox, sizeof bbox, "%.8f,%.8f,%.8f,%.8f", b.south, b.west, b.north, b.east);
+    // Rank 10 is a list of point features, as narrow as it is on purpose:
+    // `node[amenity]` alone would bring every bank and restaurant.
+    const std::string query = std::string("[out:json][timeout:90][bbox:") + bbox + R"(];
+(
+  way[building];
+  way[highway];
+  way[landuse];
+  way[natural];
+  way[leisure~"park|garden|golf_course|pitch"];
+  way[waterway];
+  way[water];
+  way[amenity=grave_yard];
+  way[man_made~"^(pier|breakwater|groyne|quay)$"];
+  way[leisure=marina];
+  way[harbour];
+  node[leisure=marina];
+  node[harbour];
+  node["seamark:type"~"^(harbour|mooring|light_major|light_minor|landmark)$"];
+  node[natural=tree];
+  node[highway~"^(street_lamp|bus_stop|crossing|traffic_signals)$"];
+  node[amenity~"^(bench|fountain|waste_basket|drinking_water|post_box|telephone|clock)$"];
+  node[emergency=fire_hydrant];
+  node[power~"^(tower|pole)$"];
+  node[man_made~"^(water_tower|windmill|lighthouse|mast)$"];
+  node[natural~"^(rock|stone)$"];
+);
+out body;
+>;
+out skel qt;)";
+    const std::string body = "data=" + net::urlEncode(query);
+    std::string failures;
+    for (const char* endpoint : kOverpass) {
+        try {
+            auto doc = nlohmann::json::parse(net::requestJson(endpoint, body, "application/x-www-form-urlencoded"));
+            doc["r1QueryVersion"] = kOsmQueryVersion;
+            writeJson(path, doc);
+            return doc;
+        } catch (const std::exception& e) {
+            failures += std::string(failures.empty() ? "" : " | ") + endpoint + ": " + e.what();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
+    // An older question's answer beats no world at all, and says so.
+    if (stale) return *stale;
+    throw SourceUnavailable("all Overpass endpoints failed: " + failures);
+}
+
+std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& tile) const {
+    if (auto disk = ground(tile)) return *disk;
+    const Bounds b = tile.bounds();
+    const std::string path = tileFolder(tile) + "/ground-elevation.json";
+    // IGN's bare-earth survey where France might be; every sample validated.
+    const bool eligible = -5.5 <= b.west && b.east <= 9.8 && 41.2 <= b.south && b.north <= 51.2;
+    if (eligible) {
+        const int size = 41;
+        std::string lons, lats;
+        char buf[64];
+        for (int r = 0; r < size; ++r)
+            for (int c = 0; c < size; ++c) {
+                std::snprintf(buf, sizeof buf, "%s%.10f", lons.empty() ? "" : "|", b.west + (b.east - b.west) * c / (size - 1));
+                lons += buf;
+                std::snprintf(buf, sizeof buf, "%s%.10f", lats.empty() ? "" : "|", b.south + (b.north - b.south) * r / (size - 1));
+                lats += buf;
+            }
+        const nlohmann::json payload = {{"lon", lons}, {"lat", lats}, {"resource", "ign_rge_alti_wld"},
+                                        {"delimiter", "|"}, {"zonly", "true"}};
+        try {
+            const auto doc = nlohmann::json::parse(net::requestJson(
+                "https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json", payload.dump(), "application/json", 20, 2));
+            const auto& values = doc.at("elevations");
+            if (!values.is_array() || int(values.size()) != size * size) throw std::runtime_error("IGN returned incomplete or no-data terrain");
+            nlohmann::json rows = nlohmann::json::array();
+            ElevationGrid g{b, size, {}};
+            for (int r = 0; r < size; ++r) {
+                nlohmann::json row = nlohmann::json::array();
+                for (int c = 0; c < size; ++c) {
+                    const auto& v = values[size_t(r * size + c)];
+                    if (!v.is_number()) throw std::runtime_error("IGN returned incomplete or no-data terrain");
+                    const double h = v.get<double>();
+                    if (!std::isfinite(h) || h <= -1000 || h > 9000) throw std::runtime_error("IGN returned incomplete or no-data terrain");
+                    row.push_back(h);
+                    g.values.push_back(h);
+                }
+                rows.push_back(row);
+            }
+            const std::string source = "IGN RGE ALTI bare-earth terrain via Geoplateforme";
+            writeJson(path, {{"bounds", boundsJson(b)}, {"size", size}, {"values", rows}, {"source", source}});
+            return {g, source};
+        } catch (const std::exception& e) {
+            if (log_) log_(std::string("ELEVATION-FALLBACK ") + e.what());
+        }
+    }
+    // Copernicus GLO-90 through Open-Meteo, 7x7: its 90 m is all there is.
+    const int size = 7;
+    std::vector<P2> points;
+    for (int r = 0; r < size; ++r)
+        for (int c = 0; c < size; ++c)
+            points.push_back({b.west + (b.east - b.west) * c / (size - 1), b.south + (b.north - b.south) * r / (size - 1)});
+    ElevationGrid g{b, size, {}};
+    for (size_t start = 0; start < points.size(); start += 100) {
+        std::string lat, lon;
+        char buf[64];
+        for (size_t i = start; i < std::min(points.size(), start + 100); ++i) {
+            std::snprintf(buf, sizeof buf, "%s%.8f", lat.empty() ? "" : ",", points[i].y); lat += buf;
+            std::snprintf(buf, sizeof buf, "%s%.8f", lon.empty() ? "" : ",", points[i].x); lon += buf;
+        }
+        nlohmann::json doc;
+        try {
+            doc = nlohmann::json::parse(net::requestJson("https://api.open-meteo.com/v1/elevation?latitude=" + lat + "&longitude=" + lon));
+        } catch (const std::exception& e) {
+            throw SourceUnavailable(std::string("elevation service unavailable: ") + e.what());
+        }
+        const auto& values = doc["elevation"];
+        if (!values.is_array() || values.size() != std::min(points.size(), start + 100) - start)
+            throw SourceUnavailable("Open-Meteo returned an incomplete elevation batch");
+        for (const auto& v : values) g.values.push_back(v.get<double>());
+    }
+    nlohmann::json rows = nlohmann::json::array();
+    for (int r = 0; r < size; ++r) {
+        nlohmann::json row = nlohmann::json::array();
+        for (int c = 0; c < size; ++c) row.push_back(g.at(r, c));
+        rows.push_back(row);
+    }
+    const std::string source = "Copernicus DEM GLO-90 via Open-Meteo (fallback)";
+    writeJson(path, {{"bounds", boundsJson(b)}, {"size", size}, {"values", rows}, {"source", source}});
+    return {g, source};
+}
+
+// ── SHA-256, for the shared queries' file names ─────────────────────────────
+
+std::string sha256Hex(const std::string& data) {
+    static const uint32_t k[64] = {
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98,
+        0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+        0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8,
+        0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819,
+        0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+        0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+        0xc67178f2};
+    uint32_t h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+    std::string msg = data;
+    const uint64_t bits = uint64_t(data.size()) * 8;
+    msg += char(0x80);
+    while (msg.size() % 64 != 56) msg += char(0);
+    for (int i = 7; i >= 0; --i) msg += char((bits >> (i * 8)) & 0xff);
+    auto rotr = [](uint32_t x, int n) { return (x >> n) | (x << (32 - n)); };
+    for (size_t chunk = 0; chunk < msg.size(); chunk += 64) {
+        uint32_t w[64];
+        for (int i = 0; i < 16; ++i)
+            w[i] = (uint32_t(uint8_t(msg[chunk + i * 4])) << 24) | (uint32_t(uint8_t(msg[chunk + i * 4 + 1])) << 16) |
+                   (uint32_t(uint8_t(msg[chunk + i * 4 + 2])) << 8) | uint32_t(uint8_t(msg[chunk + i * 4 + 3]));
+        for (int i = 16; i < 64; ++i) {
+            const uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
+            const uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+        }
+        uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+        for (int i = 0; i < 64; ++i) {
+            const uint32_t t1 = hh + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + k[i] + w[i];
+            const uint32_t t2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
+            hh = g; g = f; f = e; e = d + t1; d = c; c = b; b = a; a = t1 + t2;
+        }
+        h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+    }
+    std::ostringstream out;
+    for (uint32_t v : h) { char buf[9]; std::snprintf(buf, sizeof buf, "%08x", v); out << buf; }
+    return out.str();
+}
+
+}  // namespace r1

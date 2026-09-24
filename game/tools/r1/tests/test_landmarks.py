@@ -23,7 +23,6 @@ import unittest
 
 from r1 import landmarks, sculpt
 from r1.landmarks import LANDMARKS, MAX_VERTICES, BY_SLUG
-from r1.sources import Bounds, OsmWay
 
 
 def _luminance(colour) -> float:
@@ -156,28 +155,21 @@ class LevelsOfDetail(unittest.TestCase):
                 self.assertIn(landmark.ground[1], (landmarks.IGN, landmarks.GLO90))
                 self.assertTrue(-20.0 < landmark.ground[0] < 1000.0)
 
-    def test_the_far_list_names_every_landmark_and_its_levels(self):
+    def test_the_shipped_list_is_the_recipes(self):
+        # The game reads nothing else about a landmark (native/gen/landmarks.cpp):
+        # a recipe changed without `python -m r1.landmarks` is a stale list.
         import json
-        import tempfile
-        from pathlib import Path
-        with tempfile.TemporaryDirectory() as folder:
-            game = Path(folder)
-            saved = landmarks.GAME, landmarks.MODEL_DIR
-            landmarks.GAME, landmarks.MODEL_DIR = game, game / "cache" / "world" / "landmarks"
-            try:
-                path = landmarks.far_manifest()
-                document = json.loads(path.read_text(encoding="utf-8"))
-                self.assertEqual(document["revision"], landmarks.REVISION)
-                self.assertEqual(len(document["landmarks"]), len(LANDMARKS))
-                for entry in document["landmarks"]:
-                    source = BY_SLUG[entry["slug"]]
-                    self.assertEqual(entry["alt"], source.ground[0])
-                    self.assertEqual([l["until"] for l in entry["levels"]],
-                                     [landmarks.LOD1_UNTIL, landmarks.FAR_RANGE])
-                    for level in entry["levels"]:
-                        self.assertTrue((game / level["path"]).exists(), level["path"])
-            finally:
-                landmarks.GAME, landmarks.MODEL_DIR = saved
+        document = json.loads((landmarks.MODEL_DIR / "landmarks.json").read_text(encoding="utf-8"))
+        self.assertEqual(document["revision"], landmarks.REVISION)
+        self.assertEqual([e["slug"] for e in document["landmarks"]], [l.slug for l in LANDMARKS])
+        for entry in document["landmarks"]:
+            source = BY_SLUG[entry["slug"]]
+            self.assertEqual((entry["lon"], entry["lat"], entry["bearing"]), (source.lon, source.lat, source.bearing))
+            self.assertEqual(entry["alt"], source.ground[0])
+            self.assertEqual([l["until"] for l in entry["levels"]], [0.0, landmarks.LOD1_UNTIL, landmarks.FAR_RANGE])
+            for lod, level in enumerate(entry["levels"]):
+                self.assertTrue((landmarks.GAME / level["path"]).exists(), level["path"])
+                self.assertEqual(level["path"], landmarks.model_path(source, lod).relative_to(landmarks.GAME).as_posix())
 
     def test_far_range_is_the_haze(self):
         # Past the far range a monument is more than 95% haze: drawing it
@@ -253,77 +245,6 @@ class Vocabulary(unittest.TestCase):
             far = max(parts[0].mesh.positions, key=lambda p: p[0] ** 2 + p[2] ** 2)
             self.assertAlmostEqual(far[0], expected[0], delta=0.1)
             self.assertAlmostEqual(far[2], expected[1], delta=0.1)
-
-
-class Placement(unittest.TestCase):
-    EIFFEL = BY_SLUG["eiffel_tower"]
-
-    def setUp(self):
-        e = self.EIFFEL
-        self.bounds = Bounds(e.lat - 0.002, e.lon - 0.003, e.lat + 0.002, e.lon + 0.003)
-        k = 111_320.0 * math.cos(math.radians(e.lat))
-        # Engine metres about the tower: x east, z south.
-        self.ground = lambda lon, lat: ((lon - e.lon) * k, 35.0, -(lat - e.lat) * 110_540.0)
-        self._baked = landmarks.bake
-        landmarks.bake = lambda landmark: (f"cache/world/landmarks/{landmark.slug}.glb", 1234)
-
-    def tearDown(self):
-        landmarks.bake = self._baked
-
-    def _way(self, osm_id, lon, lat, tags=None, half=0.00005):
-        ring = ((lon - half, lat - half), (lon + half, lat - half), (lon + half, lat + half),
-                (lon - half, lat + half), (lon - half, lat - half))
-        return OsmWay(osm_id, ring, dict(tags or {"building": "yes"}))
-
-    def test_the_box_goes_and_the_neighbours_stay(self):
-        e = self.EIFFEL
-        tower = self._way(5013364, e.lon, e.lat, {"building": "tower", "height": "330",
-                                                   "wikidata": "Q243"})
-        # A room in a pillar, 50 m out along the tower's diagonal.
-        b = math.radians(e.bearing)
-        east, north = 49.9 * (math.sin(b) + math.cos(b)), 49.9 * (math.cos(b) - math.sin(b))
-        k = 111_320.0 * math.cos(math.radians(e.lat))
-        pillar = self._way(1, e.lon + east / k, e.lat + north / 110_540.0)
-        pavilion = self._way(4, e.lon + 0.0001, e.lat + 0.0001)          # between the pillars
-        neighbour = self._way(2, e.lon + 0.0025, e.lat + 0.0015)        # 200 m away
-        kept, placement = landmarks.place(self.bounds, self.ground,
-                                          (tower, pillar, pavilion, neighbour))
-        self.assertEqual([w.osm_id for w in kept], [4, 2])
-        self.assertEqual(sorted(placement.replaced), [1, 5013364])
-        self.assertEqual(len(placement.nodes), 1)
-        node = placement.nodes[0]
-        self.assertEqual(node["importedFrom"], "cache/world/landmarks/eiffel_tower.glb")
-        self.assertEqual(node["transform"]["position"], [0.0, 35.0, 0.0])
-        self.assertEqual(placement.vertices, 1234)
-        self.assertEqual(len(placement.solids), 4)     # the four pillars
-        entry = placement.manifest[0]
-        self.assertEqual(entry["anchor"]["source"], "osm:way/5013364")
-        self.assertEqual(entry["shape"]["source"], "recipe")
-
-    def test_a_landmark_anchored_next_door_still_clears_its_trace(self):
-        e = self.EIFFEL
-        # A tile whose bounds stop just short of the anchor.
-        bounds = Bounds(e.lat - 0.002, e.lon + 0.0002, e.lat + 0.002, e.lon + 0.006)
-        b = math.radians(e.bearing)
-        east, north = 49.9 * (math.sin(b) + math.cos(b)), 49.9 * (math.cos(b) - math.sin(b))
-        k = 111_320.0 * math.cos(math.radians(e.lat))
-        pillar = self._way(1, e.lon + east / k, e.lat + north / 110_540.0)
-        kept, placement = landmarks.place(bounds, self.ground, (pillar,))
-        self.assertEqual(kept, ())
-        self.assertEqual(placement.nodes, [])       # drawn once, by its own tile
-
-    def test_nowhere_near_a_landmark_nothing_changes(self):
-        far = Bounds(10.0, 10.0, 10.005, 10.005)
-        way = self._way(3, 10.002, 10.002)
-        kept, placement = landmarks.place(far, lambda lon, lat: (0.0, 0.0, 0.0), (way,))
-        self.assertEqual(kept, (way,))
-        self.assertEqual(placement.nodes, [])
-
-    def test_only_a_tile_near_a_landmark_goes_stale(self):
-        self.assertTrue(landmarks.stale({"surface": "land"}, self.bounds))
-        self.assertFalse(landmarks.stale({"surface": "land",
-                                          "landmarkRevision": landmarks.REVISION}, self.bounds))
-        self.assertFalse(landmarks.stale({"surface": "land"}, Bounds(10.0, 10.0, 10.005, 10.005)))
 
 
 if __name__ == "__main__":

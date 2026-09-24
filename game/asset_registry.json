@@ -1,5 +1,10 @@
 {
     "assets": {
+        "10006317669894877522": {
+            "hash": 13899328167568609891,
+            "path": "assets/world/landmarks/brandenburg_gate-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "10013366607930000696": {
             "hash": 7073655531894829955,
             "path": "assets/textures/facades/brick_red_albedo.jpg",
@@ -40,6 +45,11 @@
             "path": "assets/textures/surfaces/soil_arid_mr.jpg",
             "type": "Texture"
         },
+        "10667931363589278107": {
+            "hash": 17402881141806526146,
+            "path": "assets/world/landmarks/christ_the_redeemer-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "10671961344610648181": {
             "hash": 16534967604893544738,
             "path": "assets/textures/surfaces/asphalt_normal.jpg",
@@ -49,6 +59,16 @@
             "hash": 9090967675550982469,
             "path": "assets/textures/surfaces/tile_grey_normal.jpg",
             "type": "Texture"
+        },
+        "10769241307217563680": {
+            "hash": 14996363965523865446,
+            "path": "assets/world/landmarks/pyramid_of_khufu-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "10822896862868825913": {
+            "hash": 15057777588054011981,
+            "path": "assets/world/landmarks/notre_dame_de_paris-r3-lod1.glb",
+            "type": "Mesh"
         },
         "10855028712808085440": {
             "hash": 9278163483302797793,
@@ -100,6 +120,11 @@
             "path": "assets/textures/surfaces/slate_mr.jpg",
             "type": "Texture"
         },
+        "11178310644759046021": {
+            "hash": 5686412886186456060,
+            "path": "assets/world/landmarks/pyramid_of_khafre-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "11180978023951836498": {
             "hash": 9670824747320362889,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_arm_1k.jpg",
@@ -144,6 +169,16 @@
             "hash": 5616087402005649536,
             "path": "assets/skies/qwantani_dusk_1.hdr",
             "type": "Texture"
+        },
+        "11478873376804402379": {
+            "hash": 10355329136700605666,
+            "path": "assets/world/landmarks/burj_khalifa-r3.glb",
+            "type": "Mesh"
+        },
+        "11569941434593218959": {
+            "hash": 866968956112857040,
+            "path": "assets/world/landmarks/christ_the_redeemer-r3-lod1.glb",
+            "type": "Mesh"
         },
         "11636612132228961816": {
             "hash": 12696014756993588771,
@@ -195,6 +230,11 @@
             "path": "assets/models/external/kenney_boats/cargo_container_b.glb",
             "type": "Mesh"
         },
+        "12144190595864778274": {
+            "hash": 10359212561974956840,
+            "path": "assets/world/landmarks/sydney_opera_house-r3.glb",
+            "type": "Mesh"
+        },
         "12190100396979270698": {
             "hash": 6793497951419645721,
             "path": "assets/textures/facades/concrete_panel_albedo.jpg",
@@ -219,6 +259,11 @@
             "hash": 9339828496823619462,
             "path": "assets/textures/facades/brick_red_normal.jpg",
             "type": "Texture"
+        },
+        "12353146997401426821": {
+            "hash": 5300224192993007567,
+            "path": "assets/world/landmarks/big_ben-r3-lod2.glb",
+            "type": "Mesh"
         },
         "12461648921615326159": {
             "hash": 13251805563787844752,
@@ -255,6 +300,11 @@
             "path": "assets/textures/facades/render_rough_albedo.jpg",
             "type": "Texture"
         },
+        "12627523040984944437": {
+            "hash": 10809450871686237702,
+            "path": "assets/world/landmarks/empire_state_building-r3.glb",
+            "type": "Mesh"
+        },
         "12646767106854961925": {
             "hash": 4859881655174385096,
             "path": "assets/textures/surfaces/corrugated_normal.jpg",
@@ -279,6 +329,11 @@
             "hash": 2160840037247510684,
             "path": "assets/textures/facades/concrete_panel_normal.jpg",
             "type": "Texture"
+        },
+        "12766889262400015419": {
+            "hash": 10221821886969492108,
+            "path": "assets/world/landmarks/pyramid_of_khafre-r3.glb",
+            "type": "Mesh"
         },
         "12782171376060662388": {
             "hash": 10883735808939277137,
@@ -330,15 +385,40 @@
             "path": "assets/models/external/nature_cards/broadleaf.glb",
             "type": "Mesh"
         },
+        "13047220615100484517": {
+            "hash": 1991554858669794914,
+            "path": "assets/world/landmarks/taj_mahal-r3-lod1.glb",
+            "type": "Mesh"
+        },
         "13051476689686752837": {
             "hash": 4346051299737322069,
             "path": "assets/textures/surfaces/sand_red_mr.jpg",
             "type": "Texture"
         },
+        "13068997251858126156": {
+            "hash": 14472776135342671907,
+            "path": "assets/world/landmarks/christ_the_redeemer-r3.glb",
+            "type": "Mesh"
+        },
+        "13111794619578189054": {
+            "hash": 6272487676898454493,
+            "path": "assets/world/landmarks/sagrada_familia-r3.glb",
+            "type": "Mesh"
+        },
         "13161986270884755553": {
             "hash": 6813064377294465614,
             "path": "assets/textures/surfaces/forest_boreal_albedo.jpg",
             "type": "Texture"
+        },
+        "13171352336414820066": {
+            "hash": 8767643835387089587,
+            "path": "assets/world/landmarks/tokyo_tower-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "13172146499582184129": {
+            "hash": 7887005807601248319,
+            "path": "assets/world/landmarks/tokyo_tower-r3-lod2.glb",
+            "type": "Mesh"
         },
         "13218949161719059758": {
             "hash": 10499384107617078218,
@@ -350,6 +430,11 @@
             "path": "assets/textures/facades/render_rough_mr.jpg",
             "type": "Texture"
         },
+        "13364353098406619667": {
+            "hash": 3204986691722065743,
+            "path": "assets/world/landmarks/leaning_tower_of_pisa-r3.glb",
+            "type": "Mesh"
+        },
         "13413210018139794012": {
             "hash": 16291479167162693180,
             "path": "assets/textures/surfaces/forest_tropical_normal.jpg",
@@ -359,6 +444,11 @@
             "hash": 8888880897758371419,
             "path": "assets/textures/surfaces/forest_boreal_normal.jpg",
             "type": "Texture"
+        },
+        "13481510740277723791": {
+            "hash": 17110938019993773648,
+            "path": "assets/world/landmarks/empire_state_building-r3-lod1.glb",
+            "type": "Mesh"
         },
         "13546313537533355355": {
             "hash": 14357097194554739423,
@@ -470,6 +560,11 @@
             "path": "assets/models/external/kenney_boats/ship_cargo_b.glb",
             "type": "Mesh"
         },
+        "14650963209442555746": {
+            "hash": 11438010028825789072,
+            "path": "assets/world/landmarks/parthenon-r3-lod1.glb",
+            "type": "Mesh"
+        },
         "14655921647795101785": {
             "hash": 14978879175135018970,
             "path": "assets/world/shipping/prior.bin",
@@ -489,6 +584,11 @@
             "hash": 9565856580366798135,
             "path": "assets/models/external/nature_cards/quiver_tree_slim.png",
             "type": "Texture"
+        },
+        "14829374661664298212": {
+            "hash": 15932095546901038657,
+            "path": "assets/world/landmarks/brandenburg_gate-r3-lod1.glb",
+            "type": "Mesh"
         },
         "14834222913782364802": {
             "hash": 5063559829734088901,
@@ -545,6 +645,21 @@
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_trunk_diff_1k.jpg",
             "type": "Texture"
         },
+        "15374812747493576515": {
+            "hash": 6723276661686199723,
+            "path": "assets/world/landmarks/landmarks.json",
+            "type": "Unknown"
+        },
+        "15403670556682350615": {
+            "hash": 5537844667250219054,
+            "path": "assets/world/landmarks/pyramid_of_menkaure-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "15413087698998148951": {
+            "hash": 10043880840594438378,
+            "path": "assets/world/landmarks/brandenburg_gate-r3.glb",
+            "type": "Mesh"
+        },
         "15432293181181506706": {
             "hash": 6957729338219418389,
             "path": "assets/models/external/nature_selected/grass_fresh.png",
@@ -559,6 +674,11 @@
             "hash": 17690186527046223947,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_arm_1k.jpg",
             "type": "Texture"
+        },
+        "15600754699772669762": {
+            "hash": 14553747209151262835,
+            "path": "assets/world/landmarks/arc_de_triomphe-r3-lod1.glb",
+            "type": "Mesh"
         },
         "15685313678389118020": {
             "hash": 10917355006684245255,
@@ -590,6 +710,11 @@
             "path": "assets/skies/qwantani_morning.hdr",
             "type": "Texture"
         },
+        "16098873826104795104": {
+            "hash": 7638502661827406033,
+            "path": "assets/world/landmarks/leaning_tower_of_pisa-r3-lod1.glb",
+            "type": "Mesh"
+        },
         "16347591430840472236": {
             "hash": 9148229028813619266,
             "path": "assets/skies/qwantani_mid_morning.hdr",
@@ -603,6 +728,11 @@
         "16455620822867604554": {
             "hash": 17239871382869383530,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_02.bin",
+            "type": "Unknown"
+        },
+        "16625814420988036407": {
+            "hash": 4590530117392917427,
+            "path": "assets/world/landmarks/far.json",
             "type": "Unknown"
         },
         "16674097435083625614": {
@@ -635,6 +765,11 @@
             "path": "assets/textures/facades/earth_mr.jpg",
             "type": "Texture"
         },
+        "17084595504188701708": {
+            "hash": 18120353416103955508,
+            "path": "assets/world/landmarks/taj_mahal-r3.glb",
+            "type": "Mesh"
+        },
         "17127537684709276246": {
             "hash": 1423244832286821060,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_arm_1k.jpg",
@@ -660,6 +795,11 @@
             "path": "assets/textures/surfaces/quay_normal.jpg",
             "type": "Texture"
         },
+        "17264216592761584775": {
+            "hash": 14293520886085357348,
+            "path": "assets/world/landmarks/sagrada_familia-r3-lod1.glb",
+            "type": "Mesh"
+        },
         "17286663370952147972": {
             "hash": 13091413490452466892,
             "path": "assets/models/external/kenney_boats/boat_tug_a.glb",
@@ -675,6 +815,11 @@
             "path": "assets/textures/surfaces/sand_red_albedo.jpg",
             "type": "Texture"
         },
+        "17483323126760974067": {
+            "hash": 13749321095108145938,
+            "path": "assets/world/landmarks/sagrada_familia-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "17534997703788934449": {
             "hash": 1097544280952446221,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_branches_arm_1k.jpg",
@@ -683,6 +828,11 @@
         "17581629350746979177": {
             "hash": 10788036496045935979,
             "path": "assets/models/external/kenney_boats/boat_speed_g.glb",
+            "type": "Mesh"
+        },
+        "17622459326252029324": {
+            "hash": 17140665716811845206,
+            "path": "assets/world/landmarks/arc_de_triomphe-r3-lod2.glb",
             "type": "Mesh"
         },
         "1768263024899672070": {
@@ -695,9 +845,19 @@
             "path": "assets/textures/facades/brick_dark_albedo.jpg",
             "type": "Texture"
         },
+        "1777072293541225068": {
+            "hash": 13740595242360371613,
+            "path": "assets/world/landmarks/petronas_towers-r3.glb",
+            "type": "Mesh"
+        },
         "17929238023192463807": {
             "hash": 7124368253203272596,
             "path": "assets/models/external/kenney_boats/boat_fishing_small.glb",
+            "type": "Mesh"
+        },
+        "18046948938539271538": {
+            "hash": 5694088809579962864,
+            "path": "assets/world/landmarks/petronas_towers-r3-lod1.glb",
             "type": "Mesh"
         },
         "18082926178732186715": {
@@ -710,6 +870,11 @@
             "path": "assets/textures/surfaces/snow_albedo.jpg",
             "type": "Texture"
         },
+        "18184050926343500723": {
+            "hash": 8603963367728877190,
+            "path": "assets/world/atlas.json",
+            "type": "Unknown"
+        },
         "18197928098729124870": {
             "hash": 16125958644359663234,
             "path": "assets/models/external/trees_lod/pine_sapling.glb",
@@ -719,6 +884,11 @@
             "hash": 5241795148218232536,
             "path": "assets/licenses/Kenney-CC0.txt",
             "type": "Unknown"
+        },
+        "1826670792741540548": {
+            "hash": 15144095710561317323,
+            "path": "assets/world/landmarks/taj_mahal-r3-lod2.glb",
+            "type": "Mesh"
         },
         "18269509320279703244": {
             "hash": 8069797850845266635,
@@ -750,6 +920,11 @@
             "path": "assets/textures/facades/timber_mr.jpg",
             "type": "Texture"
         },
+        "1873029730182051311": {
+            "hash": 14125863469650836342,
+            "path": "assets/world/landmarks/st_basils_cathedral-r3.glb",
+            "type": "Mesh"
+        },
         "1887724836181236674": {
             "hash": 9495266911581820076,
             "path": "assets/models/external/nature_selected/shrub.glb",
@@ -765,6 +940,11 @@
             "path": "assets/models/external/kenney_boats/boat_sail_a.glb",
             "type": "Mesh"
         },
+        "1956996305968822904": {
+            "hash": 13300163794532337650,
+            "path": "assets/world/landmarks/arc_de_triomphe-r3.glb",
+            "type": "Mesh"
+        },
         "2042137087847271605": {
             "hash": 4935156889823412843,
             "path": "assets/textures/surfaces/tropical_ground_normal.jpg",
@@ -773,6 +953,11 @@
         "2042591374650119539": {
             "hash": 12683091016541965439,
             "path": "assets/models/external/trees_lod/quiver_tree.glb",
+            "type": "Mesh"
+        },
+        "2058553751057375268": {
+            "hash": 15762000521727974973,
+            "path": "assets/world/landmarks/empire_state_building-r3-lod2.glb",
             "type": "Mesh"
         },
         "2136220535477230864": {
@@ -815,6 +1000,16 @@
             "path": "assets/textures/facades/brick_buff_normal.jpg",
             "type": "Texture"
         },
+        "2482294879918207624": {
+            "hash": 5537844667250219054,
+            "path": "assets/world/landmarks/pyramid_of_menkaure-r3-lod2.glb",
+            "type": "Mesh"
+        },
+        "2559775731795110223": {
+            "hash": 8095978399875303401,
+            "path": "assets/world/landmarks/st_peters_basilica-r3-lod1.glb",
+            "type": "Mesh"
+        },
         "2588424575745427250": {
             "hash": 5120502853837879303,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_diff_1k.jpg",
@@ -838,6 +1033,16 @@
         "2909167109492848669": {
             "hash": 10688984582387972424,
             "path": "assets/models/external/kenney_boats/boat_row_small.glb",
+            "type": "Mesh"
+        },
+        "2962791567303176859": {
+            "hash": 9724498509277945914,
+            "path": "assets/world/landmarks/notre_dame_de_paris-r3.glb",
+            "type": "Mesh"
+        },
+        "2965780674674210366": {
+            "hash": 1350043797720941082,
+            "path": "assets/world/landmarks/burj_khalifa-r3-lod2.glb",
             "type": "Mesh"
         },
         "2980352726614349373": {
@@ -884,6 +1089,11 @@
             "hash": 1918727725939250380,
             "path": "assets/world/traffic_paints.json",
             "type": "Unknown"
+        },
+        "3415922082190133732": {
+            "hash": 12810877391955314787,
+            "path": "assets/world/landmarks/statue_of_liberty-r3.glb",
+            "type": "Mesh"
         },
         "3427590393430696350": {
             "hash": 2877875873424678174,
@@ -955,6 +1165,11 @@
             "path": "assets/textures/surfaces/savanna_normal.jpg",
             "type": "Texture"
         },
+        "3782441881669700944": {
+            "hash": 3011600536635194599,
+            "path": "assets/world/landmarks/st_basils_cathedral-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "381442657168135737": {
             "hash": 8318651115817926230,
             "path": "assets/models/external/nature_cards/urban_tree-slice.png",
@@ -1000,6 +1215,11 @@
             "path": "assets/models/external/nature_cards/quiver_tree.png",
             "type": "Texture"
         },
+        "4208383206889135192": {
+            "hash": 13251916868029479985,
+            "path": "assets/world/landmarks/statue_of_liberty-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "4225926003483545637": {
             "hash": 4063917106782031473,
             "path": "assets/textures/surfaces/tile_canal_mr.jpg",
@@ -1009,6 +1229,11 @@
             "hash": 1433826694729551829,
             "path": "assets/textures/surfaces/forest_temperate_albedo.jpg",
             "type": "Texture"
+        },
+        "4450752962977456044": {
+            "hash": 4147212969547669327,
+            "path": "assets/world/landmarks/eiffel_tower-r3-lod1.glb",
+            "type": "Mesh"
         },
         "4478502281735259409": {
             "hash": 15480681270268060542,
@@ -1045,6 +1270,16 @@
             "path": "assets/skies/overcast_soil_puresky.hdr",
             "type": "Texture"
         },
+        "4713365770161433739": {
+            "hash": 9555140502420367543,
+            "path": "assets/world/landmarks/sydney_opera_house-r3-lod2.glb",
+            "type": "Mesh"
+        },
+        "473901265631880619": {
+            "hash": 3535432414683994866,
+            "path": "assets/world/landmarks/colosseum-r3-lod1.glb",
+            "type": "Mesh"
+        },
         "4741489824240185612": {
             "hash": 5525194153959170927,
             "path": "assets/models/external/nature_selected/urban_tree.glb",
@@ -1075,10 +1310,25 @@
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_nor_gl_1k.jpg",
             "type": "Texture"
         },
+        "4925740750151711135": {
+            "hash": 5686412886186456060,
+            "path": "assets/world/landmarks/pyramid_of_khafre-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "4962437406711252675": {
+            "hash": 14014326516972866342,
+            "path": "assets/world/landmarks/colosseum-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "5023495805175933025": {
             "hash": 17831720104346183638,
             "path": "assets/textures/surfaces/corrugated_mr.jpg",
             "type": "Texture"
+        },
+        "5111892054181493639": {
+            "hash": 6993375815180999364,
+            "path": "assets/world/landmarks/pyramid_of_khufu-r3.glb",
+            "type": "Mesh"
         },
         "5132301166652025866": {
             "hash": 14497282502308850605,
@@ -1108,6 +1358,11 @@
         "5477221516109406678": {
             "hash": 6772301522737497379,
             "path": "assets/models/external/kenney_boats/ship_ocean_liner.glb",
+            "type": "Mesh"
+        },
+        "5493542347019388953": {
+            "hash": 7546114675916382134,
+            "path": "assets/world/landmarks/notre_dame_de_paris-r3-lod2.glb",
             "type": "Mesh"
         },
         "5503867232916445660": {
@@ -1150,6 +1405,11 @@
             "path": "assets/textures/surfaces/quay_albedo.jpg",
             "type": "Texture"
         },
+        "5800500693661855540": {
+            "hash": 4482795551739230407,
+            "path": "assets/world/landmarks/statue_of_liberty-r3-lod1.glb",
+            "type": "Mesh"
+        },
         "5811134762573635999": {
             "hash": 12634290776162895004,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_02_nor_gl_1k.jpg",
@@ -1170,10 +1430,25 @@
             "path": "assets/textures/surfaces/cobbles_normal.jpg",
             "type": "Texture"
         },
+        "5944290885178328513": {
+            "hash": 16733645419367980927,
+            "path": "assets/world/landmarks/petronas_towers-r3-lod2.glb",
+            "type": "Mesh"
+        },
+        "5966913870909260549": {
+            "hash": 1018330929592724949,
+            "path": "assets/world/landmarks/parthenon-r3.glb",
+            "type": "Mesh"
+        },
         "6021941552408368945": {
             "hash": 3327070197725738622,
             "path": "assets/textures/surfaces/tile_flat_albedo.jpg",
             "type": "Texture"
+        },
+        "6027825936430180015": {
+            "hash": 14178196335545174928,
+            "path": "assets/world/landmarks/eiffel_tower-r3.glb",
+            "type": "Mesh"
         },
         "6084285013785884658": {
             "hash": 7597585586211863537,
@@ -1215,6 +1490,11 @@
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_arm_1k.jpg",
             "type": "Texture"
         },
+        "6613431402152102593": {
+            "hash": 11757590672386690857,
+            "path": "assets/world/landmarks/parthenon-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "662309229210107610": {
             "hash": 6188463635609699760,
             "path": "assets/textures/surfaces/cobbles_albedo.jpg",
@@ -1250,10 +1530,20 @@
             "path": "assets/textures/surfaces/forest_temperate_normal.jpg",
             "type": "Texture"
         },
+        "6895047409412459049": {
+            "hash": 13304284152338211735,
+            "path": "assets/world/landmarks/st_peters_basilica-r3.glb",
+            "type": "Mesh"
+        },
         "702396419434324797": {
             "hash": 9940349880960739191,
             "path": "assets/models/external/nature_cards/quiver_tree.source.json",
             "type": "Unknown"
+        },
+        "7074942066590521432": {
+            "hash": 4716315374872967165,
+            "path": "assets/world/landmarks/eiffel_tower-r3-lod2.glb",
+            "type": "Mesh"
         },
         "7088469241559345923": {
             "hash": 11002883388934090171,
@@ -1314,6 +1604,16 @@
             "hash": 7702914113075337547,
             "path": "assets/textures/facades/stone_mr.jpg",
             "type": "Texture"
+        },
+        "7510321396640266857": {
+            "hash": 15473776865347200900,
+            "path": "assets/world/landmarks/big_ben-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "7537605783923696026": {
+            "hash": 4042441954015626084,
+            "path": "assets/world/landmarks/colosseum-r3.glb",
+            "type": "Mesh"
         },
         "7588351653206193245": {
             "hash": 11339044442539784032,
@@ -1385,10 +1685,35 @@
             "path": "assets/textures/facades/earth_normal.jpg",
             "type": "Texture"
         },
+        "8470852928767272279": {
+            "hash": 13414958785405814345,
+            "path": "assets/world/landmarks/st_basils_cathedral-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "8477393788606490618": {
+            "hash": 10187872676434121327,
+            "path": "assets/world/landmarks/leaning_tower_of_pisa-r3-lod2.glb",
+            "type": "Mesh"
+        },
         "860219286854826305": {
             "hash": 12435981215151756996,
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_twigs_arm_1k.jpg",
             "type": "Texture"
+        },
+        "862061781375535409": {
+            "hash": 14996363965523865446,
+            "path": "assets/world/landmarks/pyramid_of_khufu-r3-lod2.glb",
+            "type": "Mesh"
+        },
+        "8702323433793294949": {
+            "hash": 5833028146158748833,
+            "path": "assets/world/landmarks/sydney_opera_house-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "8892943375755858906": {
+            "hash": 623887583112166685,
+            "path": "assets/world/landmarks/tokyo_tower-r3.glb",
+            "type": "Mesh"
         },
         "8907292784001459383": {
             "hash": 3967064986700298341,
@@ -1419,6 +1744,16 @@
             "hash": 5813454761512618140,
             "path": "assets/textures/surfaces/grass_dry_normal.jpg",
             "type": "Texture"
+        },
+        "9111774941736461163": {
+            "hash": 2408658169731820850,
+            "path": "assets/world/landmarks/burj_khalifa-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "9362403766653960405": {
+            "hash": 6241860449834878068,
+            "path": "assets/world/landmarks/big_ben-r3.glb",
+            "type": "Mesh"
         },
         "936423245872336619": {
             "hash": 2776834561249972152,
@@ -1454,6 +1789,16 @@
             "hash": 8631905787678880811,
             "path": "assets/models/external/nature_selected/grass_tall.png",
             "type": "Texture"
+        },
+        "9614193751727879334": {
+            "hash": 2865732032586941819,
+            "path": "assets/world/landmarks/pyramid_of_menkaure-r3.glb",
+            "type": "Mesh"
+        },
+        "9618100585890444611": {
+            "hash": 3824774786215270671,
+            "path": "assets/world/landmarks/st_peters_basilica-r3-lod2.glb",
+            "type": "Mesh"
         },
         "9661999023916983468": {
             "hash": 8625248630744489666,

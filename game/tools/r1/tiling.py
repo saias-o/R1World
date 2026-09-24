@@ -25,10 +25,7 @@ import math
 from dataclasses import dataclass
 from typing import Iterator
 
-try:
-    from .geodesy import R_MEAN
-except ImportError:  # Allow running the module directly from this directory.
-    from geodesy import R_MEAN
+R_MEAN = 6371008.8  # mean Earth radius, metres
 
 A_EQ = 6378137.0
 EARTH_CIRCUMFERENCE = 2.0 * math.pi * A_EQ

@@ -1,14 +1,19 @@
 param([switch]$Build)
 $ErrorActionPreference = 'Stop'
-# The game ships its own isolated runtime. Never choose an interpreter from
-# PATH: shell profiles, Conda and MSYS must not change the game's dependencies.
-$worldPython = Join-Path $PSScriptRoot 'generated/python-runtime/python.exe'
-if (-not (Test-Path -LiteralPath $worldPython)) {
-    throw 'Runtime du jeu absent : generated/python-runtime/python.exe'
-}
+# The world is generated inside the game (native/gen): playing needs the
+# executable and nothing else. Only building it uses the tools' Python.
 if ($Build) {
-    & $worldPython (Join-Path $PSScriptRoot 'tools/build_world.py')
+    & (Join-Path $PSScriptRoot 'generated/python-runtime/python.exe') (Join-Path $PSScriptRoot 'tools/build_world.py')
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
-& $worldPython (Join-Path $PSScriptRoot 'tools/play_world.py') @args
+$exe = @('generated/world-windows/R1World.exe', 'generated/world-windows-next/R1World.exe') |
+    ForEach-Object { Join-Path $PSScriptRoot $_ } | Where-Object { Test-Path -LiteralPath $_ } |
+    Sort-Object { (Get-Item -LiteralPath $_).LastWriteTime } -Descending | Select-Object -First 1
+if (-not $exe) { throw 'Jeu non compilé : lancez Play.ps1 -Build' }
+# A development build links against the MSYS2 runtime it was compiled with.
+$env:PATH = 'C:/msys64/ucrt64/bin;' + $env:PATH
+$session = Join-Path $PSScriptRoot ('cache/sessions/' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path $session | Out-Null
+& $exe --project $PSScriptRoot @args *> (Join-Path $session 'game.log')
+Write-Host "Logs: $session"
 exit $LASTEXITCODE
