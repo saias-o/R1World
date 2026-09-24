@@ -1,6 +1,6 @@
 """Solar ephemerides and atmosphere for R1World.
 
-Rank 4 of the fidelity hierarchy (§2.1), and the cheapest rank on the list:
+Rank 4 of the fidelity hierarchy (§2), and the cheapest rank on the list:
 given a position on the ellipsoid and an instant in UTC, the Sun's place in the
 sky is *computed*, not authored. Everything a lighting artist would otherwise
 invent falls out of it — shadow direction and length, the colour of the light,

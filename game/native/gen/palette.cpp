@@ -102,7 +102,27 @@ void loadPalette(const std::string& gameRoot) {
     }
     for (const auto& j : atlas.at("carPaints"))
         p->carPaints.push_back({j.at("albedo")[0].get<double>(), j.at("albedo")[1].get<double>(), j.at("albedo")[2].get<double>()});
+    const auto fleet = readJsonFile(gameRoot + "/assets/models/aircraft/fleet.json");
+    for (const auto& j : fleet.at("aircraft")) {
+        AircraftType a;
+        a.name = j.at("name"); a.klass = j.at("class");
+        a.length = j.at("length"); a.span = j.at("span"); a.height = j.at("height"); a.cg = j.at("cg");
+        a.nearModel = j.at("near").at("path"); a.farModel = j.at("far").at("path");
+        a.nearVertices = j.at("near").at("vertices"); a.farVertices = j.at("far").at("vertices");
+        const auto& h = j.at("handling");
+        a.top = h.at("top"); a.rotate = h.at("rotate"); a.stall = h.at("stall"); a.accel = h.at("accel");
+        a.spool = h.at("spool"); a.brake = h.at("brake"); a.turnRadius = h.at("turnRadius");
+        a.rollRate = h.at("rollRate"); a.maxBank = h.at("maxBank"); a.pitchRate = h.at("pitchRate");
+        a.maxPitch = h.at("maxPitch"); a.climb = h.at("climb");
+        p->aircraft.push_back(std::move(a));
+    }
+    if (p->aircraft.empty()) throw std::runtime_error("assets/models/aircraft/fleet.json lists no aircraft");
     gPalette = std::move(p);
+}
+
+const AircraftType* aircraftType(const std::string& name) {
+    for (const auto& a : palette().aircraft) if (a.name == name) return &a;
+    return nullptr;
 }
 
 // ── profiles ────────────────────────────────────────────────────────────────
@@ -255,6 +275,7 @@ const GroundRow kGround[] = {
     {"farmland", {"farmland", "cracked_earth", "farmland", "farmland", "farmland", "frost"}},
     {"bare", {"savanna", "cracked_earth", "bare", "bare", "bare", "bare"}},
     {"urban", {"made_ground", "made_ground", "made_ground", "made_ground", "made_ground", "made_ground"}},
+    {"airfield", {"grass_lush", "grass_dry", "grass_dry", "grass", "grass", "frost"}},
 };
 const std::pair<const char*, const char*> kInferredGround[] = {
     {"Ground, temperate", "grass"}, {"Ground, dry grass", "grass_dry"},
@@ -297,7 +318,8 @@ std::optional<std::string> groundFamily(const std::string& name, const std::stri
 
 std::string wallFamily(const std::string& swatchName) {
     const std::string n = lower(swatchName);
-    if (any(n, {"glass", "curtain"})) return "concrete_panel";
+    if (any(n, {"glass", "curtain", "glazing"})) return "concrete_panel";
+    if (any(n, {"corrugated"})) return "corrugated";
     if (any(n, {"painted brick"})) return "render";
     if (any(n, {"brick", "brique"})) {
         if (any(n, {"dark"})) return "brick_dark";

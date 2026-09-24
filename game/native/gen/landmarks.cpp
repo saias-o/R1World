@@ -112,6 +112,7 @@ LandmarkPlacement placeLandmarks(const Bounds& bounds, const std::function<P3(do
             Ring turned;
             for (const P2& p : ring) turned.push_back(turn(l->bearing, p, at));
             out.solids.push_back(std::move(turned));
+            out.solidTops.push_back(at.y + l->height);
         }
         out.vertices += l->levels.at(0).vertices;
         manifest.push_back({{"slug", l->slug}, {"name", l->name}, {"wikidata", l->wikidata},

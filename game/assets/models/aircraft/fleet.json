@@ -1,0 +1,137 @@
+{
+  "author": "R1World",
+  "license": "CC0-1.0",
+  "source": "game/tools/r1/aircraft_fleet.py",
+  "description": "Original generic aircraft; no airline, livery, logo or registration.",
+  "totalVertices": 14785,
+  "aircraft": [
+    {
+      "name": "widebody",
+      "class": "airliner",
+      "length": 64.0,
+      "span": 60.3,
+      "height": 17.3,
+      "cg": 5.2,
+      "near": {
+        "path": "assets/models/aircraft/widebody.glb",
+        "vertices": 3787,
+        "triangles": 4476
+      },
+      "far": {
+        "path": "assets/models/aircraft/widebody_far.glb",
+        "vertices": 1582,
+        "triangles": 1584
+      },
+      "handling": {
+        "top": 88.0,
+        "rotate": 58.0,
+        "stall": 46.0,
+        "accel": 3.0,
+        "spool": 0.22,
+        "brake": 3.2,
+        "turnRadius": 42.0,
+        "rollRate": 24.0,
+        "maxBank": 32.0,
+        "pitchRate": 5.5,
+        "maxPitch": 18.0,
+        "climb": 0.0
+      }
+    },
+    {
+      "name": "airliner",
+      "class": "airliner",
+      "length": 37.6,
+      "span": 34.1,
+      "height": 11.8,
+      "cg": 3.6,
+      "near": {
+        "path": "assets/models/aircraft/airliner.glb",
+        "vertices": 3019,
+        "triangles": 3740
+      },
+      "far": {
+        "path": "assets/models/aircraft/airliner_far.glb",
+        "vertices": 1198,
+        "triangles": 1232
+      },
+      "handling": {
+        "top": 90.0,
+        "rotate": 55.0,
+        "stall": 43.0,
+        "accel": 3.6,
+        "spool": 0.3,
+        "brake": 3.8,
+        "turnRadius": 26.0,
+        "rollRate": 32.0,
+        "maxBank": 36.0,
+        "pitchRate": 7.0,
+        "maxPitch": 20.0,
+        "climb": 0.0
+      }
+    },
+    {
+      "name": "bizjet",
+      "class": "jet",
+      "length": 20.3,
+      "span": 19.4,
+      "height": 6.0,
+      "cg": 1.7,
+      "near": {
+        "path": "assets/models/aircraft/bizjet.glb",
+        "vertices": 2345,
+        "triangles": 2902
+      },
+      "far": {
+        "path": "assets/models/aircraft/bizjet_far.glb",
+        "vertices": 1050,
+        "triangles": 1100
+      },
+      "handling": {
+        "top": 97.0,
+        "rotate": 42.0,
+        "stall": 34.0,
+        "accel": 6.2,
+        "spool": 0.8,
+        "brake": 5.5,
+        "turnRadius": 11.0,
+        "rollRate": 95.0,
+        "maxBank": 70.0,
+        "pitchRate": 20.0,
+        "maxPitch": 35.0,
+        "climb": 0.0
+      }
+    },
+    {
+      "name": "helicopter",
+      "class": "helicopter",
+      "length": 15.3,
+      "span": 16.0,
+      "height": 4.4,
+      "cg": 1.8,
+      "near": {
+        "path": "assets/models/aircraft/helicopter.glb",
+        "vertices": 1112,
+        "triangles": 1234
+      },
+      "far": {
+        "path": "assets/models/aircraft/helicopter_far.glb",
+        "vertices": 692,
+        "triangles": 552
+      },
+      "handling": {
+        "top": 45.0,
+        "rotate": 0.0,
+        "stall": 0.0,
+        "accel": 7.0,
+        "spool": 0.35,
+        "brake": 8.0,
+        "turnRadius": 0.0,
+        "rollRate": 75.0,
+        "maxBank": 24.0,
+        "pitchRate": 0.0,
+        "maxPitch": 16.0,
+        "climb": 10.0
+      }
+    }
+  ]
+}

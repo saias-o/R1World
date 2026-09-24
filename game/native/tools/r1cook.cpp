@@ -1,9 +1,12 @@
 // Cook tiles headless, from the observations on disk, and say what came out.
 //
-//   r1cook --game <root> [--glb <dir>] [--repeat n] <row> <col> [<row> <col>...]
+//   r1cook --game <root> [--glb <dir>] [--repeat n] [--tile-target n] [--fetch] <row> <col> [<row> <col>...]
+//   r1cook --game <root> --at <lon> <lat> ...   the tile under a point, instead of a row and column
 //
-// It never touches the network: a tile whose observations are not cached is
-// reported as such. `--glb` writes each tile's geometry for inspection. The
+// It never touches the network unless `--fetch` says it may: a tile whose
+// observations are not cached is then downloaded exactly as the game would
+// (its neighbourhood's query, its terrain) and kept; without it, it is
+// reported as not cached. `--glb` writes each tile's geometry for inspection. The
 // output is one JSON line per tile: what came out, and how long it took.
 #include "gen/cook.hpp"
 #include "gen/palette.hpp"
@@ -17,12 +20,17 @@
 int main(int argc, char** argv) {
     std::string game = ".", glb;
     int repeat = 1;
+    bool fetch = false;
+    size_t tileTarget = r1::kTileVertexBudget;
     std::vector<r1::Tile> tiles;
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--game" && i + 1 < argc) game = argv[++i];
         else if (a == "--glb" && i + 1 < argc) glb = argv[++i];
         else if (a == "--repeat" && i + 1 < argc) repeat = std::atoi(argv[++i]);
+        else if (a == "--tile-target" && i + 1 < argc) tileTarget = std::stoull(argv[++i]);
+        else if (a == "--fetch") fetch = true;
+        else if (a == "--at" && i + 2 < argc) { tiles.push_back(r1::tileAt(std::stod(argv[i + 1]), std::stod(argv[i + 2]))); i += 2; }
         else if (i + 1 < argc) { tiles.push_back({std::atoi(argv[i]), std::atoi(argv[i + 1])}); ++i; }
     }
     try {
@@ -45,8 +53,29 @@ int main(int argc, char** argv) {
                 for (int dc = -1; dc <= 1; ++dc) group.push_back({row, (col + dc + n) % n});
             }
             const auto shared = store.shared(group);
-            auto document = store.osm(tile, shared);
+            bool stale = false;
+            auto document = store.osm(tile, shared, &stale);
             auto ground = store.ground(tile);
+            if (fetch && (!document || stale)) {
+                if (shared) store.fetchOsm(shared->region, shared->path);
+                else store.fetchOsm(tile.bounds(), store.tileFolder(tile) + "/osm.json");
+                document = store.osm(tile, shared, &stale);
+            }
+            if (fetch && !ground) ground = store.fetchGround(tile);
+            // The aero layer beside an answer older than it, as the game reads it.
+            std::optional<nlohmann::json> aero;
+            if (const auto path = store.osmPath(tile, shared)) {
+                line["osm"] = *path;
+                bool needed = false;
+                auto layer = store.aeroPath(tile, shared, *path, needed);
+                if (needed && !layer && fetch) {
+                    const auto target = store.aeroTarget(tile, shared);
+                    store.fetchAero(target.region, target.path);
+                    layer = target.path;
+                }
+                if (layer) { aero = r1::readJson(*layer); line["aero"] = *layer; }
+                else if (needed) line["airportsPending"] = true;
+            }
             if (!document || !ground) {
                 line["error"] = "observations not cached";
                 std::cout << line.dump() << std::endl;
@@ -56,10 +85,12 @@ int main(int argc, char** argv) {
             r1::Observations in;
             in.tile = tile;
             const auto parseStart = std::chrono::steady_clock::now();
-            in.osm = std::make_shared<const r1::OsmData>(r1::normalizeOsm(*document));
+            in.osm = std::make_shared<const r1::OsmData>(r1::normalizeOsm(*document, aero ? &*aero : nullptr));
+            in.airportsPending = line.value("airportsPending", false);
             line["parseMs"] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - parseStart).count();
             in.elevations = ground->first;
             in.elevationSource = ground->second;
+            in.targetVertices = tileTarget;
             r1::CookedTile cooked;
             double best = 1e300;
             for (int k = 0; k < repeat; ++k) {
@@ -68,6 +99,7 @@ int main(int argc, char** argv) {
             }
             line["cookMs"] = best;
             line["vertices"] = cooked.manifest["vertices"];
+            line["buildingGeometryLod"] = cooked.manifest["buildingGeometryLod"];
             line["buildings"] = cooked.manifest["buildings"];
             nlohmann::json parts = nlohmann::json::array();
             for (const auto& p : cooked.parts)
@@ -75,7 +107,7 @@ int main(int argc, char** argv) {
             line["parts"] = parts;
             line["props"] = cooked.props.size();
             for (const char* k : {"streets", "inference", "props", "nature", "harbour", "ground", "water", "landmarks",
-                                  "landmarkReplacedWays", "boats", "decks"})
+                                  "landmarkReplacedWays", "boats", "decks", "airports", "aircraft", "osmQueryVersion"})
                 line["manifest"][k] = cooked.manifest[k];
             line["manifest"]["traffic"] = {{"nodes", cooked.manifest["traffic"]["nodes"].size()},
                                            {"lanes", cooked.manifest["traffic"]["lanes"].size()},

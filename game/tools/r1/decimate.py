@@ -1,4 +1,4 @@
-"""Decimation for photoreal vegetation — plan §11.4, and the arena's price list.
+"""Decimation for photoreal vegetation — plan §4, and the arena's price list.
 
 The project ships photoscanned CC0 trees from Poly Haven. They are the best asset in the repository and nothing may
 replace them (see `CLAUDE.md`, rule 1). They are also, measured:
@@ -11,7 +11,7 @@ Saida's arena holds 1 048 576 vertices for the entire scene, and a dense
 neighbourhood of world tiles already occupies 841 035 of them. One species of
 tree at native density therefore cannot be resident at the same time as a city.
 
-This module is the answer §11.4 already named: the model enters the game
+This module is the answer §4 already named: the model enters the game
 decimated, not exchanged for a lesser model.
 
 **How, and why not the usual way.** A fir sapling is not one surface. It is a
@@ -36,7 +36,7 @@ photograph of a real plant rather than a drawing of one.
 canopy and leaves a bald crown over a dense skirt. Clusters are ordered by
 position and kept at a fixed stride, so the survivors are spread through the
 volume the tree occupied. The order is deterministic and depends only on the
-mesh, so a decimated model is byte-identical on every machine (§4 I3).
+mesh, so a decimated model is byte-identical on every machine (§3 I3).
 """
 
 from __future__ import annotations
@@ -174,7 +174,7 @@ def _keep(clusters, positions, ratio: float) -> list[list[int]]:
     for slab in sorted(slabs):
         members = slabs[slab]
         # Furthest from the axis first, then by position so the order cannot
-        # depend on how the file happened to be written (§4 I3).
+        # depend on how the file happened to be written (§3 I3).
         members.sort(key=lambda i: (
             -((centres[i][0] - axis_x) ** 2 + (centres[i][2] - axis_z) ** 2),
             centres[i][1], centres[i][0], centres[i][2]))
@@ -381,7 +381,7 @@ def decimate_gltf(source: Path, target: Path, budget: int,
             raise RuntimeError(
                 f"{source.name} references {uri}, which is {len(blob)} bytes and "
                 f"is not a PNG or a JPEG. It is very likely an error page saved "
-                f"under an image's name (plan §11.4: un asset non conforme "
+                f"under an image's name (plan §4: un asset non conforme "
                 f"n'entre pas)."
             )
         blob = _shrink_texture(blob, texture_size)

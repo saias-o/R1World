@@ -13,6 +13,7 @@
 #include "gen/terrain.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -355,6 +356,28 @@ TEST(Cook, a_dense_paris_tile_fits_its_budget_and_says_what_it_inferred) {
           t.manifest["inference"]["count"].get<int>());
     CHECK(t.manifest["region"] == "Paris intra-muros");
 }
+TEST(Cook, a_resident_target_uses_building_lod_without_losing_the_ground) {
+    Observations in = paris(tileAt(2.3522, 48.8566));
+    in.targetVertices = 80000;
+    const CookedTile t = cookTile(in);
+    CHECK(t.manifest["vertices"].get<size_t>() <= in.targetVertices);
+    CHECK(t.manifest["buildingGeometryLod"] != "full");
+    CHECK(t.manifest["footprints"].size() > 100);
+    bool ground = false, roof = false;
+    for (const auto& part : t.parts) {
+        ground |= part.name.find("Ground") == 0;
+        roof |= part.name.find("Roofs") == 0;
+    }
+    CHECK(ground && roof);
+}
+TEST(Cook, every_footprint_says_how_high_it_stands) {
+    // What an aircraft clears or stops against (gen/airports, world.cpp).
+    const CookedTile t = cookTile(paris(tileAt(2.3522, 48.8566)));
+    const auto& tops = t.manifest["footprintTops"];
+    CHECK(tops.size() == t.manifest["footprints"].size());
+    for (const auto& top : tops) CHECK(top.get<double>() > 25.0 && top.get<double>() < 400.0);
+    CHECK(t.manifest.contains("aircraft") && t.manifest.contains("airports"));
+}
 TEST(Cook, the_same_observations_give_the_same_tile) {
     const Observations in = paris(tileAt(2.2945, 48.8584));
     const CookedTile a = cookTile(in), b = cookTile(in);
@@ -372,6 +395,68 @@ TEST(Cook, a_cooked_tile_uploads_nothing_outside_its_own_parts) {
 
 // ── the service ─────────────────────────────────────────────────────────────
 
+namespace {
+// A game root holding one tile's observations, answered to query `version`.
+std::string placeVisitedAt(int version, const Tile& t) {
+    const std::string root = (fs::temp_directory_path() / ("r1-visited-v" + std::to_string(version))).string();
+    fs::remove_all(root);
+    const std::string folder = root + "/cache/world/" + t.key();
+    fs::create_directories(folder);
+    const Bounds b = t.bounds();
+    const double lon = (b.west + b.east) / 2, lat = (b.south + b.north) / 2, d = 0.0001;
+    nlohmann::json osm = {{"r1QueryVersion", version}, {"elements", nlohmann::json::array()}};
+    int id = 1;
+    for (auto [x, y] : {std::pair{lon - d, lat - d}, {lon + d, lat - d}, {lon + d, lat + d}, {lon - d, lat + d}})
+        osm["elements"].push_back({{"type", "node"}, {"id", id++}, {"lon", x}, {"lat", y}});
+    osm["elements"].push_back({{"type", "way"}, {"id", 10}, {"nodes", {1, 2, 3, 4, 1}}, {"tags", {{"building", "yes"}}}});
+    std::ofstream(folder + "/osm.json") << osm.dump();
+    nlohmann::json ground = {{"bounds", {{"south", b.south}, {"west", b.west}, {"north", b.north}, {"east", b.east}}},
+                             {"size", 2}, {"values", {{50.0, 50.0}, {50.0, 50.0}}}, {"source", "test"}};
+    std::ofstream(folder + "/ground-elevation.json") << ground.dump();
+    return root;
+}
+}  // namespace
+
+TEST(Sources, an_answer_before_the_aero_layer_is_cooked_without_asking_again) {
+    const Tile t = tileAt(5.0, 45.0);
+    const ObservationStore store(placeVisitedAt(kOsmBaseVersion, t));
+    bool stale = true, needed = false;
+    const auto path = store.osmPath(t, std::nullopt, &stale);
+    CHECK(path && !stale);
+    CHECK(!store.aeroPath(t, std::nullopt, *path, needed) && needed);
+    CHECK(store.aeroTarget(t, std::nullopt).path == store.tileFolder(t) + "/osm.aero.json");
+    CHECK(ObservationStore::aeroSibling("a/sources/x.json") == "a/sources/x.aero.json");
+    const ObservationStore current(placeVisitedAt(kOsmQueryVersion, t));
+    const auto full = current.osmPath(t, std::nullopt);
+    CHECK(full && !current.aeroPath(t, std::nullopt, *full, needed) && !needed);
+}
+TEST(Sources, a_layer_read_with_its_answer_adds_what_it_has_and_nothing_twice) {
+    const nlohmann::json main = {{"elements", {{{"type", "node"}, {"id", 1}, {"lon", 0.0}, {"lat", 0.0}},
+                                               {{"type", "node"}, {"id", 2}, {"lon", 0.001}, {"lat", 0.0}},
+                                               {{"type", "way"}, {"id", 5}, {"nodes", {1, 2}}, {"tags", {{"highway", "service"}}}}}}};
+    nlohmann::json layer = main;
+    layer["elements"].push_back({{"type", "node"}, {"id", 3}, {"lon", 0.0005}, {"lat", 0.0}, {"tags", {{"aeroway", "parking_position"}}}});
+    layer["elements"].push_back({{"type", "way"}, {"id", 6}, {"nodes", {1, 2}}, {"tags", {{"aeroway", "runway"}}}});
+    const OsmData data = normalizeOsm(main, &layer);
+    CHECK(data.roads.size() == 1 && data.aeroways.size() == 1 && data.features.size() == 1);
+}
+TEST(Service, a_place_visited_before_the_aero_layer_does_not_wait_for_it) {
+    // What made every Go wait on Overpass after the question widened: now
+    // the older answer is cooked at once and says its airports are to come.
+#ifdef _WIN32
+    _putenv_s("HTTPS_PROXY", "http://127.0.0.1:9");
+    _putenv_s("HTTP_PROXY", "http://127.0.0.1:9");
+#endif
+    const Tile t = tileAt(5.0, 45.0);
+    WorldService service({placeVisitedAt(kOsmBaseVersion, t), 1, nullptr, nullptr});
+    service.want({t}, {});
+    std::shared_ptr<const ServedTile> served;
+    for (int i = 0; i < 200 && !(served = service.find(t)); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    CHECK(served);
+    CHECK(!served->cooked.manifest["offlineApproximation"].get<bool>());
+    CHECK(served->cooked.manifest["airportsPending"].get<bool>());
+    CHECK(served->cooked.manifest["buildings"].get<int>() == 1);
+}
 TEST(Service, a_visited_place_never_touches_the_network) {
     // CLAUDE.md §6: every source pointed at a closed port. A tile that
     // needed one would come back as the offline approximation.

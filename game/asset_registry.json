@@ -25,6 +25,11 @@
             "path": "assets/textures/surfaces/tropical_ground_mr.jpg",
             "type": "Texture"
         },
+        "10170943427483150826": {
+            "hash": 9777566183018153596,
+            "path": "assets/models/vehicles/truck.glb",
+            "type": "Mesh"
+        },
         "10360716547519012448": {
             "hash": 16552841851578453568,
             "path": "assets/textures/surfaces/bare_normal.jpg",
@@ -160,6 +165,11 @@
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_nor_gl_1k.jpg",
             "type": "Texture"
         },
+        "1143320028396158147": {
+            "hash": 7320997727108214434,
+            "path": "assets/models/aircraft/airliner.glb",
+            "type": "Mesh"
+        },
         "11433213957736538787": {
             "hash": 11724757769050074760,
             "path": "assets/models/external/kenney_props/street_lamp_curved.glb",
@@ -180,6 +190,11 @@
             "path": "assets/world/landmarks/christ_the_redeemer-r3-lod1.glb",
             "type": "Mesh"
         },
+        "11617494070500676161": {
+            "hash": 4400410952531885863,
+            "path": "assets/models/aircraft/helicopter_far.glb",
+            "type": "Mesh"
+        },
         "11636612132228961816": {
             "hash": 12696014756993588771,
             "path": "assets/models/external/kenney_props/bus_stop_sign.glb",
@@ -189,6 +204,11 @@
             "hash": 17321171425847707638,
             "path": "assets/textures/surfaces/farmland_mr.jpg",
             "type": "Texture"
+        },
+        "11791384038718943201": {
+            "hash": 10848907647775899530,
+            "path": "assets/models/vehicles/sport.glb",
+            "type": "Mesh"
         },
         "1186708753548117409": {
             "hash": 2678215517298379653,
@@ -233,6 +253,11 @@
         "12144190595864778274": {
             "hash": 10359212561974956840,
             "path": "assets/world/landmarks/sydney_opera_house-r3.glb",
+            "type": "Mesh"
+        },
+        "12145262407510918066": {
+            "hash": 2697630829648436591,
+            "path": "assets/models/vehicles/suv.glb",
             "type": "Mesh"
         },
         "12190100396979270698": {
@@ -530,6 +555,11 @@
             "path": "assets/textures/ground/forrest_ground_01_diff_1k.jpg",
             "type": "Texture"
         },
+        "13967513879255252191": {
+            "hash": 15683231368321291683,
+            "path": "assets/models/vehicles/sport_far.glb",
+            "type": "Mesh"
+        },
         "14061585559212852745": {
             "hash": 4925463436855800410,
             "path": "assets/textures/surfaces/mud_albedo.jpg",
@@ -554,6 +584,11 @@
             "hash": 16466337340063904140,
             "path": "assets/textures/facades/concrete_albedo.jpg",
             "type": "Texture"
+        },
+        "14545802220005290627": {
+            "hash": 5047536361014655765,
+            "path": "assets/models/vehicles/suv_far.glb",
+            "type": "Mesh"
         },
         "14633311874471929293": {
             "hash": 796029264982271168,
@@ -600,6 +635,11 @@
             "path": "assets/skies/qwantani_sunrise.hdr",
             "type": "Texture"
         },
+        "15144374929398895871": {
+            "hash": 5468161483455873345,
+            "path": "assets/models/vehicles/bus_far.glb",
+            "type": "Mesh"
+        },
         "15211902689359524263": {
             "hash": 281503270715636753,
             "path": "assets/models/external/kenney_nature_kit/tree_pineTallB.glb",
@@ -609,6 +649,11 @@
             "hash": 11533829585515294398,
             "path": "assets/models/external/nature_selected/urban_tree.png",
             "type": "Texture"
+        },
+        "15217891279703186154": {
+            "hash": 9579563085499224295,
+            "path": "assets/models/vehicles/sedan.glb",
+            "type": "Mesh"
         },
         "15219161670436218162": {
             "hash": 9670824747320362889,
@@ -705,6 +750,11 @@
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_01_1k.gltf",
             "type": "Mesh"
         },
+        "1602106511672478943": {
+            "hash": 17576434372254022325,
+            "path": "assets/models/aircraft/widebody_far.glb",
+            "type": "Mesh"
+        },
         "1605000721459229932": {
             "hash": 3375162135368542473,
             "path": "assets/skies/qwantani_morning.hdr",
@@ -719,6 +769,11 @@
             "hash": 9148229028813619266,
             "path": "assets/skies/qwantani_mid_morning.hdr",
             "type": "Texture"
+        },
+        "16424036235485257864": {
+            "hash": 2363780504168245709,
+            "path": "assets/models/aircraft/airliner_far.glb",
+            "type": "Mesh"
         },
         "16452394163001117220": {
             "hash": 11997953820596656837,
@@ -810,6 +865,11 @@
             "path": "assets/textures/surfaces/tile_grey_albedo.jpg",
             "type": "Texture"
         },
+        "17401933841249509415": {
+            "hash": 16521662471742416674,
+            "path": "assets/models/vehicles/bus.glb",
+            "type": "Mesh"
+        },
         "17482462589103235886": {
             "hash": 12864905088062525357,
             "path": "assets/textures/surfaces/sand_red_albedo.jpg",
@@ -855,6 +915,11 @@
             "path": "assets/models/external/kenney_boats/boat_fishing_small.glb",
             "type": "Mesh"
         },
+        "17932798640370239090": {
+            "hash": 10267684790975774446,
+            "path": "assets/models/aircraft/bizjet_far.glb",
+            "type": "Mesh"
+        },
         "18046948938539271538": {
             "hash": 5694088809579962864,
             "path": "assets/world/landmarks/petronas_towers-r3-lod1.glb",
@@ -871,7 +936,7 @@
             "type": "Texture"
         },
         "18184050926343500723": {
-            "hash": 8603963367728877190,
+            "hash": 17927180272634298069,
             "path": "assets/world/atlas.json",
             "type": "Unknown"
         },
@@ -1021,7 +1086,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 1454867443949574629,
+            "hash": 15554292253718846135,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },
@@ -1099,6 +1164,11 @@
             "hash": 2877875873424678174,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_nor_gl_1k.jpg",
             "type": "Texture"
+        },
+        "3436111168663500509": {
+            "hash": 18113239854937659589,
+            "path": "assets/models/vehicles/city_far.glb",
+            "type": "Mesh"
         },
         "3459007977231208420": {
             "hash": 16910708569790582966,
@@ -1225,6 +1295,11 @@
             "path": "assets/textures/surfaces/tile_canal_mr.jpg",
             "type": "Texture"
         },
+        "4264951910420144180": {
+            "hash": 16625870238365112939,
+            "path": "assets/models/vehicles/offroad_far.glb",
+            "type": "Mesh"
+        },
         "4290734458697357226": {
             "hash": 1433826694729551829,
             "path": "assets/textures/surfaces/forest_temperate_albedo.jpg",
@@ -1285,6 +1360,11 @@
             "path": "assets/models/external/nature_selected/urban_tree.glb",
             "type": "Mesh"
         },
+        "475104852480623884": {
+            "hash": 15759277754833937810,
+            "path": "assets/models/aircraft/fleet.json",
+            "type": "Unknown"
+        },
         "475720218130975161": {
             "hash": 8079520555942666522,
             "path": "assets/textures/surfaces/concrete_tile_albedo.jpg",
@@ -1309,6 +1389,11 @@
             "hash": 12130353159444459608,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_nor_gl_1k.jpg",
             "type": "Texture"
+        },
+        "4848947967643712215": {
+            "hash": 8550242997973014854,
+            "path": "assets/models/aircraft/helicopter.glb",
+            "type": "Mesh"
         },
         "4925740750151711135": {
             "hash": 5686412886186456060,
@@ -1349,6 +1434,16 @@
             "hash": 14650348645766277957,
             "path": "assets/textures/surfaces/grass_mr.jpg",
             "type": "Texture"
+        },
+        "5324012288260385109": {
+            "hash": 15354494868974831352,
+            "path": "assets/models/vehicles/offroad.glb",
+            "type": "Mesh"
+        },
+        "534362875456379031": {
+            "hash": 6710731624180534199,
+            "path": "assets/models/vehicles/sedan_far.glb",
+            "type": "Mesh"
         },
         "5361539092364710995": {
             "hash": 12350097303040955276,
@@ -1490,6 +1585,16 @@
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_arm_1k.jpg",
             "type": "Texture"
         },
+        "6545469690001694150": {
+            "hash": 12020151801737836105,
+            "path": "assets/models/aircraft/widebody.glb",
+            "type": "Mesh"
+        },
+        "6567061633911533649": {
+            "hash": 185552426849558654,
+            "path": "assets/models/vehicles/truck_far.glb",
+            "type": "Mesh"
+        },
         "6613431402152102593": {
             "hash": 11757590672386690857,
             "path": "assets/world/landmarks/parthenon-r3-lod2.glb",
@@ -1503,6 +1608,11 @@
         "6649269628006657730": {
             "hash": 2695632203480965140,
             "path": "assets/models/external/kenney_boats/cargo_container_c.glb",
+            "type": "Mesh"
+        },
+        "6652818746581595538": {
+            "hash": 15557039767353397234,
+            "path": "assets/models/aircraft/bizjet.glb",
             "type": "Mesh"
         },
         "6663075660738832623": {
@@ -1529,6 +1639,11 @@
             "hash": 14440198282409149647,
             "path": "assets/textures/surfaces/forest_temperate_normal.jpg",
             "type": "Texture"
+        },
+        "6821025511995140612": {
+            "hash": 2265367145347524118,
+            "path": "assets/models/vehicles/city.glb",
+            "type": "Mesh"
         },
         "6895047409412459049": {
             "hash": 13304284152338211735,
@@ -1651,7 +1766,7 @@
             "type": "Texture"
         },
         "8048464438721485733": {
-            "hash": 12203699437731494092,
+            "hash": 15551338019611781282,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -1808,6 +1923,11 @@
         "9707553953933687028": {
             "hash": 10594579187407008245,
             "path": "assets/textures/surfaces.json",
+            "type": "Unknown"
+        },
+        "9745547955817295292": {
+            "hash": 12302353562836936383,
+            "path": "assets/models/vehicles/fleet.json",
             "type": "Unknown"
         },
         "9900978761879852007": {

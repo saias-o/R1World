@@ -1,7 +1,9 @@
 """Run the game from the development tree, logging to a session folder.
 
 The same thing `Play.ps1` does, for the test drivers: the world is generated
-inside the game, so there is no worker to start beside it.
+inside the game, so there is no worker to start beside it. The executable is
+brought up to date by `Play.ps1 -BuildOnly` first -- the one build there is --
+so a test never runs a binary older than the sources it is testing.
 """
 import os
 from pathlib import Path
@@ -13,11 +15,9 @@ GAME = Path(__file__).resolve().parents[1]
 
 
 def main():
-    primary = GAME / "generated" / "world-windows" / "R1World.exe"
-    alternate = GAME / "generated" / "world-windows-next" / "R1World.exe"
-    if not primary.exists() and not alternate.exists():
-        subprocess.run([sys.executable, str(GAME / "tools" / "build_world.py")], check=True)
-    exe = max((path for path in (primary, alternate) if path.exists()), key=lambda path: path.stat().st_mtime)
+    subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                    "-File", str(GAME / "Play.ps1"), "-BuildOnly"], check=True)
+    exe = GAME / "generated" / "world-windows" / "R1World.exe"
     session = GAME / "cache" / "sessions" / uuid.uuid4().hex
     session.mkdir(parents=True)
     env = os.environ.copy()

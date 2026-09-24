@@ -1,7 +1,7 @@
 """Surfaces — what the ground, the streets, the walls and the roofs are made of.
 
 Until this module every surface of the world was a flat colour: a measured
-albedo (`ground.py`, `atlas.py`), right on average and wrong everywhere up
+albedo from the palette, right on average and wrong everywhere up
 close, because no real ground is one colour. This gives each of them a
 photographed, seamless, physically sized material from Poly Haven or ambientCG
 — both CC0, the same grade as the skies and the trees (CLAUDE.md, rule 1).
@@ -138,161 +138,6 @@ _SOURCES_SPEC = {
 KINDS = {name: spec[0] for name, spec in _SOURCES_SPEC.items()}
 
 
-# ── choosing a family ───────────────────────────────────────────────────────
-
-CLIMATES = ("tropical", "arid", "mediterranean", "temperate", "boreal", "polar")
-
-
-def climate_at(profile_climate: str, lat: float) -> str:
-    """The region's climate, made colder by latitude where the region is broad."""
-    a = abs(lat)
-    if a >= 66.5:
-        return "polar"
-    if a >= 58.0 and profile_climate in ("temperate", "mediterranean"):
-        return "boreal"
-    return profile_climate
-
-
-def snowline(lat: float) -> float:
-    """Metres above which the ground holds snow: 5 500 m up to 20°, falling
-    linearly to sea level at 72° — about 2 750 m in the Alps, 1 300 m at 60°."""
-    a = abs(lat)
-    if a <= 20.0:
-        return 5500.0
-    return max(0.0, 5500.0 * (72.0 - a) / 52.0)
-
-
-FROST_BAND = 350.0
-
-
-def cold_suffix(lat: float, altitude: float, climate: str) -> str:
-    """"@snow" above the snowline, "@frost" just below it or in polar land."""
-    line = snowline(lat)
-    if altitude >= line:
-        return "@snow"
-    if altitude >= line - FROST_BAND or climate == "polar":
-        return "@frost"
-    return ""
-
-
-# The ground each class is made of, per climate. `None` keeps a flat colour.
-_GROUND = {
-    "water":    {c: None for c in CLIMATES},
-    "glacier":  {c: "snow" for c in CLIMATES},
-    "rock":     {"tropical": "rock", "arid": "soil_arid", "mediterranean": "rock",
-                 "temperate": "rock", "boreal": "rock", "polar": "rock"},
-    "sand":     {"tropical": "sand_beach", "arid": "sand_desert", "mediterranean": "sand_beach",
-                 "temperate": "sand_beach", "boreal": "sand_beach", "polar": "sand_beach"},
-    "wetland":  {"tropical": "forest_tropical", "arid": "mud", "mediterranean": "mud",
-                 "temperate": "mud", "boreal": "mud", "polar": "frost"},
-    "forest":   {"tropical": "forest_tropical", "arid": "soil_arid", "mediterranean": "forest_temperate",
-                 "temperate": "forest_temperate", "boreal": "forest_boreal", "polar": "forest_boreal"},
-    "scrub":    {"tropical": "savanna", "arid": "soil_arid", "mediterranean": "grass_dry",
-                 "temperate": "grass_dry", "boreal": "forest_boreal", "polar": "frost"},
-    "orchard":  {"tropical": "grass_lush", "arid": "grass_dry", "mediterranean": "grass_dry",
-                 "temperate": "grass", "boreal": "grass", "polar": "frost"},
-    "grass":    {"tropical": "grass_lush", "arid": "grass_dry", "mediterranean": "grass_dry",
-                 "temperate": "grass", "boreal": "grass", "polar": "frost"},
-    "farmland": {"tropical": "farmland", "arid": "cracked_earth", "mediterranean": "farmland",
-                 "temperate": "farmland", "boreal": "farmland", "polar": "frost"},
-    "bare":     {"tropical": "savanna", "arid": "cracked_earth", "mediterranean": "bare",
-                 "temperate": "bare", "boreal": "bare", "polar": "bare"},
-    "urban":    {c: "made_ground" for c in CLIMATES},
-}
-
-# The region's own ground, where OSM mapped nothing, keyed by its swatch name.
-_INFERRED = {
-    "Ground, temperate": "grass",
-    "Ground, dry grass": "grass_dry",
-    "Ground, desert sand": "sand_desert",
-    "Ground, arid": "soil_arid",
-    "Ground, stony arid": "soil_arid",
-    "Ground, dry savanna": "savanna",
-    "Ground, humid tropics": "tropical_ground",
-    "Ground, subtropical": "grass_lush",
-    "Ground, cultivated": "farmland",
-    "Ground, taiga": "forest_boreal",
-    "Ground, boreal forest": "forest_boreal",
-    "Ground, dry bush": "sand_red",
-    "Made ground": "made_ground",
-}
-
-
-def ground_family(name: str, inferred_ground: str, climate: str) -> str | None:
-    """The family a terrain class renders with; `name` may carry a cold suffix."""
-    base, _, cold = name.partition("@")
-    if base == "water":
-        return None
-    if cold == "snow":
-        return "snow"
-    if cold == "frost" and base not in ("urban", "rock", "sand"):
-        return "frost"
-    if base == "inferred":
-        family = _INFERRED.get(inferred_ground, "grass")
-        if climate == "polar" and family in ("grass", "grass_dry", "farmland"):
-            return "frost"
-        return family
-    return _GROUND.get(base, {}).get(climate)
-
-
-def wall_family(swatch_name: str) -> str | None:
-    """The facade family of a wall swatch, from the words its name is made of."""
-    n = swatch_name.lower()
-    if "glass" in n or "curtain" in n:
-        return "concrete_panel"
-    if "painted brick" in n:
-        return "render"
-    if "brick" in n or "brique" in n:
-        if "dark" in n:
-            return "brick_dark"
-        if any(w in n for w in ("buff", "stock", "cream", "yellow")):
-            return "brick_buff"
-        return "brick_red"
-    if "rendered stone" in n:
-        return "render_rough"
-    if any(w in n for w in ("pierre", "stone", "limestone", "travertine")):
-        return "stone"
-    if any(w in n for w in ("clapboard", "weatherboard", "siding", "painted timber", "falu")):
-        return "siding"
-    if any(w in n for w in ("timber", "larch")):
-        return "timber"
-    if "earth" in n:
-        return "earth"
-    if any(w in n for w in ("panel", "tile cladding", "blockwork")):
-        return "concrete_panel"
-    if "concrete" in n:
-        return "concrete"
-    if any(w in n for w in ("whitewash", "cal,", "lime", "pebbledash")):
-        return "render_rough"
-    return "render"
-
-
-def roof_family(swatch_name: str) -> str | None:
-    """The roof family of a roof swatch, from the words its name is made of."""
-    n = swatch_name.lower()
-    if "slate" in n or "ardoise" in n:
-        return "slate"
-    if "kawara" in n or "glazed" in n:
-        return "tile_grey"
-    if "corrugated" in n:
-        return "corrugated"
-    if any(w in n for w in ("zinc", "seam", "sheet", "galvan", "metal")):
-        return "metal_seam"
-    if "shingle" in n:
-        return "shingle"
-    if "concrete tile" in n:
-        return "concrete_tile"
-    if any(w in n for w in ("coppi", "teja", "pantile", "terracotta")):
-        return "tile_canal"
-    if "tile" in n or "tuile" in n:
-        return "tile_flat"
-    if any(w in n for w in ("membrane", "bitumen", "tar ", "tar and", "waterproof")):
-        return "membrane"
-    if any(w in n for w in ("deck", "terrace", "flat")):
-        return "terrace"
-    return "tile_flat"
-
-
 # ── the runtime half: the table and the materials ──────────────────────────
 
 _table_cache: dict | None = None
@@ -387,7 +232,7 @@ def _download(family: str, spec: tuple) -> dict[str, bytes]:
     return maps
 
 
-# Texture memory is a budget like the vertices (§4 I4): three 1024² maps per
+# Texture memory is a budget like the vertices (§3 I4): three 1024² maps per
 # material, across the fifteen or so a city neighbourhood shows, overran the
 # engine's 256 MB GPU budget on their own. The colour of what is walked on —
 # ground and streets — keeps 1024²; everything else, and every normal and

@@ -1,136 +1,106 @@
-"""Contract tests for the car — what "se déplacer en voiture" owes the world.
-
-The driving itself lives in `native/world.cpp` and is held by the E2E driver
-there: it walks to the car, gets in, drives, is refused the door at 76 km/h,
-brakes, and gets out. What this file holds is everything that must be true
-*before* the game starts, and each class below is one thing that would not be
-caught by playing for five minutes:
-
-  - the car must be a member of the entry scene, not a prop of a tile, or a
-    teleport evicts it with the neighbourhood the player left;
-  - it must be repainted like every other kit model, because Kenney's shared
-    `colormap.png` is paint at roughly 0.8 where painted metal is 0.2 (§11.4);
-  - it must be the right size in metres, and the scale must say which
-    measurement it honours — the kit's saloon is 1.7 times longer than it is
-    wide where a real one is 2.45, so one of the two is given up on purpose;
-  - and it must not have displaced anything. Rule 1 of `CLAUDE.md` was broken
-    twice by a kit model walking in over a better asset, so the test that
-    matters most here is the one that says the trees did not move.
-
-Nothing here needs the engine or the network.
-"""
-
+"""Shipped fleet contracts: dimensions, pivots, PBR separation and arena cost."""
 from __future__ import annotations
-
 import json
+import math
 import struct
 import unittest
 from pathlib import Path
-
 from r1 import prepare_world
-from r1.external_assets import (
-    GAME_ROOT, PROP_KITS, PROP_PALETTE, PROP_TEXTURE_TINT, VEHICLE_LENGTH,
-    VEHICLE_MODELS, tree_model, vehicle_model,
-)
-
+from r1.external_assets import GAME_ROOT, tree_model
+from r1.vehicle_fleet import model
 GAME = GAME_ROOT
-CAR = vehicle_model("sedan")
+CAR = model("city")
 
 
-def document(model: str) -> dict:
-    payload = (GAME / model).read_bytes()
-    length, _ = struct.unpack_from("<II", payload, 12)
-    return json.loads(payload[20:20 + length])
+def document(path):
+    payload=(GAME/path).read_bytes()
+    length,kind=struct.unpack_from('<II',payload,12)
+    assert kind==0x4e4f534a
+    return json.loads(payload[20:20+length])
 
 
-def extent(model: str) -> tuple[float, float, float]:
-    """The model's own bounding box in its own units, from its accessors."""
-    doc = document(model)
-    low = [float("inf")] * 3
-    high = [float("-inf")] * 3
-    for mesh in doc["meshes"]:
-        for primitive in mesh["primitives"]:
-            accessor = doc["accessors"][primitive["attributes"]["POSITION"]]
-            low = [min(a, b) for a, b in zip(low, accessor["min"])]
-            high = [max(a, b) for a, b in zip(high, accessor["max"])]
-    return tuple(h - l for l, h in zip(low, high))
+def car_node():
+    scene=json.loads((GAME/'scenes/earth.scene').read_text(encoding='utf-8'))
+    return next(n for n in scene['scene']['children'] if 'vehicle' in n.get('groups',[]))
 
 
-def car_node() -> dict:
-    scene = json.loads((GAME / "scenes" / "earth.scene").read_text(encoding="utf-8"))
-    return next(n for n in scene["scene"]["children"] if "vehicle" in n.get("groups", []))
+class Fleet(unittest.TestCase):
+    def setUp(self):
+        self.manifest=json.loads((GAME/'assets/models/vehicles/fleet.json').read_text())
 
+    def test_all_categories_and_two_lods_are_shipped(self):
+        self.assertEqual({v['name'] for v in self.manifest['vehicles']},
+                         {'city','sedan','suv','offroad','sport','truck','bus'})
+        for v in self.manifest['vehicles']:
+            for lod in ('near','far'):
+                doc=document(v[lod]['path'])
+                self.assertFalse(doc.get('images'), 'PBR fleet requires no external textures')
+                self.assertEqual({n['name'] for n in doc['nodes'] if n['name'].startswith('wheel-')},
+                    {'wheel-front-left','wheel-front-right','wheel-back-left','wheel-back-right'})
 
-class Shipped(unittest.TestCase):
-    def test_the_car_is_on_disk(self) -> None:
-        self.assertTrue((GAME / CAR).is_file(), CAR)
+    def test_budget_counts_exported_seams_and_shared_wheels(self):
+        total=0
+        for v in self.manifest['vehicles']:
+            for lod,limit in (('near',4500),('far',1600)):
+                doc=document(v[lod]['path'])
+                verts=sum(doc['accessors'][p['attributes']['POSITION']]['count']
+                          for m in doc['meshes'] for p in m['primitives'])
+                self.assertEqual(verts,v[lod]['vertices'])
+                self.assertLessEqual(verts,limit,v['name']+' '+lod)
+                total+=verts
+                wheel_meshes=[doc['nodes'][c]['mesh'] for n in doc['nodes']
+                              if n['name'].startswith('wheel-') for c in n['children']]
+                self.assertEqual(len(set(wheel_meshes))*4,len(wheel_meshes))
+            self.assertLess(v['far']['drawTriangles'],v['near']['drawTriangles']*.55)
+        self.assertEqual(total,self.manifest['totalVertices'])
+        self.assertLessEqual(total,40000,'Both resident LODs must fit the shared asset reserve')
 
-    def test_the_archive_it_comes_from_is_pinned(self) -> None:
-        # Kenney publishes zips and no per-model URL, so the archive is what
-        # can be pinned; a clean checkout must fetch exactly these bytes.
-        archives = {kit.target.name: kit for kit in PROP_KITS}
-        for archive_name, _stem, _target in VEHICLE_MODELS:
-            self.assertIn(archive_name, archives)
-            self.assertEqual(archives[archive_name].algorithm, "sha256")
-            self.assertEqual(len(archives[archive_name].digest), 64)
+    def test_paint_does_not_include_glass_rubber_or_lights(self):
+        for v in self.manifest['vehicles']:
+            for lod in ('near','far'):
+                doc=document(v[lod]['path'])
+                self.assertEqual({m['name'] for m in doc['materials']},
+                                 {'paint','rubber','glass','alloy','headlamp','taillamp','indicator'})
+                for node in doc['nodes']:
+                    if 'mesh' not in node:continue
+                    for primitive in doc['meshes'][node['mesh']]['primitives']:
+                        mat=doc['materials'][primitive['material']]
+                        self.assertEqual(node['name'].startswith('paint-'),mat['name']=='paint')
+                        pbr=mat['pbrMetallicRoughness']
+                        self.assertGreaterEqual(pbr['roughnessFactor'],.1)
+                        self.assertEqual(pbr['baseColorFactor'][3],1)
 
-    def test_provenance_names_it_with_its_licence(self) -> None:
-        record = json.loads((GAME / "assets" / "THIRD_PARTY_ASSETS.json").read_text(encoding="utf-8"))
-        entries = [a for a in record["assets"] if CAR in a.get("files", [])]
-        self.assertEqual(len(entries), 1, "the car must be declared exactly once")
-        self.assertEqual(entries[0]["license"], "CC0 1.0")
-        self.assertIn("kenney_car-kit.zip", entries[0]["extractedFrom"])
+    def test_real_dimensions_and_wheel_contact_survive_export(self):
+        for v in self.manifest['vehicles']:
+            for lod in ('near','far'):
+                doc=document(v[lod]['path'])
+                low=[math.inf]*3;high=[-math.inf]*3
+                def visit(index,offset=(0,0,0)):
+                    n=doc['nodes'][index]
+                    offset=tuple(a+b for a,b in zip(offset,n.get('translation',(0,0,0))))
+                    if 'mesh' in n:
+                        for p in doc['meshes'][n['mesh']]['primitives']:
+                            a=doc['accessors'][p['attributes']['POSITION']]
+                            for i in range(3):
+                                low[i]=min(low[i],a['min'][i]+offset[i])
+                                high[i]=max(high[i],a['max'][i]+offset[i])
+                    for c in n.get('children',[]):visit(c,offset)
+                for n in doc['scenes'][0]['nodes']:visit(n)
+                self.assertAlmostEqual(low[1],0,places=5)
+                self.assertAlmostEqual(high[2]-low[2],v['length'],delta=.12)
+                self.assertAlmostEqual(high[1],v['height'],delta=.10)
+                wheels=[n for n in doc['nodes'] if n['name'].startswith('wheel-')]
+                self.assertAlmostEqual(max(n['translation'][2] for n in wheels)-min(n['translation'][2] for n in wheels),v['wheelbase'])
+                self.assertTrue(all(abs(n['translation'][1]-v['wheelRadius'])<1e-6 for n in wheels))
 
-    def test_it_brought_its_texture_with_it(self) -> None:
-        # A dangling image URI is how a street of lamp posts came out magenta.
-        dangling = [i.get("uri") for i in document(CAR).get("images", []) if i.get("uri")]
-        self.assertEqual(dangling, [], f"{CAR} points outside itself")
-
-
-class Normalised(unittest.TestCase):
-    """§11.4: nothing enters in the state it was downloaded in."""
-
-    def test_every_material_was_repainted(self) -> None:
-        known = {**PROP_PALETTE, **PROP_TEXTURE_TINT}
-        materials = document(CAR).get("materials", [])
-        self.assertTrue(materials, CAR)
-        for material in materials:
-            name = material.get("name")
-            self.assertIn(name, known, f"{CAR}: {name} was never repainted")
-            factor = material["pbrMetallicRoughness"]["baseColorFactor"][:3]
-            self.assertEqual([round(v, 6) for v in factor],
-                             [round(v, 6) for v in known[name]], f"{CAR}: {name}")
-            # A kit that leaves metallicFactor at its default of 1 turns a car
-            # into a mirror under IBL, which is what the props learned first.
-            self.assertEqual(material["pbrMetallicRoughness"]["metallicFactor"], 0.0)
-
-
-class Size(unittest.TestCase):
-    """A car is 1.80 m wide because cars are, not because it looked right."""
-
-    def test_the_scene_scales_it_to_a_real_width(self) -> None:
-        scale = car_node()["children"][0]["transform"]["scale"]
-        self.assertEqual(scale[0], scale[1], "a non-uniform scale restyles the model")
-        self.assertEqual(scale[1], scale[2])
-        width = extent(CAR)[0] * scale[0]
-        self.assertAlmostEqual(width, 1.80, places=2)
-
-    def test_the_length_that_comes_out_is_said_out_loud(self) -> None:
-        # The trade-off this scale makes: honouring the width gives up the
-        # length, and the number it gives up must stay a real car's rather than
-        # drift into a bus or a toy while nobody is looking.
-        length = extent(CAR)[2] * car_node()["children"][0]["transform"]["scale"][2]
-        self.assertLess(length, VEHICLE_LENGTH, "the kit saloon is shorter than a real one")
-        self.assertGreater(length, 2.9, "shorter than a city car is not a car")
-
-    def test_it_has_four_named_wheels(self) -> None:
-        # `native/world.cpp` turns them by name. A re-export that renamed them
-        # would leave a car sliding on frozen wheels.
-        names = {n.get("name") for n in document(CAR)["nodes"]}
-        self.assertEqual(
-            {n for n in names if n and n.startswith("wheel-")},
-            {"wheel-front-left", "wheel-front-right",
-             "wheel-back-left", "wheel-back-right"})
+    def test_provenance_covers_every_asset(self):
+        record=json.loads((GAME/'assets/THIRD_PARTY_ASSETS.json').read_text(encoding='utf-8'))
+        for v in self.manifest['vehicles']:
+            for lod in ('near','far'):
+                rows=[a for a in record['assets'] if v[lod]['path'] in a.get('files',[])]
+                self.assertEqual(len(rows),1)
+                self.assertEqual(rows[0]['license'],'CC0 1.0')
+                self.assertTrue((GAME.parent/rows[0]['generatedBy']).is_file())
 
 
 class InTheEntryScene(unittest.TestCase):
@@ -155,27 +125,12 @@ class InTheEntryScene(unittest.TestCase):
         self.assertEqual(car["children"][0]["importedFrom"], CAR)
 
 
-class DisplacedNothing(unittest.TestCase):
-    """Rule 1 of CLAUDE.md, held from the other side.
-
-    The car is a kit model entering a repository whose best assets are
-    photoscans, and that is exactly the shape of the substitution the rule was
-    written for. It is allowed here because nothing it covers existed — there
-    was no vehicle of any grade — and this test is what keeps that true.
-    """
-
-    def test_the_car_kit_ships_no_vegetation(self) -> None:
-        stems = {stem for _archive, stem, _name in VEHICLE_MODELS}
-        for stem in stems:
-            self.assertNotIn("tree", stem)
-            self.assertNotIn("plant", stem)
-
-    def test_the_trees_are_still_the_photoscanned_ones(self) -> None:
-        for species in ("fir_sapling", "pine_sapling", "quiver_tree", "broadleaf"):
-            model = tree_model(species)
-            self.assertIn("trees_lod", model, species)
-            self.assertTrue((GAME / model).is_file(), model)
+class PreservedAssets(unittest.TestCase):
+    def test_photoscanned_trees_remain(self):
+        for species in ('fir_sapling','pine_sapling','quiver_tree','broadleaf'):
+            path=tree_model(species)
+            self.assertIn('trees_lod',path)
+            self.assertTrue((GAME/path).is_file())
 
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__=='__main__':unittest.main()

@@ -34,7 +34,8 @@ const RegionProfile& chamonix() { return profileByKey("CHAMONIX"); }
 
 struct Built { BuildingOutput out; std::vector<OsmWay> ways; };
 BuildingOutput build(const std::vector<std::pair<Ring, Tags>>& footprints, double detailRadius = 1e6,
-                     const RegionProfile* profile = nullptr, int64_t firstId = 1) {
+                     const RegionProfile* profile = nullptr, int64_t firstId = 1,
+                     BuildingLod lod = BuildingLod::Full) {
     static std::vector<OsmWay> keep;  // the chain holds pointers into these while it runs
     keep.clear();
     int64_t id = firstId;
@@ -46,7 +47,7 @@ BuildingOutput build(const std::vector<std::pair<Ring, Tags>>& footprints, doubl
     std::vector<const OsmWay*> ways;
     for (const auto& w : keep) ways.push_back(&w);
     return buildBuildings(ways, [](double x, double z) { return P3{x, 0.0, z}; }, profile ? *profile : chamonix(),
-                          {0, 0}, detailRadius, 0.22, nullptr, nullptr);
+                          {0, 0}, detailRadius, 0.22, nullptr, nullptr, lod);
 }
 BuildingOutput build(const Ring& ring, Tags tags = {}, double detailRadius = 1e6) { return build({{ring, tags}}, detailRadius); }
 
@@ -133,6 +134,22 @@ TEST(Orientation, every_wall_faces_out) {
         ++checked;
     }
     CHECK(checked > 8);
+}
+TEST(BuildingLod, dense_tile_versions_keep_the_roof_and_close_the_base) {
+    const std::vector<std::pair<Ring, Tags>> ways = {{{{0, 0}, {12, 0}, {12, 8}, {0, 8}},
+                                                       {{"roof:shape", "flat"}, {"building:levels", "3"}}}};
+    const auto full = build(ways, -1.0, nullptr, 1, BuildingLod::Full);
+    const auto compact = build(ways, -1.0, nullptr, 1, BuildingLod::UnifiedBase);
+    const auto simple = build(ways, -1.0, nullptr, 1, BuildingLod::SimpleRoofline);
+    CHECK(!triangles(full, "Foundations").empty());
+    CHECK(triangles(compact, "Foundations").empty());
+    CHECK(triangles(simple, "Foundations").empty());
+    CHECK(triangles(full, "Roofs").size() == triangles(simple, "Roofs").size());
+    CHECK(triangles(simple, "Walls").size() < triangles(compact, "Walls").size());
+    double bottom = 1e9;
+    for (const Tri& t : triangles(simple, "Walls"))
+        for (const P3& p : {t.a, t.b, t.c}) bottom = std::min(bottom, p.y);
+    NEAR(bottom, -0.30, 1e-9);
 }
 TEST(Orientation, a_roof_has_an_upper_and_a_lower_surface) {
     int up = 0, down = 0;

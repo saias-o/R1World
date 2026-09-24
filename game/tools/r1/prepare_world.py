@@ -20,16 +20,6 @@ WORLD_TURBIDITY = 2.4
 # player is nowhere near.
 DEFAULT_LON, DEFAULT_LAT = 2.3522, 48.8566
 
-# What the car is scaled by, and the one number here that is a judgement rather
-# than a measurement -- so it says which measurement it honours and which it
-# gives up. Kenney models the saloon 2.55 m long and 1.50 m wide, a length over
-# width of 1.7 where a real saloon is 2.45; no uniform scale can make both
-# right, and a non-uniform one would restyle the model rather than normalise it.
-# Width is what decides whether a car belongs between two real kerbs, so width
-# is what is made real: 1.80 m. The car that comes out is 3.06 m long, which is
-# a real city car, and it is shorter than the saloon the kit drew.
-VEHICLE_SCALE = round(1.80 / 1.50, 4)
-
 # Haze as an extinction per metre, and how far the camera draws. A visibility of
 # 5 km (Koschmieder: 3.912 / V) is an ordinary city day; beyond it a monument is
 # more than 97% haze, so the far plane stops there too. `sun_cycle.js` carries
@@ -113,9 +103,10 @@ def main():
         # The body carries the same 180° yaw as the player's: both kits model a
         # front facing +Z, and this world's forward is −Z.
         node("Node","Car",groups=["vehicle"],enabled=False,children=[
-            node("Node","Body",importedFrom=external_assets.vehicle_model("sedan"),
-                 transform={"position":[0,0,0],"rotation":[0,1,0,0],
-                            "scale":[VEHICLE_SCALE]*3})]),
+            node("Node","Near",importedFrom=external_assets.vehicle_model("city"),
+                 transform={"position":[0,0,0],"rotation":[0,1,0,0],"scale":[1,1,1]}),
+            node("Node","Far",importedFrom=external_assets.vehicle_model("city_far"),
+                 transform={"position":[0,0,0],"rotation":[0,1,0,0],"scale":[1,1,1]})]),
         node("Camera","ExplorerCamera",groups=["camera"],fovDegrees=62,nearZ=.1,farZ=FAR_PLANE,priority=10,active=True),
         node("WebCanvasNode","WorldMap",groups=["world-ui"],width=1440,height=900,referenceWidth=1440,referenceHeight=900,
              scaleMode=1,mode=0,url="ui/world.html",hotReload=False,interactive=True,renderOrder=1000),

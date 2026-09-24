@@ -55,6 +55,11 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     std::map<Tile, std::shared_ptr<const ServedTile>> cooked;
     std::map<Tile, uint64_t> lastWanted;
     std::map<Tile, Clock::time_point> failedUntil;
+    // Tiles cooked without their aero layer, by the layer file they wait for,
+    // and the layer files that have landed since. Kept in memory: `next` runs
+    // under the lock the game's frame takes too, and must not read the disk.
+    std::map<Tile, std::string> awaiting;
+    std::set<std::string> landed;
     std::set<Tile> busy;
     std::string error;
     Clock::time_point offlineUntil{};
@@ -80,30 +85,39 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
 
     // The first worker to want a file parses it; the others wait for that
     // parse rather than starting their own, and other files go on meanwhile.
-    std::shared_ptr<const OsmData> source(const std::string& path) {
+    std::shared_ptr<const OsmData> source(const std::string& path, const std::optional<std::string>& layer) {
         std::error_code ec;
-        const auto stamp = std::filesystem::last_write_time(path, ec);
+        auto stamp = std::filesystem::last_write_time(path, ec);
+        // The same answer with and without its aero layer are two sources.
+        const std::string key = layer ? path + "|" + *layer : path;
+        if (layer) stamp = std::max(stamp, std::filesystem::last_write_time(*layer, ec));
         std::promise<std::shared_ptr<const OsmData>> promise;
         Parsed parsed;
         bool mine = false;
         {
             std::lock_guard<std::mutex> guard(parsing);
-            auto it = sources.find(path);
+            auto it = sources.find(key);
             if (it != sources.end() && it->second.stamp == stamp) parsed = it->second.data;
             else {
                 if (sources.size() >= 8) sources.erase(sources.begin());
                 parsed = promise.get_future().share();
-                sources[path] = {parsed, stamp};
+                sources[key] = {parsed, stamp};
                 mine = true;
             }
         }
         if (mine) {
             try {
-                promise.set_value(std::make_shared<const OsmData>(normalizeOsm(readJson(path))));
+                const nlohmann::json main = readJson(path);
+                if (layer) {
+                    const nlohmann::json aero = readJson(*layer);
+                    promise.set_value(std::make_shared<const OsmData>(normalizeOsm(main, &aero)));
+                } else {
+                    promise.set_value(std::make_shared<const OsmData>(normalizeOsm(main)));
+                }
             } catch (...) {
                 promise.set_exception(std::current_exception());
                 std::lock_guard<std::mutex> guard(parsing);
-                sources.erase(path);
+                sources.erase(key);
             }
         }
         return parsed.get();
@@ -127,6 +141,14 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             upgrade = false;
             return t;
         }
+        // A tile cooked before its aero layer had landed, once it has.
+        for (const Tile& t : wanted) {
+            auto it = awaiting.find(t);
+            if (it == awaiting.end() || busy.count(t) || !cooked.count(t) || !landed.count(it->second)) continue;
+            awaiting.erase(it);
+            upgrade = true;
+            return t;
+        }
         if (now < offlineUntil) return std::nullopt;
         for (const Tile& t : wanted) {
             auto it = cooked.find(t);
@@ -141,31 +163,52 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
 
     std::optional<ObservationStore::Shared> sharedFor(const Tile& tile) const {
         std::lock_guard<std::mutex> guard(lock);
+        return sharedLocked(tile);
+    }
+    // Under `lock`.
+    std::optional<ObservationStore::Shared> sharedLocked(const Tile& tile) const {
         for (const auto& group : groups)
             if (std::find(group.begin(), group.end(), tile) != group.end()) return store.shared(group);
         return store.shared({tile});
     }
 
     // An Overpass query for `region`, written to `path`, on its own thread.
-    std::shared_future<void> download(const Bounds& region, const std::string& path) {
+    // `aero` asks for the aero layer instead of the whole neighbourhood.
+    std::shared_future<void> download(const Bounds& region, const std::string& path, bool aero = false) {
         std::lock_guard<std::mutex> guard(downloading);
         auto it = downloads.find(path);
         if (it != downloads.end()) return it->second;
         auto promise = std::make_shared<std::promise<void>>();
         std::shared_future<void> done = promise->get_future().share();
         downloads[path] = done;
-        std::thread([self = shared_from_this(), region, path, promise] {
+        std::thread([self = shared_from_this(), region, path, promise, aero] {
             Counter c(self->fetching);
             self->overpass.acquire();
             try {
-                self->store.fetchOsm(region, path);
+                if (aero) {
+                    self->store.fetchAero(region, path);
+                    std::lock_guard<std::mutex> guard(self->lock);
+                    self->landed.insert(path);
+                } else {
+                    self->store.fetchOsm(region, path);
+                }
                 promise->set_value();
-            } catch (...) {
+            } catch (const std::exception& e) {
+                if (aero) {
+                    // Nobody waits on this one, so it says why here.
+                    self->say(std::string("AERO-LAYER-FAILED ") + e.what());
+                    std::lock_guard<std::mutex> guard(self->lock);
+                    self->offlineUntil = Clock::now() + kOfflinePause;
+                }
                 promise->set_exception(std::current_exception());
             }
             self->overpass.release();
-            std::lock_guard<std::mutex> g(self->downloading);
-            self->downloads.erase(path);
+            {
+                std::lock_guard<std::mutex> g(self->downloading);
+                self->downloads.erase(path);
+            }
+            // A landed aero layer is a tile to cook again.
+            self->wake.notify_all();
         }).detach();
         return done;
     }
@@ -204,8 +247,17 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                     document = store.osmPath(tile, shared, &stale);
                     if (document && !stale) break;
                 } catch (const std::exception& e) {
-                    if (wait == &region) throw;  // the last source left says why
-                    say(std::string("OSM-TILE-QUERY-FAILED ") + tile.key() + " " + e.what());
+                    // An answer to an older question is on disk: it beats no
+                    // world at all, and the manifest's `osmQueryVersion` says
+                    // which question built the tile. Only with nothing on
+                    // disk does the last source left say why.
+                    if (wait == &region && !document) throw;
+                    say(std::string(wait == &region ? "OSM-REGION-QUERY-FAILED " : "OSM-TILE-QUERY-FAILED ") +
+                        tile.key() + " " + e.what() + (document ? " (cooking from the older answer on disk)" : ""));
+                    if (wait == &region) {
+                        std::lock_guard<std::mutex> guard(lock);
+                        offlineUntil = Clock::now() + kOfflinePause;
+                    }
                 }
             }
         } else if (!ground && online()) {
@@ -213,7 +265,21 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             ground = store.fetchGround(tile);
         }
         if (!document || !ground) throw SourceUnavailable("the network is not answering and nothing is cached");
-        in.osm = source(*document);
+        bool needed = false;
+        const auto layer = store.aeroPath(tile, shared, *document, needed);
+        if (needed && !layer) {
+            // Cooked now, without its airports; they follow when the layer lands.
+            in.airportsPending = true;
+            if (online()) {
+                const auto target = store.aeroTarget(tile, shared);
+                {
+                    std::lock_guard<std::mutex> guard(lock);
+                    awaiting[tile] = target.path;
+                }
+                download(target.region, target.path, true);
+            }
+        }
+        in.osm = source(*document, layer);
         in.elevations = ground->first;
         in.elevationSource = ground->second;
         return in;
@@ -244,6 +310,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                 in.elevationSource = "flat offline approximation";
                 in.offline = true;
             }
+            in.targetVertices = options.tileVertexTarget;
             served->cooked = cookTile(in);
             if (options.prepare) options.prepare(*served);
         } catch (const std::exception& e) {
@@ -254,6 +321,17 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             return;
         }
         std::lock_guard<std::mutex> guard(lock);
+        // The aero layer landed and there is nothing aeronautical here: the
+        // tile the game has mounted is already right, and mounting it again
+        // would only be a flash for nothing.
+        const auto previous = cooked.find(tile);
+        auto relevant = [](const CookedTile& t) {
+            const auto a = t.manifest.find("airports");
+            return a != t.manifest.end() && a->value("relevant", false);
+        };
+        if (upgrade && previous != cooked.end() && previous->second->cooked.manifest.value("airportsPending", false) &&
+            !relevant(served->cooked) && !relevant(previous->second->cooked))
+            return;
         served->serial = ++serial;
         const bool approximate = served->cooked.manifest.value("offlineApproximation", false);
         say(std::string(upgrade ? "UPGRADED " : approximate ? "OFFLINE-READY " : "READY ") + tile.key() + " cook_ms=" +

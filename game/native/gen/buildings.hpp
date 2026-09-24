@@ -1,6 +1,6 @@
 // The building chain (plan §10): footprint from OSM, height and
 // roof measured where tagged and drawn from the region where not, facade
-// synthesised, and every inference counted for the manifest (PLAN §4 I5).
+// synthesised, and every inference counted for the manifest (PLAN §3 I5).
 #pragma once
 
 #include "palette.hpp"
@@ -19,9 +19,15 @@ struct BuildingStats {
 
 using MaterialFor = std::function<Material(const Swatch&, bool doubleSided)>;
 
+// The tile cook can step down building geometry before refusing a dense tile.
+enum class BuildingLod { Full, UnifiedBase, SimpleRoofline };
+
 struct BuildingOutput {
     std::vector<MeshPart> parts;
     std::vector<Ring> footprints;  // engine (x, z)
+    // The highest point over each footprint, engine y: what an aircraft
+    // clears or stops against, and what a helicopter lands on.
+    std::vector<double> tops;
     BuildingStats stats;
 };
 
@@ -31,7 +37,7 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                               const std::function<P3(double, double)>& groundOf,
                               const RegionProfile& profile, P2 detailCenter, double detailRadius,
                               double roofThickness, const MaterialFor& wallMaterials,
-                              const MaterialFor& roofMaterials);
+                              const MaterialFor& roofMaterials, BuildingLod lod = BuildingLod::Full);
 
 // Metres from an OSM length tag, honouring feet; nullopt when it has none.
 std::optional<double> taggedLength(const std::string& raw);

@@ -3,6 +3,8 @@
 #include "net.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -61,6 +63,23 @@ nlohmann::json boundsJson(const Bounds& b) {
 
 const char* kOverpass[] = {"https://overpass-api.de/api/interpreter",
                            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"};
+constexpr int kEndpoints = int(sizeof kOverpass / sizeof kOverpass[0]);
+// A mirror that just failed is asked last for five minutes: every query
+// otherwise paid its failure again before reaching the one that answers.
+std::atomic<int64_t> gDownUntil[kEndpoints] = {};
+int64_t nowSeconds() {
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+std::vector<int> endpointOrder() {
+    std::vector<int> order(kEndpoints);
+    for (int i = 0; i < kEndpoints; ++i) order[size_t(i)] = i;
+    const int64_t now = nowSeconds();
+    std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
+        return (gDownUntil[a].load() > now) < (gDownUntil[b].load() > now);
+    });
+    return order;
+}
+void markDown(int endpoint) { gDownUntil[endpoint] = nowSeconds() + 300; }
 }  // namespace
 
 std::string ObservationStore::tileFolder(const Tile& tile) const {
@@ -151,6 +170,8 @@ int queryVersionOf(const std::string& path) {
 }
 }  // namespace
 
+int ObservationStore::queryVersion(const std::string& path) { return queryVersionOf(path); }
+
 bool ObservationStore::cached(const Tile& tile, const std::optional<Shared>& shared) const {
     return !candidates(tile, shared).empty() && (find(tile, "ground-elevation.json") || find(tile, "elevation.json"));
 }
@@ -166,11 +187,18 @@ std::optional<std::string> ObservationStore::osmPath(const Tile& tile, const std
     if (paths.empty()) return std::nullopt;
     std::string best;
     std::uintmax_t bestSize = 0;
+    bool bestCurrent = false;
     std::error_code ec;
     for (const auto& path : paths) {
-        if (queryVersionOf(path) != kOsmQueryVersion) continue;
+        const int version = queryVersionOf(path);
+        if (version < kOsmBaseVersion) continue;
+        // An answer to the current question first (it carries the aero
+        // layer), then the widest.
+        const bool current = version >= kOsmQueryVersion;
         const auto size = fs::file_size(path, ec);
-        if (best.empty() || size > bestSize) { best = path; bestSize = size; }
+        if (best.empty() || (current && !bestCurrent) || (current == bestCurrent && size > bestSize)) {
+            best = path; bestSize = size; bestCurrent = current;
+        }
     }
     if (stale) *stale = best.empty();
     return best.empty() ? paths.front() : best;
@@ -197,49 +225,64 @@ nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& pa
     std::error_code ec;
     if (fs::exists(path, ec)) {
         auto doc = readJson(path);
-        if (doc.value("r1QueryVersion", 1) == kOsmQueryVersion) return doc;
+        if (doc.value("r1QueryVersion", 1) >= kOsmBaseVersion) return doc;
         stale = std::move(doc);
     }
-    char bbox[160];
+    char bbox[160], wide[160];
     std::snprintf(bbox, sizeof bbox, "%.8f,%.8f,%.8f,%.8f", b.south, b.west, b.north, b.east);
+    // Runways five kilometres around: a terminal's stands are a mile or two
+    // from the runways that say what the airport can receive (gen/airports).
+    const double dLat = 0.045, dLon = 0.045 / std::max(0.2, std::cos(radians((b.south + b.north) / 2)));
+    std::snprintf(wide, sizeof wide, "%.8f,%.8f,%.8f,%.8f", std::max(-90.0, b.south - dLat), b.west - dLon,
+                  std::min(90.0, b.north + dLat), b.east + dLon);
     // Rank 10 is a list of point features, as narrow as it is on purpose:
     // `node[amenity]` alone would bring every bank and restaurant.
-    const std::string query = std::string("[out:json][timeout:90][bbox:") + bbox + R"(];
+    // Every statement carries its own box: a global `[bbox]` would also cut
+    // the runway statement's wider one down to the neighbourhood.
+    std::string query = R"([out:json][timeout:90];
 (
-  way[building];
-  way[highway];
-  way[landuse];
-  way[natural];
-  way[leisure~"park|garden|golf_course|pitch"];
-  way[waterway];
-  way[water];
-  way[amenity=grave_yard];
-  way[man_made~"^(pier|breakwater|groyne|quay)$"];
-  way[leisure=marina];
-  way[harbour];
-  node[leisure=marina];
-  node[harbour];
-  node["seamark:type"~"^(harbour|mooring|light_major|light_minor|landmark)$"];
-  node[natural=tree];
-  node[highway~"^(street_lamp|bus_stop|crossing|traffic_signals)$"];
-  node[amenity~"^(bench|fountain|waste_basket|drinking_water|post_box|telephone|clock)$"];
-  node[emergency=fire_hydrant];
-  node[power~"^(tower|pole)$"];
-  node[man_made~"^(water_tower|windmill|lighthouse|mast)$"];
-  node[natural~"^(rock|stone)$"];
+  way[building]{B};
+  way[highway]{B};
+  way[landuse]{B};
+  way[natural]{B};
+  way[leisure~"park|garden|golf_course|pitch"]{B};
+  way[waterway]{B};
+  way[water]{B};
+  way[amenity=grave_yard]{B};
+  way[man_made~"^(pier|breakwater|groyne|quay)$"]{B};
+  way[leisure=marina]{B};
+  way[harbour]{B};
+  way[aeroway~"^(aerodrome|runway|taxiway|taxilane|apron|helipad|parking_position|stopway)$"]{B};
+  way[aeroway=runway]{W};
+  way[military]{B};
+  node[aeroway~"^(helipad|parking_position)$"]{B};
+  node[leisure=marina]{B};
+  node[harbour]{B};
+  node["seamark:type"~"^(harbour|mooring|light_major|light_minor|landmark)$"]{B};
+  node[natural=tree]{B};
+  node[highway~"^(street_lamp|bus_stop|crossing|traffic_signals)$"]{B};
+  node[amenity~"^(bench|fountain|waste_basket|drinking_water|post_box|telephone|clock)$"]{B};
+  node[emergency=fire_hydrant]{B};
+  node[power~"^(tower|pole)$"]{B};
+  node[man_made~"^(water_tower|windmill|lighthouse|mast)$"]{B};
+  node[natural~"^(rock|stone)$"]{B};
 );
 out body;
 >;
 out skel qt;)";
+    for (const auto& [key, box] : {std::pair<std::string, std::string>{"{B}", bbox}, {"{W}", wide}})
+        for (size_t at; (at = query.find(key)) != std::string::npos;) query.replace(at, key.size(), "(" + box + ")");
     const std::string body = "data=" + net::urlEncode(query);
     std::string failures;
-    for (const char* endpoint : kOverpass) {
+    for (const int i : endpointOrder()) {
+        const char* endpoint = kOverpass[i];
         try {
             auto doc = nlohmann::json::parse(net::requestJson(endpoint, body, "application/x-www-form-urlencoded"));
             doc["r1QueryVersion"] = kOsmQueryVersion;
             writeJson(path, doc);
             return doc;
         } catch (const std::exception& e) {
+            markDown(i);
             failures += std::string(failures.empty() ? "" : " | ") + endpoint + ": " + e.what();
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
@@ -247,6 +290,59 @@ out skel qt;)";
     // An older question's answer beats no world at all, and says so.
     if (stale) return *stale;
     throw SourceUnavailable("all Overpass endpoints failed: " + failures);
+}
+
+std::string ObservationStore::aeroSibling(const std::string& mainPath) {
+    const std::string ext = ".json";
+    const bool json = mainPath.size() > ext.size() && mainPath.compare(mainPath.size() - ext.size(), ext.size(), ext) == 0;
+    return (json ? mainPath.substr(0, mainPath.size() - ext.size()) : mainPath) + ".aero.json";
+}
+
+std::optional<std::string> ObservationStore::aeroPath(const Tile& tile, const std::optional<Shared>& shared,
+                                                      const std::string& mainPath, bool& needed) const {
+    needed = queryVersionOf(mainPath) < kOsmQueryVersion;
+    if (!needed) return std::nullopt;
+    std::error_code ec;
+    for (const auto& candidate : candidates(tile, shared)) {
+        const std::string layer = aeroSibling(candidate);
+        if (fs::exists(layer, ec)) return layer;
+    }
+    return std::nullopt;
+}
+
+ObservationStore::Shared ObservationStore::aeroTarget(const Tile& tile, const std::optional<Shared>& shared) const {
+    if (shared) return {shared->region, aeroSibling(shared->path)};
+    return {tile.bounds(), tileFolder(tile) + "/osm.aero.json"};
+}
+
+nlohmann::json ObservationStore::fetchAero(const Bounds& b, const std::string& path) const {
+    char bbox[160], wide[160];
+    std::snprintf(bbox, sizeof bbox, "%.8f,%.8f,%.8f,%.8f", b.south, b.west, b.north, b.east);
+    const double dLat = 0.045, dLon = 0.045 / std::max(0.2, std::cos(radians((b.south + b.north) / 2)));
+    std::snprintf(wide, sizeof wide, "%.8f,%.8f,%.8f,%.8f", std::max(-90.0, b.south - dLat), b.west - dLon,
+                  std::min(90.0, b.north + dLat), b.east + dLon);
+    // The statements version 6 added to the main question, and only those.
+    const std::string query = std::string("[out:json][timeout:60];\n(\n") +
+        "  way[aeroway~\"^(aerodrome|runway|taxiway|taxilane|apron|helipad|parking_position|stopway)$\"](" + bbox + ");\n" +
+        "  way[aeroway=runway](" + wide + ");\n" +
+        "  way[military](" + bbox + ");\n" +
+        "  node[aeroway~\"^(helipad|parking_position)$\"](" + bbox + ");\n" +
+        ");\nout body;\n>;\nout skel qt;";
+    const std::string body = "data=" + net::urlEncode(query);
+    std::string failures;
+    for (const int i : endpointOrder()) {
+        const char* endpoint = kOverpass[i];
+        try {
+            auto doc = nlohmann::json::parse(net::requestJson(endpoint, body, "application/x-www-form-urlencoded"));
+            doc["r1AeroVersion"] = 1;
+            writeJson(path, doc);
+            return doc;
+        } catch (const std::exception& e) {
+            markDown(i);
+            failures += std::string(failures.empty() ? "" : " | ") + endpoint + ": " + e.what();
+        }
+    }
+    throw SourceUnavailable("the aero layer: all Overpass endpoints failed: " + failures);
 }
 
 std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& tile) const {

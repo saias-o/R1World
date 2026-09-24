@@ -87,14 +87,16 @@ Le cache est une promesse : un lieu déjà visité ne touche plus le réseau.
 $env:HTTP_PROXY = "http://127.0.0.1:9"; $env:HTTPS_PROXY = "http://127.0.0.1:9"
 $env:SAIDA_WINDOW_HIDDEN = "1"
 cd game
-generated\python-runtime\python.exe tools\play_world.py --smoke --spawn 2.3522 48.8566
+python tools\play_world.py --smoke --spawn 2.3522 48.8566
+sh native/build_tools.sh; generated\tools\r1test.exe
 python -m unittest discover -s tools\r1\tests -t tools
 ```
 
-Le test de fumée tourne sous le Python embarqué du jeu : ses dépendances
-compilées (shapely) ne se chargent pas sous un autre interpréteur. Pour
-recompiler le moteur, `C:\msys64\ucrt64\bin` doit être **en tête** du PATH ;
-sinon le lien de `SaidaEngineRuntime.exe` échoue avec un `ld returned 116` sans
-autre message (`engine/AGENTS.md`).
+Le monde est généré dans le jeu (`native/gen`) : `play_world.py` reconstruit
+l'exécutable (`Play.ps1 -BuildOnly`) puis le lance, sous n'importe quel
+Python 3. Pour compiler, `C:\msys64\ucrt64\bin` doit être **en tête** du PATH ;
+sinon le lien échoue avec un `ld returned 116` sans autre message
+(`engine/AGENTS.md`). `Play.ps1` et `build_tools.sh` l'y mettent eux-mêmes.
 
-Un journal de worker vide à la fin d'un run est ce qui prouve la promesse.
+Un test de fumée qui passe, proxys fermés, sur un lieu déjà visité est ce qui
+prouve la promesse ; son journal est dans `cache/sessions/<id>/game.log`.

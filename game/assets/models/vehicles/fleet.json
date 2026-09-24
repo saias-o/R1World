@@ -1,0 +1,149 @@
+{
+  "author": "R1World",
+  "license": "CC0-1.0",
+  "source": "game/tools/r1/vehicle_fleet.py",
+  "description": "Original generic vehicles; no brands, logos or registration numbers.",
+  "totalVertices": 27732,
+  "vehicles": [
+    {
+      "name": "city",
+      "length": 3.6,
+      "width": 1.94,
+      "height": 1.5,
+      "wheelbase": 2.38,
+      "wheelRadius": 0.285,
+      "near": {
+        "path": "assets/models/vehicles/city.glb",
+        "vertices": 2826,
+        "triangles": 2922,
+        "drawTriangles": 3678
+      },
+      "far": {
+        "path": "assets/models/vehicles/city_far.glb",
+        "vertices": 952,
+        "triangles": 838,
+        "drawTriangles": 1102
+      }
+    },
+    {
+      "name": "sedan",
+      "length": 4.55,
+      "width": 2.08,
+      "height": 1.44,
+      "wheelbase": 2.7,
+      "wheelRadius": 0.315,
+      "near": {
+        "path": "assets/models/vehicles/sedan.glb",
+        "vertices": 2867,
+        "triangles": 2978,
+        "drawTriangles": 3734
+      },
+      "far": {
+        "path": "assets/models/vehicles/sedan_far.glb",
+        "vertices": 927,
+        "triangles": 838,
+        "drawTriangles": 1102
+      }
+    },
+    {
+      "name": "suv",
+      "length": 4.58,
+      "width": 2.16,
+      "height": 1.7,
+      "wheelbase": 2.72,
+      "wheelRadius": 0.355,
+      "near": {
+        "path": "assets/models/vehicles/suv.glb",
+        "vertices": 3012,
+        "triangles": 3058,
+        "drawTriangles": 3814
+      },
+      "far": {
+        "path": "assets/models/vehicles/suv_far.glb",
+        "vertices": 1028,
+        "triangles": 894,
+        "drawTriangles": 1158
+      }
+    },
+    {
+      "name": "offroad",
+      "length": 4.18,
+      "width": 2.13,
+      "height": 1.89,
+      "wheelbase": 2.46,
+      "wheelRadius": 0.39,
+      "near": {
+        "path": "assets/models/vehicles/offroad.glb",
+        "vertices": 3012,
+        "triangles": 3058,
+        "drawTriangles": 3814
+      },
+      "far": {
+        "path": "assets/models/vehicles/offroad_far.glb",
+        "vertices": 1028,
+        "triangles": 894,
+        "drawTriangles": 1158
+      }
+    },
+    {
+      "name": "sport",
+      "length": 4.42,
+      "width": 2.19,
+      "height": 1.22,
+      "wheelbase": 2.61,
+      "wheelRadius": 0.325,
+      "near": {
+        "path": "assets/models/vehicles/sport.glb",
+        "vertices": 2583,
+        "triangles": 2698,
+        "drawTriangles": 3454
+      },
+      "far": {
+        "path": "assets/models/vehicles/sport_far.glb",
+        "vertices": 883,
+        "triangles": 782,
+        "drawTriangles": 1046
+      }
+    },
+    {
+      "name": "truck",
+      "length": 7.1,
+      "width": 2.62,
+      "height": 3.18,
+      "wheelbase": 4.2,
+      "wheelRadius": 0.46,
+      "near": {
+        "path": "assets/models/vehicles/truck.glb",
+        "vertices": 2756,
+        "triangles": 2786,
+        "drawTriangles": 3542
+      },
+      "far": {
+        "path": "assets/models/vehicles/truck_far.glb",
+        "vertices": 956,
+        "triangles": 822,
+        "drawTriangles": 1086
+      }
+    },
+    {
+      "name": "bus",
+      "length": 10.5,
+      "width": 2.7800000000000002,
+      "height": 3.05,
+      "wheelbase": 5.3,
+      "wheelRadius": 0.47,
+      "near": {
+        "path": "assets/models/vehicles/bus.glb",
+        "vertices": 3725,
+        "triangles": 4062,
+        "drawTriangles": 4818
+      },
+      "far": {
+        "path": "assets/models/vehicles/bus_far.glb",
+        "vertices": 1177,
+        "triangles": 1118,
+        "drawTriangles": 1382
+      }
+    }
+  ]
+}

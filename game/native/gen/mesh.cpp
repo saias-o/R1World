@@ -62,10 +62,6 @@ void Mesh::addTriangle(P3 a, P3 b, P3 c, const UV* uvs) {
     indices.push_back(vertex(c, n, uvs[2]));
 }
 
-void Mesh::addSmoothTriangle(const P3 p[3], const P3 n[3], const UV uv[3]) {
-    for (int i = 0; i < 3; ++i) indices.push_back(vertex(p[i], n[i], uv[i]));
-}
-
 void Mesh::addUpTriangle(P3 a, P3 b, P3 c, const UV* uvs) {
     if (faceNormal(a, b, c).y < 0.0) {
         std::swap(b, c);
@@ -115,32 +111,6 @@ void Mesh::addBox(P3 center, P3 size, double yaw) {
     addQuad(p[1], p[2], p[6], p[5]);
     addQuad(p[2], p[3], p[7], p[6]);
     addQuad(p[3], p[0], p[4], p[7]);
-}
-
-void Mesh::addCylinder(P3 center, double radius, double height, int sides) {
-    const double bottom = center.y - height * 0.5, top = center.y + height * 0.5;
-    std::vector<P3> ring, upper;
-    for (int i = 0; i < sides; ++i) {
-        const double a = 2.0 * kPi * i / sides;
-        ring.push_back({center.x + std::cos(a) * radius, bottom, center.z + std::sin(a) * radius});
-        upper.push_back({ring.back().x, top, ring.back().z});
-    }
-    for (int i = 0; i < sides; ++i) {
-        const int j = (i + 1) % sides;
-        addQuad(ring[i], ring[j], upper[j], upper[i]);
-        addUpTriangle({center.x, top, center.z}, upper[i], upper[j]);
-    }
-}
-
-void Mesh::addCone(P3 center, double radius, double height, int sides) {
-    const double bottom = center.y - height * 0.5;
-    const P3 apex{center.x, center.y + height * 0.5, center.z};
-    std::vector<P3> ring;
-    for (int i = 0; i < sides; ++i) {
-        const double a = 2.0 * kPi * i / sides;
-        ring.push_back({center.x + std::cos(a) * radius, bottom, center.z + std::sin(a) * radius});
-    }
-    for (int i = 0; i < sides; ++i) addTriangle(ring[i], ring[(i + 1) % sides], apex);
 }
 
 Mesh smoothSurface(const Mesh& mesh) {

@@ -57,15 +57,3 @@ def tile_at(lon, lat):
         raise ValueError("Invalid WGS84 coordinate")
     row = min(ROWS - 1, max(0, math.floor((lat + 90) / STEP)))
     return Tile(row, min(columns(row) - 1, math.floor((wrap(lon) + 180) / 360 * columns(row))))
-
-
-def neighborhood(lon, lat, radius=1):
-    center = tile_at(lon, lat)
-    result = {center}
-    for row in range(max(0, center.row - radius), min(ROWS, center.row + radius + 1)):
-        n = columns(row)
-        c = math.floor((wrap(lon) + 180) / 360 * n)
-        result.update(Tile(row, (c + d) % n) for d in range(-radius, radius + 1))
-    # Center first; stable ordering for deterministic prefetch.
-    return [center] + sorted(result - {center}, key=lambda t: (
-        abs(t.row - center.row), abs(wrap(t.center[0] - lon)), t.row, t.col))

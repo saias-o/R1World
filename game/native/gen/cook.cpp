@@ -1,5 +1,6 @@
 #include "cook.hpp"
 
+#include "airports.hpp"
 #include "buildings.hpp"
 #include "harbours.hpp"
 #include "landmarks.hpp"
@@ -98,12 +99,22 @@ CookedTile cookTile(const Observations& in) {
 
     const RegionProfile& profile = profileFor(center.x, center.y);
     const std::string climate = climateAt(profile.climate, center.y);
-    BuildingOutput built = buildBuildings(
-        buildings, ground, profile, {0.0, 0.0}, kWorldDetailRadius, kWorldRoofThickness,
-        [](const Swatch& s, bool doubleSided) { return surfaceMaterial(s.name, s.color, s.roughness, wallFamily(s.name), doubleSided); },
-        [](const Swatch& s, bool doubleSided) { return surfaceMaterial(s.name, s.color, s.roughness, roofFamily(s.name), doubleSided); });
+    const MaterialFor wallMaterial = [](const Swatch& s, bool doubleSided) {
+        return surfaceMaterial(s.name, s.color, s.roughness, wallFamily(s.name), doubleSided);
+    };
+    const MaterialFor roofMaterial = [](const Swatch& s, bool doubleSided) {
+        return surfaceMaterial(s.name, s.color, s.roughness, roofFamily(s.name), doubleSided);
+    };
+    auto buildAtLod = [&](BuildingLod lod) {
+        return buildBuildings(buildings, ground, profile, {0.0, 0.0}, kWorldDetailRadius,
+                              kWorldRoofThickness, wallMaterial, roofMaterial, lod);
+    };
+    BuildingLod buildingLod = BuildingLod::Full;
+    BuildingOutput built = buildAtLod(buildingLod);
     std::vector<Ring> footprints = built.footprints;
     footprints.insert(footprints.end(), landmarks.solids.begin(), landmarks.solids.end());
+    std::vector<double> tops = built.tops;
+    tops.insert(tops.end(), landmarks.solidTops.begin(), landmarks.solidTops.end());
 
     // Rank 9: the terrain partitioned by what OSM says the ground is.
     const Landcover landcover(osm.landcover);
@@ -147,15 +158,33 @@ CookedTile cookTile(const Observations& in) {
     }
     nlohmann::json laneGraph = buildLaneGraph(roads, ground, int(buildings.size()), center.x, center.y);
     Works works = buildWorks(osm.maritime, lightFeatures, ground, anchor, cells, harbour);
+    // Runways, taxiways, aprons and what is parked on them; one helicopter
+    // per military base. Nothing parks in water, inside the tile or out.
+    const AirportOutput airports = buildAirports(osm, tile, elevations, anchor, [&](double lon, double lat) {
+        if (bounds.west <= lon && lon <= bounds.east && bounds.south <= lat && lat <= bounds.north) return cells.at(lon, lat) != 0;
+        const std::string* c = landcover.at(lon, lat);
+        return c && *c == "water";
+    });
 
     auto assemble = [&](std::vector<MeshPart>& harbourParts) {
         std::vector<MeshPart> parts;
         for (auto* list : {&terrainParts, &streets.parts, &harbourParts, &built.parts})
             for (MeshPart& p : *list) parts.push_back(p);
+        for (const MeshPart& p : airports.parts) parts.push_back(p);
         return parts;
     };
     std::vector<MeshPart> parts = assemble(works.parts);
-    if (vertexCount(parts) > kTileVertexBudget && harbour.piers) {
+    const size_t target = std::min(in.targetVertices, kTileVertexBudget);
+    // The target is a share of the resident neighbourhood, while 120k stays
+    // the absolute per-tile contract. Rebuild only the building meshes: their
+    // footprints, street cut-outs and continuous terrain stay the same.
+    for (BuildingLod lod : {BuildingLod::UnifiedBase, BuildingLod::SimpleRoofline}) {
+        if (vertexCount(parts) + landmarks.vertices <= target) break;
+        buildingLod = lod;
+        built = buildAtLod(lod);
+        parts = assemble(works.parts);
+    }
+    if (vertexCount(parts) + landmarks.vertices > kTileVertexBudget && harbour.piers) {
         // The one detail given up before a tile is refused: the piles under
         // the piers, said in the manifest (`pilesDropped`), never silent.
         HarbourStats bare;
@@ -163,7 +192,7 @@ CookedTile cookTile(const Observations& in) {
         parts = assemble(works.parts);
         harbour.pilesDropped = true;
     }
-    const size_t vertices = vertexCount(parts);
+    const size_t vertices = vertexCount(parts) + landmarks.vertices;
     if (vertices > kTileVertexBudget) {
         std::string detail;
         for (const MeshPart& p : parts) detail += " " + p.name + "=" + std::to_string(p.mesh.vertexCount());
@@ -213,7 +242,8 @@ CookedTile cookTile(const Observations& in) {
         for (auto& n : boatChildren) out.props.push_back(n);
         for (auto& n : planContainers(osm, anchor, cells, footprints, ground, harbour)) out.props.push_back(n);
     }
-    nlohmann::json footprintJson = nlohmann::json::array();
+    nlohmann::json footprintJson = nlohmann::json::array(), topJson = nlohmann::json::array();
+    for (double t : tops) topJson.push_back(pyround(t, 2));
     for (const Ring& r : footprints) {
         nlohmann::json ring = nlohmann::json::array();
         for (const P2& p : r) ring.push_back({p.x, p.y});
@@ -232,10 +262,10 @@ CookedTile cookTile(const Observations& in) {
     out.manifest = {
         {"key", tile.key()}, {"row", tile.row}, {"col", tile.col}, {"lon", center.x}, {"lat", center.y},
         {"bounds", {{"south", bounds.south}, {"west", bounds.west}, {"north", bounds.north}, {"east", bounds.east}}},
-        {"elevations", elevationRows}, {"footprints", footprintJson},
+        {"elevations", elevationRows}, {"footprints", footprintJson}, {"footprintTops", topJson},
         // The landmark models are nodes, not tile geometry, but they share
         // the arena, so the residency count includes them.
-        {"vertices", ocean ? 0 : vertices + landmarks.vertices},
+        {"vertices", ocean ? 0 : vertices},
         {"buildings", buildings.size()}, {"surface", ocean ? "ocean" : "land"},
         {"source", std::string(in.offline ? "Natural Earth 1:110m; " : "OpenStreetMap; ") + in.elevationSource},
         {"elevationSource", in.elevationSource}, {"offlineApproximation", in.offline},
@@ -243,11 +273,15 @@ CookedTile cookTile(const Observations& in) {
         {"osmQueryVersion", osm.queryVersion},
         {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats}}},
         {"water", cells.rows()}, {"decks", works.decks}, {"boats", boats}, {"harbour", harbour.json()},
-        {"props", props.stats}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},
+        {"props", props.stats},
+        {"aircraft", ocean ? nlohmann::json::array() : airports.aircraft}, {"airports", airports.stats},
+        {"airportsPending", in.airportsPending}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},
         {"landmarkRevision", kLandmarkRevision},
         {"landmarkReplacedWays", ocean ? nlohmann::json::array() : landmarks.replaced},
         {"nature", nature.stats}, {"streets", streets.stats}, {"traffic", laneGraph},
         {"inference", built.stats.json()},
+        {"buildingGeometryLod", buildingLod == BuildingLod::Full ? "full" :
+                                buildingLod == BuildingLod::UnifiedBase ? "unified-base" : "simple-roofline"},
         {"generator", "C++"}};
     out.cookMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
     return out;

@@ -1,7 +1,7 @@
-"""The asset normaliser — plan §11.4.
+"""The asset normaliser — plan §4.
 
 > Incohérence visuelle des assets CC0 | Moyenne | Normalisateur obligatoire
-> (§11.4). Un asset non conforme n'entre pas.
+> (§4). Un asset non conforme n'entre pas.
 
 A world built from free assets is built from assets authored by different people
 for different projects under different lighting, and the plan names their
@@ -65,7 +65,7 @@ def _read_glb(payload: bytes) -> tuple[dict, bytes]:
 
 def _write_glb(document: dict, binary: bytes) -> bytes:
     # Sorted keys and fixed separators: the same input must produce the same
-    # bytes on every machine and in every run (§4 I3), and a GLB whose hash
+    # bytes on every machine and in every run (§3 I3), and a GLB whose hash
     # moves between runs makes the build manifest meaningless.
     encoded = json.dumps(document, separators=(",", ":"), sort_keys=True).encode("utf-8")
     encoded += b" " * ((-len(encoded)) % 4)
@@ -90,7 +90,7 @@ def repaint_kit_model(
     names — `leafsGreen`, `woodBark`, `colormap` — so a table keyed by name
     covers twenty models without twenty rows. What it must not do is silently
     pass over a name it does not know, because that is a prop entering the game
-    in the kit's own colours, which is the thing §11.4 exists to prevent. Every
+    in the kit's own colours, which is the thing §4 exists to prevent. Every
     material must therefore be in one of the two tables, and the return value
     names what was repainted so the caller can say so.
 
@@ -120,7 +120,7 @@ def repaint_kit_model(
         raise RuntimeError(
             f"{name} declares material(s) {', '.join(unknown)}, which the "
             f"prop palette does not name. The asset would enter in the kit's "
-            f"own colours (plan §11.4); add it to the table or drop the model."
+            f"own colours (plan §4); add it to the table or drop the model."
         )
     for material in materials:
         colour = palette.get(material.get("name")) or textured[material.get("name")]
@@ -162,7 +162,7 @@ def recolour_model(
             f"{source.name} has no material named {', '.join(missing)} — "
             f"it declares {sorted(n for n in by_name if n)}. The normaliser is "
             f"mapping names that no longer exist, so the asset would enter "
-            f"unchanged (plan §11.4)."
+            f"unchanged (plan §4)."
         )
 
     for name, colour in palette.items():

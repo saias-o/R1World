@@ -27,7 +27,13 @@ public:
 
 // The Overpass question, as a number: an answer to an older one is used only
 // when the network cannot give the current one, and the manifest says so.
-constexpr int kOsmQueryVersion = 5;
+constexpr int kOsmQueryVersion = 6;  // 6: aeroways and military areas
+// The oldest answer a tile is cooked from without asking Overpass again.
+// What version 6 added -- aeroways, military areas, the runways around -- is
+// fetched for an older answer as a layer of its own (`fetchAero`), a few
+// kilobytes beside its ten megabytes: re-asking the whole neighbourhood for
+// it made every place already visited wait on Overpass at Go.
+constexpr int kOsmBaseVersion = 5;
 
 class ObservationStore {
 public:
@@ -45,7 +51,7 @@ public:
     // From disk only; nullopt when absent. Of every answer on disk that
     // covers the tile, one to the current question wins, then the widest
     // (a neighbourhood query sees the ways that cross the tile's edges).
-    // `stale` is set when only an older question's answer was there.
+    // `stale` is set when only an answer older than kOsmBaseVersion was there.
     std::optional<nlohmann::json> osm(const Tile& tile, const std::optional<Shared>& shared, bool* stale = nullptr) const;
     // Which file `osm` would read.
     std::optional<std::string> osmPath(const Tile& tile, const std::optional<Shared>& shared, bool* stale = nullptr) const;
@@ -55,6 +61,18 @@ public:
     // SourceUnavailable when no source answers.
     nlohmann::json fetchOsm(const Bounds& bounds, const std::string& path) const;
     std::pair<ElevationGrid, std::string> fetchGround(const Tile& tile) const;
+
+    // The aero layer of a tile cooked from `mainPath`. `needed` is false when
+    // the main answer already carries it (version 6 on); otherwise the result
+    // is the layer on disk, if any neighbourhood's has been fetched.
+    std::optional<std::string> aeroPath(const Tile& tile, const std::optional<Shared>& shared,
+                                        const std::string& mainPath, bool& needed) const;
+    // Where this tile's neighbourhood's aero layer is fetched to, and its box.
+    Shared aeroTarget(const Tile& tile, const std::optional<Shared>& shared) const;
+    nlohmann::json fetchAero(const Bounds& bounds, const std::string& path) const;
+    static std::string aeroSibling(const std::string& mainPath);
+    // The question an answer on disk replied to (1 when it does not say).
+    static int queryVersion(const std::string& path);
 
     std::string tileFolder(const Tile& tile) const;  // where new observations go
     const std::string& root() const { return root_; }

@@ -46,6 +46,7 @@
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 constexpr double rad = 3.141592653589793 / 180.;
+constexpr double kTwoPi = 6.283185307179586;
 double wrap(double x) { return x - 360.*std::floor((x+180.)/360.); }
 int columns(int r) { return std::max(1, int(std::nearbyint(72000.*std::cos((-90.+(r+.5)*.005)*rad)))); }
 // Keep room for shared models, UI and the player within the configured arena.
@@ -66,14 +67,13 @@ constexpr double kCarDrag=.0016;        // + v^2 term; together they settle near
 constexpr double kCarTurnRadius=3.6;    // m, the tightest circle the front wheels cut
 constexpr double kCarLateralAccel=16.;  // m/s^2 -- grip a real tyre does not have, on purpose
 constexpr double kCarSteerAngle=34.;    // degrees of visible lock on the front wheels
-constexpr double kCarWheelRadius=.36;   // 0.30 in the kit, scaled as the scene scales it
 constexpr double kCarReach=4.5;         // m -- how close you stand to open the door
 constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refused out loud
 constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for water
 constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
 constexpr double kPlayerHeight=1.8;     // measured from player.glb's mesh accessor
 constexpr double kSwimHeadAbove=.60;    // keep the head and neck clear of the water
-// §12.4: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
+// §5: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
 constexpr double kStreamAheadSeconds=45.; // prepare the road before the car reaches it
@@ -98,6 +98,15 @@ constexpr double kSeaKeep=6500.;
 constexpr double kHopSpeed=2.;          // m/s between two hulls to step across
 constexpr double kBoatExitSpeed=1.5;    // m/s -- above it, leaving the hull is refused
 constexpr size_t kLeftBoats=4;
+// ── aircraft ────────────────────────────────────────────────────────────────
+// Parked where the generator put them (gen/airports.cpp) and flown the way the
+// car is driven: a longitude, a latitude, an altitude and three angles moved in
+// the tangent plane. Each class handles as itself, from
+// assets/models/aircraft/fleet.json; all of it is arcade and says so.
+constexpr double kAircraftReach=4.;     // m from the fuselage's side to climb aboard
+constexpr double kAircraftExitSpeed=2.; // m/s -- above it, leaving is refused
+constexpr size_t kLeftAircraft=4;
+constexpr double kGravity=9.81;
 // How many traffic cars the whole neighbourhood may show at once. Not a memory
 // budget -- every one of them is the same shared mesh (§5) -- but a draw-call
 // one: a car is five primitives, so forty cars is two hundred draws, which is
@@ -164,7 +173,6 @@ glm::dvec2 advance(double lon,double lat,double east,double north) {
     double l=lon*rad+std::atan2(sin(bearing)*sin(d)*cos(p),cos(d)-sin(p)*sin(q));
     return {wrap(l/rad),q/rad};
 }
-json readJson(const fs::path& p) { std::ifstream f(p); return json::parse(f); }
 struct Plant {
     saida::Node* node=nullptr;
     bool grass=false;
@@ -173,6 +181,7 @@ struct Plant {
 struct Footprint {
     std::vector<glm::dvec2> points;
     glm::dvec2 low{1e30},high{-1e30};
+    double top=1e30;  // the highest point over it, in its tile's frame: what an aircraft clears
 };
 // A walkable deck over the water -- a pier -- in its tile's frame.
 struct Deck {
@@ -185,6 +194,14 @@ struct Mooring {
     std::string name,kind,model;
     glm::dvec3 local{0};
     double heading=0,length=8,beam=3,top=10,accel=2,turn=30;
+    saida::Node* node=nullptr;
+    bool taken=false;
+};
+// An aircraft parked by the generator, as the manifest lists it.
+struct AircraftSpot {
+    std::string name,type;
+    glm::dvec3 local{0};
+    double heading=0;
     saida::Node* node=nullptr;
     bool taken=false;
 };
@@ -224,8 +241,10 @@ PreparedTile prepareTile(const r1::CookedTile& tile) {
         }
         out.push_back(std::move(up));
     }
+    const json& tops=tile.manifest.contains("footprintTops")?tile.manifest.at("footprintTops"):json::array();
     for(const auto& polygon:tile.manifest.at("footprints")) {
         Footprint shape;
+        if(prepared.footprints.size()<tops.size())shape.top=tops[prepared.footprints.size()].get<double>();
         for(const auto& point:polygon) {
             const glm::dvec2 p{point[0].get<double>(),point[1].get<double>()};
             shape.points.push_back(p);shape.low=glm::min(shape.low,p);shape.high=glm::max(shape.high,p);
@@ -253,7 +272,9 @@ struct Loaded {
     saida::traffic::Graph graph; saida::traffic::Flow flow;
     std::vector<float> groundUp;          // terrain height per graph node
     std::vector<saida::Node*> cars;       // keyed by agent index, pooled
-    std::vector<uint32_t> carPaint;       // the seed each pooled node wears
+    std::vector<size_t> carKinds;
+    std::vector<std::vector<saida::Node*>> carWheels;
+    std::vector<double> carSpin;
     size_t wanted=0;                      // cars this tile's density asks for
     // The manifest unpacked once at mount, because a frame cannot afford to
     // read JSON. See World::unpack.
@@ -264,6 +285,7 @@ struct Loaded {
     bool ocean=false;
     std::vector<Deck> decks; glm::dvec2 deckLow{1e30},deckHigh{-1e30};
     std::vector<Mooring> boats;
+    std::vector<AircraftSpot> aircraft;
 };
 
 class World : public Rml::EventListener {
@@ -312,6 +334,27 @@ class World : public Rml::EventListener {
     json conditions=json::object();
     bool smokeSeaWait=false; double captureSeaWait=0;
     bool smokeSail=false,smokeSailWait=false,smokeSailing=false,smokeSailBrake=false,smokeSwimming=false;
+    // The aircraft the player is flying, and the ones he has left standing.
+    // Like a boat, an aircraft he takes is the node that stood on its stand.
+    struct Aircraft {
+        saida::Node* node=nullptr; const r1::AircraftType* type=nullptr;
+        double lon=0,lat=0,alt=0;              // the point under the wheels or the skids
+        double yaw=0,pitch=0,roll=0;           // degrees; nose up and right wing down are positive
+        double speed=0,climb=0;                // m/s along the heading, and upward
+        double lever=0,thrust=0;               // a plane's throttle, and what its engines give yet
+        double rotor=0,mainSpin=0,tailSpin=0;  // a helicopter's rotor speed (0..1) and blade angles
+        bool airborne=false;
+        std::vector<saida::Node*> gear,mainRotors,tailRotors;
+        bool helicopter() const {return type&&type->klass=="helicopter";}
+    };
+    bool piloting=false; Aircraft plane; std::vector<Aircraft> leftAircraft;
+    std::map<std::string,saida::Node*> aircraftPrototypes;
+    // The last surface seen under the aircraft: what it keeps to over tiles
+    // that have not streamed yet, rather than inventing a ground.
+    double planeGround=0; bool planeStopped=false;
+    bool smokeFly=false,smokeFlyWait=false; int smokeFlyPhase=0;
+    double smokeFlyTime=0,smokeFlyAlt=0,smokeFlyTop=0,smokeFlyClear=0,smokeF=0,smokeR=0,smokeUp=0;
+    glm::dvec3 smokeFlyStart{0}; std::set<std::string> smokeFlown;
     glm::dvec3 smokeSwimStart{0}; saida::Node* smokeSwimBoat=nullptr;
     double smokeSailTime=0,smokeSailTop=0,smokeSailClear=0; glm::dvec3 smokeSailStart{0};
     std::vector<saida::Animator*> animators;
@@ -327,7 +370,12 @@ class World : public Rml::EventListener {
     std::map<std::string,Loaded> loaded;
     saida::Node* prototypes=nullptr;
     std::map<std::string,saida::Node*> naturePrototypes;
-    saida::Node* trafficPrototype=nullptr;
+    struct VehicleModel {
+        std::string name;
+        double length=3.6,width=1.94,height=1.5,wheelbase=2.38,wheelRadius=.285;
+        saida::Node* prototype=nullptr;
+    };
+    std::vector<VehicleModel> fleet;
     std::vector<glm::vec3> paints;
     // Tiles are cooked in this process, on the service's threads (gen/).
     std::unique_ptr<r1::WorldService> service;
@@ -394,7 +442,12 @@ class World : public Rml::EventListener {
     void text(const std::string& id,const std::string& s) {
         auto& last=written["text:"+id];
         if(last==s)return;
-        if(ui->setElementText(id,s))last=s;
+        // setElementText escapes a straight apostrophe to &apos;, which the
+        // interface then shows as written ("l&apos;eau"): French is written
+        // with the typographic one anyway.
+        std::string shown=s;
+        for(size_t at;(at=shown.find('\''))!=std::string::npos;)shown.replace(at,1,"’");
+        if(ui->setElementText(id,shown))last=s;
     }
     std::string value(const std::string& id) {
         auto* e=dynamic_cast<Rml::ElementFormControl*>(ui->findElementById(id));return e?e->GetValue():"";
@@ -447,9 +500,9 @@ class World : public Rml::EventListener {
         return std::hypot(east,north)-.8*std::max(0.,ahead);
     }
     bool streamMotion(double& heading,double& speed) const {
-        const double velocity=driving?carSpeed:sailing?boat.speed:0.;
+        const double velocity=driving?carSpeed:sailing?boat.speed:piloting?plane.speed:0.;
         if(!playing||pending||warming||std::abs(velocity)<kFastDetail)return false;
-        heading=wrap((driving?carYaw:boat.yaw)+(velocity<0?180.:0.));
+        heading=wrap((driving?carYaw:sailing?boat.yaw:plane.yaw)+(velocity<0?180.:0.));
         speed=std::abs(velocity);
         return true;
     }
@@ -616,6 +669,15 @@ class World : public Rml::EventListener {
                 m.accel=entry.value("accel",2.);m.turn=entry.value("turn",30.);
                 tile.boats.push_back(std::move(m));
             }
+        auto aircraft=tile.data.find("aircraft");
+        if(aircraft!=tile.data.end())
+            for(const auto& entry:*aircraft) {
+                AircraftSpot spot;
+                spot.name=entry.value("name",std::string());spot.type=entry.value("type",std::string());
+                spot.local={entry.value("x",0.),entry.value("y",0.),entry.value("z",0.)};
+                spot.heading=entry.value("heading",0.);
+                tile.aircraft.push_back(std::move(spot));
+            }
     }
     bool inside(const Loaded& tile,double x,double y,double margin=0.) const {
         return x>=tile.west-margin&&x<=tile.east+margin
@@ -722,9 +784,10 @@ class World : public Rml::EventListener {
     }
     // Yaw, then the slope the wheels are actually standing on. Measured off the
     // terrain grid over the car's own wheelbase and track rather than inferred
-    // from a normal: it is the same surface the collision reads (§4 I5).
+    // from a normal: it is the same surface the collision reads (§3 I5).
     glm::quat carRotation() {
-        const double halfLength=1.6,halfWidth=.9;
+        const auto& spec=vehicleSpec(*car);
+        const double halfLength=spec.wheelbase*.5,halfWidth=spec.width*.43;
         auto sample=[&](double east,double north){
             auto q=advance(carLon,carLat,east,north);return groundAt(q.x,q.y,carAlt);
         };
@@ -754,7 +817,8 @@ class World : public Rml::EventListener {
             for(auto& child:n.children())collect(*child);
         };
         collect(root);
-        if(frontWheels.size()!=2||rearWheels.size()!=2)
+        const size_t expected=root.findByPath("Far")?4:2;
+        if(frontWheels.size()!=expected||rearWheels.size()!=expected)
             saida::Log::warn("[World car] this car has ",frontWheels.size()," front and ",
                              rearWheels.size()," rear wheels named wheel-*; they will not turn");
     }
@@ -1015,9 +1079,9 @@ class World : public Rml::EventListener {
             // kCarLateralAccel allows at this speed. The second still stops a
             // hairpin at 130 km/h from being one key press -- 27 degrees a
             // second up there -- while leaving 90 at town speed.
-            double turn=std::min(v/kCarTurnRadius,kCarLateralAccel/v);
+            double turn=std::min(v/std::max(kCarTurnRadius,vehicleSpec(*car).wheelbase*1.45),kCarLateralAccel/v);
             carYaw=wrap(carYaw+steerInput*turn/rad*dt*(carSpeed<0?-1:1));
-            wheelSpin+=carSpeed/kCarWheelRadius*dt;
+            wheelSpin+=carSpeed/vehicleSpec(*car).wheelRadius*dt;
         }
         steerShown+=(steerInput-steerShown)*(1-std::exp(-9*dt));
         yaw=carYaw;
@@ -1286,6 +1350,430 @@ class World : public Rml::EventListener {
         for(auto& s:seaShips)place(s.v,s.phase);
     }
 
+    // ── aircraft ────────────────────────────────────────────────────────────
+    //
+    // Every aircraft the generator parked can be taken, the way a moored boat
+    // or a traffic car is: the node on the stand is handed over, never copied.
+    // Three handlings, one per class (assets/models/aircraft/fleet.json):
+    //
+    //  - an airliner is heavy: its engines take seconds to spool, it rolls
+    //    slowly, it needs a long run to rotate;
+    //  - a business jet is quick in everything and turns on a wingtip;
+    //  - a helicopter spins up, hovers by itself when the stick is let go,
+    //    climbs and descends on its own keys and goes where it points.
+    //
+    // Arcade, as the car is (README, "The aircraft"): turns are coordinated
+    // and faster than real ones, and nothing crashes. A building stops an
+    // aircraft where it touches it, out loud, and the ground takes a hard
+    // landing as a stop.
+    static void aircraftLod(saida::Node& node) {
+        auto* lod=node.addBehaviour<saida::LODGroupBehaviour>();
+        lod->setLevels({{"Near",.03f},{"Far",0.f}});
+    }
+    void buildAircraftPrototypes() {
+        for(const auto& type:r1::palette().aircraft) {
+            auto root=std::make_unique<saida::Node>("aircraft-"+type.name);
+            for(const auto& level:std::vector<std::pair<std::string,std::string>>{{type.nearModel,"Near"},{type.farModel,"Far"}}) {
+                auto* source=prototype(level.first);
+                if(!source)throw std::runtime_error("Aircraft model failed: "+level.first);
+                auto child=clonePlant(*source);child->setName(level.second);
+                child->transform().rotation=glm::quat(0,0,1,0); // Authored nose +Z.
+                root->addChild(std::move(child));
+            }
+            aircraftPrototypes[type.name]=prototypes->addChild(std::move(root));
+        }
+        saida::Log::info("[World aircraft] ",aircraftPrototypes.size()," aircraft types ready");
+    }
+    // The tile's parked aircraft, as scene nodes in its frame. Children of the
+    // tile, so evicting the tile clears them with it.
+    void mountAircraft(Loaded& t) {
+        for(auto& spot:t.aircraft) {
+            auto found=aircraftPrototypes.find(spot.type);
+            if(found==aircraftPrototypes.end()) {
+                saida::Log::warn("[World aircraft] ",t.data.value("key",std::string())," parks an unknown type: ",spot.type);
+                continue;
+            }
+            auto node=clonePlant(*found->second);
+            node->setName(spot.name);
+            aircraftLod(*node);
+            node->transform().position=glm::vec3(spot.local);
+            node->transform().rotation=glm::angleAxis(float(-spot.heading*rad),glm::vec3(0,1,0));
+            spot.node=t.node->addChild(std::move(node));
+        }
+    }
+    static void collectAircraftParts(Aircraft& a) {
+        a.gear.clear();a.mainRotors.clear();a.tailRotors.clear();
+        // Outermost match only, as with the car's wheels: the importer wraps a
+        // named node around a mesh node that inherits its name.
+        std::function<void(saida::Node&)> walk=[&](saida::Node& n){
+            if(n.name()=="gear"){a.gear.push_back(&n);return;}
+            if(n.name()=="rotor-main"){a.mainRotors.push_back(&n);return;}
+            if(n.name()=="rotor-tail"){a.tailRotors.push_back(&n);return;}
+            for(auto& c:n.children())walk(*c);
+        };
+        if(a.node)walk(*a.node);
+    }
+    static double fuselageHalf(const r1::AircraftType& t) {return std::max(1.2,t.length*.05);}
+    static bool within(const std::vector<glm::dvec2>& poly,glm::dvec2 q) {
+        bool in=false;
+        for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++)
+            if((poly[i].y>q.y)!=(poly[j].y>q.y)&&q.x<(poly[j].x-poly[i].x)*(q.y-poly[i].y)/(poly[j].y-poly[i].y)+poly[i].x)in=!in;
+        return in;
+    }
+    // The altitude of the roof under (x, y) if a point at `above` is on or
+    // over it -- where a helicopter sets down -- and -inf otherwise. Tops are
+    // in their tile's frame, so they are compared there and converted back.
+    double roofAt(double x,double y,double above) {
+        double best=-1e30;
+        for(auto& [key,t]:loaded) {
+            if(!inside(t,x,y,2e-5))continue;
+            const glm::dvec3 p=t.frame.local(ecef(x,y,above));
+            const glm::dvec2 q(p.x,p.z);
+            for(const auto& shape:t.footprints) {
+                if(shape.top>1e29||q.x<shape.low.x||q.x>shape.high.x||q.y<shape.low.y||q.y>shape.high.y)continue;
+                if(p.y>=shape.top-1.&&within(shape.points,q))best=std::max(best,above+(shape.top-p.y));
+            }
+        }
+        return best;
+    }
+    // Whether a point at altitude `alt` is inside a building, below its top.
+    bool buildingAt(double x,double y,double alt) {
+        for(auto& [key,t]:loaded) {
+            if(!inside(t,x,y,2e-5))continue;
+            const glm::dvec3 p=t.frame.local(ecef(x,y,alt));
+            const glm::dvec2 q(p.x,p.z);
+            for(const auto& shape:t.footprints) {
+                if(q.x<shape.low.x||q.x>shape.high.x||q.y<shape.low.y||q.y>shape.high.y)continue;
+                if(p.y<shape.top&&within(shape.points,q))return true;
+            }
+        }
+        return false;
+    }
+    // What an aircraft rests on at (x, y): the terrain, a deck, the water's
+    // level, or a roof it is above. Where no tile answers yet, the last
+    // surface it saw -- said on screen, never guessed at.
+    double surfaceUnder(double x,double y,double above,bool* onRoof=nullptr,bool* wet=nullptr) {
+        if(onRoof)*onRoof=false;
+        if(wet)*wet=false;
+        if(!tile(x,y))return planeGround;
+        double surface=height(x,y);
+        if(onWater(x,y)){surface=waterLevel(x,y);if(wet)*wet=true;}
+        const double roof=roofAt(x,y,above);
+        if(roof>surface){surface=roof;if(onRoof)*onRoof=true;if(wet)*wet=false;}
+        planeGround=surface;
+        return surface;
+    }
+    // The aircraft's extremities -- nose, tail and the two tips of its wings
+    // or its rotor -- against the buildings, at the height of its underside.
+    bool aircraftHits(double x,double y,double alt,double heading) {
+        const auto& t=*plane.type;
+        const double s=std::sin(heading*rad),c=std::cos(heading*rad);
+        const double half=t.length*.5,span=t.span*.5,body=alt+.4;
+        for(const auto& [a,o]:{std::pair{0.,0.},std::pair{half,0.},std::pair{-half,0.},std::pair{0.,span},std::pair{0.,-span}}) {
+            const auto q=advance(x,y,s*a+c*o,c*a-s*o);
+            if(buildingAt(q.x,q.y,body))return true;
+        }
+        return false;
+    }
+    enum class PlaneSource {None, Parked, Left};
+    struct PlaneReach {Loaded* tile=nullptr; size_t index=0; PlaneSource source=PlaneSource::None;};
+    bool nearestAircraft(PlaneReach& out,double& distance) {
+        distance=kAircraftReach;bool found=false;
+        for(auto& [key,t]:loaded)
+            for(size_t i=0;i<t.aircraft.size();++i) {
+                const AircraftSpot& spot=t.aircraft[i];
+                const auto* type=r1::aircraftType(spot.type);
+                if(spot.taken||!spot.node||!type)continue;
+                const double d=hullDistance(t.frame,spot.local,spot.heading,type->length,2*fuselageHalf(*type));
+                if(d<distance){distance=d;out={&t,i,PlaneSource::Parked};found=true;}
+            }
+        for(size_t i=0;i<leftAircraft.size();++i) {
+            const Aircraft& a=leftAircraft[i];
+            const Frame here(a.lon,a.lat,a.alt);
+            const double d=hullDistance(here,glm::dvec3(0),a.yaw,a.type->length,2*fuselageHalf(*a.type));
+            if(d<distance){distance=d;out={nullptr,i,PlaneSource::Left};found=true;}
+        }
+        return found;
+    }
+    bool enterAircraft() {
+        if(piloting||driving||sailing)return false;
+        PlaneReach target;double distance=0;
+        if(!nearestAircraft(target,distance))return false;
+        Aircraft a;
+        if(target.source==PlaneSource::Left) {
+            a=leftAircraft[target.index];
+            leftAircraft.erase(leftAircraft.begin()+long(target.index));
+        } else {
+            Loaded& t=*target.tile;AircraftSpot& spot=t.aircraft[target.index];
+            auto owned=t.node->detachChild(spot.node);
+            if(!owned) {
+                saida::Log::warn("[World aircraft] ",spot.name," could not be detached from its tile");
+                text("stream-status","Cet appareil ne peut pas être pris.");
+                return false;
+            }
+            spot.taken=true;spot.node=nullptr;
+            const auto where=geodeticOf(t,glm::vec3(spot.local));
+            a.node=engine.sceneTree().world().addChild(std::move(owned));
+            a.type=r1::aircraftType(spot.type);
+            a.lon=where.x;a.lat=where.y;a.yaw=spot.heading;
+            a.alt=surfaceUnder(a.lon,a.lat,alt+1.);
+        }
+        a.speed=0;a.climb=0;a.lever=0;a.thrust=0;a.airborne=false;a.pitch=0;a.roll=0;
+        collectAircraftParts(a);
+        plane=std::move(a);piloting=true;swimming=false;planeStopped=false;
+        lookYaw=0;lookIdle=0;
+        lon=plane.lon;lat=plane.lat;alt=plane.alt;yaw=plane.yaw;
+        player->setEnabled(false);
+        for(auto* anim:animators)anim->play("idle");
+        jumpOffset=jumpVelocity=0;
+        text("stream-status",plane.helicopter()
+            ?"Aux commandes. Espace/Maj : monter/descendre · Z/S : avancer/reculer · Q/D : tourner · F : descendre."
+            :"Aux commandes. Z/S : gaz · Q/D : virer · Espace/Maj : cabrer/piquer · F : descendre.");
+        saida::Log::info("[World aircraft] took the controls of a ",plane.type->name," at ",lon,", ",lat,
+                         plane.helicopter()?" (helicopter)":"");
+        return true;
+    }
+    void keepAircraft(Aircraft a) {
+        a.speed=0;a.climb=0;a.lever=0;a.thrust=0;
+        leftAircraft.push_back(std::move(a));
+        while(leftAircraft.size()>kLeftAircraft) {
+            if(leftAircraft.front().node)leftAircraft.front().node->queueFree();
+            leftAircraft.erase(leftAircraft.begin());
+        }
+    }
+    // Refused in the air, at speed and on a roof, each out loud (rule 3 of
+    // CLAUDE.md). On the ground the pilot steps down beside the nose, on the
+    // left where the doors are; on water he drops into it.
+    bool leaveAircraft() {
+        if(!piloting)return false;
+        if(plane.airborne) {
+            text("stream-status","En vol — posez l'appareil pour descendre.");
+            saida::Log::info("[World aircraft] exit refused in the air, ",plane.alt-planeGround," m up");
+            return false;
+        }
+        if(std::abs(plane.speed)>kAircraftExitSpeed) {
+            text("stream-status","Trop rapide pour descendre — freinez.");
+            saida::Log::info("[World aircraft] exit refused at ",std::abs(plane.speed)," m/s");
+            return false;
+        }
+        bool onRoof=false;
+        surfaceUnder(plane.lon,plane.lat,plane.alt+1.,&onRoof);
+        if(onRoof) {
+            text("stream-status","Sur un toit — posez-vous au sol pour descendre.");
+            saida::Log::info("[World aircraft] exit refused on a roof");
+            return false;
+        }
+        const auto& t=*plane.type;
+        const double s=std::sin(plane.yaw*rad),c=std::cos(plane.yaw*rad),half=fuselageHalf(t);
+        std::optional<glm::dvec2> dry,wet;
+        for(double along:{t.length*.3,t.length*.42,0.,-t.length*.25})
+            for(double side:{-1.,1.})
+                for(double off:{2.,4.}) {
+                    if(dry)break;
+                    const double o=(half+off)*side;
+                    const auto q=advance(plane.lon,plane.lat,s*along+c*o,c*along-s*o);
+                    if(!tile(q.x,q.y))continue;
+                    if(navigable(q.x,q.y)){if(!wet)wet=q;}
+                    else if(!blocked(q.x,q.y))dry=q;
+                }
+        double x=0,y=0;
+        if(!dry&&!wet&&freeSpot(plane.lon,plane.lat,t.span*.5+8.,x,y))dry=glm::dvec2(x,y);
+        if(!dry&&!wet) {
+            text("stream-status","Impossible de descendre ici — déplacez l'appareil.");
+            saida::Log::warn("[World aircraft] no standable ground beside the aircraft at ",plane.lon,", ",plane.lat);
+            return false;
+        }
+        const glm::dvec2 at=dry?*dry:*wet;
+        piloting=false;keepAircraft(plane);plane=Aircraft{};
+        yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
+        lon=at.x;lat=at.y;swimming=!dry;
+        swimTime=0;swimHeading=yaw;swimLean=0;
+        alt=swimming?waterLevel(lon,lat):height(lon,lat);
+        player->setEnabled(true);
+        player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
+        followDistance=std::min(followDistance,kOnFootFollow);
+        text("stream-status",swimming?"À l'eau. F : remonter à bord.":"À pied. F : reprendre l'appareil.");
+        saida::Log::info("[World aircraft] stepped down at ",lon,", ",lat,swimming?" into the water":"");
+        request(lon,lat);
+        return true;
+    }
+    void clearAircraft() {
+        for(auto& a:leftAircraft)if(a.node)a.node->queueFree();
+        leftAircraft.clear();
+        if(plane.node)plane.node->queueFree();
+        plane=Aircraft{};piloting=false;
+    }
+    // One horizontal step. A building stops the aircraft where it touches it
+    // and says so -- no crash (the request was explicit). The edge of the
+    // loaded world stops it on the ground; in the air it flies on over the
+    // last surface it saw, and the HUD says the ground ahead is unknown.
+    bool moveAircraft(double dt,double horizontal) {
+        if(std::abs(horizontal)<1e-4)return true;
+        const double s=std::sin(plane.yaw*rad),c=std::cos(plane.yaw*rad);
+        const auto next=advance(plane.lon,plane.lat,s*horizontal*dt,c*horizontal*dt);
+        if(!tile(next.x,next.y))stream();
+        if(!tile(next.x,next.y)&&!plane.airborne) {
+            plane.speed=0;
+            text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
+            return false;
+        }
+        const double heading=horizontal<0?wrap(plane.yaw+180.):plane.yaw;
+        if(aircraftHits(next.x,next.y,plane.alt,heading)&&!aircraftHits(plane.lon,plane.lat,plane.alt,heading)) {
+            plane.speed=0;
+            if(!planeStopped) {
+                text("stream-status","Bâtiment — l'appareil s'arrête.");
+                saida::Log::info("[World aircraft] stopped by a building at ",plane.lon,", ",plane.lat,
+                                 ", ",plane.alt-planeGround," m up");
+            }
+            planeStopped=true;
+            return false;
+        }
+        if(!plane.airborne&&!plane.helicopter()&&tile(next.x,next.y)&&onWater(next.x,next.y)&&!onWater(plane.lon,plane.lat)) {
+            plane.speed=0;
+            text("stream-status","Bord de l'eau — l'appareil s'arrête.");
+            return false;
+        }
+        planeStopped=false;
+        plane.lon=next.x;plane.lat=next.y;
+        return true;
+    }
+    // A plane. W/S move the throttle lever, and the engines follow it at
+    // their own pace; on the ground S at idle brakes, then pushes back. A/D
+    // steer the nose wheel on the ground and bank in the air; the turn
+    // follows the bank. Space pulls the nose up, Shift pushes it down, and
+    // with neither the nose settles back to level.
+    void flyPlane(double dt,double f,double r,double pitchIn) {
+        Aircraft& p=plane;const auto& t=*p.type;
+        p.lever=std::clamp(p.lever+f*.45*dt,0.,1.);
+        p.thrust+=(p.lever-p.thrust)*(1-std::exp(-t.spool*3.*dt));
+        const double ratio=p.speed/t.top,drag=t.accel*ratio*std::abs(ratio);
+        if(!p.airborne) {
+            bool wet=false;
+            surfaceUnder(p.lon,p.lat,p.alt+2.,nullptr,&wet);
+            const double v=p.speed;
+            const double sign=v>0?1.:v<0?-1.:0.;
+            double a=t.accel*p.thrust-drag-(wet?1.5:.3)*sign;
+            if(f<0&&p.lever<=0.)a=v>.3?-t.brake:(v>-3.?-1.5:0.);
+            p.speed=v+a*dt;
+            if(sign>0&&p.speed<0&&!(f<0&&p.lever<=0.))p.speed=0;
+            if(sign<0&&p.speed>0)p.speed=0;
+            const double speed=std::abs(p.speed);
+            if(speed>.2)p.yaw=wrap(p.yaw+r*std::min(r1::degrees(speed/t.turnRadius),30.)*dt*(p.speed<0?-1.:1.));
+            if(pitchIn>0&&p.speed>=t.rotate)p.pitch=std::min(t.maxPitch*.6,p.pitch+t.pitchRate*dt);
+            else p.pitch=std::max(0.,p.pitch-t.pitchRate*dt);
+            p.roll-=p.roll*(1-std::exp(-4.*dt));
+            if(p.pitch>2.5&&p.speed>=t.rotate) {
+                // Off the ground with the climb the rotation already gives,
+                // or the next hump of the terrain would set it back down.
+                p.airborne=true;p.climb=std::max(1.5,p.speed*std::sin(p.pitch*rad));p.alt+=.2;
+                text("stream-status","Décollage.");
+                saida::Log::info("[World aircraft] lift-off at ",p.speed," m/s");
+            }
+            moveAircraft(dt,p.speed);
+            if(!p.airborne)p.alt=surfaceUnder(p.lon,p.lat,p.alt+2.);
+            return;
+        }
+        const double bank=r*t.maxBank;
+        p.roll+=std::clamp(bank-p.roll,-t.rollRate*dt,t.rollRate*dt);
+        if(pitchIn!=0)p.pitch+=pitchIn*t.pitchRate*dt;
+        else p.pitch-=std::clamp(p.pitch,-.3*t.pitchRate*dt,.3*t.pitchRate*dt);
+        p.pitch=std::clamp(p.pitch,-t.maxPitch,t.maxPitch);
+        // Climbing costs speed and diving gives it -- half of what gravity
+        // would, which is the arcade in it.
+        p.speed=std::max(0.,p.speed+(t.accel*p.thrust-drag-kGravity*std::sin(p.pitch*rad)*.5)*dt);
+        // A coordinated turn, half again as quick as a real one.
+        const double v=std::max(p.speed,t.stall*.6);
+        p.yaw=wrap(p.yaw+r1::degrees(kGravity*std::tan(p.roll*rad)/v)*1.5*dt);
+        double vertical=p.speed*std::sin(p.pitch*rad);
+        if(p.speed<t.stall) {
+            // The wing gives way: the aircraft sinks and its nose drops.
+            const double k=(t.stall-p.speed)/t.stall;
+            vertical-=14.*k;
+            p.pitch-=18.*k*dt;
+        }
+        p.climb+=(vertical-p.climb)*(1-std::exp(-3.*dt));
+        moveAircraft(dt,p.speed*std::cos(p.pitch*rad));
+        p.alt+=p.climb*dt;
+        bool onRoof=false,wet=false;
+        const double ground=surfaceUnder(p.lon,p.lat,p.alt,&onRoof,&wet);
+        if(p.alt<=ground) {
+            p.alt=ground;p.airborne=false;
+            const bool hard=p.climb<-7.||std::abs(p.roll)>25.||p.pitch<-8.;
+            if(hard){p.speed=0;p.lever=0;p.thrust=0;}
+            text("stream-status",hard?"Atterrissage brutal — l'appareil s'arrête."
+                                 :wet?"Amerrissage.":onRoof?"Posé sur le toit.":"Atterrissage.");
+            saida::Log::info("[World aircraft] ",hard?"hard landing":"landed"," at ",p.climb," m/s vertical, ",
+                             p.speed," m/s",wet?" on water":onRoof?" on a roof":"");
+            p.climb=0;p.roll=0;p.pitch=std::max(0.,p.pitch);
+        }
+    }
+    // A helicopter. The rotor takes three seconds to come up to speed. Space
+    // and Shift climb and descend and it holds its height with neither;
+    // W/S fly it forward and back, A/D turn it on the spot. It sits down on
+    // the ground, on water or on a roof, wherever it is lowered.
+    void flyHelicopter(double dt,double f,double r,double up) {
+        Aircraft& h=plane;const auto& t=*h.type;
+        h.rotor=std::min(1.,h.rotor+dt/3.);
+        const bool lift=h.rotor>.85;
+        double want=lift?t.climb*up:(h.airborne?-3.:0.);
+        if(!h.airborne&&want<0)want=0;
+        h.climb+=(want-h.climb)*(1-std::exp(-3.*dt));
+        const double target=h.airborne?(f>=0?f*t.top:f*t.top*.3):0.;
+        h.speed+=std::clamp(target-h.speed,-t.accel*dt,t.accel*dt);
+        if(!h.airborne)h.speed*=std::exp(-6.*dt);
+        if(lift)h.yaw=wrap(h.yaw+r*t.rollRate*dt*(h.airborne?1.:.35));
+        const double pitchTarget=h.airborne?-t.maxPitch*std::clamp(target/t.top,-.4,1.):0.;
+        const double rollTarget=h.airborne?r*t.maxBank*std::clamp(.3+std::abs(h.speed)/15.,0.,1.):0.;
+        h.pitch+=(pitchTarget-h.pitch)*(1-std::exp(-2.5*dt));
+        h.roll+=(rollTarget-h.roll)*(1-std::exp(-2.5*dt));
+        moveAircraft(dt,h.speed);
+        h.alt+=h.climb*dt;
+        bool onRoof=false,wet=false;
+        const double ground=surfaceUnder(h.lon,h.lat,h.alt+.5,&onRoof,&wet);
+        if(h.alt<=ground) {
+            if(h.airborne) {
+                text("stream-status",onRoof?"Posé sur le toit.":wet?"Posé sur l'eau.":"Posé.");
+                saida::Log::info("[World aircraft] helicopter set down",onRoof?" on a roof":wet?" on water":"",
+                                 " at ",h.lon,", ",h.lat);
+            }
+            h.alt=ground;h.airborne=false;h.climb=std::max(0.,h.climb);
+        } else if(h.alt>ground+.3&&!h.airborne) {
+            h.airborne=true;
+            text("stream-status","Décollage.");
+            saida::Log::info("[World aircraft] helicopter lifted off");
+        }
+        h.mainSpin=std::fmod(h.mainSpin+h.rotor*h.rotor*28.*dt,kTwoPi);
+        h.tailSpin=std::fmod(h.tailSpin+h.rotor*h.rotor*44.*dt,kTwoPi);
+    }
+    glm::quat aircraftRotation(const Aircraft& a) const {
+        return glm::angleAxis(float(-a.yaw*rad),glm::vec3(0,1,0))
+              *glm::angleAxis(float(a.pitch*rad),glm::vec3(1,0,0))
+              *glm::angleAxis(float(-a.roll*rad),glm::vec3(0,0,1));
+    }
+    // Turned about the centre of gravity, so a bank rolls the aircraft about
+    // itself rather than about its wheels.
+    void placeAircraft(double dt) {
+        auto place=[&](Aircraft& a){
+            if(!a.node||!a.type)return;
+            const glm::quat q=aircraftRotation(a);
+            const glm::vec3 cg=glm::vec3(origin.local(ecef(a.lon,a.lat,a.alt+a.type->cg)));
+            a.node->transform().position=cg-q*glm::vec3(0,float(a.type->cg),0);
+            a.node->transform().rotation=q;
+            const bool down=!a.airborne||a.alt-groundAt(a.lon,a.lat,a.alt)<30.;
+            for(auto* g:a.gear)g->setVisible(down);
+            for(auto* m:a.mainRotors)m->transform().rotation=glm::angleAxis(float(a.mainSpin),glm::vec3(0,1,0));
+            for(auto* m:a.tailRotors)m->transform().rotation=glm::angleAxis(float(a.tailSpin),glm::vec3(1,0,0));
+        };
+        if(piloting)place(plane);
+        for(auto& a:leftAircraft) {
+            // A helicopter left behind winds down rather than stopping dead.
+            a.rotor=std::max(0.,a.rotor-dt/8.);
+            a.mainSpin=std::fmod(a.mainSpin+a.rotor*a.rotor*28.*dt,kTwoPi);
+            a.tailSpin=std::fmod(a.tailSpin+a.rotor*a.rotor*44.*dt,kTwoPi);
+            place(a);
+        }
+    }
+
     // ── ships at sea ────────────────────────────────────────────────────────
     //
     // The sea service predicts the ships around the player -- six years of
@@ -1467,8 +1955,43 @@ class World : public Rml::EventListener {
         }
     }
     // Disabled scene ownership keeps shared prototype resources resident.
+    const VehicleModel& vehicleSpec(const saida::Node& node) const {
+        for(const auto& spec:fleet)if(node.name()=="vehicle-"+spec.name)return spec;
+        return fleet.front(); // The entry scene starts with the city car.
+    }
+    static void vehicleLod(saida::Node& node) {
+        auto* lod=node.addBehaviour<saida::LODGroupBehaviour>();
+        lod->setLevels({{"Near",.055f},{"Far",0.f}});
+    }
     void buildTrafficPrototype() {
-        trafficPrototype=prototypes->addChild(clonePlant(*car));
+        std::ifstream input(game/"assets/models/vehicles/fleet.json");
+        if(!input)throw std::runtime_error("Missing road vehicle fleet manifest");
+        json doc;input>>doc;
+        for(const auto& entry:doc.at("vehicles")) {
+            VehicleModel spec;
+            spec.name=entry.at("name");spec.length=entry.at("length");spec.width=entry.at("width");
+            spec.height=entry.at("height");spec.wheelbase=entry.at("wheelbase");spec.wheelRadius=entry.at("wheelRadius");
+            auto root=std::make_unique<saida::Node>("vehicle-"+spec.name);
+            for(const auto& level:std::vector<std::pair<std::string,std::string>>{{"near","Near"},{"far","Far"}}) {
+                auto* source=prototype(entry.at(level.first).at("path").get<std::string>());
+                if(!source)throw std::runtime_error("Vehicle asset failed: "+spec.name);
+                auto child=clonePlant(*source);child->setName(level.second);
+                child->transform().rotation=glm::quat(0,0,1,0); // Authored forward +Z.
+                root->addChild(std::move(child));
+            }
+            spec.prototype=prototypes->addChild(std::move(root));fleet.push_back(spec);
+        }
+        if(fleet.empty())throw std::runtime_error("The road vehicle fleet is empty");
+        car->setName("vehicle-city");vehicleLod(*car);
+        saida::Log::info("[World traffic] fleet=",fleet.size()," shared vertices=",doc.at("totalVertices").get<size_t>());
+    }
+    size_t vehicleKind(uint32_t seed,const saida::traffic::Lane& lane) const {
+        // Common cars dominate. Long vehicles start on faster through roads.
+        const uint32_t roll=(seed^(seed>>16))%100;
+        std::string name=roll<34?"city":roll<55?"sedan":roll<74?"suv":roll<86?"offroad":roll<94?"sport":roll<98?"truck":"bus";
+        if((name=="truck"||name=="bus")&&lane.speed<11.f)name="city";
+        for(size_t i=0;i<fleet.size();++i)if(fleet[i].name==name)return i;
+        return 0;
     }
     void readGraph(Loaded& tile) {
         auto found=tile.data.find("traffic");
@@ -1488,6 +2011,10 @@ class World : public Rml::EventListener {
         // The despawn radius is the streamer's, not a taste: a car further
         // than the tile ring is a car in a tile that is about to be evicted.
         rules.despawn=260.f;
+        // The simulator measures centre-to-centre gaps. Reserve a bus length
+        // plus clearance so two long vehicles cannot overlap in a queue.
+        rules.minGap=12.5f;
+        rules.junctionGuard=14.f;
         // Deterministic per tile, so the same street is the same street on
         // every visit and a capture can be compared with itself.
         tile.flow.reset(&tile.graph,rules,uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u);
@@ -1498,7 +2025,7 @@ class World : public Rml::EventListener {
     }
     void paintCar(saida::Node& node,glm::vec3 albedo) {
         node.traverse([&](saida::Node& n,const glm::mat4&){
-            if(!n.material())return;
+            if(!n.material()||n.name().rfind("paint-",0)!=0)return;
             auto desc=n.material()->desc();
             desc.baseColor=glm::vec4(albedo,desc.baseColor.a);
             if(auto* mesh=dynamic_cast<saida::MeshNode*>(&n))
@@ -1512,8 +2039,8 @@ class World : public Rml::EventListener {
         return tile.frame.local(origin.origin+origin.basis*glm::dvec3(p.x,p.y,p.z));
     }
     void updateTraffic(float delta) {
-        if(!trafficPrototype)return;
-        // §12.4 again, from the other side: the whole neighbourhood shares one
+        if(fleet.empty())return;
+        // §5 again, from the other side: the whole neighbourhood shares one
         // fleet budget, and the tiles nearest the player spend it first --
         // `nearby` returns them in that order. Far tiles keep their graph and
         // simply show nothing, which costs one integer.
@@ -1535,7 +2062,7 @@ class World : public Rml::EventListener {
             if(driving) {
                 const glm::dvec3 p=l.frame.local(ecef(carLon,carLat,carAlt));
                 player.position={float(p.x),float(p.z)};
-                player.radius=2.4f;
+                player.radius=float(vehicleSpec(*car).length*.5+.4);
                 player.active=true;
             }
             // Which way the camera is looking, in this tile's frame, so cars
@@ -1548,7 +2075,7 @@ class World : public Rml::EventListener {
                 ?saida::traffic::Vec2{float(look.x/flat),float(look.z/flat)}
                 :saida::traffic::Vec2{0.f,0.f};
             l.flow.update(std::min(.05f,delta),{float(eye.x),float(eye.z)},facing,player);
-            syncTrafficNodes(l);
+            syncTrafficNodes(l,std::min(.05f,delta));
         }
     }
     bool trafficSlotLive(const Loaded& tile,size_t slot) const {
@@ -1556,19 +2083,30 @@ class World : public Rml::EventListener {
         return slot<agents.size()&&agents[slot].alive;
     }
     // Reuse each slot's graph; dormant slots retain resources without rendering.
-    void syncTrafficNodes(Loaded& tile) {
+    void syncTrafficNodes(Loaded& tile,float delta) {
         const auto& agents=tile.flow.agents();
         if(tile.cars.size()<agents.size()) {
             tile.cars.resize(agents.size(),nullptr);
-            tile.carPaint.resize(agents.size(),0);
+            tile.carKinds.resize(agents.size(),0);
+            tile.carWheels.resize(agents.size());
+            tile.carSpin.resize(agents.size(),0.);
         }
         for(size_t i=0;i<tile.cars.size();++i) {
             const bool live=trafficSlotLive(tile,i);
             if(!tile.cars[i]) {
                 if(!live)continue;                 // no node until a slot is used
-                auto node=clonePlant(*trafficPrototype);
+                const auto& agent=agents[i];
+                tile.carKinds[i]=vehicleKind(agent.seed,tile.graph.lanes[agent.lane]);
+                auto node=clonePlant(*fleet[tile.carKinds[i]].prototype);
+                vehicleLod(*node);
+                paintCar(*node,paintFor(agent.seed));
+                tile.carWheels[i].clear();tile.carSpin[i]=0.;
+                std::function<void(saida::Node&)> wheels=[&](saida::Node& n){
+                    if(n.name().rfind("wheel-",0)==0){tile.carWheels[i].push_back(&n);return;}
+                    for(auto& c:n.children())wheels(*c);
+                };
+                wheels(*node);
                 tile.cars[i]=tile.node->addChild(std::move(node));
-                tile.carPaint[i]=0;
             }
             if(!live) {
                 tile.cars[i]->setVisible(false);
@@ -1576,13 +2114,11 @@ class World : public Rml::EventListener {
             }
             tile.cars[i]->setVisible(true);
             const auto& agent=agents[i];
-            // Repaint when the slot changes hands. Swapping a material pointer
-            // is free of the hierarchy, so the fleet keeps its ten colours
-            // instead of a colour per slot for the tile's whole life.
-            if(tile.carPaint[i]!=agent.seed) {
-                tile.carPaint[i]=agent.seed;
-                paintCar(*tile.cars[i],paintFor(agent.seed));
-            }
+            // Agent seeds advance at junctions. Keep model and paint stable
+            // for the pooled node instead of changing a car in full view.
+            tile.carSpin[i]+=agent.speed*delta/fleet[tile.carKinds[i]].wheelRadius;
+            for(auto* wheel:tile.carWheels[i])wheel->transform().rotation=
+                glm::angleAxis(float(-tile.carSpin[i]),glm::vec3(1,0,0));
             const auto pose=tile.flow.pose(agent);
             const auto& lane=tile.graph.lanes[agent.lane];
             const float span=tile.graph.laneLength(agent.lane);
@@ -1607,7 +2143,11 @@ class World : public Rml::EventListener {
             for(size_t i=0;i<tile.cars.size();++i) {
                 if(!tile.cars[i]||!trafficSlotLive(tile,i))continue;
                 const auto& position=tile.cars[i]->transform().position;
-                if(std::hypot(p.x-position.x,p.z-position.z)<clearance)return true;
+                const auto& spec=fleet[tile.carKinds[i]];
+                const glm::vec3 offset=glm::inverse(tile.cars[i]->transform().rotation)*
+                    glm::vec3(float(p.x-position.x),0,float(p.z-position.z));
+                const double padding=std::max(0.,clearance-1.8);
+                if(std::abs(offset.x)<spec.width*.5+padding&&std::abs(offset.z)<spec.length*.5+padding)return true;
             }
         }
         return false;
@@ -1786,7 +2326,7 @@ class World : public Rml::EventListener {
         }
         return node;
     }
-    // `reach` is §12.4's detail band, 1 on foot and less at the wheel: the
+    // `reach` is §5's detail band, 1 on foot and less at the wheel: the
     // radius a plant is drawn in shrinks with the speed it is passed at, which
     // is the cheapest of the plan's levers and the only one that costs nothing
     // when standing still.
@@ -1954,8 +2494,7 @@ class World : public Rml::EventListener {
                         // Loud on purpose. A skipped tile used to be a UI string
                         // and nothing else, so a neighbourhood that did not fit
                         // looked exactly like a slow download -- the worst shape
-                        // a failure can take, and the same one the frozen tile
-                        // counter took before the heartbeat was read.
+                        // a failure can take (CLAUDE.md rule 3).
                         saida::Log::warn("[World] ",t.key()," does not fit: ",count,
                                          " + ",vertices," > ",residentVertexBudget," resident vertices");
                     }
@@ -1971,6 +2510,7 @@ class World : public Rml::EventListener {
                 // out from under it.
                 unpack(entry->second);
                 readGraph(entry->second);
+                mountAircraft(entry->second);
                 placeTiles();
                 lastMountMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-mountStarted).count();
                 saida::Log::info("[World streaming] mounted ",t.key()," mount_ms=",lastMountMs,
@@ -1986,7 +2526,7 @@ class World : public Rml::EventListener {
             // Not transient: the arena is a fixed size and this neighbourhood
             // does not fit in it. Saying so and handing the map back is a worse
             // outcome than spawning and a far better one than a counter that
-            // never moves -- and it is the truth (§4 I5).
+            // never moves -- and it is the truth (§3 I5).
             pending=false;warming=false;showMap(true);
             text("status","Ce quartier dépasse la mémoire géométrique disponible. Choisissez un point voisin.");
             return;
@@ -2028,6 +2568,7 @@ class World : public Rml::EventListener {
             // swimming at the selected coordinate, including in the open sea.
             driving=false;swimming=waterSpawn;swimTime=0;swimLean=0;swimHeading=yaw;
             clearBoats();
+            clearAircraft();
             player->setEnabled(true);
             player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
             parkCar();
@@ -2051,8 +2592,9 @@ class World : public Rml::EventListener {
                 if(!tellSun()){saida::Log::error("[World E2E] FAIL the sun cycle did not take the observer");testFailed=true;engine.sceneTree().quit();return;}
                 saida::Log::info("[World E2E] sun follows the observer");
                 smokeWaterSpawn=waterSpawn&&!smokeSail&&worldCapture.pngPath.empty();
-                smokeStarted=!smokeSail&&!waterSpawn;
+                smokeStarted=!smokeSail&&!smokeFly&&!waterSpawn;
                 smokeSailWait=smokeSail;smokeSailTime=0;
+                smokeFlyWait=smokeFly;smokeFlyTime=0;smokeFlyPhase=0;
                 smokeWalk=0;smokeStart=ecef(lon,lat,alt);smokeRan=smokeJumped=false;
                 saida::Log::info("[World E2E] spawn complete with ",loaded.size()," tiles resident");
             }
@@ -2064,7 +2606,7 @@ class World : public Rml::EventListener {
         }
     }
 public:
-    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false):engine(e),game(g),smokeSail(sail),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
+    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
@@ -2092,6 +2634,7 @@ public:
         prototypes->setEnabled(false);
         loadPaints();
         buildTrafficPrototype();
+        buildAircraftPrototypes();
         saida::Log::info("[World traffic] ready, ",paints.size()," paints");
         // Textures resident at once. A city neighbourhood shows about fifteen
         // photographed materials (ground, streets, walls, roofs; see
@@ -2101,6 +2644,9 @@ public:
         e.resources().setGpuBudget(512ull*1024*1024);
         r1::WorldService::Options options;
         options.gameRoot=game.string();
+        // Nine tiles can be resident together. Leave 5% of their share for
+        // landmarks that remain visible across a tile boundary.
+        options.tileVertexTarget=std::min(r1::kTileVertexBudget,residentVertexBudget*95/900);
         options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);};
         options.log=[](const std::string& line){saida::Log::info("[World service] ",line);};
         service=std::make_unique<r1::WorldService>(std::move(options));
@@ -2417,6 +2963,238 @@ public:
         }
     }
 
+    // `--fly`: whatever flies where the map was clicked, one plane and one
+    // helicopter. The plane lines up on the longest clear run it can find,
+    // takes off, is refused the door in the air, is then flown low at a
+    // building and must stop against it -- not crash -- come down and let its
+    // pilot out. The helicopter spins up, climbs, flies forward, sets down
+    // and lets its pilot out (or, set down on a roof, keeps him in). Every
+    // step fails on its own reason (rule 3 of CLAUDE.md).
+    // R1WORLD_FLY_SHOT=<png> with R1WORLD_FLY_SHOT_AT=<moment> photographs
+    // the chase view at that moment of the run, then ends it: "stand", "climb",
+    // "stop", "heli-stand" or "heli". A test can say the aircraft flew; only
+    // a picture says it looked like flying (rule 1 of CLAUDE.md).
+    void flyShot(const char* moment) {
+        const char* path=std::getenv("R1WORLD_FLY_SHOT");
+        const char* at=std::getenv("R1WORLD_FLY_SHOT_AT");
+        if(!path||!at||std::string(at)!=moment||captureQueued)return;
+        saida::CaptureRequest shot;
+        shot.pngPath=path;shot.frame=3;shot.fixedStep=1.f/60.f;shot.settleTimeoutFrames=900;
+        captureQueued=true;
+        saida::Log::info("[World E2E] photographing '",moment,"' to ",path);
+        engine.captureFrameThenExit(shot);
+    }
+    void flyFail(const std::string& why) {
+        saida::Log::error("[World E2E] FAIL fly: ",why);
+        testFailed=true;engine.sceneTree().quit();
+    }
+    static std::string flyCategory(const r1::AircraftType& t) {return t.klass=="helicopter"?"helicopter":"plane";}
+    // The parked aircraft of a category not flown yet: business jets first
+    // (they take off in the shortest run), then airliners, then helicopters.
+    bool smokeNextAircraft(Loaded*& found,size_t& index) {
+        found=nullptr;double best=1e30;int bestRank=9;
+        for(auto& [key,t]:loaded) {
+            const glm::dvec3 me=t.frame.local(ecef(lon,lat,alt));
+            for(size_t i=0;i<t.aircraft.size();++i) {
+                const AircraftSpot& s=t.aircraft[i];
+                const auto* type=r1::aircraftType(s.type);
+                if(s.taken||!s.node||!type||smokeFlown.count(flyCategory(*type)))continue;
+                const int rank=type->klass=="jet"?0:type->klass=="airliner"?1:2;
+                const double d=std::hypot(me.x-s.local.x,me.z-s.local.z);
+                if(rank<bestRank||(rank==bestRank&&d<best)){bestRank=rank;best=d;found=&t;index=i;}
+            }
+        }
+        return found!=nullptr;
+    }
+    // How far the aircraft could go along a heading before a building, the
+    // water (on the ground) or the edge of the loaded world.
+    double clearRun(double heading,double reach,double step,double above) {
+        double clear=0;
+        for(double d=step;d<=reach;d+=step) {
+            const auto q=advance(plane.lon,plane.lat,std::sin(heading*rad)*d,std::cos(heading*rad)*d);
+            if(!tile(q.x,q.y)||aircraftHits(q.x,q.y,plane.alt+above,heading)||(above<1.&&onWater(q.x,q.y)))break;
+            clear=d;
+        }
+        return clear;
+    }
+    void runSmokeFly(float delta) {
+        const double dt=std::min(.05,double(delta));
+        smokeFlyTime+=dt;
+        smokeF=smokeR=smokeUp=0;
+        if(smokeFlyWait) {
+            Loaded* t=nullptr;size_t i=0;
+            if(!smokeNextAircraft(t,i)) {
+                if(smokeFlown.empty()&&smokeFlyTime<90.)return;
+                if(smokeFlown.empty())return flyFail("no aircraft streamed within 90 s of the spawn");
+                saida::Log::info("[World E2E] PASS fly: flew ",smokeFlown.size()," kind(s) of aircraft");
+                engine.sceneTree().quit();return;
+            }
+            AircraftSpot& spot=t->aircraft[i];
+            const auto* type=r1::aircraftType(spot.type);
+            // Stand the pilot beside the fuselage, where a walk would bring him.
+            const auto centre=geodeticOf(*t,glm::vec3(spot.local));
+            const double s=std::sin(spot.heading*rad),c=std::cos(spot.heading*rad);
+            bool placed=false;
+            for(double along:{type->length*.3,0.,-type->length*.25})
+                for(double side:{-1.,1.}) {
+                    if(placed)break;
+                    const double o=(fuselageHalf(*type)+1.5)*side;
+                    const auto q=advance(centre.x,centre.y,s*along+c*o,c*along-s*o);
+                    if(tile(q.x,q.y)&&!blocked(q.x,q.y)){lon=q.x;lat=q.y;alt=height(lon,lat);placed=true;}
+                }
+            if(!placed)return flyFail("no standable ground beside the "+spot.type+" ("+spot.name+")");
+            saida::Node* wanted=spot.node;
+            if(!enterAircraft()||!piloting||plane.node!=wanted)
+                return flyFail("could not take the controls of the "+spot.type+" the pilot stands beside");
+            smokeFlyWait=false;smokeFlyTime=0;smokeFlyTop=0;
+            smokeFlyStart=ecef(plane.lon,plane.lat,plane.alt);smokeFlyAlt=plane.alt;
+            flyShot(plane.helicopter()?"heli-stand":"stand");
+            if(plane.helicopter()) {
+                smokeFlyPhase=10;
+                saida::Log::info("[World E2E] flying a ",plane.type->name," (",spot.name,")");
+            } else {
+                // Line up as a pilot would: the longest clear run on the ground.
+                smokeFlyClear=0;double heading=plane.yaw;
+                for(int k=0;k<36;++k) {
+                    const double h=k*10.,run=clearRun(h,1500.,10.,0.);
+                    if(run>smokeFlyClear){smokeFlyClear=run;heading=h;}
+                }
+                plane.yaw=yaw=heading;
+                smokeFlyPhase=1;
+                saida::Log::info("[World E2E] flying a ",plane.type->name," (",spot.name,"), ",smokeFlyClear,
+                                 " m clear on heading ",heading);
+            }
+            return;
+        }
+        Aircraft& p=plane;
+        smokeFlyTop=std::max(smokeFlyTop,p.speed);
+        switch(smokeFlyPhase) {
+        case 1: {  // the take-off roll
+            smokeF=1.;smokeUp=p.speed>=p.type->rotate?1.:0.;
+            if(p.airborne&&p.alt-smokeFlyAlt>=25.) {
+                saida::Log::info("[World E2E] PASS take-off: ",p.type->name," up ",p.alt-smokeFlyAlt," m, top ",
+                                 smokeFlyTop," m/s, ",glm::length(ecef(p.lon,p.lat,p.alt)-smokeFlyStart)," m from the stand");
+                if(leaveAircraft()||!piloting)return flyFail("the door opened in the air");
+                saida::Log::info("[World E2E] PASS the door stays shut in the air");
+                flyShot("climb");
+                smokeFlyPhase=2;smokeFlyTime=0;
+            } else if(smokeFlyTime>60.) {
+                flyFail("no take-off in 60 s: top "+number(smokeFlyTop,1)+" m/s for a rotation at "+
+                        number(p.type->rotate,1)+", "+number(smokeFlyClear,0)+" m clear, airborne="+(p.airborne?"yes":"no"));
+            }
+            return;
+        }
+        case 2: {  // flown low at the nearest tall building: it must stop the aircraft
+            const Loaded* in=nullptr;glm::dvec2 centre(0);double radius=0,best=1e30;
+            for(auto& [key,t]:loaded) {
+                const glm::dvec3 me=t.frame.local(ecef(p.lon,p.lat,p.alt));
+                for(const auto& f:t.footprints) {
+                    if(f.top>1e29||f.points.size()<3)continue;
+                    glm::dvec2 c(0);
+                    for(const auto& q:f.points)c+=q;
+                    c/=double(f.points.size());
+                    double r=0;
+                    for(const auto& q:f.points)r=std::max(r,glm::length(q-c));
+                    const auto at=geodeticOf(t,glm::vec3(float(c.x),0.f,float(c.y)));
+                    const double tall=f.top-t.frame.local(ecef(at.x,at.y,groundAt(at.x,at.y,p.alt))).y;
+                    const double d=std::hypot(me.x-c.x,me.z-c.y);
+                    if(r<6.||tall<8.||d>=best)continue;
+                    best=d;in=&t;centre=c;radius=r;
+                }
+            }
+            double chosen=-1;
+            if(in) {
+                const auto middle=geodeticOf(*in,glm::vec3(float(centre.x),0.f,float(centre.y)));
+                const double away=radius+p.type->length*.5+p.type->span*.5+25.;
+                for(int k=0;k<36&&chosen<0;++k) {
+                    const double h=k*10.;
+                    const auto start=advance(middle.x,middle.y,-std::sin(h*rad)*away,-std::cos(h*rad)*away);
+                    if(!tile(start.x,start.y)||onWater(start.x,start.y))continue;
+                    const double ground=groundAt(start.x,start.y,p.alt);
+                    if(aircraftHits(start.x,start.y,ground+3.,h))continue;
+                    chosen=h;p.lon=start.x;p.lat=start.y;p.alt=ground+3.;
+                }
+                if(chosen>=0)saida::Log::info("[World E2E] flying at a building ",away," m ahead, ",
+                                              p.type->stall*1.3," m/s, 3 m up");
+            }
+            if(chosen<0) {
+                saida::Log::info("[World E2E] no building with a clear approach here; the stop is not tested");
+                smokeFlyPhase=4;smokeFlyTime=0;return;
+            }
+            p.yaw=yaw=chosen;p.pitch=0;p.roll=0;p.climb=0;p.airborne=true;
+            p.speed=p.type->stall*1.3;p.lever=1;p.thrust=1;planeStopped=false;
+            smokeFlyPhase=3;smokeFlyTime=0;
+            return;
+        }
+        case 3: {  // stopped, not crashed, and not inside the building
+            smokeF=1.;
+            if(planeStopped&&p.speed==0.) {
+                if(buildingAt(p.lon,p.lat,p.alt+.4))return flyFail("the aircraft stopped inside the building");
+                saida::Log::info("[World E2E] PASS stopped by a building, no crash, ",p.alt-planeGround," m up");
+                flyShot("stop");
+                smokeFlyPhase=4;smokeFlyTime=0;
+            } else if(smokeFlyTime>6.) {
+                flyFail("flew at a building for 6 s and was never stopped");
+            }
+            return;
+        }
+        case 4: {  // down, stopped, and out
+            smokeF=-1.;smokeUp=-1.;
+            if(p.airborne||std::abs(p.speed)>kAircraftExitSpeed) {
+                if(smokeFlyTime>40.)flyFail("the plane did not come down and stop within 40 s");
+                return;
+            }
+            if(!leaveAircraft())return flyFail("could not step down from the landed plane");
+            saida::Log::info("[World E2E] PASS plane: down, stopped and out");
+            smokeFlown.insert("plane");smokeFlyPhase=0;smokeFlyWait=true;smokeFlyTime=0;
+            return;
+        }
+        case 10: {  // spin up and climb
+            smokeUp=1.;
+            if(p.alt-smokeFlyAlt>=20.) {
+                saida::Log::info("[World E2E] PASS helicopter climb: ",p.alt-smokeFlyAlt," m in ",smokeFlyTime," s");
+                flyShot("heli");
+                double run=0,heading=p.yaw;
+                for(int k=0;k<36;++k){const double h=k*10.,r=clearRun(h,300.,5.,0.);if(r>run){run=r;heading=h;}}
+                p.yaw=yaw=heading;
+                smokeFlyStart=ecef(p.lon,p.lat,p.alt);smokeFlyPhase=11;smokeFlyTime=0;
+            } else if(smokeFlyTime>15.) {
+                flyFail("the helicopter climbed "+number(p.alt-smokeFlyAlt,1)+" m in 15 s");
+            }
+            return;
+        }
+        case 11: {  // forward
+            smokeF=1.;
+            if(smokeFlyTime>=4.) {
+                const double covered=glm::length(ecef(p.lon,p.lat,p.alt)-smokeFlyStart);
+                if(covered<20.&&!planeStopped)return flyFail("the helicopter covered "+number(covered,1)+" m in 4 s");
+                saida::Log::info("[World E2E] PASS helicopter forward: ",covered," m, top ",smokeFlyTop," m/s");
+                smokeFlyPhase=12;smokeFlyTime=0;
+            }
+            return;
+        }
+        case 12: {  // brake, set down, step out
+            smokeUp=-1.;smokeF=p.speed>1.?-1.:0.;
+            if(!p.airborne&&std::abs(p.speed)<=kAircraftExitSpeed) {
+                bool onRoof=false;
+                surfaceUnder(p.lon,p.lat,p.alt+1.,&onRoof);
+                if(onRoof) {
+                    if(leaveAircraft())return flyFail("the pilot stepped out onto a roof");
+                    saida::Log::info("[World E2E] PASS helicopter set down on a roof, the door stays shut");
+                } else {
+                    if(!leaveAircraft())return flyFail("could not step down from the landed helicopter");
+                    saida::Log::info("[World E2E] PASS helicopter set down and out");
+                }
+                smokeFlown.insert("helicopter");smokeFlyPhase=0;smokeFlyWait=true;smokeFlyTime=0;
+            } else if(smokeFlyTime>30.) {
+                flyFail("the helicopter did not set down within 30 s");
+            }
+            return;
+        }
+        default: return;
+        }
+    }
+
     // Diagnostic scene composition; this traversal is only run by the smoke test.
     void measureWalk() {
         const auto started=std::chrono::steady_clock::now();
@@ -2514,7 +3292,7 @@ public:
             saida::Log::error("[World E2E] FAIL ",refused," did not fit the resident vertex budget");
             testFailed=true;engine.sceneTree().quit();return;
         }
-        if(smoke){testElapsed+=delta;if(testElapsed>(hopWanted?420:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return;}}
+        if(smoke){testElapsed+=delta;if(testElapsed>(hopWanted?420:smokeFly?300:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return;}}
         if(testResume){
             resumeWait+=delta;
             if(resumeWait>.25){
@@ -2544,9 +3322,10 @@ public:
         cost.parts=timed([&]{uploadParts();});
         if(!playing)cost.warm=timed([&]{warm();});
         if(!playing||menu)return;
-        const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail);
+        const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail)
+                        ||(piloting&&std::abs(plane.speed)>kFastDetail);
         seaTime+=delta;
-        // §12.4, "le détail suit la vitesse": above 15 km/h the plan drops L5 --
+        // §5, "le détail suit la vitesse": above 15 km/h the plan drops L5 --
         // mobilier, clutter, détail de façade -- and shrinks the rest. Street
         // furniture is streamed in rather than drawn from a pool, so dropping
         // it means not spending the frame's 2 ms importing what the player is
@@ -2567,10 +3346,10 @@ public:
         // at a junction and what the first drive was missing entirely. It
         // recentres behind the car once the mouse stops and the car is rolling,
         // so the default view is still the road ahead.
-        if(driving||sailing) {
+        if(driving||sailing||piloting) {
             if(std::abs(mouse.x)>1e-4){lookYaw=wrap(lookYaw+mouse.x*.12);lookIdle=0;}
             else lookIdle+=delta;
-            if(lookIdle>.6&&std::abs(driving?carSpeed:boat.speed)>2.)
+            if(lookIdle>.6&&std::abs(driving?carSpeed:sailing?boat.speed:plane.speed)>2.)
                 lookYaw-=lookYaw*(1-std::exp(-2.2*std::min(.05,double(delta))));
         } else yaw+=mouse.x*.12;
         pitch=std::clamp(pitch-mouse.y*.12,-65.,25.);
@@ -2590,14 +3369,17 @@ public:
         if(doorKey&&!wasEnterKey) {
             if(driving)leaveCar();
             else if(sailing){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
+            else if(piloting)leaveAircraft();
             else if(swimming){
-                if(!enterBoat())text("stream-status","Aucun bateau à portée — nagez vers une embarcation.");
+                if(!enterBoat()&&!enterAircraft())text("stream-status","Aucun bateau à portée — nagez vers une embarcation.");
             }
             else {
-                // The nearer of a car and a boat: one key for every vehicle.
-                Reach carReach;BoatReach boatReach;double carAway=0,boatAway=0;
+                // The nearest of a car, a boat and an aircraft: one key for every vehicle.
+                Reach carReach;BoatReach boatReach;PlaneReach planeReach;double carAway=0,boatAway=0,planeAway=0;
                 const bool car=nearestCar(carReach,carAway),vessel=nearestBoat(boatReach,boatAway);
-                if(vessel&&(!car||boatAway<carAway))enterBoat();
+                const bool aircraft=nearestAircraft(planeReach,planeAway);
+                if(aircraft&&(!car||planeAway<carAway)&&(!vessel||planeAway<boatAway))enterAircraft();
+                else if(vessel&&(!car||boatAway<carAway))enterBoat();
                 else if(!enterCar()) {
                     // Pressing the door key from across the street is a question,
                     // and it gets an answer rather than silence.
@@ -2618,6 +3400,14 @@ public:
             if(smokeSailing){f=smokeSailBrake?-1.:1.;r=0;}
             sailBoat(dt,f,r);
             moving=std::abs(boat.speed)>.2;
+        } else if(piloting) {
+            double up=(w.keyDown(GLFW_KEY_SPACE)||w.keyDown(GLFW_KEY_UP)?1.:0.)
+                     -(w.keyDown(GLFW_KEY_LEFT_SHIFT)||w.keyDown(GLFW_KEY_LEFT_CONTROL)||w.keyDown(GLFW_KEY_DOWN)?1.:0.);
+            if(smokeFly){f=smokeF;r=smokeR;up=smokeUp;}
+            if(plane.helicopter())flyHelicopter(dt,f,r,up);else flyPlane(dt,f,r,up);
+            lon=plane.lon;lat=plane.lat;alt=plane.alt;yaw=plane.yaw;
+            moving=std::abs(plane.speed)>.2||plane.airborne;
+            request(lon,lat);
         } else if(swimming) {
             swimTime+=dt;
             if(smokeSwimming){f=1.;r=0.;length=1.;}
@@ -2662,7 +3452,7 @@ public:
             request(lon,lat);
         }
         if(glm::length(origin.local(ecef(lon,lat,alt)))>350.){origin=Frame(lon,lat,alt);placeTiles();moveSun();}
-        if(!driving&&!sailing) {
+        if(!driving&&!sailing&&!piloting) {
             if(swimming) {
                 jumpOffset=jumpVelocity=0;wasJump=false;
                 swimLean+=(double(moving)-swimLean)*(1-std::exp(-5*dt));
@@ -2688,20 +3478,25 @@ public:
         updateSinkingCar(dt);
         placeCar();
         placeBoats();
+        placeAircraft(dt);
         if(smokeStarted&&worldCapture.pngPath.empty()){
             smokeRan=smokeRan||(moving&&animators.front()->currentClip()=="run");
             smokeJumped=smokeJumped||(jumpOffset>.5&&animators.front()->currentClip()=="jump");
         }
-        camera->transform().rotation=glm::angleAxis(float(-(yaw+lookYaw)*rad),glm::vec3(0,1,0))*glm::angleAxis(float(pitch*rad),glm::vec3(1,0,0));
+        // At the controls of a plane the view pitches with the nose, a little.
+        const double viewPitch=std::clamp(pitch+(piloting&&!plane.helicopter()?plane.pitch*.6:0.),-80.,40.);
+        camera->transform().rotation=glm::angleAxis(float(-(yaw+lookYaw)*rad),glm::vec3(0,1,0))*glm::angleAxis(float(viewPitch*rad),glm::vec3(1,0,0));
         // A car is longer than a man and moves twice as fast, so the camera
         // stands further back -- far enough to see the bonnet turn.
         // A boat's camera stands off by its own length: a container ship is
         // two hundred metres of hull, and eight metres behind its bridge is
         // inside it.
         const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
-                              :driving?kDrivingFollow:kOnFootFollow;
-        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):driving?2.:swimming?2.1:1.6;
+                              :piloting?plane.type->length*.9+10.
+                              :driving?std::max(kDrivingFollow,vehicleSpec(*car).length*.7+5.):kOnFootFollow;
+        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?2.1:1.6;
         const glm::vec3 anchor=sailing&&boat.node?boat.node->transform().position
+                              :piloting&&plane.node?plane.node->transform().position
                               :driving?car->transform().position:player->transform().position;
         const glm::vec3 target=anchor+glm::vec3(0,eye,0);
         const glm::vec3 backward=camera->transform().rotation*glm::vec3(0,0,1);
@@ -2714,8 +3509,10 @@ public:
             glm::dvec2 a(a3.x,a3.z),v(b3.x-a3.x,b3.z-a3.z);
             auto cross=[](glm::dvec2 a,glm::dvec2 b){return a.x*b.y-a.y*b.x;};
             auto low=glm::min(a,a+v)-glm::dvec2(.3),high=glm::max(a,a+v)+glm::dvec2(.3);
+            const double eyeY=t.frame.local(ecef(lon,lat,alt+eye)).y;
             for(auto& shape:t.footprints){
                 if(shape.high.x<low.x||shape.low.x>high.x||shape.high.y<low.y||shape.low.y>high.y)continue;
+                if(shape.top<eyeY)continue;  // lower than the view: it hides nothing
                 auto& poly=shape.points;
                 for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++){
                     glm::dvec2 p=poly[j],q=poly[i];
@@ -2729,6 +3526,7 @@ public:
         // Keep the camera above terrain and inside loaded tiles as well.
         for(double d=.25;d<=clear;d+=.25){
             auto q=advance(lon,lat,backward.x*d,-backward.z*d);
+            if(!tile(q.x,q.y)&&piloting)continue;  // in the air, unstreamed ground ahead is no wall
             if(!tile(q.x,q.y)||height(q.x,q.y)+.3>alt+jumpOffset+.06+eye+backward.y*d){clear=std::max(.15,d-.25);break;}
         }
         followDistance=clear<followDistance?clear:followDistance+(clear-followDistance)*(1-std::exp(-7*dt));
@@ -2761,12 +3559,20 @@ public:
             text("local-conditions",localClock()+"  |  "+weatherLabel());
             text("coordinates",number(lat)+"°  /  "+number(lon)+"°     "+number(alt,1)+" m"
                  +(driving?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":"")
-                 +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" nœuds":""));
-            Reach within;BoatReach moored;double howFar=0,boatFar=0;
+                 +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" nœuds":"")
+                 +(piloting?"     "+std::to_string(int(std::round(std::abs(plane.speed)*3.6)))+" km/h · "
+                    +std::to_string(int(std::round(plane.alt-planeGround)))+" m sol"
+                    +(plane.helicopter()?"":" · gaz "+std::to_string(int(std::round(plane.lever*100)))+" %"):""));
+            Reach within;BoatReach moored;PlaneReach standing;double howFar=0,boatFar=0,planeFar=0;
             std::string mode=driving
                 ?" · Au volant · F : descendre"
+                :piloting?std::string(plane.helicopter()
+                    ?" · Hélicoptère · Espace/Maj : monter/descendre · Z/S : avancer/reculer · Q/D : tourner · F : descendre"
+                    :" · Avion · Z/S : gaz · Q/D : virer · Espace/Maj : cabrer/piquer · F : descendre")
+                  +(tile(lon,lat)?"":" · relief inconnu sous l'appareil")
                 :sailing?" · À la barre · F : débarquer ou passer à bord"
                 :swimming?" · À l'eau · ZQSD/WASD : nager · F : remonter à bord"
+                :nearestAircraft(standing,planeFar)?" · F : prendre l'appareil"
                 :nearestBoat(moored,boatFar)?" · F : prendre le bateau"
                 :(nearestCar(within,howFar)?" · F : monter dans la voiture":" · M : carte");
             const auto* currentTile=tile(lon,lat);
@@ -2783,6 +3589,7 @@ public:
                              "m, body depth=",rootBelow,"m, car parked=",carParked);
             engine.sceneTree().quit();return;
         }
+        if(smokeFlyWait||smokeFlyPhase){runSmokeFly(delta);return;}
         if(smokeSailWait||smokeSailing){runSmokeSail(delta);return;}
         if(smokeSwimming){runSmokeSwim(delta);return;}
         if(smokeSeaWait){runSmokeSea(delta);return;}
@@ -2840,7 +3647,12 @@ public:
                     smokeTrafficMoved=smokeTrafficMoved||a.speed>2.f;
                 }
             smokeTrafficSeen=std::max(smokeTrafficSeen,live);
-            if(smokeDriveTime<5.)return;
+            // Check the exit while the car is still moving. In a dense city a
+            // clear 60 m stretch can end before five seconds at full throttle.
+            const double covered=glm::length(ecef(lon,lat,alt)-smokeDriveStart);
+            const double needed=std::min(20.,smokeClear*.6);
+            if(smokeDriveTime<2. || (smokeDriveTime<5. &&
+               (covered<needed||std::abs(carSpeed)<=kCarExitSpeed)))return;
             // A street that asked for cars and got none is the failure this
             // assertion exists for -- and a spawn on a moor that asked for
             // none is not one, so the claim is checked against the ask.
@@ -2852,13 +3664,12 @@ public:
             }
             saida::Log::info("[World E2E] traffic: ",smokeTrafficSeen," cars driving of ",
                              trafficWanted()," the neighbourhood asked for");
-            double covered=glm::length(ecef(lon,lat,alt)-smokeDriveStart);
             // What is actually being asserted: that the car goes somewhere, and
             // that it goes there faster than a man can run (7 m/s sprinting).
             // The distance is measured against the clearance the driver found
             // rather than against a fixed number, because a spawn is wherever
             // the map was clicked and some of them are courtyards.
-            if(covered<std::min(20.,smokeClear*.6)||smokeTopSpeed<7.2) {
+            if(covered<needed||smokeTopSpeed<7.2||std::abs(carSpeed)<=kCarExitSpeed) {
                 saida::Log::error("[World E2E] FAIL drive: covered=",covered,
                                   "m of ",smokeClear,"m clear, top=",smokeTopSpeed," m/s");
                 testFailed=true;engine.sceneTree().quit();return;
@@ -2893,8 +3704,8 @@ int main(int argc,char** argv) {
             std::cout<<result.dump()<<std::endl;return 0;
         }
         fs::path game=fs::absolute(fs::path(argv[0])).parent_path().parent_path().parent_path();
-        bool smoke=false,sail=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
-        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
+        bool smoke=false,sail=false,fly=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
+        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--fly")fly=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
         if(!std::isfinite(startLon)||!std::isfinite(startLat)||std::abs(startLat)>90||std::abs(startLon)>180)throw std::runtime_error("Invalid --spawn coordinate");
         // This development executable uses the existing engine's baked paths
         // for shaders/fonts, and the project's root for content.
@@ -2906,7 +3717,7 @@ int main(int argc,char** argv) {
         // The Atlas, the ground classes and the surfaces: data the generator
         // reads before any tile is cooked, and refuses to run without.
         r1::loadPalette(game.string());
-        World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail);
+        World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly);
         engine.setOnFrame([&](float dt){world.update(dt);});
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
         engine.run();return engine.captureFailed()||world.failed()?1:0;

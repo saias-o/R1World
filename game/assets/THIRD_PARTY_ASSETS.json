@@ -64,7 +64,7 @@
       ]
     },
     {
-      "name": "Kenney Car Kit \u2014 the player's car",
+      "name": "Kenney Car Kit \u2014 legacy unused sedan",
       "author": "Kenney",
       "source": "https://kenney.nl/assets/car-kit",
       "license": "CC0 1.0",
@@ -666,6 +666,46 @@
         "assets/textures/facades/brick_buff_albedo.jpg",
         "assets/textures/facades/brick_buff_mr.jpg",
         "assets/textures/facades/brick_buff_normal.jpg"
+      ]
+    },
+    {
+      "name": "R1World original road fleet",
+      "author": "R1World",
+      "source": "game/tools/r1/vehicle_fleet.py",
+      "license": "CC0 1.0",
+      "generatedBy": "game/tools/r1/vehicle_fleet.py",
+      "files": [
+        "assets/models/vehicles/city.glb",
+        "assets/models/vehicles/city_far.glb",
+        "assets/models/vehicles/sedan.glb",
+        "assets/models/vehicles/sedan_far.glb",
+        "assets/models/vehicles/suv.glb",
+        "assets/models/vehicles/suv_far.glb",
+        "assets/models/vehicles/offroad.glb",
+        "assets/models/vehicles/offroad_far.glb",
+        "assets/models/vehicles/sport.glb",
+        "assets/models/vehicles/sport_far.glb",
+        "assets/models/vehicles/truck.glb",
+        "assets/models/vehicles/truck_far.glb",
+        "assets/models/vehicles/bus.glb",
+        "assets/models/vehicles/bus_far.glb"
+      ]
+    },
+    {
+      "name": "R1World original aircraft",
+      "author": "R1World",
+      "source": "game/tools/r1/aircraft_fleet.py",
+      "license": "CC0 1.0",
+      "generatedBy": "game/tools/r1/aircraft_fleet.py",
+      "files": [
+        "assets/models/aircraft/widebody.glb",
+        "assets/models/aircraft/widebody_far.glb",
+        "assets/models/aircraft/airliner.glb",
+        "assets/models/aircraft/airliner_far.glb",
+        "assets/models/aircraft/bizjet.glb",
+        "assets/models/aircraft/bizjet_far.glb",
+        "assets/models/aircraft/helicopter.glb",
+        "assets/models/aircraft/helicopter_far.glb"
       ]
     }
   ]

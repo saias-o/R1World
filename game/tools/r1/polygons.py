@@ -2,7 +2,7 @@
 
 They are pure 2D geometry with no notion of a scene, a
 footprint or a material, and they are float64 and deterministic like everything
-else the pipeline runs offline (§4 I3).
+else the pipeline runs offline (§3 I3).
 
 Every function here takes points as `(x, y)` pairs. The generators work in the
 engine's horizontal plane and pass `(east, -north)`; nothing in this module
@@ -87,45 +87,6 @@ def triangulate(points: list[Point]) -> list[tuple[int, int, int]]:
     if not triangles:
         triangles.extend((0, index, index + 1) for index in range(1, len(points) - 1))
     return triangles
-
-
-def point_in_polygon(point: Point, polygon: list[Point]) -> bool:
-    inside = False
-    j = len(polygon) - 1
-    for i, current in enumerate(polygon):
-        previous = polygon[j]
-        crosses = (current[1] > point[1]) != (previous[1] > point[1])
-        if crosses:
-            edge_x = (previous[0] - current[0]) * (point[1] - current[1]) / (
-                previous[1] - current[1]
-            ) + current[0]
-            if point[0] < edge_x:
-                inside = not inside
-        j = i
-    return inside
-
-
-def convex_hull(points: list[Point]) -> list[Point]:
-    """Monotone chain hull, counter-clockwise, without repeating the first point.
-
-    Used to find a footprint's principal axis. Sorting makes it independent of
-    the order OSM happened to store the way in, which matters: the same building
-    must produce the same roof ridge whichever end of the way it was drawn from.
-    """
-    unique = sorted(set(points))
-    if len(unique) < 3:
-        return unique
-    lower: list[Point] = []
-    for p in unique:
-        while len(lower) >= 2 and cross2(lower[-2], lower[-1], p) <= 0.0:
-            lower.pop()
-        lower.append(p)
-    upper: list[Point] = []
-    for p in reversed(unique):
-        while len(upper) >= 2 and cross2(upper[-2], upper[-1], p) <= 0.0:
-            upper.pop()
-        upper.append(p)
-    return lower[:-1] + upper[:-1]
 
 
 def inset_polygon(points: list[Point], distance: float) -> list[Point]:

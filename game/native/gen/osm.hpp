@@ -24,12 +24,17 @@ struct OsmNode {
 // what a tile keeps never depends on the order Overpass happened to send.
 struct OsmData {
     std::vector<OsmWay> buildings, roads, vegetation, waterways, landcover, treeRows, coastlines, maritime;
+    // Everything `aeroway` (runways, taxiways, aprons, helipads, stands) and
+    // the closed ways that say an area is military (gen/airports.cpp).
+    std::vector<OsmWay> aeroways, military;
     std::vector<P2> trees;
     std::vector<OsmNode> features;
     int queryVersion = 1;
 };
 
-OsmData normalizeOsm(const nlohmann::json& document);
+// `layer`, when given, is a second answer read into the same data (the aero
+// layer, sources.hpp); an element both answers carry is read once.
+OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer = nullptr);
 
 struct ElevationGrid {
     Bounds bounds;

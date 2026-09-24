@@ -8,7 +8,7 @@ A picture says whether the Eiffel Tower looks like itself
   - every surface faces out -- including the back of a niche, which was
     missing from every recessed opening in the first render and showed the
     sky through the Empire State Building;
-  - the same recipe draws the same triangles (§4 I3);
+  - the same recipe draws the same triangles (§3 I3);
   - the OSM trace a landmark replaces is not extruded as well, and nothing
     else is taken with it;
   - a tile cooked before its landmark is cooked again, and only such a tile.

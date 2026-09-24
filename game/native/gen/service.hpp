@@ -34,6 +34,7 @@ public:
         std::function<void(ServedTile&)> prepare;
         std::function<void(const std::string&)> log;
         size_t keep = 36;  // cooked tiles kept in memory
+        size_t tileVertexTarget = kTileVertexBudget;
     };
     explicit WorldService(Options options);
     // Returns at once: a worker still waiting on the network finishes alone.

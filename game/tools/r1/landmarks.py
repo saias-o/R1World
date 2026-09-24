@@ -11,7 +11,7 @@ lattice, one a robed woman holding a torch and one an onion-domed church.
 **This is the exception, and it keeps the thesis.** A landmark is still a
 description, not stored geometry: a recipe of a few dozen lines in the
 vocabulary of `sculpt.py` -- this plinth, this drum, this dome profile -- that
-every client turns into the same triangles (§4 I3). No photogrammetry (§2 rules
+every client turns into the same triangles (§3 I3). No photogrammetry (§2 rules
 it out) and no downloaded model: the recipes are this project's own work, so
 there is no licence to carry and no asset of a lower grade to smuggle in
 (CLAUDE.md rule 1).
@@ -23,7 +23,7 @@ between them. The manifest records all three and says which OSM element they
 came from.
 
 **Why a scene node and not tile geometry.** A landmark exists once on Earth, so
-it is baked once into `cache/world/landmarks/` and placed by the tile whose
+it is baked once into `assets/world/landmarks/` and placed by the tile whose
 bounds hold its anchor. Its vertices are charged to that tile's residency
 (`world.cpp` sums `vertices`) but not to the per-tile generator bound, which
 exists to catch a generator gone wrong, not a monument going right. Every
@@ -58,7 +58,7 @@ MODEL_DIR = GAME / "assets" / "world" / "landmarks"
 
 # Bumped whenever a recipe or the vocabulary changes what it draws. It is part
 # of every model's file name, so an old model is never served for a new recipe
-# (§4 I3: changing a generator invalidates, never silently).
+# (§3 I3: changing a generator invalidates, never silently).
 REVISION = 3
 
 # A thirty-second of the 1 048 576-vertex arena. The densest resident
@@ -111,7 +111,7 @@ class Landmark:
     ground: tuple[float, str] = (0.0, "none")
     # Where the bearing came from, when it is not the OSM element's own axis:
     # a statue's footprint is its plinth, and a plinth does not say which way
-    # its figure looks (§4 I5).
+    # its figure looks (§3 I5).
     bearing_source: str = "osm"
 
 

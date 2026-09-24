@@ -101,6 +101,69 @@ double lengthTag(const std::string* value, double fallback) {
 
 double roadWidth(const Tags& tags) { return lengthTag(tag(tags, "width"), roadWidthOf(tagOr(tags, "highway"))); }
 
+Drape::Drape(const ElevationGrid& elevations, const Anchor& anchor)
+    : bounds_(elevations.bounds), anchor_(anchor), size_(kTerrainMeshSize - 1) {
+    for (int row = 0; row <= size_; ++row)
+        for (int col = 0; col <= size_; ++col) {
+            const double lo = bounds_.west + (bounds_.east - bounds_.west) * col / size_;
+            const double la = bounds_.south + (bounds_.north - bounds_.south) * row / size_;
+            grid_.push_back(anchor.toEngine(lo, la, elevations.sample(lo, la)));
+        }
+}
+
+// The height of the drawn terrain under an engine point. Asked of the
+// point itself, never of the triangle it was clipped against: a corner
+// cut on the edge between two terrain triangles is rounded to the
+// millimetre grid, and each triangle would extrapolate it differently --
+// two heights for one corner is a crack in the road and a vertex twice.
+double Drape::heightAt(P2 q) const {
+    auto g = [&](int row, int col) { return grid_[size_t(row * (size_ + 1) + col)]; };
+    const P3 geo = anchor_.toGeodetic(q.x, 0.0, q.y);
+    double u = std::max(0.0, std::min(1.0, (geo.x - bounds_.west) / (bounds_.east - bounds_.west))) * size_;
+    double v = std::max(0.0, std::min(1.0, (geo.y - bounds_.south) / (bounds_.north - bounds_.south))) * size_;
+    const int col = std::min(size_ - 1, int(u)), row = std::min(size_ - 1, int(v));
+    u -= col; v -= row;
+    const P3 a = g(row, col), b = u >= v ? g(row, col + 1) : g(row + 1, col + 1), c = u >= v ? g(row + 1, col + 1) : g(row + 1, col);
+    const double denom = (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z);
+    const double wa = ((b.z - c.z) * (q.x - c.x) + (c.x - b.x) * (q.y - c.z)) / denom;
+    const double wb = ((c.z - a.z) * (q.x - c.x) + (a.x - c.x) * (q.y - c.z)) / denom;
+    return wa * a.y + wb * b.y + (1 - wa - wb) * c.y;
+}
+
+// A surface triangle never crosses a terrain triangle edge, so every road
+// lies in the plane of the ground drawn beneath it. The regions are cut to
+// a row first and a cell second, so each triangle clips only what is near.
+void Drape::lay(const clip::Paths64& region, double lift, Mesh& mesh) const {
+    if (region.empty()) return;
+    auto g = [&](int row, int col) { return grid_[size_t(row * (size_ + 1) + col)]; };
+    auto box = [](std::initializer_list<P3> pts) {
+        double x0 = 1e300, x1 = -1e300, z0 = 1e300, z1 = -1e300;
+        for (const P3& p : pts) { x0 = std::min(x0, p.x); x1 = std::max(x1, p.x); z0 = std::min(z0, p.z); z1 = std::max(z1, p.z); }
+        return clip::Path64{clip::kMetres.at({x0 - 0.01, z0 - 0.01}), clip::kMetres.at({x1 + 0.01, z0 - 0.01}),
+                            clip::kMetres.at({x1 + 0.01, z1 + 0.01}), clip::kMetres.at({x0 - 0.01, z1 + 0.01})};
+    };
+    for (int row = 0; row < size_; ++row) {
+        const clip::Paths64 strip = clip::intersect(region, {box({g(row, 0), g(row, size_), g(row + 1, 0), g(row + 1, size_)})});
+        if (strip.empty()) continue;
+        for (int col = 0; col < size_; ++col) {
+            const P3 sw = g(row, col), se = g(row, col + 1), ne = g(row + 1, col + 1), nw = g(row + 1, col);
+            const clip::Paths64 cell = clip::intersect(strip, {box({sw, se, ne, nw})});
+            if (cell.empty()) continue;
+            for (const auto& tri : {std::array<P3, 3>{sw, se, ne}, std::array<P3, 3>{sw, ne, nw}}) {
+                const P3 a = tri[0], b = tri[1], c = tri[2];
+                const clip::Paths64 piece = clip::intersect(cell, {clip::kMetres.path({{a.x, a.z}, {b.x, b.z}, {c.x, c.z}})});
+                if (piece.empty()) continue;
+                auto vertex = [&](P2 q) { return P3{q.x, heightAt(q) + lift, q.y}; };
+                for (const clip::Polygon& part : clip::polygons(piece)) {
+                    if (std::abs(polygonArea(part.outer)) < 1e-6) continue;
+                    for (const auto& t : clip::triangles(part))
+                        mesh.addUpTriangle(vertex(t[0]), vertex(t[1]), vertex(t[2]));
+                }
+            }
+        }
+    }
+}
+
 StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<OsmNode>& features,
                           const ElevationGrid& elevations, const Anchor& anchor, const std::vector<Ring>& footprints) {
     using clip::Paths64;
@@ -185,67 +248,8 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
     struct Surface { const Paths64* region; Mesh* mesh; double lift; };
     const Surface surfaces[] = {{&asphalt, &roadMesh, 0.06}, {&cobbles, &cobbleMesh, 0.06},
                                 {&paving, &walkMesh, 0.21}, {&paint, &paintMesh, 0.075}};
-    const Bounds& bounds = elevations.bounds;
-    const int size = kTerrainMeshSize - 1;
-    std::vector<P3> grid;
-    for (int row = 0; row <= size; ++row)
-        for (int col = 0; col <= size; ++col) {
-            const double lo = bounds.west + (bounds.east - bounds.west) * col / size;
-            const double la = bounds.south + (bounds.north - bounds.south) * row / size;
-            grid.push_back(anchor.toEngine(lo, la, elevations.sample(lo, la)));
-        }
-    auto g = [&](int row, int col) { return grid[size_t(row * (size + 1) + col)]; };
-    auto box = [](std::initializer_list<P3> pts) {
-        double x0 = 1e300, x1 = -1e300, z0 = 1e300, z1 = -1e300;
-        for (const P3& p : pts) { x0 = std::min(x0, p.x); x1 = std::max(x1, p.x); z0 = std::min(z0, p.z); z1 = std::max(z1, p.z); }
-        return clip::Path64{clip::kMetres.at({x0 - 0.01, z0 - 0.01}), clip::kMetres.at({x1 + 0.01, z0 - 0.01}),
-                            clip::kMetres.at({x1 + 0.01, z1 + 0.01}), clip::kMetres.at({x0 - 0.01, z1 + 0.01})};
-    };
-
-    // The height of the drawn terrain under an engine point. Asked of the
-    // point itself, never of the triangle it was clipped against: a corner
-    // cut on the edge between two terrain triangles is rounded to the
-    // millimetre grid, and each triangle would extrapolate it differently --
-    // two heights for one corner is a crack in the road and a vertex twice.
-    auto surfaceY = [&](P2 q) {
-        const P3 geo = anchor.toGeodetic(q.x, 0.0, q.y);
-        double u = std::max(0.0, std::min(1.0, (geo.x - bounds.west) / (bounds.east - bounds.west))) * size;
-        double v = std::max(0.0, std::min(1.0, (geo.y - bounds.south) / (bounds.north - bounds.south))) * size;
-        const int col = std::min(size - 1, int(u)), row = std::min(size - 1, int(v));
-        u -= col; v -= row;
-        const P3 a = g(row, col), b = u >= v ? g(row, col + 1) : g(row + 1, col + 1), c = u >= v ? g(row + 1, col + 1) : g(row + 1, col);
-        const double denom = (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z);
-        const double wa = ((b.z - c.z) * (q.x - c.x) + (c.x - b.x) * (q.y - c.z)) / denom;
-        const double wb = ((c.z - a.z) * (q.x - c.x) + (a.x - c.x) * (q.y - c.z)) / denom;
-        return wa * a.y + wb * b.y + (1 - wa - wb) * c.y;
-    };
-
-    // A surface triangle never crosses a terrain triangle edge, so every road
-    // lies in the plane of the ground drawn beneath it. The regions are cut to
-    // a row first and a cell second, so each triangle clips only what is near.
-    for (const Surface& s : surfaces) {
-        if (s.region->empty()) continue;
-        for (int row = 0; row < size; ++row) {
-            const clip::Paths64 strip = clip::intersect(*s.region, {box({g(row, 0), g(row, size), g(row + 1, 0), g(row + 1, size)})});
-            if (strip.empty()) continue;
-            for (int col = 0; col < size; ++col) {
-                const P3 sw = g(row, col), se = g(row, col + 1), ne = g(row + 1, col + 1), nw = g(row + 1, col);
-                const clip::Paths64 cell = clip::intersect(strip, {box({sw, se, ne, nw})});
-                if (cell.empty()) continue;
-                for (const auto& tri : {std::array<P3, 3>{sw, se, ne}, std::array<P3, 3>{sw, ne, nw}}) {
-                    const P3 a = tri[0], b = tri[1], c = tri[2];
-                    const clip::Paths64 piece = clip::intersect(cell, {clip::kMetres.path({{a.x, a.z}, {b.x, b.z}, {c.x, c.z}})});
-                    if (piece.empty()) continue;
-                    auto vertex = [&](P2 q) { return P3{q.x, surfaceY(q) + s.lift, q.y}; };
-                    for (const clip::Polygon& part : clip::polygons(piece)) {
-                        if (std::abs(polygonArea(part.outer)) < 1e-6) continue;
-                        for (const auto& t : clip::triangles(part))
-                            s.mesh->addUpTriangle(vertex(t[0]), vertex(t[1]), vertex(t[2]));
-                    }
-                }
-            }
-        }
-    }
+    const Drape drape(elevations, anchor);
+    for (const Surface& s : surfaces) drape.lay(*s.region, s.lift, *s.mesh);
 
     // Kerbs only where pavement meets carriageway: the paving edges that lie
     // on the carriageway's boundary, chained and simplified.

@@ -4,7 +4,7 @@
 // authoring time into `assets/world/landmarks/` with the list that describes
 // them, and shipped with the game like any other asset: the game only places
 // them. Anchor and bearing are measured on the landmark's own OSM element, the
-// height is the official one, and the manifest says which is which (§4 I5).
+// height is the official one, and the manifest says which is which (§3 I5).
 #pragma once
 
 #include "polygons.hpp"
@@ -35,6 +35,7 @@ struct LandmarkPlacement {
     std::vector<const OsmWay*> kept;  // the tile's buildings minus the landmarks' traces
     nlohmann::json nodes = nlohmann::json::array();
     std::vector<Ring> solids;
+    std::vector<double> solidTops;  // engine y of each solid's top: the landmark's official height
     size_t vertices = 0;
     nlohmann::json manifest = nlohmann::json::array();
     nlohmann::json replaced = nlohmann::json::array();

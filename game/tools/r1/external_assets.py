@@ -24,7 +24,6 @@ GAME_ROOT = ROOT / "game"
 SOURCE_ROOT = ROOT / "data" / "source-assets"
 MODEL_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_nature_kit"
 PROP_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_props"
-VEHICLE_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_cars"
 BOAT_ROOT = GAME_ROOT / "assets" / "models" / "external" / "kenney_boats"
 TREE_ROOT = GAME_ROOT / "assets" / "models" / "external" / "trees_lod"
 POLYHAVEN_ROOT = GAME_ROOT / "assets" / "models" / "external" / "polyhaven_trees"
@@ -55,7 +54,7 @@ class Download:
 
 # ── the prop kits ───────────────────────────────────────────────────────────
 #
-# Rank 10 of §2.1 — "mobilier urbain régional, forte signature culturelle" —
+# Rank 10 of §2 — "mobilier urbain régional, forte signature culturelle" —
 # needs objects rather than geometry rules: a bench is a bench everywhere, and
 # nothing is gained by deriving one. These are the CC0 kits that hold the ones
 # OSM actually maps, downloaded whole and mined for a named handful.
@@ -86,16 +85,6 @@ PROP_KITS = (
         "https://kenney.nl/media/pages/assets/nature-kit/2011dc1ad3-1677495570/kenney_nature-kit.zip",
         SOURCE_ROOT / "kenney_nature-kit.zip", "sha256",
         "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
-    ),
-    # The car the player drives (§12.4, "le détail suit la vitesse"). Rule 1 of
-    # CLAUDE.md was read before this was chosen and it points the same way: the
-    # repository holds no vehicle at all, photoscanned or otherwise, so this
-    # widens coverage instead of displacing anything -- and a car is a
-    # manufactured object, which is exactly the case the rule leaves to Kenney.
-    Download(
-        "https://kenney.nl/media/pages/assets/car-kit/1a312ec241-1775131960/kenney_car-kit.zip",
-        SOURCE_ROOT / "kenney_car-kit.zip", "sha256",
-        "fac7dacac5c7874348cf19729af3ef205f3d366493edaf0a827d93f4fdf3d0c4",
     ),
     # The boats of the harbours (harbours.py). Rule 1 was read first, both
     # ways: the repository holds no vessel, and Poly Haven's are 17th-century
@@ -134,27 +123,8 @@ PROP_MODELS = (
 )
 
 
-# ── the car ─────────────────────────────────────────────────────────────────
-#
-# One model, and one on purpose. §13 phase 6 puts the vehicle fleet with the
-# game rather than with the world, and §6 budgets about forty archetypes for
-# the day that document exists; what this milestone owes the player is the
-# difference between walking and driving, which one car settles. Shipping
-# nineteen more now would be nineteen more provenance rows for geometry nobody
-# can reach.
-#
-# A saloon rather than a sports car or a kart: it is the shape the eye reads as
-# "a car" without reading as "a toy", and its wheels are four named nodes the
-# runtime can turn (see `native/world.cpp`).
-VEHICLE_MODELS = (
-    ("kenney_car-kit.zip", "sedan", "sedan"),
-)
+# Road vehicles are authored by vehicle_fleet.py and shared across the world.
 
-# The real car's length in metres, used to divide out whatever scale the kit
-# exported at -- the same argument `props.PropKind.height` makes, and the same
-# reason: a saloon is 4.4 m long because saloons are, not because a factor was
-# tuned until it looked right.
-VEHICLE_LENGTH = 4.4
 
 
 # ── the photoreal trees ─────────────────────────────────────────────────────
@@ -236,10 +206,11 @@ def extract_boats() -> tuple[str, ...]:
 
 def vehicle_model(name: str) -> str:
     """The project-relative path a scene references this vehicle by."""
-    return f"assets/models/external/kenney_cars/{name}.glb"
+    from .vehicle_fleet import model
+    return model(name)
 
 
-# The prop palette, in albedo (§11.4, and the same argument as `ground.py`).
+# The prop palette, in albedo (§4, and the same argument as `ground.py`).
 # Kenney paints foliage (0.16, 0.79, 0.67) — a turquoise four times as bright
 # as a leaf — and bark (0.89, 0.51, 0.34), a salmon brighter than snow-free
 # anything. Both saturate on sight under this world's Sun.
@@ -329,7 +300,7 @@ def _mine(models, root: Path, reference) -> tuple[str, ...]:
     Props and the car share this because they must share the *normaliser*: the
     car is a Kenney kit like the rest, it samples the same `colormap.png` atlas
     authored as paint, and a second extraction path would be a second place for
-    a kit's own colours to walk in (§11.4). One path, one palette check.
+    a kit's own colours to walk in (§4). One path, one palette check.
     """
     root.mkdir(parents=True, exist_ok=True)
     written = []
@@ -384,15 +355,18 @@ def extract_props() -> tuple[str, ...]:
 
 
 def extract_vehicles() -> tuple[str, ...]:
-    """The player's car, mined out of the car kit.
+    """Regenerate the original fleet; no network or modeller is required."""
+    from . import vehicle_fleet
+    vehicle_fleet.main()
+    return tuple(vehicle_fleet.model(n,far) for n in vehicle_fleet.SPECS for far in (False,True))
 
-    Separate from `extract_props` for one reason that matters at run time: a
-    prop is streamed with the tile it stands on and charged to that tile's
-    budget, while the car is a member of the entry scene like the player and
-    the camera. It follows the player across a teleport instead of being
-    evicted with the neighbourhood he left.
-    """
-    return _mine(VEHICLE_MODELS, VEHICLE_ROOT, vehicle_model)
+
+def extract_aircraft() -> tuple[str, ...]:
+    """Regenerate the original aircraft: the airports' fleet and the bases' helicopters."""
+    from . import aircraft_fleet
+    aircraft_fleet.main()
+    return tuple(aircraft_fleet.model(n, far) for n in aircraft_fleet.FLEET for far in (False, True))
+
 
 
 TREE_MODELS = (
@@ -618,6 +592,7 @@ def ensure_external_assets() -> dict[str, object]:
         _fetch(kit)
     props = extract_props()
     vehicles = extract_vehicles()
+    aircraft = extract_aircraft()
     boats = extract_boats()
     for model in TREE_MODELS:
         _fetch(model)
@@ -667,7 +642,7 @@ Crediting Kenney is appreciated and is not required.
             },
             {
                 # On disk and not planted: kept because they are the low-cost
-                # conifers the vegetation budget will want back once §11.4 can
+                # conifers the vegetation budget will want back once §4 can
                 # decimate the photoreal ones.
                 "name": "Kenney Nature Kit — conifers",
                 "usedInScene": False,
@@ -691,14 +666,22 @@ Crediting Kenney is appreciated and is not required.
                 "files": list(props),
             },
             {
-                # The car the player drives. One model, 3 184 vertices, in the
-                # entry scene rather than in a tile -- see `extract_vehicles`.
-                "name": "Kenney Car Kit — the player's car",
-                "author": "Kenney",
-                "source": "https://kenney.nl/assets/car-kit",
+                # Original shared road vehicles, with both levels of detail.
+                "name": "R1World original road fleet",
+                "author": "R1World",
+                "source": "game/tools/r1/vehicle_fleet.py",
                 "license": "CC0 1.0",
-                "extractedFrom": ["kenney_car-kit.zip"],
+                "generatedBy": "game/tools/r1/vehicle_fleet.py",
                 "files": list(vehicles),
+            },
+            {
+                # Original aircraft for airports and military bases, both levels.
+                "name": "R1World original aircraft",
+                "author": "R1World",
+                "source": "game/tools/r1/aircraft_fleet.py",
+                "license": "CC0 1.0",
+                "generatedBy": "game/tools/r1/aircraft_fleet.py",
+                "files": list(aircraft),
             },
             {
                 # The harbours' fleet and the containers of their yards.

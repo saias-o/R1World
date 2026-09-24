@@ -66,8 +66,11 @@ HINTERNET openSession(double timeoutSeconds) {
                                     proxy.empty() ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_NAMED_PROXY,
                                     proxy.empty() ? WINHTTP_NO_PROXY_NAME : proxy.c_str(), WINHTTP_NO_PROXY_BYPASS, 0);
     if (!session) fail("WinHttpOpen");
-    const int ms = int(timeoutSeconds * 1000);
-    WinHttpSetTimeouts(session, ms, ms, ms, ms);
+    // A server that has not accepted the connection in ten seconds is down:
+    // waiting the whole answer's timeout for it was minutes per query while
+    // one Overpass mirror was unreachable. The answer itself keeps its time.
+    const int ms = int(timeoutSeconds * 1000), connect = std::min(ms, 10000);
+    WinHttpSetTimeouts(session, connect, connect, ms, ms);
     return session;
 }
 

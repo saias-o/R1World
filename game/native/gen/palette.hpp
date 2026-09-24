@@ -20,7 +20,7 @@ struct Swatch {
 };
 
 // Everything a generator needs to infer what the data does not say. A
-// profile is only ever a fallback: anything measured beats it (PLAN §4 I5).
+// profile is only ever a fallback: anything measured beats it (PLAN §3 I5).
 struct RegionProfile {
     std::string key, name, tier, climate;
     double storeyHeight = 2.75, groundStoreyHeight = 3.6;
@@ -99,6 +99,18 @@ struct BoatKind {
     double length = 0, top = 0, accel = 0, turn = 0, lengthRatio = 0, draft = 0.25;
 };
 
+// One aircraft of `assets/models/aircraft/fleet.json` (tools/r1/aircraft_fleet.py):
+// its size for the stands it may park on, its two models, and the arcade
+// handling the game flies it with. Speeds in m/s, rates in degrees a second.
+struct AircraftType {
+    std::string name, klass;  // klass: "airliner", "jet" or "helicopter"
+    double length = 0, span = 0, height = 0, cg = 0;
+    std::string nearModel, farModel;
+    size_t nearVertices = 0, farVertices = 0;
+    double top = 0, rotate = 0, stall = 0, accel = 0, spool = 0, brake = 0, turnRadius = 0;
+    double rollRate = 0, maxBank = 0, pitchRate = 0, maxPitch = 0, climb = 0;
+};
+
 struct Palette {
     std::string gameRoot;
     std::vector<RegionProfile> profiles;
@@ -109,6 +121,7 @@ struct Palette {
     Swatch snow, frost;
     std::vector<PropKind> props;
     std::vector<BoatKind> boats;
+    std::vector<AircraftType> aircraft;
     // Traffic paints: albedos, not paint chips (CLAUDE.md rule 2).
     std::vector<std::array<double, 3>> carPaints;
     nlohmann::json surfaces;
@@ -118,5 +131,7 @@ struct Palette {
 // missing or unreadable (CLAUDE.md §3: a refusal says why).
 void loadPalette(const std::string& gameRoot);
 const Palette& palette();
+// The aircraft type called `name`, or nullptr.
+const AircraftType* aircraftType(const std::string& name);
 
 }  // namespace r1

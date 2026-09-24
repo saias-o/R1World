@@ -70,12 +70,12 @@ class Mesh:
     million vertices for the whole scene, and a generator that emits three per
     triangle spends that budget three times over: one alpine village's buildings
     alone reached 527 000 vertices for 176 000 triangles and the scene stopped
-    loading. §4 I4 says the budget is a contract; welding is what makes the
+    loading. §3 I4 says the budget is a contract; welding is what makes the
     generator honour it rather than negotiate with it.
 
     The weld is deterministic: the first occurrence of a vertex wins and the
     ordering follows insertion, so the same input still produces byte-identical
-    output (§4 I3).
+    output (§3 I3).
     """
 
     positions: list[Vec3] = field(default_factory=list)
@@ -180,127 +180,6 @@ class Mesh:
             if uvs is not None:
                 uvs = uvs[0], uvs[3], uvs[2], uvs[1]
         self.add_quad(a, b, c, d, uvs)
-
-    def add_box(
-        self,
-        center: Vec3,
-        size: Vec3,
-        yaw_radians: float = 0.0,
-    ) -> None:
-        hx, hy, hz = size[0] * 0.5, size[1] * 0.5, size[2] * 0.5
-        cosine, sine = math.cos(yaw_radians), math.sin(yaw_radians)
-
-        def point(x: float, y: float, z: float) -> Vec3:
-            return (
-                center[0] + x * cosine + z * sine,
-                center[1] + y,
-                center[2] - x * sine + z * cosine,
-            )
-
-        p = (
-            point(-hx, -hy, -hz), point(hx, -hy, -hz),
-            point(hx, -hy, hz), point(-hx, -hy, hz),
-            point(-hx, hy, -hz), point(hx, hy, -hz),
-            point(hx, hy, hz), point(-hx, hy, hz),
-        )
-        self.add_quad(p[0], p[3], p[2], p[1])
-        self.add_quad(p[4], p[5], p[6], p[7])
-        self.add_quad(p[0], p[1], p[5], p[4])
-        self.add_quad(p[1], p[2], p[6], p[5])
-        self.add_quad(p[2], p[3], p[7], p[6])
-        self.add_quad(p[3], p[0], p[4], p[7])
-
-    def add_cylinder(
-        self,
-        center: Vec3,
-        radius: float,
-        height: float,
-        sides: int = 6,
-    ) -> None:
-        bottom = center[1] - height * 0.5
-        top = center[1] + height * 0.5
-        ring = [
-            (
-                center[0] + math.cos(2.0 * math.pi * i / sides) * radius,
-                bottom,
-                center[2] + math.sin(2.0 * math.pi * i / sides) * radius,
-            )
-            for i in range(sides)
-        ]
-        upper = [(x, top, z) for x, _, z in ring]
-        for i in range(sides):
-            j = (i + 1) % sides
-            self.add_quad(ring[i], ring[j], upper[j], upper[i])
-            self.add_up_triangle((center[0], top, center[2]), upper[i], upper[j])
-
-    def add_cone(
-        self,
-        center: Vec3,
-        radius: float,
-        height: float,
-        sides: int = 7,
-    ) -> None:
-        bottom = center[1] - height * 0.5
-        apex = center[0], center[1] + height * 0.5, center[2]
-        ring = [
-            (
-                center[0] + math.cos(2.0 * math.pi * i / sides) * radius,
-                bottom,
-                center[2] + math.sin(2.0 * math.pi * i / sides) * radius,
-            )
-            for i in range(sides)
-        ]
-        for i in range(sides):
-            self.add_triangle(ring[i], ring[(i + 1) % sides], apex)
-
-    def add_cross(self, center: Vec3, width: float, height: float) -> None:
-        x, y, z = center
-        half = width * 0.5
-        self.add_quad(
-            (x - half, y, z), (x + half, y, z),
-            (x + half, y + height, z), (x - half, y + height, z),
-        )
-        self.add_quad(
-            (x, y, z - half), (x, y, z + half),
-            (x, y + height, z + half), (x, y + height, z - half),
-        )
-
-
-def model_height(path: Path) -> float:
-    """The height in metres of a glTF/GLB model, from its position bounds.
-
-    A generator that scales an imported model by a bare factor is holding a
-    magic number: change the model and every instance silently becomes the wrong
-    size, with nothing to notice it. Reading the model's own extent turns the
-    factor into a target height in metres, which is a number a reader can check
-    against a real tree.
-
-    glTF requires `min`/`max` on a POSITION accessor, so this needs no vertex
-    data and no buffer at all — the JSON chunk is enough.
-    """
-    payload = path.read_bytes()
-    if payload[:4] == b"glTF":
-        json_length, = struct.unpack_from("<I", payload, 12)
-        document = json.loads(payload[20:20 + json_length].decode("utf-8"))
-    else:
-        document = json.loads(payload.decode("utf-8"))
-
-    low = float("inf")
-    high = float("-inf")
-    for mesh in document.get("meshes", []):
-        for primitive in mesh.get("primitives", []):
-            index = primitive.get("attributes", {}).get("POSITION")
-            if index is None:
-                continue
-            accessor = document["accessors"][index]
-            if "min" not in accessor or "max" not in accessor:
-                continue
-            low = min(low, float(accessor["min"][1]))
-            high = max(high, float(accessor["max"][1]))
-    if high <= low:
-        raise RuntimeError(f"{path.name} declares no usable vertical extent")
-    return high - low
-
 
 @dataclass(frozen=True)
 class Material:

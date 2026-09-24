@@ -4,7 +4,7 @@
 // (CLAUDE.md §5), so vertices are welded on (position, normal, uv): the two
 // triangles of a quad share an edge and cost four vertices, not six, and no
 // crease that should stay sharp is ever smoothed. The weld is deterministic:
-// the first occurrence wins and the order follows insertion (PLAN §4 I3).
+// the first occurrence wins and the order follows insertion (PLAN §3 I3).
 #pragma once
 
 #include "common.hpp"
@@ -31,14 +31,11 @@ struct Mesh {
 
     uint32_t vertex(const P3& position, const P3& normal, UV uv);
     void addTriangle(P3 a, P3 b, P3 c, const UV* uvs = nullptr);
-    void addSmoothTriangle(const P3 p[3], const P3 n[3], const UV uv[3]);
     // Turned so its normal points up (y > 0).
     void addUpTriangle(P3 a, P3 b, P3 c, const UV* uvs = nullptr);
     void addQuad(P3 a, P3 b, P3 c, P3 d, const UV* uvs = nullptr);
     void addUpQuad(P3 a, P3 b, P3 c, P3 d, const UV* uvs = nullptr);
     void addBox(P3 center, P3 size, double yaw = 0.0);
-    void addCylinder(P3 center, double radius, double height, int sides = 6);
-    void addCone(P3 center, double radius, double height, int sides = 7);
 
 private:
     struct Key {

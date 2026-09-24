@@ -1,7 +1,7 @@
 // One tile, cooked: every generator run over one tile's observations.
 // Nothing here touches a disk or a network; the
 // observations come in, the geometry and the manifest go out, and the same
-// input always gives the same tile (PLAN §4 I3).
+// input always gives the same tile (PLAN §3 I3).
 #pragma once
 
 #include "mesh.hpp"
@@ -11,7 +11,7 @@
 
 namespace r1 {
 
-// §4 I4: the budget is a contract. A tile past it is refused, never truncated.
+// §3 I4: the budget is a contract. A tile past it is refused, never truncated.
 constexpr size_t kTileVertexBudget = 120000;
 
 struct Observations {
@@ -21,6 +21,10 @@ struct Observations {
     ElevationGrid elevations;
     std::string elevationSource;
     bool offline = false;  // Natural Earth's coast and flat ground, nothing surveyed
+    size_t targetVertices = kTileVertexBudget;  // softer LOD target from the resident arena
+    // Cooked from an answer older than the aero layer, which is on its way:
+    // the manifest says so, and the service cooks the tile again when it lands.
+    bool airportsPending = false;
 };
 
 struct CookedTile {
