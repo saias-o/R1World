@@ -3,8 +3,8 @@
 **Reproduire la Terre entière à l'échelle 1:1, jouable, sur SaidaEngine.**
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
-invariants et les décisions prises. Il ne contient ni feuille de route ni liste
-de chantiers ; le détail de ce qui est fait et mesuré est dans `game/README.md`.
+invariants et les décisions prises, puis la liste des prochaines updates (§8).
+Le détail de ce qui est fait et mesuré est dans `game/README.md`.
 
 **Deux critères priment sur tous les autres, et ils sont en tension :**
 
@@ -65,9 +65,10 @@ Les quatre premiers rangs sont **mesurés**, donc exacts et quasi gratuits. Le
 travail créatif commence au rang 5 et il est porté par l'Atlas
 (`assets/world/atlas.json`).
 
-**On ne reproduit pas :** les intérieurs, les personnes réelles et les plaques,
-les enseignes de marques, la photogrammétrie (elle ne se corrige pas), ni
-l'exactitude au-delà de la donnée disponible.
+**On ne reproduit pas :** les intérieurs réels (ils sont générés, §8), les
+personnes réelles et les plaques, les enseignes de marques, la
+photogrammétrie (elle ne se corrige pas), ni l'exactitude au-delà de la donnée
+disponible.
 
 ---
 
@@ -205,6 +206,68 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
 - **Cache hors ligne** : un lieu déjà visité ne touche plus le réseau ; une
   réponse à une ancienne question Overpass est cuite telle quelle, et ce qui
   lui manque arrive en couche séparée (`kOsmQueryVersion`, `kOsmBaseVersion`).
+
+---
+
+## 8. Prochaines updates
+
+Chacune garde les règles du projet : rien ne dégrade un asset existant
+(`CLAUDE.md` §1), les couleurs sont des albédos, tout ce qui est inféré le dit
+dans le manifeste (I5), et le coût se compte contre l'arène et le CPU de la
+machine de référence (I4).
+
+### Human update
+- **Personnage jouable plus réaliste** : proportions, visage et animations plus
+  crédibles, en restant sobre en polygones et avec des niveaux de détail.
+- **Foule à la GTA PS2** : des passants vivants (marcher, attendre, traverser,
+  s'asseoir), en instances partagées comme les props.
+- **Densité automatique selon le lieu** : déduite de ce que la tuile contient
+  (commerces, bâti, transports, heure réelle), dense sur une avenue
+  commerçante, rare dans un village, personne en rase campagne la nuit.
+
+### Animals update
+- **Beaucoup d'animaux, adaptés à l'endroit** : l'espèce découle du biome, de
+  la région et de l'usage du sol OSM (vaches et moutons dans les prés, pigeons
+  en ville, mouettes sur la côte, cerfs en forêt, chameaux au désert...).
+- **Comportements réalistes** : errer, paître, fuir le joueur, voler en groupe.
+- **Optimisé** : instances partagées et animations simples, avec un budget par
+  tuile et rien au-delà du rayon proche.
+
+### Market update
+- **Des magasins qui ressemblent à des magasins** : les bâtiments tagués
+  `shop=*` (ou dont le rez-de-chaussée porte un commerce) reçoivent une
+  devanture (vitrine, auvent, enseigne générique) au lieu de la façade
+  générique. Jamais de marque réelle.
+- **On peut entrer** : une porte praticable, et un intérieur stylé, propre au
+  type de commerce (boulangerie, supérette, vêtements, café...).
+- **Généré seulement quand on s'approche** : l'intérieur n'existe qu'à portée
+  de la porte, il est construit à ce moment-là et libéré en s'éloignant, sans
+  rien coûter au reste du monde.
+
+### Beach update
+- Sur les plages OSM (`natural=beach`) quand l'heure, la saison et la météo s'y
+  prêtent : parasols, serviettes, transats et baigneurs dans l'eau et sur le
+  sable. La densité suit la chaleur et l'heure, et le manifeste dit que c'est
+  inféré.
+
+### Pays froids update
+- **Montagnes** : un relief qui se voit de loin, avec des sommets qui ne soient
+  plus rabotés par la grille d'élévation grossière, et un horizon qui ne
+  s'arrête plus à la brume de 5 km.
+- **Neige** : un manteau neigeux au-dessus de la limite des neiges, qui suit
+  la latitude, l'altitude et la saison, sur le sol, les toits et les arbres.
+
+### Interior update
+Après la Market update, qui en pose les bases.
+- **Tous les bâtiments sont visitables** : pas seulement les magasins.
+- **Les portes s'ouvrent avec une animation**, à l'approche ou avec une touche.
+- **Un intérieur meublé** : canapés, tables, chaises, cuisines, lits,
+  salles de bain, selon le type de bâtiment et la région.
+- **Généré par seed, comme Minecraft** : le seed d'un intérieur dérive de
+  l'identifiant OSM du bâtiment (I3), donc chaque joueur voit exactement le
+  même appartement au même endroit, sans que rien ne soit stocké ni transmis.
+- **Seulement à portée** : comme pour les magasins, l'intérieur n'est construit
+  que quand on s'approche de la porte et il est libéré en s'éloignant.
 
 ---
 
