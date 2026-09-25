@@ -35,6 +35,10 @@ public:
         std::function<void(const std::string&)> log;
         size_t keep = 36;  // cooked tiles kept in memory
         size_t tileVertexTarget = kTileVertexBudget;
+        // Optional source overrides for deterministic streaming tests.
+        std::function<void(const Bounds&, const std::string&)> fetchOsm;
+        std::function<std::pair<ElevationGrid, std::string>(const Tile&)> quickGround;
+        std::function<std::pair<ElevationGrid, std::string>(const Tile&)> fetchGround;
     };
     explicit WorldService(Options options);
     // Returns at once: a worker still waiting on the network finishes alone.

@@ -22,14 +22,14 @@ struct Observations {
     std::shared_ptr<const OsmData> osm;
     ElevationGrid elevations;
     std::string elevationSource;
-    bool offline = false;  // Natural Earth's coast and flat ground, nothing surveyed
+    bool offline = false;  // OSM missing: use Natural Earth's approximate coast
+    bool groundPending = false;  // measured relief is still on its way
     size_t targetVertices = kTileVertexBudget;  // softer LOD target from the resident arena
     // Cooked from an answer older than the aero layer, which is on its way:
     // the manifest says so, and the service cooks the tile again when it lands.
     bool airportsPending = false;
-    // Cooked before its OSM answer came, so the player need not wait for it:
-    // the measured ground, Natural Earth's coast and nothing built. The
-    // service cooks it again when the answer lands.
+    // Cooked before its OSM answer came. The available relief and Natural
+    // Earth's coast appear first; streets follow as soon as OSM arrives.
     bool provisional = false;
     // The sea ice around a polar tile with sea-level ground; null elsewhere.
     std::shared_ptr<const SeaIce> seaIce;

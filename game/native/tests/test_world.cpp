@@ -14,6 +14,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -404,8 +405,8 @@ TEST(Cook, a_cooked_tile_uploads_nothing_outside_its_own_parts) {
 
 namespace {
 // A game root holding one tile's observations, answered to query `version`.
-std::string placeVisitedAt(int version, const Tile& t) {
-    const std::string root = (fs::temp_directory_path() / ("r1-visited-v" + std::to_string(version))).string();
+std::string placeVisitedAt(int version, const Tile& t, const std::string& suffix = {}) {
+    const std::string root = (fs::temp_directory_path() / ("r1-visited-v" + std::to_string(version) + suffix)).string();
     fs::remove_all(root);
     const std::string folder = root + "/cache/world/" + t.key();
     fs::create_directories(folder);
@@ -416,11 +417,25 @@ std::string placeVisitedAt(int version, const Tile& t) {
     for (auto [x, y] : {std::pair{lon - d, lat - d}, {lon + d, lat - d}, {lon + d, lat + d}, {lon - d, lat + d}})
         osm["elements"].push_back({{"type", "node"}, {"id", id++}, {"lon", x}, {"lat", y}});
     osm["elements"].push_back({{"type", "way"}, {"id", 10}, {"nodes", {1, 2, 3, 4, 1}}, {"tags", {{"building", "yes"}}}});
+    osm["elements"].push_back({{"type", "node"}, {"id", 5}, {"lon", lon - d}, {"lat", lat + 3 * d}});
+    osm["elements"].push_back({{"type", "node"}, {"id", 6}, {"lon", lon + d}, {"lat", lat + 3 * d}});
+    osm["elements"].push_back({{"type", "way"}, {"id", 11}, {"nodes", {5, 6}},
+                                {"tags", {{"highway", "residential"}, {"name", "Allée de Noyalo"}}}});
     std::ofstream(folder + "/osm.json") << osm.dump();
     nlohmann::json ground = {{"bounds", {{"south", b.south}, {"west", b.west}, {"north", b.north}, {"east", b.east}}},
                              {"size", 2}, {"values", {{50.0, 50.0}, {50.0, 50.0}}}, {"source", "test"}};
     std::ofstream(folder + "/ground-elevation.json") << ground.dump();
     return root;
+}
+
+std::shared_ptr<const ServedTile> waitForTile(WorldService& service, const Tile& tile, uint64_t after = 0) {
+    std::shared_ptr<const ServedTile> served;
+    for (int i = 0; i < 200; ++i) {
+        served = service.find(tile);
+        if (served && served->serial > after) return served;
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    }
+    return nullptr;
 }
 }  // namespace
 
@@ -455,7 +470,10 @@ TEST(Service, a_place_visited_before_the_aero_layer_does_not_wait_for_it) {
     _putenv_s("HTTP_PROXY", "http://127.0.0.1:9");
 #endif
     const Tile t = tileAt(5.0, 45.0);
-    WorldService service({placeVisitedAt(kOsmBaseVersion, t), 1, nullptr, nullptr});
+    WorldService::Options options;
+    options.gameRoot = placeVisitedAt(kOsmBaseVersion, t);
+    options.threads = 1;
+    WorldService service(std::move(options));
     service.want({t}, {});
     std::shared_ptr<const ServedTile> served;
     for (int i = 0; i < 200 && !(served = service.find(t)); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(25));
@@ -473,7 +491,11 @@ TEST(Service, a_visited_place_never_touches_the_network) {
 #endif
     std::vector<std::string> said;
     std::mutex lock;
-    WorldService service({r1test::gameRoot(), 2, nullptr, [&](const std::string& s) { std::lock_guard<std::mutex> g(lock); said.push_back(s); }});
+    WorldService::Options options;
+    options.gameRoot = r1test::gameRoot();
+    options.threads = 2;
+    options.log = [&](const std::string& s) { std::lock_guard<std::mutex> g(lock); said.push_back(s); };
+    WorldService service(std::move(options));
     const Tile t = tileAt(2.3522, 48.8566);
     service.want({t}, {});
     std::shared_ptr<const ServedTile> served;
@@ -482,6 +504,112 @@ TEST(Service, a_visited_place_never_touches_the_network) {
     CHECK(!served->cooked.manifest["offlineApproximation"].get<bool>());
     std::lock_guard<std::mutex> g(lock);
     for (const auto& s : said) CHECK_MSG(s.find("OFFLINE") == std::string::npos && s.find("FALLBACK") == std::string::npos, s);
+}
+
+TEST(Service, cached_streets_appear_before_relief_and_remain_after_it_arrives) {
+    const Tile t = tileAt(5.0, 45.0);
+    const std::string root = placeVisitedAt(kOsmQueryVersion, t, "-relief-pending");
+    fs::remove(root + "/cache/world/" + t.key() + "/ground-elevation.json");
+    std::promise<void> release;
+    const auto ready = release.get_future().share();
+    WorldService::Options options;
+    options.gameRoot = root;
+    options.threads = 1;
+    options.quickGround = [](const Tile&) -> std::pair<ElevationGrid, std::string> {
+        throw SourceUnavailable("quick relief unavailable in this test");
+    };
+    options.fetchGround = [ready, root](const Tile& tile) {
+        ready.wait();
+        const Bounds b = tile.bounds();
+        nlohmann::json doc = {{"bounds", {{"south", b.south}, {"west", b.west}, {"north", b.north}, {"east", b.east}}},
+                              {"size", 2}, {"values", {{50.0, 50.0}, {50.0, 50.0}}}, {"source", "test"}};
+        std::ofstream(root + "/cache/world/" + tile.key() + "/ground-elevation.json") << doc.dump();
+        return std::pair{ElevationGrid{b, 2, {50.0, 50.0, 50.0, 50.0}}, std::string("test")};
+    };
+    WorldService service(std::move(options));
+    service.want({t}, {});
+    const auto first = waitForTile(service, t);
+    CHECK(first);
+    CHECK(first->cooked.manifest["groundPending"].get<bool>());
+    CHECK(first->cooked.manifest["buildings"].get<int>() == 1);
+    CHECK(!first->cooked.minimap.roads.empty());
+    release.set_value();
+    const auto upgraded = waitForTile(service, t, first->serial);
+    CHECK(upgraded);
+    CHECK(!upgraded->cooked.manifest["groundPending"].get<bool>());
+    CHECK(upgraded->cooked.manifest["buildings"].get<int>() == 1);
+    CHECK(!upgraded->cooked.minimap.roads.empty());
+}
+
+TEST(Service, arriving_osm_replaces_only_the_missing_map_data) {
+    const Tile t = tileAt(5.0, 45.0);
+    const std::string root = placeVisitedAt(kOsmQueryVersion, t, "-osm-pending");
+    const std::string original = root + "/cache/world/" + t.key() + "/osm.json";
+    std::ifstream input(original);
+    const std::string answer((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    input.close();
+    fs::remove(original);
+    std::promise<void> release;
+    const auto ready = release.get_future().share();
+    WorldService::Options options;
+    options.gameRoot = root;
+    options.threads = 1;
+    options.fetchOsm = [ready, answer](const Bounds&, const std::string& path) {
+        ready.wait();
+        fs::create_directories(fs::path(path).parent_path());
+        std::ofstream(path) << answer;
+    };
+    WorldService service(std::move(options));
+    service.want({t}, {});
+    const auto first = waitForTile(service, t);
+    CHECK(first);
+    CHECK(first->cooked.manifest["provisional"].get<bool>());
+    CHECK(!first->cooked.manifest["groundPending"].get<bool>());
+    CHECK(first->cooked.minimap.roads.empty());
+    release.set_value();
+    const auto upgraded = waitForTile(service, t, first->serial);
+    CHECK(upgraded);
+    CHECK(!upgraded->cooked.manifest["provisional"].get<bool>());
+    CHECK(!upgraded->cooked.minimap.roads.empty());
+    CHECK(upgraded->cooked.manifest["elevationSource"] == "test");
+}
+
+TEST(Service, failed_relief_does_not_hold_back_arriving_streets) {
+    const Tile t = tileAt(5.0, 45.0);
+    const std::string root = placeVisitedAt(kOsmQueryVersion, t, "-independent-failure");
+    const std::string folder = root + "/cache/world/" + t.key();
+    std::ifstream input(folder + "/osm.json");
+    const std::string answer((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    input.close();
+    fs::remove(folder + "/osm.json");
+    fs::remove(folder + "/ground-elevation.json");
+    std::promise<void> release;
+    const auto ready = release.get_future().share();
+    WorldService::Options options;
+    options.gameRoot = root;
+    options.threads = 1;
+    options.fetchOsm = [ready, answer](const Bounds&, const std::string& path) {
+        ready.wait();
+        fs::create_directories(fs::path(path).parent_path());
+        std::ofstream(path) << answer;
+    };
+    options.quickGround = [](const Tile&) -> std::pair<ElevationGrid, std::string> {
+        throw SourceUnavailable("quick relief failed");
+    };
+    options.fetchGround = [](const Tile&) -> std::pair<ElevationGrid, std::string> {
+        throw SourceUnavailable("surveyed relief failed");
+    };
+    WorldService service(std::move(options));
+    service.want({t}, {});
+    const auto first = waitForTile(service, t);
+    CHECK(first);
+    CHECK(first->cooked.minimap.roads.empty());
+    release.set_value();
+    const auto upgraded = waitForTile(service, t, first->serial);
+    CHECK(upgraded);
+    CHECK(!upgraded->cooked.minimap.roads.empty());
+    CHECK(upgraded->cooked.manifest["groundPending"].get<bool>());
+    CHECK(!upgraded->cooked.manifest["provisional"].get<bool>());
 }
 
 // ── ships ───────────────────────────────────────────────────────────────────

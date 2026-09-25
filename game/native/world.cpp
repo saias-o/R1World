@@ -3316,7 +3316,7 @@ class World : public Rml::EventListener {
         if(pending) {
             const auto status=service->status();
             if(!status.error.empty())text("status","Erreur de chargement, nouvelle tentative automatique. "+status.error);
-            else if(status.offline)text("status","Réseau indisponible : terrain simplifié en attendant.");
+            else if(status.offline)text("status","Une source ne répond pas : affichage des données déjà reçues.");
         }
     }
 public:
@@ -4368,9 +4368,9 @@ public:
             const auto* currentTile=tile(lon,lat);
             if(currentTile&&currentTile->data.value("provisional",false))
                 mode+=" · Rues et bâtiments en route (OpenStreetMap)";
-            else if(currentTile&&currentTile->data.value("offlineApproximation",false))
-                mode+=" · Hors ligne : terrain simplifié";
-            text("stream-status",std::to_string(loaded.size())+" tuiles actives · Relief réel / bâtiments OSM"+mode
+            if(currentTile&&currentTile->data.value("groundPending",false))
+                mode+=" · Relief provisoire : altitude en cours de chargement";
+            text("stream-status",std::to_string(loaded.size())+" tuiles actives"+mode
                  +(fast?" · détail réduit à cette vitesse":""));
         }
         if(smokeWaterSpawn&&smokeWalk>1.5) {

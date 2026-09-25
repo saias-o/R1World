@@ -146,6 +146,11 @@ blocked until it is mounted.
 The world service (`native/gen/service.cpp`) runs inside the game, on its own
 threads: downloads and cooking never block the frame, and destination changes
 replace pending work between tiles (an in-flight download is not cancelled).
+OSM and relief improve a tile independently. Streets, buildings and minimap
+labels appear as soon as OSM arrives, even if the ground is still temporary;
+quick elevation and the surveyed elevation each replace that temporary ground
+when available. A failure from one source does not pause the others. The HUD
+names the missing observation instead of claiming the whole world is offline.
 Terrain, buildings and collision data are mounted first; trees and street
 objects follow on the main thread with a **soft 2 ms per-frame budget**. No
 assets are downgraded. Logs contain `[World streaming] go_to_play_ms` and
