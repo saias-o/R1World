@@ -7243,6 +7243,64 @@
    ],
    "roughness": 0.85,
    "weight": 1.0
+  },
+  "seaIce": {
+   "note": "Broadband albedos of Arctic sea-ice surfaces, measured: snow 0.80-0.87, bare ice 0.5-0.7, ponds 0.2-0.4 (Perovich et al. 2002, SHEBA); nilas and grey ice 0.16-0.35 (Brandt et al. 2005). The visible band is bluer than the broadband mean.",
+   "snow": {
+    "name": "Snow on sea ice",
+    "color": [
+     0.83,
+     0.85,
+     0.89
+    ],
+    "roughness": 0.55,
+    "weight": 1.0,
+    "family": "snow_clean"
+   },
+   "bare": {
+    "name": "Bare sea ice",
+    "color": [
+     0.5,
+     0.63,
+     0.71
+    ],
+    "roughness": 0.25,
+    "weight": 1.0,
+    "family": "sea_ice"
+   },
+   "young": {
+    "name": "Young grey ice",
+    "color": [
+     0.21,
+     0.25,
+     0.28
+    ],
+    "roughness": 0.2,
+    "weight": 1.0,
+    "family": "sea_ice"
+   },
+   "frozenPond": {
+    "name": "Frozen melt pond",
+    "color": [
+     0.36,
+     0.46,
+     0.53
+    ],
+    "roughness": 0.15,
+    "weight": 1.0,
+    "family": "sea_ice"
+   },
+   "pond": {
+    "name": "Melt pond",
+    "color": [
+     0.1,
+     0.27,
+     0.33
+    ],
+    "roughness": 0.04,
+    "weight": 1.0,
+    "family": null
+   }
   }
  },
  "props": [

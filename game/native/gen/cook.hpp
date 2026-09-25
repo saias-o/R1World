@@ -6,6 +6,7 @@
 
 #include "mesh.hpp"
 #include "osm.hpp"
+#include "seaice.hpp"
 
 #include <memory>
 
@@ -25,6 +26,12 @@ struct Observations {
     // Cooked from an answer older than the aero layer, which is on its way:
     // the manifest says so, and the service cooks the tile again when it lands.
     bool airportsPending = false;
+    // Cooked before its OSM answer came, so the player need not wait for it:
+    // the measured ground, Natural Earth's coast and nothing built. The
+    // service cooks it again when the answer lands.
+    bool provisional = false;
+    // The sea ice around a polar tile with sea-level ground; null elsewhere.
+    std::shared_ptr<const SeaIce> seaIce;
 };
 
 struct CookedTile {
@@ -37,6 +44,8 @@ struct CookedTile {
     nlohmann::json props = nlohmann::json::array();
     // What `ready.json` said: the frame, the collision data, what was inferred.
     nlohmann::json manifest;
+    // What the ice was read from, for what the game draws past the tiles.
+    std::shared_ptr<const SeaIce> seaIce;
     double cookMs = 0;
 };
 

@@ -723,7 +723,8 @@ struct ConditionsService::State {
         char q[160];
         std::snprintf(q, sizeof q, "latitude=%.3f&longitude=%.3f", cell.y, cell.x);
         const auto data = nlohmann::json::parse(net::requestJson(std::string("https://api.open-meteo.com/v1/forecast?") + q +
-            "&current=temperature_2m,cloud_cover,precipitation,weather_code&timezone=auto", {}, {}, 5.0, 1));
+            "&current=temperature_2m,cloud_cover,precipitation,weather_code,visibility,wind_speed_10m,"
+            "wind_direction_10m,snowfall,snow_depth&wind_speed_unit=ms&timezone=auto", {}, {}, 5.0, 1));
         const auto& current = data.at("current");
         const int offset = data.at("utc_offset_seconds");
         const double cloud = current.at("cloud_cover");
@@ -731,7 +732,13 @@ struct ConditionsService::State {
         return {{"lon", cell.x}, {"lat", cell.y}, {"fetchedAt", now()}, {"timezone", data.at("timezone")},
                 {"utcOffsetSeconds", offset},
                 {"weather", {{"temperature", current.at("temperature_2m")}, {"cloudCover", cloud},
-                             {"precipitation", current.at("precipitation")}, {"code", current.at("weather_code")}}}};
+                             {"precipitation", current.at("precipitation")}, {"code", current.at("weather_code")},
+                             // Metres, m/s, degrees the wind comes from, cm an hour, metres.
+                             {"visibility", current.value("visibility", nlohmann::json())},
+                             {"windSpeed", current.value("wind_speed_10m", nlohmann::json())},
+                             {"windFrom", current.value("wind_direction_10m", nlohmann::json())},
+                             {"snowfall", current.value("snowfall", nlohmann::json())},
+                             {"snowDepth", current.value("snow_depth", nlohmann::json())}}}};
     }
 
     void publish(nlohmann::json value) {

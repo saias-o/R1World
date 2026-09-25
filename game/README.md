@@ -228,6 +228,34 @@ Overpass allows two concurrent queries per client, and the world service stays
 inside that. `https://overpass-api.de/api/status` reports the slots you have
 left.
 
+**Go never waits for Overpass.** On 24 September 2026 a first visit took 53 to
+94 s before the player could move, and the cook took 2 ms of it. Two reasons,
+both fixed:
+
+- The game asked for `Accept: application/json`. Overpass answers
+  `application/osm3s+json`, so its main server ran the whole query and then
+  refused it with a 406. That was twenty seconds of every first visit, before
+  the mirror was even asked. It now accepts any JSON.
+- The player waited for the answer. A first cook no longer waits for it at
+  all. With no answer on disk, the tile is cooked from the ground alone
+  (`quickGround`: Copernicus through Open-Meteo, one request, four seconds at
+  most, a fifth of a second in practice), with Natural Earth's coast and
+  nothing built on it. The manifest says `provisional`, the HUD says the streets
+  and buildings are on their way, and the tile waits in `awaiting` for its
+  query, then is cooked again the moment the answer lands. That second cook
+  also brings IGN's finer ground in France, and the player is set back on it.
+  A building that lands on the player moves him to the nearest free ground.
+  First visits to Nice, Porto and Oslo: playable 0.36 s after Go.
+  Tromsø's 481 buildings came 87 s later, with Overpass under load. With
+  Open-Meteo's minutely quota spent (HTTP 429), the tile is flat until the
+  network answers again, still playable in 0.36 s.
+
+The urgent tile no longer sends its own query beside its neighbourhood's.
+Nobody waits for it any more, and the two only slowed each other down on the
+same server (86 s for the one tile, 75 s for all nine). A query that fails
+says so in the log (`OSM-QUERY-FAILED`), since nobody may be waiting on it,
+and its tiles are asked for again once the network is.
+
 **The origin floats.** Plan §3 I1 says no ECEF coordinate ever reaches the
 engine, and this is where that is enforced: the player's position is WGS84, each
 tile owns its own tangent frame, and the renderer only ever sees metres relative
@@ -1089,6 +1117,122 @@ player and the fog that hides its edge (see *What this did not fix*): from a few
 hundred metres up the ground ends in haze, beyond which only the far landmarks
 stand.
 
+## The North Pole, and the cold
+
+The Pole is a place like any other: *Pôle Nord* on the map, or
+`--spawn 0 90`, and the player stands on the pack ice at 90°N, on foot (no road
+has ever reached it, so no car is parked there).
+
+### Where the sea is frozen is measured
+
+`native/gen/seaice.cpp` reads NOAA CoastWatch/PolarWatch's daily ASCAT ice
+classification (Metop-C, 4.28 km, open to reuse): open water, first-year,
+mixed or multi-year ice. A 48 × 48-cell window (205 km) around the 16-cell
+block holding the tile is fetched once and kept in
+`cache/world/seaice/ascat_<row>_<col>.json`, like every observation: a
+place already visited never asks again. Only polar tiles with sea-level ground
+ask at all (`|lat| ≥ 60`), and only on a first visit.
+
+The satellite sees nothing within about 35 km of the pole. Those cells, and the
+land mask, take the class of the nearest cell read (a breadth-first flood, in
+index order), and the manifest counts them (`seaIce.cellsFilled`: 319 of the
+2 304 around the pole on 22 September 2026). With no reading, from the
+network or the disk, a static climatology answers (ice north of 80°N, south of
+70°S) and says `inferred`. The reading is fetched on a thread of its own: the
+tile is cooked from the climatology at once and cooked again when the reading
+lands, like the aero layer, so a slow server never holds up an arrival.
+PolarWatch answered in 3 s one hour and failed with 502s the next while this
+was written.
+
+### What the pack looks like is synthesised
+
+Floes, leads, pressure ridges, snow dunes and melt ponds are one deterministic
+function of a position on a polar stereographic plane (`iceAt`): no seam at
+the pole, none between tiles (a test holds two neighbours equal along their
+edge, and the pole equal from both sides). Floes are the cells of a warped
+Voronoi at 320 m. The boundary between two floes is a lead, a ridge or a closed
+crack, drawn by the pair's hash. Leads are open in summer, a third open at
+freeze-up and mostly frozen over in winter. Ridge sails are 0.9–3.8 m high,
+rounder on multi-year ice, heaped with slabs as thick as the ice they broke
+from. Melt ponds are blue in summer, frozen and veiled by the first snow in
+autumn. Concentration thins the floes out towards the ice edge, and age
+decides freeboard, snow, hummocks and ridge height. The season comes from the
+reading's date, never from a clock (§3 I3). The manifest's `seaIce.pack` says
+that all of this is drawn, not observed.
+
+A frozen tile is a 161 × 161 grid (3.5 m: a lead is metres wide) drawn as
+one mesh with the clean snow. Each vertex is tinted to what its point is, so a
+pond's shore or a lead's edge is a gradient rather than a staircase of
+triangles. Only the floor of an open lead is its own mesh, under a calm water
+node. That grid is also what the player walks on (`elevations`), and the
+leads are water to swim in (`water`). A tile is 42 700 vertices and 179 000
+indices, cooked in 30 ms. Twelve stand around the pole (the three rows around
+a player no longer cover what he sees there, so `nearby` takes the tiles
+nearest in metres), which is 513 000 vertices and 2.1 million indices. The
+arena's index limit (3 145 728) is now counted beside its vertex limit, and a
+tile past either is refused out loud.
+
+The surfaces are derived from the photographed snow already on disk
+(`tools/r1/sea_ice_textures.py`, rule 1). `snow_clean` is Snow014 without the
+meadow's grass tips and roughened to 0.85, because at 0.5 a clear sky's
+zenith mirrored off it and it read as water. `sea_ice` is the same scan at a
+third of its contrast, glazed. Albedos are measured (`atlas.json` →
+`ground.seaIce`): snow 0.83–0.89, bare ice 0.50–0.71, young grey ice 0.21–0.28,
+frozen ponds 0.36–0.53, melt ponds 0.10–0.33 (Perovich et al. 2002; Brandt et
+al. 2005).
+
+### To the horizon
+
+Past the tiles the pack goes on: a 40 km disc (`buildFarPack`), snow or water
+as the reading says, curved with the Earth (I2). It sinks half a metre a
+kilometre below the floes, so the tiles always win where they are, and is
+rebuilt after 2 km. Over it the camera's far plane follows the horizon (4.7 km
+at eye height, 5 km everywhere else, as before), and the fog is the measured
+visibility (Open-Meteo, Koschmieder). That was 23 km at the pole on the day
+this was written. Elsewhere the visibility only ever thickens the 5 km haze:
+clearer air would only show where the streamed world ends.
+
+### Weather you can see
+
+The local conditions now carry visibility, wind, snowfall and snow depth. When
+it snows, flakes fall around the camera, carried by the measured wind. When
+the wind passes 6 m/s over snow, it drifts along the ground. Both are dimmed
+with the daylight, which the particles do not receive. When Open-Meteo says 3
+cm or more of snow lies, the ground and the roofs of every resident tile wear
+the photographed snow, and take their own surfaces back when it melts. Streets
+stay clear, and so do water, glacier, snow and ice.
+
+### Walking over the pole
+
+Headings are angles in the origin's frame, the frame the camera draws in, and
+each step is turned into the local east and north where it starts
+(`onward`). Far from a pole this changes nothing measurable. Near one, a
+heading kept against the local north walked in circles around the pole and
+turned back at it. When the origin moves every 350 m, every heading the player
+owns turns with it. `advance` is now a rotation of the unit vector rather
+than an `asin`: at the pole, `cos(d)` of a 5 cm step rounded to exactly 1 and
+the player could not step off it.
+
+Two bugs outside the ice turned up on the way. Open-Meteo answers `deflate`
+when allowed, in a form WinHTTP aborts on, which took the elevation and the
+weather offline everywhere outside France. `net.cpp` now accepts gzip only.
+Overpass refuses a longitude past ±180 (HTTP 400), which every tile at the
+antimeridian, and every tile at the pole, asked for in its wider runway box.
+
+```powershell
+python tools\play_world.py --smoke --spawn 0 90                              # the Pole, on foot
+python tools\play_world.py --smoke --spawn 2.3522 48.8566 --spawn2 0 90      # Paris, then the Pole
+generated\tools\r1test.exe SeaIce
+```
+
+### Not there yet
+
+Sea ice in the sea cells of a coastal tile (the fast ice of a winter fjord),
+the Antarctic's measured ice (the climatology answers there), and relief
+seen from afar on land. The sky shows a faint vertical seam where the
+equirectangular photograph wraps. It is the engine's, turns with the Sun, and
+shows most on an even grey sky.
+
 ## The Sun follows the player
 
 A world you teleport across breaks an assumption every earlier phase held
@@ -1255,7 +1399,8 @@ of the sparsest, in one run.
 ## Attribution
 
 Map data is © OpenStreetMap contributors (ODbL). Elevation comes from the
-Copernicus DEM GLO-90 through Open-Meteo. The selection map is Natural Earth
+Copernicus DEM GLO-90 through Open-Meteo, the weather from Open-Meteo, and the
+sea ice from NOAA CoastWatch/PolarWatch (Metop-C ASCAT ice classification). The selection map is Natural Earth
 (public domain) and is used for selection only — never as terrain. Asset
 provenance and checksums are recorded in `assets/THIRD_PARTY_ASSETS.json`, and
 attribution is visible in-game.

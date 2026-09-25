@@ -23,6 +23,9 @@ struct Mesh {
     std::vector<P3> positions, normals;
     std::vector<UV> texcoords;
     std::vector<uint32_t> indices;
+    // Per vertex, multiplied into the material's colour; empty: white. Only
+    // meshes built vertex by vertex carry it (the weld does not keep it).
+    std::vector<std::array<double, 3>> colors;
     UvMode uvMode = UvMode::None;
 
     explicit Mesh(UvMode mode = UvMode::None) : uvMode(mode) {}

@@ -388,6 +388,9 @@ def build() -> dict:
                           "uvSize": uv_size, **baked}
         print(f"{name:18s} {kind:6s} {asset:28s} {size_m:6.2f} m  "
               f"level {baked['level']:.3f}  clipped {baked['clipped']:.3f}")
+    # The sea ice's two surfaces are made from the snow just baked.
+    from .sea_ice_textures import derive
+    families.update(derive(families))
     return {"schema": 1, "level": LEVEL, "snowLevel": SNOW_LEVEL, "wallLevel": WALL_LEVEL,
             "bay": [BAY_WIDTH, STOREY_HEIGHT], "families": families}
 

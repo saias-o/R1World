@@ -662,6 +662,35 @@
     2,
     2
    ]
+  },
+  "snow_clean": {
+   "kind": "ground",
+   "source": "ambientcg",
+   "asset": "Snow014",
+   "derivedFrom": "snow",
+   "sizeMeasured": false,
+   "size": 2.0,
+   "uvSize": 2.0,
+   "level": 0.85,
+   "albedo": "assets/textures/surfaces/snow_clean_albedo.jpg",
+   "normal": "assets/textures/surfaces/snow_clean_normal.jpg",
+   "mr": "assets/textures/surfaces/snow_clean_mr.jpg",
+   "clipped": 0.0,
+   "specksFilled": 0.05
+  },
+  "sea_ice": {
+   "kind": "ground",
+   "source": "ambientcg",
+   "asset": "Snow014",
+   "derivedFrom": "snow",
+   "sizeMeasured": false,
+   "size": 4.0,
+   "uvSize": 4.0,
+   "level": 0.5,
+   "albedo": "assets/textures/surfaces/sea_ice_albedo.jpg",
+   "normal": "assets/textures/surfaces/sea_ice_normal.jpg",
+   "mr": "assets/textures/surfaces/sea_ice_mr.jpg",
+   "clipped": 0.0
   }
  }
 }

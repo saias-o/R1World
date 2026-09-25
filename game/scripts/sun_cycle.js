@@ -81,12 +81,26 @@ const PEAK_INTENSITY = props.peakIntensity;
 const FOG_DENSITY = 0.00078;
 let weatherCloud = 0.0;
 let weatherRain = 0.0;
+let weatherFog = FOG_DENSITY;
 
-function setWeather(cloudFraction, precipitation) {
+// `visibility`, when the game passes one, is the measured meteorological
+// visibility in metres (Open-Meteo), turned into an extinction the same way
+// (Koschmieder). The game only passes more than 5 km where something is
+// drawn out to the horizon -- the pack ice's far field -- because anywhere
+// else clearer air would only show where the streamed world ends.
+function setWeather(cloudFraction, precipitation, visibility) {
     if (!isFinite(cloudFraction) || !isFinite(precipitation)) return false;
     weatherRain = Math.max(0.0, precipitation);
     weatherCloud = Math.max(0.0, Math.min(1.0, Math.max(cloudFraction, weatherRain * 0.5)));
+    weatherFog = isFinite(visibility) && visibility > 0.0
+        ? 3.912 / Math.max(50.0, Math.min(visibility, 60000.0)) : FOG_DENSITY;
     return true;
+}
+
+// How much daylight there is, 0 at night to 1 by day: what the game dims its
+// own particles by (falling and blowing snow), which the light does not reach.
+function daylight() {
+    return skyLight(sunLight(gameTime()).sun.elevation).daylight;
 }
 
 // Called from the game (ScriptBehaviour::callExport) whenever the player lands
@@ -536,7 +550,7 @@ function refreshSun() {
     // colour, because they are one scattering column.
     scene.setSetting("fogColor", sky.horizonColor);
     scene.setSetting("clearColor", sky.horizonColor);
-    scene.setSetting("fogDensity", FOG_DENSITY + Math.min(weatherRain, 2.0) * 0.001);
+    scene.setSetting("fogDensity", weatherFog + Math.min(weatherRain, 2.0) * 0.001);
     scene.setSetting("iblDiffuseIntensity", sky.iblIntensity);
     scene.setSetting("iblSpecularIntensity", sky.iblIntensity);
 

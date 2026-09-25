@@ -116,7 +116,8 @@ tuile dit lequel a répondu.
 | Bâti, voirie, eau, usage du sol, aéroports | OpenStreetMap (Overpass) | ODbL |
 | Élévation, France | IGN RGE ALTI (Géoplateforme) | Licence Ouverte |
 | Élévation, ailleurs | Copernicus DEM GLO-90 (Open-Meteo) | libre, attribution |
-| Météo, courants | Open-Meteo | CC BY 4.0 |
+| Météo, visibilité, vent, neige au sol, courants | Open-Meteo | CC BY 4.0 |
+| Banquise (glace de mer, son âge) | NOAA CoastWatch/PolarWatch, ASCAT Metop-C | libre, sans garantie |
 | Trait de côte hors ligne | Natural Earth | domaine public |
 | Trafic maritime moyen | Global Shipping Traffic Density (Banque mondiale) | CC BY 4.0 |
 
@@ -134,6 +135,9 @@ Anneaux de latitude métriques, sans coupure polaire (`native/gen/common.hpp`) :
 tuile fait donc environ 556 m de côté à toute latitude, et sa clé
 (`v<version>_<rangée>_<colonne>`) ne dépend ni de la session ni du point
 d'arrivée.
+
+À moins de 18 km d'un pôle, un anneau n'est plus que quelques quartiers :
+le voisinage y est fait des tuiles les plus proches en mètres, douze au pôle.
 
 Une requête Overpass sert un voisinage de neuf tuiles. Le jeu cuit d'abord la
 tuile du joueur, puis ses voisines par distance, puis un couloir devant le
@@ -203,6 +207,16 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   les postes OSM décident où. Chaque base militaire reçoit un hélicoptère.
   Pilotage arcade propre à chaque classe, et aucun crash : un bâtiment arrête
   l'appareil.
+- **Pôle Nord et banquise** : `native/gen/seaice.cpp`. Où la mer est gelée
+  et l'âge de la glace sont mesurés (ASCAT, 4 km, quotidien ; le trou polaire
+  prend la classe la plus proche et le manifeste le compte), le pack est
+  synthétisé et le dit : floes, chenaux ouverts ou regelés, crêtes de
+  compression et leurs blocs, congères, mares selon la saison de la mesure.
+  On y marche, on nage dans les chenaux ; au-delà des tuiles, la banquise
+  continue jusqu'à l'horizon, sous la visibilité mesurée. Le cap du joueur
+  reste droit par-dessus le pôle.
+- **Neige et temps visible** : neige qui tombe et neige soufflée par le vent
+  mesuré ; sols et toits enneigés quand Open-Meteo mesure 3 cm au sol.
 - **Cache hors ligne** : un lieu déjà visité ne touche plus le réseau ; une
   réponse à une ancienne question Overpass est cuite telle quelle, et ce qui
   lui manque arrive en couche séparée (`kOsmQueryVersion`, `kOsmBaseVersion`).
@@ -250,12 +264,11 @@ machine de référence (I4).
   sable. La densité suit la chaleur et l'heure, et le manifeste dit que c'est
   inféré.
 
-### Pays froids update
+### Pays froids update, la suite
+Le pôle, la banquise et la neige sont faits (§7). Reste :
 - **Montagnes** : un relief qui se voit de loin, avec des sommets qui ne soient
   plus rabotés par la grille d'élévation grossière, et un horizon qui ne
-  s'arrête plus à la brume de 5 km.
-- **Neige** : un manteau neigeux au-dessus de la limite des neiges, qui suit
-  la latitude, l'altitude et la saison, sur le sol, les toits et les arbres.
+  s'arrête plus à la brume de 5 km sur la terre ferme.
 
 ### Interior update
 Après la Market update, qui en pose les bases.

@@ -9,6 +9,7 @@
 //   cache/world/v<N>_<row>_<col>/osm.json              a tile's own Overpass answer
 //   cache/world/v<N>_<row>_<col>/ground-elevation.json its terrain (IGN or GLO-90)
 //   cache/world/sources/<sha256[:20]>.json             a neighbourhood's shared answer
+//   cache/world/seaice/ascat_<row>_<col>.json          the sea ice around a block of tiles
 //
 // Any version's folder answers; new observations are written under kVersion.
 #pragma once
@@ -61,6 +62,9 @@ public:
     // SourceUnavailable when no source answers.
     nlohmann::json fetchOsm(const Bounds& bounds, const std::string& path) const;
     std::pair<ElevationGrid, std::string> fetchGround(const Tile& tile) const;
+    // The ground in a fifth of a second: Copernicus only, one attempt, four
+    // seconds at most, so a first visit is playable before IGN or Overpass.
+    std::pair<ElevationGrid, std::string> quickGround(const Tile& tile) const;
 
     // The aero layer of a tile cooked from `mainPath`. `needed` is false when
     // the main answer already carries it (version 6 on); otherwise the result
@@ -70,6 +74,10 @@ public:
     // Where this tile's neighbourhood's aero layer is fetched to, and its box.
     Shared aeroTarget(const Tile& tile, const std::optional<Shared>& shared) const;
     nlohmann::json fetchAero(const Bounds& bounds, const std::string& path) const;
+    // The sea ice read around (lon, lat) (gen/seaice.hpp): from disk, or
+    // nullopt; from the network, written to disk before it returns.
+    std::optional<nlohmann::json> seaIce(double lon, double lat) const;
+    nlohmann::json fetchSeaIce(double lon, double lat) const;
     static std::string aeroSibling(const std::string& mainPath);
     // The question an answer on disk replied to (1 when it does not say).
     static int queryVersion(const std::string& path);

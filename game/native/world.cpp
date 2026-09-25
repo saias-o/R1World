@@ -15,6 +15,7 @@
 #include "graphics/Material.hpp"
 #include "nodes/CameraNode.hpp"
 #include "nodes/MeshNode.hpp"
+#include "nodes/ParticleSystemNode.hpp"
 #include "behaviours/LODGroupBehaviour.hpp"
 #include "nodes/WebCanvasNode.hpp"
 #include "scripting/ScriptBehaviour.hpp"
@@ -130,8 +131,43 @@ Tile tileAt(double lon,double lat) {
     int r=std::clamp(int(std::floor((lat+90.)*200.)),0,35999);
     return {r,std::min(columns(r)-1,int(std::floor((wrap(lon)+180.)/360.*columns(r))))};
 }
+// Metres along the sphere between two points.
+double metresBetween(double lon1,double lat1,double lon2,double lat2) {
+    const double p1=lat1*rad,p2=lat2*rad,dp=p2-p1,dl=wrap(lon2-lon1)*rad;
+    const double h=std::sin(dp/2)*std::sin(dp/2)+std::cos(p1)*std::cos(p2)*std::sin(dl/2)*std::sin(dl/2);
+    return 2*6371008.8*std::asin(std::min(1.,std::sqrt(h)));
+}
+// Within some 18 km of a pole a ring is a few wedges, and the three rows
+// around the player no longer hold what he sees: standing on the pole, the
+// ground a hundred metres away across it is in a column no row offset
+// reaches. There the neighbourhood is every tile whose nearest point is
+// within reach, in metres, nearest first -- twelve at the pole itself.
+constexpr int kPolarColumns=200;
+constexpr double kPolarReach=650.;
+constexpr size_t kPolarTiles=12;
+std::vector<Tile> polarNearby(double lon,double lat) {
+    const Tile center=tileAt(lon,lat);
+    std::vector<std::pair<double,Tile>> found;
+    for(int r=std::max(0,center.r-2);r<=std::min(35999,center.r+2);++r) {
+        const int n=columns(r);
+        for(int c=0;c<n;++c) {
+            const Tile t{r,c};
+            const r1::Bounds b=t.gen().bounds();
+            const double la=std::clamp(lat,b.south,b.north);
+            double lo=wrap(lon);
+            if(lo<b.west||lo>b.east)lo=std::abs(wrap(lo-b.west))<std::abs(wrap(lo-b.east))?b.west:b.east;
+            const double d=t==center?-1.:metresBetween(lon,lat,lo,la);
+            if(d<=kPolarReach)found.push_back({d,t});
+        }
+    }
+    std::stable_sort(found.begin(),found.end(),[](const auto& a,const auto& b){return a.first<b.first;});
+    std::vector<Tile> out;
+    for(const auto& f:found)if(out.size()<kPolarTiles)out.push_back(f.second);
+    return out;
+}
 std::vector<Tile> nearby(double lon,double lat) {
     Tile center=tileAt(lon,lat);
+    if(columns(center.r)<kPolarColumns)return polarNearby(lon,lat);
     std::vector<Tile> out{center}; std::set<Tile> seen{center};
     for(int dr=-1;dr<=1;++dr) {
         int r=std::clamp(center.r+dr,0,35999),n=columns(r);
@@ -164,14 +200,18 @@ struct Frame {
     }
     glm::dvec3 local(glm::dvec3 p) const { return glm::transpose(basis)*(p-origin); }
 };
-// Great-circle step; finite at both poles, longitude wraps across the date line.
+// Great-circle step; longitude wraps across the date line. Written as a
+// rotation of the unit vector rather than through asin: at the pole asin
+// sees cos(d) round to exactly 1 for a step of a few centimetres, and the
+// player could never walk off it. atan2 keeps every step, there as anywhere.
 glm::dvec2 advance(double lon,double lat,double east,double north) {
-    double d=std::hypot(east,north)/6371008.8;
+    const double length=std::hypot(east,north),d=length/6371008.8;
     if(d==0)return {lon,lat};
-    double bearing=std::atan2(east,north),p=lat*rad;
-    double q=std::asin(std::clamp(sin(p)*cos(d)+cos(p)*sin(d)*cos(bearing),-1.,1.));
-    double l=lon*rad+std::atan2(sin(bearing)*sin(d)*cos(p),cos(d)-sin(p)*sin(q));
-    return {wrap(l/rad),q/rad};
+    const double l=lon*rad,p=lat*rad;
+    const glm::dvec3 here(std::cos(p)*std::cos(l),std::cos(p)*std::sin(l),std::sin(p));
+    const glm::dvec3 e(-std::sin(l),std::cos(l),0.),n(-std::sin(p)*std::cos(l),-std::sin(p)*std::sin(l),std::cos(p));
+    const glm::dvec3 q=here*std::cos(d)+(e*east+n*north)*(std::sin(d)/length);
+    return {wrap(std::atan2(q.y,q.x)/rad),std::atan2(q.z,std::hypot(q.x,q.y))/rad};
 }
 struct Plant {
     saida::Node* node=nullptr;
@@ -220,27 +260,29 @@ struct PreparedTile {
     std::vector<Footprint> footprints;
 };
 
+// A generator part in the engine's vertex format.
+PartUpload uploadOf(const r1::MeshPart& part,size_t index) {
+    const r1::Mesh& m=part.mesh;
+    const double k=part.material.uvScale;
+    const auto tangents=r1::tangents(m,k);
+    PartUpload up{part.name,{},m.indices,index};
+    up.vertices.resize(m.positions.size());
+    for(size_t v=0;v<m.positions.size();++v) {
+        saida::Vertex& x=up.vertices[v];
+        x.pos=glm::vec3(m.positions[v].x,m.positions[v].y,m.positions[v].z);
+        x.normal=glm::vec3(m.normals[v].x,m.normals[v].y,m.normals[v].z);
+        x.color=m.colors.empty()?glm::vec3(1.f):glm::vec3(m.colors[v][0],m.colors[v][1],m.colors[v][2]);
+        x.texCoord=glm::vec2(m.texcoords[v].u*k,m.texcoords[v].v*k);
+        x.tangent=glm::vec4(tangents[v][0],tangents[v][1],tangents[v][2],tangents[v][3]);
+    }
+    return up;
+}
+
 PreparedTile prepareTile(const r1::CookedTile& tile) {
     PreparedTile prepared;
     auto& out=prepared.parts;
     out.reserve(tile.parts.size());
-    for(size_t i=0;i<tile.parts.size();++i) {
-        const r1::MeshPart& part=tile.parts[i];
-        const r1::Mesh& m=part.mesh;
-        const double k=part.material.uvScale;
-        const auto tangents=r1::tangents(m,k);
-        PartUpload up{part.name,{},m.indices,i};
-        up.vertices.resize(m.positions.size());
-        for(size_t v=0;v<m.positions.size();++v) {
-            saida::Vertex& x=up.vertices[v];
-            x.pos=glm::vec3(m.positions[v].x,m.positions[v].y,m.positions[v].z);
-            x.normal=glm::vec3(m.normals[v].x,m.normals[v].y,m.normals[v].z);
-            x.color=glm::vec3(1.f);
-            x.texCoord=glm::vec2(m.texcoords[v].u*k,m.texcoords[v].v*k);
-            x.tangent=glm::vec4(tangents[v][0],tangents[v][1],tangents[v][2],tangents[v][3]);
-        }
-        out.push_back(std::move(up));
-    }
+    for(size_t i=0;i<tile.parts.size();++i)out.push_back(uploadOf(tile.parts[i],i));
     const json& tops=tile.manifest.contains("footprintTops")?tile.manifest.at("footprintTops"):json::array();
     for(const auto& polygon:tile.manifest.at("footprints")) {
         Footprint shape;
@@ -282,10 +324,14 @@ struct Loaded {
     int gridSize=0; std::vector<float> elevation;
     // 0 land, 1 inland water, 2 sea-level water (see r1/harbours.Cells).
     int waterRows=0,waterCols=0; std::vector<uint8_t> water;
-    bool ocean=false;
+    bool ocean=false,seaIce=false;
     std::vector<Deck> decks; glm::dvec2 deckLow{1e30},deckHigh{-1e30};
     std::vector<Mooring> boats;
     std::vector<AircraftSpot> aircraft;
+    // Snow lying on the ground and the roofs (World::updateSnowCover): which
+    // parts wear it, and what each wore before.
+    bool snowed=false; size_t snowSeen=0;
+    std::vector<std::pair<saida::MeshNode*,saida::Material*>> bare;
 };
 
 class World : public Rml::EventListener {
@@ -380,7 +426,10 @@ class World : public Rml::EventListener {
     // Tiles are cooked in this process, on the service's threads (gen/).
     std::unique_ptr<r1::WorldService> service;
     std::map<std::string,saida::AssetID> textures;
-    size_t residentVertexBudget=0;
+    size_t residentVertexBudget=0,residentIndexBudget=0;
+    // A tile was mounted: it may be the one the player stands on, cooked
+    // again with the buildings its first, provisional cook did not have.
+    bool checkStanding=false;
     Frame origin; double lon=2.3522,lat=48.8566,alt=0,yaw=0,pitch=-12;
     double pickLon=2.3522,pickLat=48.8566,zoom=1,mapX=0,mapY=0;
     bool menu=true,playing=false,pending=false,warming=false,wasMenuKey=false;
@@ -608,6 +657,45 @@ class World : public Rml::EventListener {
     Loaded* tile(double x,double y) {
         auto i=loaded.find(tileAt(x,y).key());return i==loaded.end()?nullptr:&i->second;
     }
+    bool onSeaIce(double x,double y) {
+        auto* t=tile(x,y);return t&&t->seaIce;
+    }
+    // ── headings ────────────────────────────────────────────────────────────
+    //
+    // A heading is an angle in the origin's frame, the frame the camera and
+    // every model are drawn in. A step along it is turned into the local east
+    // and north where the step starts. Far from a pole the two are the same
+    // to a hundredth of a degree; near one they are not, and a heading kept
+    // against the local north walks a circle around the pole and turns back
+    // at it. This keeps a straight line straight, over the pole included.
+    glm::dvec2 onward(double x,double y,double east,double north) const {
+        const glm::dvec3 d=origin.basis[0]*east-origin.basis[2]*north;
+        const double l=x*rad,p=y*rad;
+        const double e=glm::dot(d,glm::dvec3(-std::sin(l),std::cos(l),0.));
+        const double n=glm::dot(d,glm::dvec3(-std::sin(p)*std::cos(l),-std::sin(p)*std::sin(l),std::cos(p)));
+        const double length=std::hypot(east,north),flat=std::hypot(e,n);
+        if(flat<1e-12)return {x,y};
+        return advance(x,y,e/flat*length,n/flat*length);
+    }
+    // The origin follows the player every 350 m. What the player owns is
+    // written in its frame, so every heading turns with it: at the pole the
+    // new frame can face the other way from the old one.
+    void rebaseOrigin() {
+        const Frame next(lon,lat,alt);
+        auto turn=[&](double heading){
+            const glm::dvec3 d=origin.basis[0]*std::sin(heading*rad)-origin.basis[2]*std::cos(heading*rad);
+            return wrap(std::atan2(glm::dot(d,next.basis[0]),-glm::dot(d,next.basis[2]))/rad);
+        };
+        const double delta=wrap(turn(yaw)-yaw);
+        yaw=turn(yaw);carYaw=turn(carYaw);swimHeading=turn(swimHeading);
+        boat.yaw=turn(boat.yaw);plane.yaw=turn(plane.yaw);
+        for(auto& entry:parked)entry.yaw=turn(entry.yaw);
+        if(std::abs(delta)>1e-9) {
+            const auto spin=glm::angleAxis(float(-delta*rad),glm::vec3(0,1,0));
+            player->transform().rotation=spin*player->transform().rotation;
+        }
+        origin=next;placeTiles();moveSun();
+    }
     // ── the tile's data, in the form the frame reads it ─────────────────────
     //
     // The tile's manifest is the contract with the generator. What
@@ -646,6 +734,7 @@ class World : public Rml::EventListener {
             }
         }
         tile.ocean=tile.data.value("surface",std::string())=="ocean";
+        tile.seaIce=tile.data.value("surface",std::string())=="sea-ice";
         auto decks=tile.data.find("decks");
         if(decks!=tile.data.end())
             for(const auto& entry:*decks) {
@@ -789,7 +878,7 @@ class World : public Rml::EventListener {
         const auto& spec=vehicleSpec(*car);
         const double halfLength=spec.wheelbase*.5,halfWidth=spec.width*.43;
         auto sample=[&](double east,double north){
-            auto q=advance(carLon,carLat,east,north);return groundAt(q.x,q.y,carAlt);
+            auto q=onward(carLon,carLat,east,north);return groundAt(q.x,q.y,carAlt);
         };
         double s=sin(carYaw*rad),c=cos(carYaw*rad);
         double ahead=sample(s*halfLength,c*halfLength),behind=sample(-s*halfLength,-c*halfLength);
@@ -863,9 +952,14 @@ class World : public Rml::EventListener {
         if(!car)return;
         car->setEnabled(false);
         if(swimming)return;
+        // No road has ever reached the pack ice: nobody drives to the Pole.
+        if(onSeaIce(lon,lat)) {
+            saida::Log::info("[World car] on the sea ice: the player arrives on foot, with no car");
+            return;
+        }
         // Three metres to his right, which is where a car that dropped him off
         // would be, and a spiral out from there when that spot is a wall.
-        auto beside=advance(lon,lat,cos(yaw*rad)*3.,-sin(yaw*rad)*3.);
+        auto beside=onward(lon,lat,cos(yaw*rad)*3.,-sin(yaw*rad)*3.);
         double x,y;
         if(!freeSpot(beside.x,beside.y,14.,x,y)) {
             // Loud, and said to the player too. A car that silently is not
@@ -1015,7 +1109,7 @@ class World : public Rml::EventListener {
         // Beside the car, never inside the shell it collides with.
         double x=0,y=0;bool found=false;
         for(double side:{2.6,-2.6}) {
-            auto q=advance(carLon,carLat,cos(carYaw*rad)*side,-sin(carYaw*rad)*side);
+            auto q=onward(carLon,carLat,cos(carYaw*rad)*side,-sin(carYaw*rad)*side);
             if(tile(q.x,q.y)&&!blocked(q.x,q.y)){x=q.x;y=q.y;found=true;break;}
         }
         if(!found)found=freeSpot(carLon,carLat,9.,x,y);
@@ -1086,7 +1180,7 @@ class World : public Rml::EventListener {
         steerShown+=(steerInput-steerShown)*(1-std::exp(-9*dt));
         yaw=carYaw;
         if(v<=1e-3){carLon=lon;carLat=lat;carAlt=alt;return;}
-        auto next=advance(lon,lat,sin(carYaw*rad)*carSpeed*dt,cos(carYaw*rad)*carSpeed*dt);
+        auto next=onward(lon,lat,sin(carYaw*rad)*carSpeed*dt,cos(carYaw*rad)*carSpeed*dt);
         if(!tile(next.x,next.y))stream(); // Mount a prefetched tile before stopping at its edge.
         if(!tile(next.x,next.y)) {
             // Outrunning the streamer. Said rather than shown as a stutter: at
@@ -1220,7 +1314,7 @@ class World : public Rml::EventListener {
             for(double along=0;along<=boat.length*.5;along+=2.)
                 for(double sign:{1.,-1.})for(double side:{1.,-1.}) {
                     const double a=along*sign,o=(boat.beam*.5+off)*side;
-                    const auto q=advance(boat.lon,boat.lat,s*a+c*o,c*a-s*o);
+                    const auto q=onward(boat.lon,boat.lat,s*a+c*o,c*a-s*o);
                     if(!tile(q.x,q.y))continue;
                     if(navigable(q.x,q.y)) {
                         if(!water)water=BoatExit{q,true};
@@ -1307,9 +1401,9 @@ class World : public Rml::EventListener {
         yaw=boat.yaw;
         if(std::abs(boat.speed)<1e-3)return;
         const double s=std::sin(boat.yaw*rad),c=std::cos(boat.yaw*rad);
-        auto next=advance(lon,lat,s*boat.speed*dt,c*boat.speed*dt);
+        auto next=onward(lon,lat,s*boat.speed*dt,c*boat.speed*dt);
         const double lead=boat.length*.5*(boat.speed>=0?1.:-1.);
-        auto bow=advance(next.x,next.y,s*lead,c*lead);
+        auto bow=onward(next.x,next.y,s*lead,c*lead);
         if(!tile(next.x,next.y)||!tile(bow.x,bow.y))stream();
         if(!tile(next.x,next.y)||!tile(bow.x,bow.y)) {
             boat.speed=0;
@@ -1470,7 +1564,7 @@ class World : public Rml::EventListener {
         const double s=std::sin(heading*rad),c=std::cos(heading*rad);
         const double half=t.length*.5,span=t.span*.5,body=alt+.4;
         for(const auto& [a,o]:{std::pair{0.,0.},std::pair{half,0.},std::pair{-half,0.},std::pair{0.,span},std::pair{0.,-span}}) {
-            const auto q=advance(x,y,s*a+c*o,c*a-s*o);
+            const auto q=onward(x,y,s*a+c*o,c*a-s*o);
             if(buildingAt(q.x,q.y,body))return true;
         }
         return false;
@@ -1571,7 +1665,7 @@ class World : public Rml::EventListener {
                 for(double off:{2.,4.}) {
                     if(dry)break;
                     const double o=(half+off)*side;
-                    const auto q=advance(plane.lon,plane.lat,s*along+c*o,c*along-s*o);
+                    const auto q=onward(plane.lon,plane.lat,s*along+c*o,c*along-s*o);
                     if(!tile(q.x,q.y))continue;
                     if(navigable(q.x,q.y)){if(!wet)wet=q;}
                     else if(!blocked(q.x,q.y))dry=q;
@@ -1610,7 +1704,7 @@ class World : public Rml::EventListener {
     bool moveAircraft(double dt,double horizontal) {
         if(std::abs(horizontal)<1e-4)return true;
         const double s=std::sin(plane.yaw*rad),c=std::cos(plane.yaw*rad);
-        const auto next=advance(plane.lon,plane.lat,s*horizontal*dt,c*horizontal*dt);
+        const auto next=onward(plane.lon,plane.lat,s*horizontal*dt,c*horizontal*dt);
         if(!tile(next.x,next.y))stream();
         if(!tile(next.x,next.y)&&!plane.airborne) {
             plane.speed=0;
@@ -1796,16 +1890,152 @@ class World : public Rml::EventListener {
             &&std::abs(conditions.value("lon",1000.)-lon)<.12
             &&std::abs(conditions.value("lat",1000.)-lat)<.12;
     }
+    // The weather as last read: what the sky, the fog and the snow are drawn from.
+    struct Weather {
+        double cover=0,rain=0,visibility=0,windSpeed=0,windFrom=0,snowfall=0,snowDepth=0;
+        int code=-1; bool known=false;
+    } weather;
+    bool fogFar=false;  // what the fog was last told about the horizon
+    static double number(const json& j,const char* key,double fallback) {
+        auto it=j.find(key);return it!=j.end()&&it->is_number()?it->get<double>():fallback;
+    }
     void readConditions() {
         auto latest=sky->latest();
         if(!latest||latest==conditionsDoc)return;
         conditionsDoc=latest;conditions=*latest;
-        if(!localConditions()||!sunScript)return;
-        const auto weather=conditions.value("weather",json());
-        const double cover=weather.is_object()?std::clamp(weather.value("cloudCover",0.)/100.,0.,1.):0.;
-        const double rain=weather.is_object()?std::max(0.,weather.value("precipitation",0.)):0.;
+        if(!localConditions())return;
+        const auto w=conditions.value("weather",json());
+        weather=Weather{};
+        if(w.is_object()) {
+            weather.known=true;
+            weather.cover=std::clamp(number(w,"cloudCover",0.)/100.,0.,1.);
+            weather.rain=std::max(0.,number(w,"precipitation",0.));
+            weather.visibility=number(w,"visibility",0.);
+            weather.windSpeed=std::max(0.,number(w,"windSpeed",0.));
+            weather.windFrom=number(w,"windFrom",0.);
+            weather.snowfall=std::max(0.,number(w,"snowfall",0.));
+            weather.snowDepth=std::max(0.,number(w,"snowDepth",0.));
+            weather.code=int(number(w,"code",-1.));
+        }
+        applyWeather();
+    }
+    // The measured visibility is the fog, but past 5 km only where the world
+    // is drawn out to the horizon: anywhere else the clearer air would only
+    // show where the streamed tiles end.
+    void applyWeather() {
+        if(!sunScript)return;
+        fogFar=farPack.node!=nullptr;
+        const double seen=weather.visibility>0?(fogFar?weather.visibility:std::min(weather.visibility,5015.)):0.;
         json result;
-        sunScript->callExport("setWeather",json::array({cover,rain}),result);
+        sunScript->callExport("setWeather",json::array({weather.cover,weather.rain,seen}),result);
+    }
+    // Streets and buildings that arrive after the player (a provisional
+    // tile cooked again) can land on him: he is moved to the nearest free
+    // ground, and told why.
+    void keepStanding() {
+        checkStanding=false;
+        if(!playing||pending||driving||sailing||piloting||swimming||!tile(lon,lat))return;
+        // The finer survey (IGN) may have replaced the quick one under him.
+        if(jumpOffset<=0)alt=height(lon,lat);
+        if(!blocked(lon,lat))return;
+        double x,y;
+        if(!freeSpot(lon,lat,40.,x,y))return;
+        saida::Log::info("[World] a building arrived where the player stood: moved to ",x,", ",y);
+        lon=x;lat=y;alt=height(lon,lat);jumpOffset=jumpVelocity=0;
+        text("stream-status","Les bâtiments sont arrivés : vous voilà dans la rue.");
+    }
+    // ── snow in the air ─────────────────────────────────────────────────────
+    //
+    // Falling snow when the forecast says it snows, drifting snow when the
+    // wind lifts what lies on the ground (on the pack, or wherever the model
+    // says snow lies), both carried by the measured wind. They are drawn
+    // around the camera and nowhere else, and dimmed with the daylight: a
+    // particle is not lit by the scene.
+    saida::ParticleSystemNode* snowfall=nullptr;
+    saida::ParticleSystemNode* drift=nullptr;
+    double daylightNow=1,daylightAge=1e9;
+    // Snow on the ground: when the model says it lies (3 cm or more, Open-
+    // Meteo's snow depth for the place), the ground and the roofs of every
+    // resident tile wear the photographed snow, and take their own surfaces
+    // back when it melts. The streets are left clear -- they are ploughed --
+    // and so are the ground classes that are already snow, ice or water.
+    saida::Material* snowMaterial(bool doubleSided) {
+        const r1::Swatch& s=r1::palette().snow;
+        return material(r1::surfaceMaterial(s.name,s.color,s.roughness,std::string("snow"),doubleSided));
+    }
+    static bool snowable(const std::string& name) {
+        const bool ground=name.rfind("Ground \xE2\x80\x94 ",0)==0,roof=name.rfind("Roofs \xE2\x80\x94 ",0)==0;
+        if(!ground&&!roof)return false;
+        for(const char* keep:{"Water","Snow","Glacier","Frosted","sea ice","Melt pond","Young grey"})
+            if(name.find(keep)!=std::string::npos)return false;
+        return true;
+    }
+    void updateSnowCover() {
+        const bool want=weather.known&&localConditions()&&weather.snowDepth>=.03;
+        for(auto& [key,t]:loaded) {
+            if(!t.geography)continue;
+            if(t.snowed&&!want) {
+                for(auto& [node,own]:t.bare)node->setMaterial(own);
+                t.bare.clear();t.snowed=false;t.snowSeen=0;
+                continue;
+            }
+            if(!want)continue;
+            if(!t.snowed){t.snowed=true;t.snowSeen=0;}
+            const auto& children=t.geography->children();
+            for(;t.snowSeen<children.size();++t.snowSeen) {
+                auto* mesh=dynamic_cast<saida::MeshNode*>(children[t.snowSeen].get());
+                if(!mesh||!snowable(mesh->name())||!mesh->material())continue;
+                t.bare.push_back({mesh,mesh->material()});
+                mesh->setMaterial(snowMaterial(mesh->material()->desc().doubleSided));
+            }
+        }
+    }
+    saida::ParticleSystemNode* emitter(const char* name) {
+        auto n=std::make_unique<saida::ParticleSystemNode>();
+        n->setName(name);
+        n->effectClass=saida::ParticleSystemNode::EffectClass::Snow;
+        n->applyEffectPreset();
+        return static_cast<saida::ParticleSystemNode*>(engine.sceneTree().world().addChild(std::move(n)));
+    }
+    void updateSnow(double dt) {
+        const bool here=playing&&!pending&&weather.known&&localConditions();
+        const bool falling=here&&((weather.code>=71&&weather.code<=77)||weather.code==85||weather.code==86||weather.snowfall>.02);
+        const bool lying=onSeaIce(lon,lat)||weather.snowDepth>.05;
+        const bool blowing=here&&lying&&weather.windSpeed>6.;
+        daylightAge+=dt;
+        if((falling||blowing)&&daylightAge>.5&&sunScript) {
+            json result;daylightAge=0;
+            if(sunScript->callExport("daylight",json::array(),result)==saida::ScriptCallStatus::Succeeded&&result.is_number())
+                daylightNow=std::clamp(result.get<double>(),0.,1.);
+        }
+        // The wind blows towards where it does not come from; x east, z south.
+        const double to=(weather.windFrom+180.)*rad;
+        const glm::vec3 wind(float(std::sin(to)*weather.windSpeed),0.f,float(-std::cos(to)*weather.windSpeed));
+        const glm::vec3 eye=camera->transform().position;
+        const float light=float(.04+.9*daylightNow);
+        if(falling) {
+            if(!snowfall){snowfall=emitter("snowfall");saida::Log::info("[World weather] snow falling, ",weather.snowfall," cm/h");}
+            snowfall->setEnabled(true);
+            snowfall->maxParticles=2400;snowfall->lifetime=9.f;snowfall->radius=22.f;
+            snowfall->spawnRate=float(std::clamp(160.+420.*weather.snowfall,160.,700.));
+            snowfall->drag=.35f;
+            // Terminal drift = acceleration / drag: the flakes move with the wind.
+            snowfall->gravity=wind*snowfall->drag+glm::vec3(0,-.45f,0);
+            snowfall->emissive=light;
+            snowfall->transform().position=eye+glm::vec3(0,9.f,0)-wind*4.f;
+        } else if(snowfall)snowfall->setEnabled(false);
+        if(blowing) {
+            if(!drift){drift=emitter("drifting snow");saida::Log::info("[World weather] snow drifting, wind ",weather.windSpeed," m/s");}
+            drift->setEnabled(true);
+            drift->maxParticles=1600;drift->lifetime=1.8f;drift->radius=14.f;
+            drift->spawnRate=float(std::clamp((weather.windSpeed-6.)*140.,40.,900.));
+            drift->startSize=.035f;drift->startSpeed=.3f;drift->stretch=3.f;drift->drag=1.5f;
+            drift->startColor=glm::vec4(.95f,.97f,1.f,.45f);drift->endColor=glm::vec4(.95f,.97f,1.f,0.f);
+            drift->gravity=wind*drift->drag+glm::vec3(0,-.04f,0);
+            drift->emissive=light;
+            const glm::vec3 feet=player->transform().position;
+            drift->transform().position=glm::vec3(eye.x,feet.y+.3f,eye.z)-wind*.8f;
+        } else if(drift)drift->setEnabled(false);
     }
     std::string localClock() {
         double unixSeconds=double(std::time(nullptr));gameTime(unixSeconds);
@@ -2224,6 +2454,7 @@ class World : public Rml::EventListener {
                 position-turn*t.node->transform().position,turn);
         }
         for(auto& f:farLandmarks)if(f.node)placeFar(f);
+        placeFarPack();
     }
     void trim() {
         engine.sceneTree().applyDeferred();
@@ -2423,6 +2654,52 @@ class World : public Rml::EventListener {
             saida::Log::info("[World landmarks] ",f.slug," level ",want+1," at ",int(distance)," m");
         }
     }
+    // ── the pack to the horizon ─────────────────────────────────────────────
+    //
+    // The streamed tiles end some 600 m out; on the sea ice the horizon is
+    // 4.7 km away at eye height, and on a clear Arctic day the air hides
+    // nothing short of it. Past the tiles the pack goes on (gen/seaice.cpp's
+    // far pack): snow or water as the observation says, curved with the
+    // Earth, rebuilt when the player has walked 4 km from its centre or the
+    // tile under him was cooked from a newer reading.
+    struct FarPack {
+        saida::Node* node=nullptr; double lon=0,lat=0; size_t vertices=0;
+        std::shared_ptr<const r1::SeaIce> ice;
+    } farPack;
+    void placeFarPack() {
+        if(!farPack.node)return;
+        const auto position=glm::vec3(origin.local(ecef(farPack.lon,farPack.lat,0.)));
+        const Frame own(farPack.lon,farPack.lat,0.);
+        const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*own.basis));
+        const auto turn=rotation*glm::inverse(farPack.node->transform().rotation);
+        engine.sceneTree().world().rebaseSubtree(*farPack.node,position-turn*farPack.node->transform().position,turn);
+    }
+    void updateFarPack() {
+        Loaded* here=playing&&!pending?tile(lon,lat):nullptr;
+        const auto ice=here&&here->seaIce?here->served->cooked.seaIce:nullptr;
+        if(!ice) {
+            if(farPack.node){farPack.node->queueFree();farPack=FarPack{};saida::Log::info("[World ice] far pack taken down");}
+            return;
+        }
+        if(farPack.node&&farPack.ice==ice&&metresBetween(lon,lat,farPack.lon,farPack.lat)<2000.)return;
+        const auto started=std::chrono::steady_clock::now();
+        const auto parts=r1::buildFarPack(*ice,lon,lat);
+        auto root=std::make_unique<saida::Node>("far pack");
+        size_t vertices=0;
+        for(size_t i=0;i<parts.size();++i) {
+            const PartUpload up=uploadOf(parts[i],i);
+            auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(up.vertices,up.indices));
+            if(!mesh){saida::Log::warn("[World ice] the geometry arena refused ",parts[i].name);continue;}
+            root->addChild(std::make_unique<saida::MeshNode>(parts[i].name,mesh,material(parts[i].material)));
+            vertices+=up.vertices.size();
+        }
+        if(farPack.node)farPack.node->queueFree();
+        farPack=FarPack{engine.sceneTree().world().addChild(std::move(root)),lon,lat,vertices,ice};
+        placeFarPack();
+        saida::Log::info("[World ice] far pack to ",r1::kFarPackRadius/1000.," km around ",lon,", ",lat,
+                         ": ",vertices," vertices, ",ice->measured?"measured ":"inferred ",ice->date,
+                         " build_ms=",std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count());
+    }
     void streamProps() {
         const auto start=std::chrono::steady_clock::now();
         // Scene/GPU APIs stay on the render thread. Yield between objects;
@@ -2475,10 +2752,10 @@ class World : public Rml::EventListener {
             if(!keep.count(it->first)||stale){it->second.node->queueFree();it=loaded.erase(it);removed=true;}else ++it;
         }
         if(removed)trim();
-        size_t count=0;
-        for(auto& [k,t]:loaded)if(wanted.count(k))count+=t.data.at("vertices").get<size_t>();
+        size_t count=0,indices=0;
+        for(auto& [k,t]:loaded)if(wanted.count(k)){count+=t.data.at("vertices").get<size_t>();indices+=t.data.value("indices",size_t(0));}
         // The far landmarks share the arena with the tiles (gen/landmarks.cpp).
-        count+=farVertices();
+        count+=farVertices()+farPack.vertices;
         const auto tick=std::chrono::steady_clock::now();
         for(auto t:want) {
             if(loaded.count(t.key()))continue;
@@ -2486,8 +2763,8 @@ class World : public Rml::EventListener {
             if(!served)continue;
             const json& data=served->cooked.manifest;
             try {
-                const size_t vertices=data.at("vertices").get<size_t>();
-                if(count+vertices>residentVertexBudget) {
+                const size_t vertices=data.at("vertices").get<size_t>(),tileIndices=data.value("indices",size_t(0));
+                if(count+vertices>residentVertexBudget||indices+tileIndices>residentIndexBudget) {
                     text("stream-status","Limite de détail atteinte dans cette zone.");
                     if(refused.empty()) {
                         refused=t.key();
@@ -2496,13 +2773,18 @@ class World : public Rml::EventListener {
                         // looked exactly like a slow download -- the worst shape
                         // a failure can take (CLAUDE.md rule 3).
                         saida::Log::warn("[World] ",t.key()," does not fit: ",count,
-                                         " + ",vertices," > ",residentVertexBudget," resident vertices");
+                                         " + ",vertices," of ",residentVertexBudget," resident vertices, ",
+                                         indices," + ",tileIndices," of ",residentIndexBudget," indices");
                     }
                     continue;
                 }
                 const auto mountStarted=std::chrono::steady_clock::now();
                 auto* ptr=engine.sceneTree().world().addChild(buildTile(t.key(),*served));
                 auto [entry,inserted]=loaded.try_emplace(t.key(),ptr,served);
+                // Counted at once: several tiles mount in one tick, and each
+                // must see the ones mounted before it.
+                count+=vertices;indices+=tileIndices;
+                checkStanding=true;
                 entry->second.geography=ptr->findByPath("Geography");
                 entry->second.footprints=std::any_cast<const PreparedTile&>(served->prepared).footprints;
                 // After the emplace, never before: the flow holds a pointer to
@@ -2561,7 +2843,7 @@ class World : public Rml::EventListener {
             }
             lon=x0;lat=y0;alt=waterSpawn?waterLevel(lon,lat):height(lon,lat);
             origin=Frame(lon,lat,alt);placeTiles();moveSun();
-            conditions=json::object();
+            conditions=json::object();weather=Weather{};
             if(sunScript){json result;sunScript->callExport("setWeather",json::array({0.,0.}),result);}
             jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
             // Teleporting leaves the current vehicle. A water arrival starts
@@ -2575,7 +2857,8 @@ class World : public Rml::EventListener {
             playing=true;pending=false;warming=false;showMap(false);request(lon,lat);
             saida::Log::info("[World] spawned ",lon,", ",lat," altitude=",alt,
                              waterSpawn?" swimming":" on foot",
-                             tile(lon,lat)->data.value("offlineApproximation",false)
+                             tile(lon,lat)->data.value("provisional",false)?" (ground first, OSM on its way)"
+                             :tile(lon,lat)->data.value("offlineApproximation",false)
                                  ?" (simplified offline terrain)":"");
             saida::Log::info("[World streaming] go_to_play_ms=",
                 std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-goStarted).count(),
@@ -2586,7 +2869,7 @@ class World : public Rml::EventListener {
                 double best=0;
                 for(int direction=0;direction<32;++direction){
                     double heading=direction*11.25,clear=0;
-                    for(double d=.5;d<=12;d+=.5){auto q=advance(lon,lat,sin(heading*rad)*d,cos(heading*rad)*d);if(!tile(q.x,q.y)||blocked(q.x,q.y))break;clear=d;}
+                    for(double d=.5;d<=12;d+=.5){auto q=onward(lon,lat,sin(heading*rad)*d,cos(heading*rad)*d);if(!tile(q.x,q.y)||blocked(q.x,q.y))break;clear=d;}
                     if(clear>best){best=clear;yaw=heading;}
                 }
                 if(!tellSun()){saida::Log::error("[World E2E] FAIL the sun cycle did not take the observer");testFailed=true;engine.sceneTree().quit();return;}
@@ -2608,6 +2891,7 @@ class World : public Rml::EventListener {
 public:
     World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
+        residentIndexBudget=size_t(double(e.resources().geometryCapacity().indices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
         if(!ui||!camera)throw std::runtime_error("Earth scene is missing its camera or map");
@@ -2683,7 +2967,7 @@ public:
         else if(id=="zoom-in")zoomMap(zoom*2);
         else if(id=="zoom-out")zoomMap(zoom/2);
         else if(id=="reset-map")zoomMap(1);
-        else {std::map<std::string,glm::dvec2> places{{"paris",{2.3522,48.8566}},{"tokyo",{139.7671,35.6812}},{"newyork",{-73.9855,40.758}},{"cape",{18.4241,-33.9249}},{"sydney",{151.2093,-33.8688}}};
+        else {std::map<std::string,glm::dvec2> places{{"paris",{2.3522,48.8566}},{"tokyo",{139.7671,35.6812}},{"newyork",{-73.9855,40.758}},{"cape",{18.4241,-33.9249}},{"sydney",{151.2093,-33.8688}},{"pole",{0.,90.}}};
             if(places.count(id)){auto p=places.at(id);select(p.x,p.y);zoomMap(zoom);warming=true;request(pickLon,pickLat);}}
     }
     // The driver's own two phases, kept out of update() so the flow reads:
@@ -2704,7 +2988,7 @@ public:
         for(int direction=0;direction<32;++direction) {
             double candidate=direction*11.25,clear=0;
             for(double d=1.;d<=60.;d+=1.) {
-                auto q=advance(carLon,carLat,sin(candidate*rad)*d,cos(candidate*rad)*d);
+                auto q=onward(carLon,carLat,sin(candidate*rad)*d,cos(candidate*rad)*d);
                 if(!tile(q.x,q.y)||blocked(q.x,q.y))break;
                 clear=d;
             }
@@ -2841,7 +3125,7 @@ public:
             for(int direction=0;direction<32;++direction) {
                 double candidate=direction*11.25,clear=0;
                 for(double d=2.;d<=120.;d+=2.) {
-                    auto q=advance(boat.lon,boat.lat,std::sin(candidate*rad)*d,std::cos(candidate*rad)*d);
+                    auto q=onward(boat.lon,boat.lat,std::sin(candidate*rad)*d,std::cos(candidate*rad)*d);
                     if(!navigable(q.x,q.y))break;
                     clear=d;
                 }
@@ -3011,7 +3295,7 @@ public:
     double clearRun(double heading,double reach,double step,double above) {
         double clear=0;
         for(double d=step;d<=reach;d+=step) {
-            const auto q=advance(plane.lon,plane.lat,std::sin(heading*rad)*d,std::cos(heading*rad)*d);
+            const auto q=onward(plane.lon,plane.lat,std::sin(heading*rad)*d,std::cos(heading*rad)*d);
             if(!tile(q.x,q.y)||aircraftHits(q.x,q.y,plane.alt+above,heading)||(above<1.&&onWater(q.x,q.y)))break;
             clear=d;
         }
@@ -3264,7 +3548,7 @@ public:
         cost=FrameCost{};
         if(generation!=ui->documentGeneration()||listeners.empty()) {
             generation=ui->documentGeneration();listeners.clear();
-            for(auto id:{"map","go","resume","zoom-in","zoom-out","reset-map","paris","tokyo","newyork","cape","sydney"})
+            for(auto id:{"map","go","resume","zoom-in","zoom-out","reset-map","paris","tokyo","newyork","cape","sydney","pole"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
             if(!listeners.empty()) {
@@ -3335,10 +3619,18 @@ public:
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
         if(!fast)cost.props=timed([&]{streamProps();});
-        cost.distant=timed([&]{updateFar();});
+        cost.distant=timed([&]{updateFar();updateFarPack();});
         cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateSea(delta);});
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
+        if((farPack.node!=nullptr)!=fogFar)applyWeather();
+        // The view reaches the horizon where something is drawn out to it:
+        // 4.7 km at eye height, 113 km from a thousand metres, never past
+        // the far pack. Elsewhere it stops at the 5 km haze, as it always has.
+        camera->farZ=farPack.node?float(std::clamp(std::sqrt(2.*6371008.8*std::max(2.,alt+10.))*1.2+1500.,5000.,r1::kFarPackRadius+5000.)):5000.f;
+        updateSnow(delta);
+        if(checkStanding)keepStanding();
+        updateSnowCover();
         engine.window().setCursorCaptured(true);
         auto mouse=saida::Input::mouseDelta();
         // At the wheel the mouse does not steer -- the car does -- so it turns
@@ -3416,7 +3708,7 @@ public:
                 const double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?2.2:1.5;
                 const double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
                 const double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
-                const auto next=advance(lon,lat,east,north);
+                const auto next=onward(lon,lat,east,north);
                 if(tile(next.x,next.y)) {
                     if(navigable(next.x,next.y)) {
                         lon=next.x;lat=next.y;alt=waterLevel(lon,lat);moving=true;
@@ -3434,7 +3726,7 @@ public:
             double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?7.:2.8;
             double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
             double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
-            auto next=advance(lon,lat,east,north);
+            auto next=onward(lon,lat,east,north);
             if(tile(next.x,next.y)) {
                 if(onWater(next.x,next.y)) {
                     lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
@@ -3451,7 +3743,7 @@ public:
             }else text("stream-status","Les données suivantes arrivent… déplacement retenu au bord du terrain.");
             request(lon,lat);
         }
-        if(glm::length(origin.local(ecef(lon,lat,alt)))>350.){origin=Frame(lon,lat,alt);placeTiles();moveSun();}
+        if(glm::length(origin.local(ecef(lon,lat,alt)))>350.)rebaseOrigin();
         if(!driving&&!sailing&&!piloting) {
             if(swimming) {
                 jumpOffset=jumpVelocity=0;wasJump=false;
@@ -3503,7 +3795,7 @@ public:
         // Sweep against streamed building footprints, not an empty physics
         // scene. One segment/edge pass; no scene raycasts or mesh reconstruction.
         double clear=maxFollow;
-        auto end=advance(lon,lat,backward.x*clear,-backward.z*clear);
+        auto end=onward(lon,lat,backward.x*clear,-backward.z*clear);
         for(auto& [key,t]:loaded){
             auto a3=t.frame.local(ecef(lon,lat,alt)),b3=t.frame.local(ecef(end.x,end.y,alt));
             glm::dvec2 a(a3.x,a3.z),v(b3.x-a3.x,b3.z-a3.z);
@@ -3525,7 +3817,7 @@ public:
         }
         // Keep the camera above terrain and inside loaded tiles as well.
         for(double d=.25;d<=clear;d+=.25){
-            auto q=advance(lon,lat,backward.x*d,-backward.z*d);
+            auto q=onward(lon,lat,backward.x*d,-backward.z*d);
             if(!tile(q.x,q.y)&&piloting)continue;  // in the air, unstreamed ground ahead is no wall
             if(!tile(q.x,q.y)||height(q.x,q.y)+.3>alt+jumpOffset+.06+eye+backward.y*d){clear=std::max(.15,d-.25);break;}
         }
@@ -3545,8 +3837,10 @@ public:
             // R1WORLD_CAPTURE_SEA: a picture of the sea waits for its ships
             // (half a minute at most -- the log then says there were none).
             if(settled)captureSeaWait+=dt;
-            const bool seaReady=!std::getenv("R1WORLD_CAPTURE_SEA")||(!seaShips.empty()&&captureSeaWait>4.)
-                ||captureSeaWait>30.;
+            const bool seaReady=(!std::getenv("R1WORLD_CAPTURE_SEA")||(!seaShips.empty()&&captureSeaWait>4.)
+                ||captureSeaWait>30.)
+                // The local weather is part of the picture: a few seconds for it.
+                &&(weather.known||captureSeaWait>6.);
             if(settled&&seaReady&&!captureQueued){
                 size_t plants=0;for(auto& [key,t]:loaded)plants+=t.vegetation.size();
                 saida::Log::info("[World nature] resident plants=",plants," shared static prototypes=",naturePrototypes.size());
@@ -3576,7 +3870,9 @@ public:
                 :nearestBoat(moored,boatFar)?" · F : prendre le bateau"
                 :(nearestCar(within,howFar)?" · F : monter dans la voiture":" · M : carte");
             const auto* currentTile=tile(lon,lat);
-            if(currentTile&&currentTile->data.value("offlineApproximation",false))
+            if(currentTile&&currentTile->data.value("provisional",false))
+                mode+=" · Rues et bâtiments en route (OpenStreetMap)";
+            else if(currentTile&&currentTile->data.value("offlineApproximation",false))
                 mode+=" · Hors ligne : terrain simplifié";
             text("stream-status",std::to_string(loaded.size())+" tuiles actives · Relief réel / bâtiments OSM"+mode
                  +(fast?" · détail réduit à cette vitesse":""));
@@ -3599,7 +3895,8 @@ public:
             }
             saida::Log::info("[World E2E] player run/jump/landing/follow passed, distance=",followDistance);
             smokeStarted=false;
-            if(!smokeDroveOnce){startSmokeDrive();return;}
+            if(!smokeDroveOnce&&!onSeaIce(lon,lat)){startSmokeDrive();return;}
+            if(!smokeDroveOnce)saida::Log::info("[World E2E] on the sea ice: no car to drive, the walk is the test");
             smokeFinishPhase();
         }
         if(smokeApproach) {

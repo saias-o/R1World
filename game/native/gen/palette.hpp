@@ -119,6 +119,10 @@ struct Palette {
     struct GroundClass { std::string name; Swatch swatch; std::vector<std::pair<std::string, std::vector<std::string>>> tags; };
     std::vector<GroundClass> groundClasses;
     Swatch snow, frost;
+    // The pack's surfaces (gen/seaice.cpp), each with the photographed family
+    // it is drawn with (empty: the flat measured colour).
+    struct IceSwatch { Swatch swatch; std::string family; };
+    std::map<std::string, IceSwatch> seaIce;
     std::vector<PropKind> props;
     std::vector<BoatKind> boats;
     std::vector<AircraftType> aircraft;

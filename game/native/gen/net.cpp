@@ -146,9 +146,15 @@ Response request(const std::string& method, const std::string& url, const std::s
     Handle req(WinHttpOpenRequest(connection.h, widen(method).c_str(), target.path.c_str(), nullptr, WINHTTP_NO_REFERER,
                                   WINHTTP_DEFAULT_ACCEPT_TYPES, target.secure ? WINHTTP_FLAG_SECURE : 0));
     if (!req.h) fail("WinHttpOpenRequest");
-    DWORD decompress = WINHTTP_DECOMPRESSION_FLAG_ALL;
+    // gzip only: Open-Meteo answers `deflate` when it may, in a form WinHTTP's
+    // decoder aborts on (E_ABORT while reading), which silently took the
+    // elevation and the weather offline everywhere outside France.
+    DWORD decompress = WINHTTP_DECOMPRESSION_FLAG_GZIP;
     WinHttpSetOption(req.h, WINHTTP_OPTION_DECOMPRESSION, &decompress, sizeof decompress);
-    std::wstring headers = L"Accept: application/json\r\n";
+    // Anything JSON-like: Overpass answers `application/osm3s+json`, and to a
+    // strict `application/json` its main server said 406 -- after running the
+    // whole query, twenty seconds of every first visit, before the mirror.
+    std::wstring headers = L"Accept: application/json, */*;q=0.8\r\n";
     if (!contentType.empty()) headers += L"Content-Type: " + widen(contentType) + L"\r\n";
     if (!WinHttpSendRequest(req.h, headers.c_str(), DWORD(-1L), body.empty() ? nullptr : (void*)body.data(),
                             DWORD(body.size()), DWORD(body.size()), 0))

@@ -200,6 +200,11 @@
             "path": "assets/models/external/kenney_props/bus_stop_sign.glb",
             "type": "Mesh"
         },
+        "11711207454024912846": {
+            "hash": 1176359047149768537,
+            "path": "assets/textures/surfaces/sea_ice_albedo.jpg",
+            "type": "Texture"
+        },
         "1176457584870127476": {
             "hash": 17321171425847707638,
             "path": "assets/textures/surfaces/farmland_mr.jpg",
@@ -570,6 +575,11 @@
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_arm_1k.jpg",
             "type": "Texture"
         },
+        "14289982382543389213": {
+            "hash": 1155291895151475995,
+            "path": "assets/textures/surfaces/snow_clean_normal.jpg",
+            "type": "Texture"
+        },
         "14314225292672339883": {
             "hash": 15368889781494062867,
             "path": "assets/textures/facades/brick_buff_albedo.jpg",
@@ -708,6 +718,11 @@
         "15432293181181506706": {
             "hash": 6957729338219418389,
             "path": "assets/models/external/nature_selected/grass_fresh.png",
+            "type": "Texture"
+        },
+        "15435883112275689457": {
+            "hash": 18354249005412897774,
+            "path": "assets/textures/surfaces/sea_ice_normal.jpg",
             "type": "Texture"
         },
         "1557929129814296348": {
@@ -936,7 +951,7 @@
             "type": "Texture"
         },
         "18184050926343500723": {
-            "hash": 17927180272634298069,
+            "hash": 7253817510410600517,
             "path": "assets/world/atlas.json",
             "type": "Unknown"
         },
@@ -1086,7 +1101,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 15554292253718846135,
+            "hash": 1640461410869059468,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },
@@ -1229,6 +1244,11 @@
             "hash": 3835044132560065483,
             "path": "assets/models/external/kenney_boats/boat_house_d.glb",
             "type": "Mesh"
+        },
+        "3694343785344641307": {
+            "hash": 13656063572788155762,
+            "path": "assets/textures/surfaces/snow_clean_mr.jpg",
+            "type": "Texture"
         },
         "3752522462855092985": {
             "hash": 15223555387667516680,
@@ -1550,6 +1570,11 @@
             "path": "assets/skies/qwantani_sunset.hdr",
             "type": "Texture"
         },
+        "6158851635430564781": {
+            "hash": 335414483202800027,
+            "path": "assets/textures/surfaces/sea_ice_mr.jpg",
+            "type": "Texture"
+        },
         "616234974459507278": {
             "hash": 157412293583956322,
             "path": "assets/models/external/kenney_boats/boat_house_a.glb",
@@ -1644,6 +1669,11 @@
             "hash": 2265367145347524118,
             "path": "assets/models/vehicles/city.glb",
             "type": "Mesh"
+        },
+        "6826276452599493576": {
+            "hash": 12130078893530351674,
+            "path": "assets/textures/surfaces/snow_clean_albedo.jpg",
+            "type": "Texture"
         },
         "6895047409412459049": {
             "hash": 13304284152338211735,
@@ -1766,7 +1796,7 @@
             "type": "Texture"
         },
         "8048464438721485733": {
-            "hash": 15551338019611781282,
+            "hash": 14481899658561588921,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -1921,7 +1951,7 @@
             "type": "Unknown"
         },
         "9707553953933687028": {
-            "hash": 10594579187407008245,
+            "hash": 3657416769702741115,
             "path": "assets/textures/surfaces.json",
             "type": "Unknown"
         },

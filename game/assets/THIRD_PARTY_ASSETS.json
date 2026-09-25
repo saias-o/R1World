@@ -178,11 +178,17 @@
       "author": "ambientCG (Lennart Demes)",
       "source": "https://ambientcg.com/view?id=Snow014",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py). snow_clean: grass tips filled from the snow around them, roughness raised to 0.85; sea_ice: a third of the contrast, softened relief, glazed roughness (r1/sea_ice_textures.py)",
       "files": [
         "assets/textures/surfaces/snow_albedo.jpg",
         "assets/textures/surfaces/snow_mr.jpg",
-        "assets/textures/surfaces/snow_normal.jpg"
+        "assets/textures/surfaces/snow_normal.jpg",
+        "assets/textures/surfaces/snow_clean_albedo.jpg",
+        "assets/textures/surfaces/snow_clean_mr.jpg",
+        "assets/textures/surfaces/snow_clean_normal.jpg",
+        "assets/textures/surfaces/sea_ice_albedo.jpg",
+        "assets/textures/surfaces/sea_ice_mr.jpg",
+        "assets/textures/surfaces/sea_ice_normal.jpg"
       ]
     },
     {

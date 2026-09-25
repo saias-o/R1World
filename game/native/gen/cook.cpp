@@ -5,6 +5,7 @@
 #include "harbours.hpp"
 #include "landmarks.hpp"
 #include "scatter.hpp"
+#include "seaice.hpp"
 #include "streets.hpp"
 #include "terrain.hpp"
 
@@ -47,6 +48,11 @@ std::vector<OsmWay> clipRoads(const std::vector<OsmWay>& roads, const Bounds& b)
     return out;
 }
 
+size_t indexCount(const std::vector<MeshPart>& parts) {
+    size_t n = 0;
+    for (const MeshPart& p : parts) n += p.mesh.indices.size();
+    return n;
+}
 size_t vertexCount(const std::vector<MeshPart>& parts) {
     size_t n = 0;
     for (const MeshPart& p : parts) n += p.mesh.vertexCount();
@@ -205,6 +211,13 @@ CookedTile cookTile(const Observations& in) {
               for (double h : elevations.values) if (std::abs(h) >= 0.01) return false;
               return true;
           }();
+    // The sea frozen over: the pack replaces the open ocean, and is walked on.
+    std::optional<IceTile> pack;
+    if (ocean && in.seaIce && in.seaIce->any(bounds)) {
+        pack = buildIceTile(tile, anchor, *in.seaIce);
+        if (vertexCount(pack->parts) > kTileVertexBudget)
+            throw std::runtime_error("Sea-ice tile exceeds geometry budget (" + std::to_string(vertexCount(pack->parts)) + " vertices)");
+    }
     int triangles = 0, inferred = 0;
     for (const auto& [name, n] : groundStats) {
         triangles += n;
@@ -216,7 +229,19 @@ CookedTile cookTile(const Observations& in) {
     out.tile = tile;
     nlohmann::json boats = nlohmann::json::array();
     Scatter props, nature;
-    if (ocean) {
+    out.seaIce = in.seaIce;
+    if (pack) {
+        out.parts = pack->parts;
+        if (pack->openWater) {
+            // Sheltered water: a lead does not carry the ocean's swell.
+            auto leads = seaNode(bounds, anchor, "Leads");
+            leads["amplitude"] = 0.03;
+            leads["wavelength"] = 6.0;
+            out.props.push_back(leads);
+        }
+        props.stats = {{"placed", 0}, {"droppedForBudget", 0}, {"byKind", nlohmann::json::object()}};
+        nature.stats = {{"revision", 2}, {"placed", 0}};
+    } else if (ocean) {
         out.ocean = seaNode(bounds, anchor, "Ocean");
         out.ocean["amplitude"] = 0.05;
         out.ocean["wavelength"] = 12.0;
@@ -249,10 +274,12 @@ CookedTile cookTile(const Observations& in) {
         for (const P2& p : r) ring.push_back({p.x, p.y});
         footprintJson.push_back(ring);
     }
+    // What the player walks on: the pack's own surface where the sea is frozen.
+    const ElevationGrid& walked = pack ? pack->grid : elevations;
     nlohmann::json elevationRows = nlohmann::json::array();
-    for (int r = 0; r < elevations.size; ++r) {
+    for (int r = 0; r < walked.size; ++r) {
         nlohmann::json row = nlohmann::json::array();
-        for (int c = 0; c < elevations.size; ++c) row.push_back(elevations.at(r, c));
+        for (int c = 0; c < walked.size; ++c) row.push_back(pack ? pyround(walked.at(r, c), 3) : walked.at(r, c));
         elevationRows.push_back(row);
     }
     if (ocean) {
@@ -265,23 +292,28 @@ CookedTile cookTile(const Observations& in) {
         {"elevations", elevationRows}, {"footprints", footprintJson}, {"footprintTops", topJson},
         // The landmark models are nodes, not tile geometry, but they share
         // the arena, so the residency count includes them.
-        {"vertices", ocean ? 0 : vertices},
-        {"buildings", buildings.size()}, {"surface", ocean ? "ocean" : "land"},
+        {"vertices", pack ? vertexCount(pack->parts) : ocean ? 0 : vertices},
+        // The arena holds indices too (three for every vertex it holds): a
+        // finely gridded tile reaches that limit before the vertex one.
+        {"indices", pack ? indexCount(pack->parts) : ocean ? 0 : indexCount(parts)},
+        {"buildings", buildings.size()}, {"surface", pack ? "sea-ice" : ocean ? "ocean" : "land"},
         {"source", std::string(in.offline ? "Natural Earth 1:110m; " : "OpenStreetMap; ") + in.elevationSource},
         {"elevationSource", in.elevationSource}, {"offlineApproximation", in.offline},
         {"region", profile.name}, {"regionTier", profile.tier}, {"climate", climate},
         {"osmQueryVersion", osm.queryVersion},
         {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats}}},
-        {"water", cells.rows()}, {"decks", works.decks}, {"boats", boats}, {"harbour", harbour.json()},
+        {"water", pack ? pack->water : cells.rows()}, {"decks", works.decks}, {"boats", boats}, {"harbour", harbour.json()},
         {"props", props.stats},
         {"aircraft", ocean ? nlohmann::json::array() : airports.aircraft}, {"airports", airports.stats},
-        {"airportsPending", in.airportsPending}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},
+        {"airportsPending", in.airportsPending}, {"provisional", in.provisional}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},
         {"landmarkRevision", kLandmarkRevision},
         {"landmarkReplacedWays", ocean ? nlohmann::json::array() : landmarks.replaced},
         {"nature", nature.stats}, {"streets", streets.stats}, {"traffic", laneGraph},
         {"inference", built.stats.json()},
         {"buildingGeometryLod", buildingLod == BuildingLod::Full ? "full" :
                                 buildingLod == BuildingLod::UnifiedBase ? "unified-base" : "simple-roofline"},
+        {"seaIce", pack ? pack->stats : in.seaIce ? nlohmann::json({{"source", in.seaIce->source}, {"frozen", false}})
+                                               : nlohmann::json()},
         {"generator", "C++"}};
     out.cookMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
     return out;

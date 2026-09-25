@@ -1,6 +1,7 @@
 #include "sources.hpp"
 
 #include "net.hpp"
+#include "seaice.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -233,8 +234,11 @@ nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& pa
     // Runways five kilometres around: a terminal's stands are a mile or two
     // from the runways that say what the airport can receive (gen/airports).
     const double dLat = 0.045, dLon = 0.045 / std::max(0.2, std::cos(radians((b.south + b.north) / 2)));
-    std::snprintf(wide, sizeof wide, "%.8f,%.8f,%.8f,%.8f", std::max(-90.0, b.south - dLat), b.west - dLon,
-                  std::min(90.0, b.north + dLat), b.east + dLon);
+    // Overpass refuses a longitude past +-180 (HTTP 400): at the antimeridian
+    // and near the poles, where a tile spans a third of the planet, the wider
+    // box stops at it.
+    std::snprintf(wide, sizeof wide, "%.8f,%.8f,%.8f,%.8f", std::max(-90.0, b.south - dLat), std::max(-180.0, b.west - dLon),
+                  std::min(90.0, b.north + dLat), std::min(180.0, b.east + dLon));
     // Rank 10 is a list of point features, as narrow as it is on purpose:
     // `node[amenity]` alone would bring every bank and restaurant.
     // Every statement carries its own box: a global `[bbox]` would also cut
@@ -319,8 +323,8 @@ nlohmann::json ObservationStore::fetchAero(const Bounds& b, const std::string& p
     char bbox[160], wide[160];
     std::snprintf(bbox, sizeof bbox, "%.8f,%.8f,%.8f,%.8f", b.south, b.west, b.north, b.east);
     const double dLat = 0.045, dLon = 0.045 / std::max(0.2, std::cos(radians((b.south + b.north) / 2)));
-    std::snprintf(wide, sizeof wide, "%.8f,%.8f,%.8f,%.8f", std::max(-90.0, b.south - dLat), b.west - dLon,
-                  std::min(90.0, b.north + dLat), b.east + dLon);
+    std::snprintf(wide, sizeof wide, "%.8f,%.8f,%.8f,%.8f", std::max(-90.0, b.south - dLat), std::max(-180.0, b.west - dLon),
+                  std::min(90.0, b.north + dLat), std::min(180.0, b.east + dLon));
     // The statements version 6 added to the main question, and only those.
     const std::string query = std::string("[out:json][timeout:60];\n(\n") +
         "  way[aeroway~\"^(aerodrome|runway|taxiway|taxilane|apron|helipad|parking_position|stopway)$\"](" + bbox + ");\n" +
@@ -345,12 +349,90 @@ nlohmann::json ObservationStore::fetchAero(const Bounds& b, const std::string& p
     throw SourceUnavailable("the aero layer: all Overpass endpoints failed: " + failures);
 }
 
+std::optional<nlohmann::json> ObservationStore::seaIce(double lon, double lat) const {
+    const std::string path = root_ + "/cache/world/seaice/" + seaIceWindow(lon, lat).file();
+    std::error_code ec;
+    if (!fs::exists(path, ec)) return std::nullopt;
+    return readJson(path);
+}
+
+nlohmann::json ObservationStore::fetchSeaIce(double lon, double lat) const {
+    const SeaIceWindow window = seaIceWindow(lon, lat);
+    nlohmann::json doc;
+    try {
+        doc = seaIceDocument(nlohmann::json::parse(net::requestJson(window.url(), {}, {}, 90, 2)));
+    } catch (const std::exception& e) {
+        throw SourceUnavailable(std::string("sea ice (NOAA PolarWatch ASCAT): ") + e.what());
+    }
+    writeJson(root_ + "/cache/world/seaice/" + window.file(), doc);
+    return doc;
+}
+
+namespace {
+// Copernicus GLO-90 through Open-Meteo, 7x7: its 90 m is all there is.
+ElevationGrid copernicus(const Bounds& b, double timeout, int attempts) {
+    const int size = 7;
+    std::vector<P2> points;
+    for (int r = 0; r < size; ++r)
+        for (int c = 0; c < size; ++c)
+            points.push_back({b.west + (b.east - b.west) * c / (size - 1), b.south + (b.north - b.south) * r / (size - 1)});
+    ElevationGrid g{b, size, {}};
+    for (size_t start = 0; start < points.size(); start += 100) {
+        std::string lat, lon;
+        char buf[64];
+        for (size_t i = start; i < std::min(points.size(), start + 100); ++i) {
+            std::snprintf(buf, sizeof buf, "%s%.8f", lat.empty() ? "" : ",", points[i].y); lat += buf;
+            std::snprintf(buf, sizeof buf, "%s%.8f", lon.empty() ? "" : ",", points[i].x); lon += buf;
+        }
+        nlohmann::json doc;
+        try {
+            // The model has no value at the pole itself and says `nan`,
+            // which JSON has no word for: it is read as a missing sample.
+            std::string text = net::requestJson("https://api.open-meteo.com/v1/elevation?latitude=" + lat + "&longitude=" + lon, {}, {}, timeout, attempts);
+            for (size_t at; (at = text.find("nan")) != std::string::npos;) text.replace(at, 3, "null");
+            doc = nlohmann::json::parse(text);
+        } catch (const std::exception& e) {
+            throw SourceUnavailable(std::string("elevation service unavailable: ") + e.what());
+        }
+        const auto& values = doc["elevation"];
+        if (!values.is_array() || values.size() != std::min(points.size(), start + 100) - start)
+            throw SourceUnavailable("Open-Meteo returned an incomplete elevation batch");
+        for (const auto& v : values) g.values.push_back(v.is_number() ? v.get<double>() : std::nan(""));
+    }
+    // A missing sample takes the nearest sample that has one.
+    for (int i = 0; i < size * size; ++i) {
+        if (std::isfinite(g.values[size_t(i)])) continue;
+        double best = 1e300, value = std::nan("");
+        for (int j = 0; j < size * size; ++j) {
+            if (!std::isfinite(g.values[size_t(j)])) continue;
+            const double d = std::hypot(double(i / size - j / size), double(i % size - j % size));
+            if (d < best) { best = d; value = g.values[size_t(j)]; }
+        }
+        if (!std::isfinite(value)) throw SourceUnavailable("Open-Meteo has no elevation anywhere in the tile");
+        g.values[size_t(i)] = value;
+    }
+    return g;
+}
+
+void writeGround(const std::string& path, const ElevationGrid& g, const std::string& source) {
+    nlohmann::json rows = nlohmann::json::array();
+    for (int r = 0; r < g.size; ++r) {
+        nlohmann::json row = nlohmann::json::array();
+        for (int c = 0; c < g.size; ++c) row.push_back(g.at(r, c));
+        rows.push_back(row);
+    }
+    writeJson(path, {{"bounds", boundsJson(g.bounds)}, {"size", g.size}, {"values", rows}, {"source", source}});
+}
+
+bool ignEligible(const Bounds& b) { return -5.5 <= b.west && b.east <= 9.8 && 41.2 <= b.south && b.north <= 51.2; }
+}  // namespace
+
 std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& tile) const {
     if (auto disk = ground(tile)) return *disk;
     const Bounds b = tile.bounds();
     const std::string path = tileFolder(tile) + "/ground-elevation.json";
     // IGN's bare-earth survey where France might be; every sample validated.
-    const bool eligible = -5.5 <= b.west && b.east <= 9.8 && 41.2 <= b.south && b.north <= 51.2;
+    const bool eligible = ignEligible(b);
     if (eligible) {
         const int size = 41;
         std::string lons, lats;
@@ -390,39 +472,19 @@ std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& 
             if (log_) log_(std::string("ELEVATION-FALLBACK ") + e.what());
         }
     }
-    // Copernicus GLO-90 through Open-Meteo, 7x7: its 90 m is all there is.
-    const int size = 7;
-    std::vector<P2> points;
-    for (int r = 0; r < size; ++r)
-        for (int c = 0; c < size; ++c)
-            points.push_back({b.west + (b.east - b.west) * c / (size - 1), b.south + (b.north - b.south) * r / (size - 1)});
-    ElevationGrid g{b, size, {}};
-    for (size_t start = 0; start < points.size(); start += 100) {
-        std::string lat, lon;
-        char buf[64];
-        for (size_t i = start; i < std::min(points.size(), start + 100); ++i) {
-            std::snprintf(buf, sizeof buf, "%s%.8f", lat.empty() ? "" : ",", points[i].y); lat += buf;
-            std::snprintf(buf, sizeof buf, "%s%.8f", lon.empty() ? "" : ",", points[i].x); lon += buf;
-        }
-        nlohmann::json doc;
-        try {
-            doc = nlohmann::json::parse(net::requestJson("https://api.open-meteo.com/v1/elevation?latitude=" + lat + "&longitude=" + lon));
-        } catch (const std::exception& e) {
-            throw SourceUnavailable(std::string("elevation service unavailable: ") + e.what());
-        }
-        const auto& values = doc["elevation"];
-        if (!values.is_array() || values.size() != std::min(points.size(), start + 100) - start)
-            throw SourceUnavailable("Open-Meteo returned an incomplete elevation batch");
-        for (const auto& v : values) g.values.push_back(v.get<double>());
-    }
-    nlohmann::json rows = nlohmann::json::array();
-    for (int r = 0; r < size; ++r) {
-        nlohmann::json row = nlohmann::json::array();
-        for (int c = 0; c < size; ++c) row.push_back(g.at(r, c));
-        rows.push_back(row);
-    }
+    const ElevationGrid g = copernicus(b, 120.0, 3);
     const std::string source = "Copernicus DEM GLO-90 via Open-Meteo (fallback)";
-    writeJson(path, {{"bounds", boundsJson(b)}, {"size", size}, {"values", rows}, {"source", source}});
+    writeGround(path, g, source);
+    return {g, source};
+}
+
+std::pair<ElevationGrid, std::string> ObservationStore::quickGround(const Tile& tile) const {
+    const Bounds b = tile.bounds();
+    const std::string source = "Copernicus DEM GLO-90 via Open-Meteo (fallback)";
+    const ElevationGrid g = copernicus(b, 4.0, 1);
+    // Outside France this is the ground `fetchGround` would have fetched: it
+    // is kept. Inside, IGN's finer survey still comes with the upgrade.
+    if (!ignEligible(b)) writeGround(tileFolder(tile) + "/ground-elevation.json", g, source);
     return {g, source};
 }
 

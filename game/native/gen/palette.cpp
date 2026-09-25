@@ -85,6 +85,10 @@ void loadPalette(const std::string& gameRoot) {
         p->groundClasses.push_back({j.at("name"), swatchFrom(j.at("swatch")), selectors(j.at("tags"))});
     p->snow = swatchFrom(atlas.at("ground").at("snow"));
     p->frost = swatchFrom(atlas.at("ground").at("frost"));
+    for (const auto& [key, j] : atlas.at("ground").at("seaIce").items()) {
+        if (!j.is_object()) continue;  // the note
+        p->seaIce[key] = {swatchFrom(j), j.at("family").is_null() ? std::string() : j.at("family").get<std::string>()};
+    }
     for (const auto& j : atlas.at("props")) {
         PropKind k;
         k.name = j.at("name"); k.models = j.at("models").get<std::vector<std::string>>();
