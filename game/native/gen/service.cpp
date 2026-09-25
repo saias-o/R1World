@@ -241,7 +241,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     // on a first visit (`mayFetch`) the reading is fetched meanwhile, on a
     // thread of its own, and the tile is cooked again when it lands -- the
     // aero layer's path. A slow server never holds up an arrival, and a
-    // place already visited never touches the network (CLAUDE.md §6).
+    // place already visited never touches the network (CLAUDE.md §7).
     std::shared_ptr<const SeaIce> seaIceFor(const Tile& tile, const ElevationGrid& ground, bool mayFetch) {
         const P2 c = tile.center();
         if (std::abs(c.y) < 60) return nullptr;

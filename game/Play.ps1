@@ -4,9 +4,13 @@
 #
 # The world is generated inside the game (native/gen), so playing needs the
 # executable and nothing else: no Python, no worker. The executable is built
-# here too, against the existing Saida build (never rebuilt, CLAUDE.md §5),
-# and it is rebuilt by itself whenever a source is newer than it -- a stale
-# executable is a game that silently does not have the change you just made.
+# here too, against an optimized build of Saida (engine\build-rel,
+# RelWithDebInfo), which this script configures when it is missing and brings
+# up to date before every game build: the engine is developed with the game
+# (CLAUDE.md §6). engine\build is the engine's Debug tree, unoptimized, and
+# the game never links against it. The executable is rebuilt by itself
+# whenever a source is newer than it -- a stale executable is a game that
+# silently does not have the change you just made.
 #
 #   -Rebuild    recompile every translation unit, not only the stale ones
 #   -BuildOnly  build, then stop (what the test drivers call)
@@ -19,7 +23,8 @@ $ErrorActionPreference = 'Stop'
 
 $game = $PSScriptRoot
 $native = Join-Path $game 'native'
-$engineBuild = Join-Path $game '..\engine\build'
+$engineSource = Join-Path $game '..\engine'
+$engineBuild = Join-Path $engineSource 'build-rel'
 $out = Join-Path $game 'generated\world-windows'
 $exe = Join-Path $out 'R1World.exe'
 $msys = 'C:\msys64\ucrt64\bin'
@@ -35,7 +40,9 @@ $env:PATH = $msys + ';' + $env:PATH
 # must give the same city on every machine (PLAN §3 I3).
 function Get-Units {
     $gen = @('-ffp-contract=off')
-    $units = @(@{ Source = (Join-Path $native 'world.cpp'); Extra = @() })
+    # world.cpp alone includes the engine's headers: an engine change that
+    # moved a member must recompile it, or it and the library disagree.
+    $units = @(@{ Source = (Join-Path $native 'world.cpp'); Extra = @(); Engine = $true })
     foreach ($dir in @('gen', 'third_party\clipper2\src')) {
         Get-ChildItem -LiteralPath (Join-Path $native $dir) -Filter '*.cpp' | Sort-Object Name |
             ForEach-Object { $units += @{ Source = $_.FullName; Extra = $gen } }
@@ -151,7 +158,13 @@ function Invoke-Build([bool]$everything) {
     foreach ($unit in Get-Units) {
         $obj = Join-Path $objects ([IO.Path]::GetFileNameWithoutExtension($unit.Source) + '.o')
         $all += $obj
-        if ($everything -or (Test-Stale $obj $unit.Source $headers)) {
+        $newest = $headers
+        $engineLib = Join-Path $engineBuild 'libsaida_engine.a'
+        if ($unit.Engine -and (Test-Path -LiteralPath $engineLib)) {
+            $built = (Get-Item -LiteralPath $engineLib).LastWriteTime
+            if ($built -gt $newest) { $newest = $built }
+        }
+        if ($everything -or (Test-Stale $obj $unit.Source $newest)) {
             $queue.Enqueue(@{ Source = $unit.Source; Object = $obj; Extra = $unit.Extra })
         }
     }
@@ -198,6 +211,30 @@ function Invoke-Build([bool]$everything) {
     Copy-Item -LiteralPath (Join-Path $msys 'glfw3.dll') -Destination $out -Force
 }
 
+# The engine, optimized and up to date. Ninja does nothing when nothing
+# changed, and rebuilds only what an engine change touched.
+function Update-Engine {
+    $cmake = Join-Path $msys 'cmake.exe'
+    if (-not (Test-Path -LiteralPath $cmake)) { throw "CMake introuvable : $cmake (MSYS2 UCRT64)" }
+    $env:PATH = $msys + ';C:\msys64\usr\bin;' + $env:PATH
+    if (-not (Test-Path -LiteralPath (Join-Path $engineBuild 'build.ninja'))) {
+        Write-Host 'Configuration du moteur optimisé (engine\build-rel)...'
+        & $cmake -S $engineSource -B $engineBuild -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Configuration du moteur échouée" }
+    }
+    # MSYS2's compiler needs a temporary directory it can write to.
+    $tmp = Join-Path $engineBuild 'tmp'
+    New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+    $env:TMP = $tmp; $env:TEMP = $tmp
+    $output = & $cmake --build $engineBuild --target SaidaEngineRuntime --parallel 2>&1 | ForEach-Object { "$_" }
+    if ($LASTEXITCODE -ne 0) {
+        $output | Select-String -Pattern 'error|FAILED' | Select-Object -First 20 | ForEach-Object { Write-Host $_.Line -ForegroundColor Red }
+        throw "Compilation du moteur échouée"
+    }
+    if ($output -match 'Linking') { Write-Host '  moteur mis à jour' }
+}
+
+if (Test-Path -LiteralPath $compiler) { Update-Engine }
 if ($Rebuild -or (Test-GameStale)) {
     if (-not (Test-Path -LiteralPath $compiler) -and (Test-Path -LiteralPath $exe) -and -not $Rebuild) {
         # Said, not silent: playing an executable older than its sources is

@@ -170,7 +170,7 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
    autorité sur la position, dont dépendent le rebasage, le streamer et le
    soleil.
 7. **Le cache est une promesse.** Un lieu déjà visité ne touche plus le réseau
-   (`CLAUDE.md` §6).
+   (`CLAUDE.md` §7).
 
 ---
 

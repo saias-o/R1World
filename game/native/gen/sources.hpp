@@ -1,6 +1,6 @@
 // The raw observations a tile is cooked from, and where they are kept.
 //
-// The cache is a promise (CLAUDE.md §6): a place already visited never touches
+// The cache is a promise (CLAUDE.md §7): a place already visited never touches
 // the network again. Only observations are kept -- the Overpass answers and
 // the elevation grids -- never geometry, which the game cooks again on every
 // visit (PLAN §1). The layout is the one the Python worker wrote, so every

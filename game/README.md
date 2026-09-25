@@ -67,16 +67,25 @@ tile. This is measured geometry capacity, not a 60 FPS guarantee.
 
 The executable, and nothing else: the world is generated inside it
 (`native/gen`), so playing starts no Python and no worker. `Play.ps1` also
-builds it, against the existing Saida build and with the engine's own flags
-read from `engine/build/build.ninja`, through GCC response files so that no
-path with a space goes through PowerShell's quoting. It needs MSYS2's UCRT64
-`g++` and puts it first on `PATH` (otherwise the link fails with a bare
-`ld returned 116`).
+builds it, with the engine's own flags read from `engine/build-rel/build.ninja`,
+through GCC response files so that no path with a space goes through
+PowerShell's quoting. It needs MSYS2's UCRT64 `g++` and `cmake` and puts them
+first on `PATH` (otherwise the link fails with a bare `ld returned 116`).
+
+The engine is built with the game. `engine/build-rel` is an optimized Saida
+build (RelWithDebInfo, `-O2 -g`). `Play.ps1` configures it when it is missing
+and runs Ninja on it before every game build: that does nothing when the engine
+has not changed and rebuilds only what an engine change touched. The engine's
+own `engine/build` is its Debug tree, and the game no longer links against it.
+It used to, and a Paris frame cost 35 ms of CPU where it now costs 4.5
+(below).
 
 It rebuilds **by itself** whenever a source, a generator header or the engine
 library is newer than the executable, recompiling only what is stale (all 23
 units take about 35 s, nothing to do takes 0.2 s): an executable older than its
-sources is a game without the change you just made. `-Rebuild` recompiles
+sources is a game without the change you just made. `world.cpp`, the one unit
+that includes the engine's headers, is recompiled whenever the engine library
+changes, so that the two cannot disagree about a class's layout. `-Rebuild` recompiles
 everything, `-BuildOnly` stops after building — which is how
 `tools/play_world.py` makes sure a test never runs an old binary. There is one
 build and one output folder, `generated/world-windows`.
@@ -96,6 +105,10 @@ captures are under `generated/paris-*.png`. Capture mode now waits for all nine
 tiles and their props, honours the engine's camera flags, and fixes the sun to
 the scene epoch so load duration does not change the lighting. `Play.ps1` forwards
 extra arguments to the game. Example, from `game/`:
+
+`--profile <trace.json>` profiles the whole run (the engine's
+`Engine::profileTo`): the trace opens in `chrome://tracing` or Perfetto, and the
+log ends with the most expensive scopes, per frame.
 
 ```powershell
 ./Play.ps1 --smoke --spawn 2.3522 48.8566 --screenshot generated/paris-final.png --camera-pos '70.448,1.745,83.405' --camera-look '45,2,50' --after-frames 12
@@ -852,6 +865,16 @@ reserves 85% of `ResourceManager::geometryCapacity().vertices`; the remaining
 capacity is available for shared assets. Engine capacity is configurable at
 startup, so this game no longer copies an internal allocator constant.
 
+Budgets count vertices and indices, but an upload needs them in one piece.
+After a teleport from Paris to the pole, the arena held 828 000 free indices
+and its largest free range was 141 234. The next tile's surface asked for
+153 570 and the game stopped on *failed to allocate index space*. The
+evicted city had left its free space in pieces between the shared models
+reloaded on arrival. The engine now packs resident geometry together when an
+upload fits in total but not in one piece (`GeometryRegistry::compact`, SPEC
+§4), and says so in the log. Each `mounted` line in the streaming log gives
+the arena's use and its largest free ranges (`arena=…v/…i (largest free …)`).
+
 The smoke log reports indexed nodes per frame, accumulated across simulation and
 render refreshes. It does not infer a full-scene traversal from a global counter.
 The explicit end-of-smoke traversal only reports scene composition; transform
@@ -1339,6 +1362,19 @@ headless.
   engine's `Animator::setPoseRate(hz, PoseRateMode::Hold)`, added for this and
   for any game with a crowd. The engine's older reduced rate still blended
   every bone on every frame, and so saved almost nothing.
+
+Measured on the Paris smoke with `--profile`, which any Saida executable now
+accepts: it writes a Chrome trace and a scope-by-scope summary to the log. A
+frame is 4.5 ms of CPU work plus 12.8 ms waiting for the frame cap. The 63
+animators cost 0.09 ms, and 4 frames out of 569 went over 33 ms on arrival.
+Two engine changes got there:
+
+| | before | after |
+|---|---|---|
+| Engine build the game links | Debug (`-O0`) | RelWithDebInfo |
+| CPU per frame, Paris, 60 people | 37.3 ms | 4.5 ms |
+| Animators (60 people and the player) | 2.97 ms | 0.09 ms |
+| Arrival frames over 33 ms | 216 of 278 | 4 of 569 |
 
 ### Not there yet
 

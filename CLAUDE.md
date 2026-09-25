@@ -71,15 +71,31 @@ plutôt qu'un modèle d'église posé par-dessus.
 
 ## 5. L'arène fait 1 048 576 sommets et ce n'est pas un choix
 
-`GeometryRegistry::kDefaultMaxVertices`. R1World se lie au moteur, il ne le
-recompile pas. Toute mesure de géométrie se compare à ce nombre, et les budgets
+`GeometryRegistry::kDefaultMaxVertices`. Toute mesure de géométrie se compare à ce nombre, et les budgets
 (`TILE_VERTEX_BUDGET`, `kResidentVertices`) en découlent au lieu d'être choisis.
 
 Les props sont des **nœuds de scène**, jamais de la géométrie de tuile : le
 `MeshCache` indexe par asset, donc six cents nœuds pointant sur un arbre
 téléversent cet arbre une fois.
 
-## 6. Vérifier hors ligne
+## 6. Améliorer le moteur, ne jamais le contourner
+
+Le 25 septembre 2026, la foule coûtait 3 ms d'animation. Le jeu l'a d'abord
+contournée : il désactivait les animateurs du moteur et les faisait avancer
+lui-même. La vraie cause était ailleurs, et un contournement ne l'aurait jamais
+montrée : **le jeu se liait au build Debug du moteur**, où une image de Paris
+coûtait 35 ms au lieu de 4,5.
+
+- R1World se lie à `engine/build-rel` (RelWithDebInfo), que `Play.ps1`
+  configure et tient à jour ; jamais à `engine/build`, qui est le Debug.
+- Quand le moteur est lent, faux ou incomplet, **on corrige le moteur**, avec
+  ses règles (`engine/AGENTS.md`, `CONTRIBUTING.md`, `SPEC.md`, un test).
+- Une modification du moteur est **générique** : elle améliore Saida pour tout
+  jeu, et R1World en profite. Rien dans le moteur ne connaît R1World.
+- Avant de conclure qu'une chose coûte cher, on la mesure :
+  `--profile <trace.json>` sur n'importe quel exécutable Saida.
+
+## 7. Vérifier hors ligne
 
 Le cache est une promesse : un lieu déjà visité ne touche plus le réseau.
 

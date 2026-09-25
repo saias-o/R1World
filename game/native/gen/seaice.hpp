@@ -4,7 +4,7 @@
 // Where it is frozen and how old the ice is are measured: NOAA's daily ASCAT
 // ice classification (open water, first-year, mixed, multi-year) on a 4.28 km
 // polar grid, read once per neighbourhood and kept like every observation
-// (CLAUDE.md §6). The satellite sees nothing within some 35 km of the pole;
+// (CLAUDE.md §7). The satellite sees nothing within some 35 km of the pole;
 // that hole takes the class of the nearest cell read, and the manifest counts
 // the cells so filled. Without a reading, a static climatology says where the
 // ice never leaves, and says it is inferred (PLAN §3 I5).

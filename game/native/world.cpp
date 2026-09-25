@@ -20,6 +20,7 @@
 #include "nodes/WebCanvasNode.hpp"
 #include "scripting/ScriptBehaviour.hpp"
 #include "runtime/CaptureArgs.hpp"
+#include "runtime/ProfileArgs.hpp"
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/Event.h>
 #include <RmlUi/Core/EventListener.h>
@@ -3018,7 +3019,10 @@ class World : public Rml::EventListener {
                 mountAircraft(entry->second);
                 placeTiles();
                 lastMountMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-mountStarted).count();
+                const auto arena=engine.resources().geometryUsage();
                 saida::Log::info("[World streaming] mounted ",t.key()," mount_ms=",lastMountMs,
+                                 " arena=",arena.vertices,"v/",arena.indices,"i (largest free ",
+                                 arena.largestFreeVertices,"v/",arena.largestFreeIndices,"i)",
                                  " cook_ms=",served->cooked.cookMs," since_go_ms=",
                                  std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-goStarted).count());
             }catch(const std::exception& e){text("status",std::string("Tuile indisponible : ")+e.what());}
@@ -4247,6 +4251,9 @@ int main(int argc,char** argv) {
         engine.mountWorld();saida::Time::setScale(1);
         saida::CaptureRequest capture;saida::runtime::CaptureViewpoint view;std::string error;
         if(!saida::runtime::parseCaptureArgs(argc,argv,capture,view,error))throw std::runtime_error(error);
+        std::string profile;
+        if(!saida::runtime::parseProfileArgs(argc,argv,profile,error))throw std::runtime_error(error);
+        engine.profileTo(profile);
         // The Atlas, the ground classes and the surfaces: data the generator
         // reads before any tile is cooked, and refuses to run without.
         r1::loadPalette(game.string());

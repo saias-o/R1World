@@ -465,7 +465,7 @@ TEST(Service, a_place_visited_before_the_aero_layer_does_not_wait_for_it) {
     CHECK(served->cooked.manifest["buildings"].get<int>() == 1);
 }
 TEST(Service, a_visited_place_never_touches_the_network) {
-    // CLAUDE.md §6: every source pointed at a closed port. A tile that
+    // CLAUDE.md §7: every source pointed at a closed port. A tile that
     // needed one would come back as the offline approximation.
 #ifdef _WIN32
     _putenv_s("HTTPS_PROXY", "http://127.0.0.1:9");

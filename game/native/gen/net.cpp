@@ -50,7 +50,7 @@ struct Handle {
 }
 
 // A session honouring the proxy variables, as Python's urllib did: the
-// offline test (CLAUDE.md §6) is a proxy on a closed port.
+// offline test (CLAUDE.md §7) is a proxy on a closed port.
 HINTERNET openSession(double timeoutSeconds) {
     const char* proxyEnv = std::getenv("HTTPS_PROXY");
     if (!proxyEnv || !*proxyEnv) proxyEnv = std::getenv("HTTP_PROXY");
