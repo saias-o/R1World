@@ -1095,8 +1095,17 @@ half the speed gravity would take.
 **Nothing crashes.** A building stops an aircraft where its nose, tail or a tip
 touches it, and the HUD and the log say so; a plane stopped in the air loses its
 lift and comes down; a hard landing is a stop. Water takes a ditching and a
-helicopter sets down on it; a taxiing plane stops at the water's edge. The door
-is refused in the air, at speed and on a roof, each out loud.
+helicopter sets down on it; a taxiing plane stops at the water's edge.
+
+**F leaves at any moment**, as in GTA. On the ground the pilot steps down beside
+the nose, however fast it rolls; in the air or on a roof he jumps, and falls
+from the aircraft's height to open ground beside it (up to 80 m off, over a city
+of roofs), no faster than a skydiver's 55 m/s, into the water too, where he
+swims.
+He cannot steer a fall of more than 3 m. The aircraft he left falls too, levels
+out and stops on the ground, a roof or the water under it, without crashing.
+The only refusal left is ground not loaded yet beside the aircraft, said out
+loud.
 
 Streaming follows the aircraft like the car: the queue looks 45 s ahead of it.
 At 350 km/h a jet crosses the ring of nine tiles in under twenty seconds, and
@@ -1124,13 +1133,15 @@ python tools\play_world.py --smoke --fly --spawn 2.1900 48.7725   # Villacoublay
 ```
 
 `--fly` takes a business jet where there is one (an airliner otherwise), lines
-it up on its longest clear run, takes off, is refused the door in the air, is
-flown low at the nearest tall building and must stop against it, comes down and
-steps out; then the nearest helicopter spins up, climbs, flies forward, sets
-down and lets its pilot out — or, set down on a roof, keeps him in. Measured
-offline: the jet lifted off at 43 m/s, 257 m from its stand, and stopped 2.4 m
-up against a building; the helicopter climbed 20 m in 4.8 s and covered 56 m.
-`R1WORLD_FLY_SHOT=<png>` with `R1WORLD_FLY_SHOT_AT=stand|climb|stop|heli-stand|heli`
+it up on its longest clear run once the tiles around it are resident, takes
+off, is flown low at the nearest tall building and must stop against it, comes
+down and steps out; then the nearest helicopter spins up, climbs, flies forward,
+comes to a hover and its pilot jumps: he must land outside any building, and the
+helicopter must come down after him. Measured offline: the jet lifted off at
+43 m/s, 258 m from its stand, and stopped 3.1 m up against a building; the
+helicopter climbed 20 m in 4.9 s and covered 56 m, its pilot jumped from 21 m
+and landed 2.1 s later.
+`R1WORLD_FLY_SHOT=<png>` with `R1WORLD_FLY_SHOT_AT=stand|climb|stop|heli-stand|heli|jump`
 photographs that moment from the chase camera.
 
 ### Not there yet

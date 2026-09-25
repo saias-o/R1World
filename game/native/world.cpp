@@ -117,9 +117,12 @@ constexpr size_t kLeftBoats=4;
 // the tangent plane. Each class handles as itself, from
 // assets/models/aircraft/fleet.json; all of it is arcade and says so.
 constexpr double kAircraftReach=4.;     // m from the fuselage's side to climb aboard
-constexpr double kAircraftExitSpeed=2.; // m/s -- above it, leaving is refused
+constexpr double kAircraftExitSpeed=2.; // m/s -- stopped: the smoke steps down, not out
 constexpr size_t kLeftAircraft=4;
 constexpr double kGravity=9.81;
+// A body falling from a height, the player or an aircraft left in the air,
+// falls no faster than a skydiver.
+constexpr double kFallTerminal=55.;     // m/s
 // How many traffic cars the whole neighbourhood may show at once. Not a memory
 // budget -- every one of them is the same shared mesh (§5) -- but a draw-call
 // one: a car is five primitives, so forty cars is two hundred draws, which is
@@ -1956,6 +1959,7 @@ class World : public Rml::EventListener {
             }
         for(size_t i=0;i<leftAircraft.size();++i) {
             const Aircraft& a=leftAircraft[i];
+            if(a.airborne)continue;  // still falling
             const Frame here(a.lon,a.lat,a.alt);
             const double d=hullDistance(here,glm::dvec3(0),a.yaw,a.type->length,2*fuselageHalf(*a.type));
             if(d<distance){distance=d;out={nullptr,i,PlaneSource::Left};found=true;}
@@ -2008,28 +2012,13 @@ class World : public Rml::EventListener {
             leftAircraft.erase(leftAircraft.begin());
         }
     }
-    // Refused in the air, at speed and on a roof, each out loud (rule 3 of
-    // CLAUDE.md). On the ground the pilot steps down beside the nose, on the
-    // left where the doors are; on water he drops into it.
+    // F leaves the controls at any moment, as in GTA. On the ground the pilot
+    // steps down beside the nose, on the left where the doors are; on water he
+    // drops into it. In the air or on a roof he jumps: he falls from the
+    // aircraft's height to the ground beside it, and an aircraft left in the
+    // air falls too (World::dropLeftAircraft).
     bool leaveAircraft() {
         if(!piloting)return false;
-        if(plane.airborne) {
-            text("stream-status","En vol — posez l'appareil pour descendre.");
-            saida::Log::info("[World aircraft] exit refused in the air, ",plane.alt-planeGround," m up");
-            return false;
-        }
-        if(std::abs(plane.speed)>kAircraftExitSpeed) {
-            text("stream-status","Trop rapide pour descendre — freinez.");
-            saida::Log::info("[World aircraft] exit refused at ",std::abs(plane.speed)," m/s");
-            return false;
-        }
-        bool onRoof=false;
-        surfaceUnder(plane.lon,plane.lat,plane.alt+1.,&onRoof);
-        if(onRoof) {
-            text("stream-status","Sur un toit — posez-vous au sol pour descendre.");
-            saida::Log::info("[World aircraft] exit refused on a roof");
-            return false;
-        }
         const auto& t=*plane.type;
         const double s=std::sin(plane.yaw*rad),c=std::cos(plane.yaw*rad),half=fuselageHalf(t);
         std::optional<glm::dvec2> dry,wet;
@@ -2044,25 +2033,51 @@ class World : public Rml::EventListener {
                     else if(!blocked(q.x,q.y))dry=q;
                 }
         double x=0,y=0;
-        if(!dry&&!wet&&freeSpot(plane.lon,plane.lat,t.span*.5+8.,x,y))dry=glm::dvec2(x,y);
+        // Over a city the ground beside the fuselage may all be roofs: in the
+        // air he can come down further off, in the open.
+        const double around=plane.airborne?t.span*.5+80.:t.span*.5+8.;
+        if(!dry&&!wet&&freeSpot(plane.lon,plane.lat,around,x,y))dry=glm::dvec2(x,y);
         if(!dry&&!wet) {
-            text("stream-status","Impossible de descendre ici — déplacez l'appareil.");
-            saida::Log::warn("[World aircraft] no standable ground beside the aircraft at ",plane.lon,", ",plane.lat);
+            text("stream-status","Impossible de descendre ici — le sol en dessous n'est pas encore chargé.");
+            saida::Log::warn("[World aircraft] no loaded ground beside the aircraft at ",plane.lon,", ",plane.lat);
             return false;
         }
         const glm::dvec2 at=dry?*dry:*wet;
+        const double from=plane.alt,climb=plane.climb;
         piloting=false;keepAircraft(plane);plane=Aircraft{};
         yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
-        lon=at.x;lat=at.y;swimming=!dry;
+        lon=at.x;lat=at.y;
         swimTime=0;swimHeading=yaw;swimLean=0;
-        alt=swimming?waterLevel(lon,lat):height(lon,lat);
+        alt=dry?height(lon,lat):waterLevel(lon,lat);
+        // Above what he lands on, he falls, into the water too; he swims once
+        // he is in it (the landing, in the frame's walk).
+        const double drop=from-alt;
+        const bool falls=drop>.5;
+        swimming=!dry&&!falls;
+        jumpOffset=falls?drop:0.;
+        jumpVelocity=falls?std::clamp(climb,-kFallTerminal,15.):0.;
         player->setEnabled(true);
         player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
         followDistance=std::min(followDistance,kOnFootFollow);
-        text("stream-status",swimming?"À l'eau. F : remonter à bord.":"À pied. F : reprendre l'appareil.");
-        saida::Log::info("[World aircraft] stepped down at ",lon,", ",lat,swimming?" into the water":"");
+        text("stream-status",falls?"Saut !":swimming?"À l'eau. F : remonter à bord.":"À pied. F : reprendre l'appareil.");
+        saida::Log::info("[World aircraft] ",falls?"jumped":"stepped down"," at ",lon,", ",lat,
+                         falls?", falling "+std::to_string(int(drop))+" m":"",!dry?" into the water":"");
         request(lon,lat);
         return true;
+    }
+    // An aircraft left in the air falls, levelling, until it rests on what is
+    // under it: the ground, a roof or the water. It stops there, no crash (the
+    // player's call). Over ground not loaded yet it waits for it.
+    void dropLeftAircraft(Aircraft& a,double dt) {
+        if(!a.airborne||!tile(a.lon,a.lat))return;
+        a.climb=std::max(a.climb-kGravity*dt,-kFallTerminal);
+        a.alt+=a.climb*dt;
+        double under=onWater(a.lon,a.lat)?waterLevel(a.lon,a.lat):height(a.lon,a.lat);
+        under=std::max(under,roofAt(a.lon,a.lat,a.alt+1.));
+        a.pitch*=std::exp(-dt);a.roll*=std::exp(-dt);
+        if(a.alt>under)return;
+        a.alt=under;a.climb=0;a.airborne=false;a.pitch=0;a.roll=0;
+        saida::Log::info("[World aircraft] a ",a.type->name," left in the air came down at ",a.lon,", ",a.lat);
     }
     void clearAircraft() {
         for(auto& a:leftAircraft)if(a.node)a.node->queueFree();
@@ -2237,6 +2252,7 @@ class World : public Rml::EventListener {
             a.rotor=std::max(0.,a.rotor-dt/8.);
             a.mainSpin=std::fmod(a.mainSpin+a.rotor*a.rotor*28.*dt,kTwoPi);
             a.tailSpin=std::fmod(a.tailSpin+a.rotor*a.rotor*44.*dt,kTwoPi);
+            dropLeftAircraft(a,dt);
             place(a);
         }
     }
@@ -3713,6 +3729,11 @@ public:
                 saida::Log::info("[World E2E] PASS fly: flew ",smokeFlown.size()," kind(s) of aircraft");
                 engine.sceneTree().quit();return;
             }
+            // Line up only once the neighbourhood is resident: a run measured
+            // over three tiles of four misses the buildings of the fourth.
+            size_t resident=0;
+            for(const auto& k:ring)resident+=loaded.count(k.key());
+            if(resident<ring.size()&&smokeFlyTime<45.)return;
             AircraftSpot& spot=t->aircraft[i];
             const auto* type=r1::aircraftType(spot.type);
             // Stand the pilot beside the fuselage, where a walk would bring him.
@@ -3758,8 +3779,6 @@ public:
             if(p.airborne&&p.alt-smokeFlyAlt>=25.) {
                 saida::Log::info("[World E2E] PASS take-off: ",p.type->name," up ",p.alt-smokeFlyAlt," m, top ",
                                  smokeFlyTop," m/s, ",glm::length(ecef(p.lon,p.lat,p.alt)-smokeFlyStart)," m from the stand");
-                if(leaveAircraft()||!piloting)return flyFail("the door opened in the air");
-                saida::Log::info("[World E2E] PASS the door stays shut in the air");
                 flyShot("climb");
                 smokeFlyPhase=2;smokeFlyTime=0;
             } else if(smokeFlyTime>60.) {
@@ -3857,21 +3876,30 @@ public:
             }
             return;
         }
-        case 12: {  // brake, set down, step out
-            smokeUp=-1.;smokeF=p.speed>1.?-1.:0.;
-            if(!p.airborne&&std::abs(p.speed)<=kAircraftExitSpeed) {
-                bool onRoof=false;
-                surfaceUnder(p.lon,p.lat,p.alt+1.,&onRoof);
-                if(onRoof) {
-                    if(leaveAircraft())return flyFail("the pilot stepped out onto a roof");
-                    saida::Log::info("[World E2E] PASS helicopter set down on a roof, the door stays shut");
-                } else {
-                    if(!leaveAircraft())return flyFail("could not step down from the landed helicopter");
-                    saida::Log::info("[World E2E] PASS helicopter set down and out");
-                }
-                smokeFlown.insert("helicopter");smokeFlyPhase=0;smokeFlyWait=true;smokeFlyTime=0;
+        case 12: {  // brake to a hover, and jump out in the air
+            smokeF=p.speed>1.?-1.:0.;
+            if(p.airborne&&std::abs(p.speed)<=1.) {
+                const double up=p.alt-groundAt(p.lon,p.lat,p.alt);
+                if(!leaveAircraft()||piloting)return flyFail("F did not let the pilot out "+number(up,1)+" m up");
+                if(jumpOffset<5.)return flyFail("jumped from "+number(up,1)+" m up but falls only "+number(jumpOffset,1)+" m");
+                saida::Log::info("[World E2E] PASS jumped from the helicopter, ",jumpOffset," m up");
+                smokeFlyPhase=13;smokeFlyTime=0;
             } else if(smokeFlyTime>30.) {
-                flyFail("the helicopter did not set down within 30 s");
+                flyFail("the helicopter did not come to a hover within 30 s");
+            }
+            return;
+        }
+        case 13: {  // he lands, and the helicopter he left comes down
+            const bool down=jumpOffset<=0&&(leftAircraft.empty()||!leftAircraft.back().airborne);
+            if(down) {
+                if(!swimming&&blocked(lon,lat))return flyFail("the jump landed inside a building");
+                flyShot("jump");
+                saida::Log::info("[World E2E] PASS landed ",swimming?"in the water":"on the ground",
+                                 " in ",smokeFlyTime," s, and the helicopter came down");
+                smokeFlown.insert("helicopter");smokeFlyPhase=0;smokeFlyWait=true;smokeFlyTime=0;
+            } else if(smokeFlyTime>20.) {
+                flyFail("still falling after 20 s: "+number(jumpOffset,1)+" m up, helicopter airborne="+
+                        (leftAircraft.empty()?"none":leftAircraft.back().airborne?"yes":"no"));
             }
             return;
         }
@@ -4127,7 +4155,7 @@ public:
                 } else text("stream-status","Les données suivantes arrivent… nage retenue au bord du terrain.");
             }
             if(moving)request(lon,lat);
-        } else if(length>0) {
+        } else if(length>0&&jumpOffset<3.) {  // falling from higher, he cannot steer
             double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?7.:2.8;
             // A stride broken by running into someone (World::staggerPlayer).
             if(stagger>0)speed*=.35;
@@ -4151,7 +4179,7 @@ public:
                 }
             }else text("stream-status","Les données suivantes arrivent… déplacement retenu au bord du terrain.");
             request(lon,lat);
-        } else {
+        } else if(jumpOffset<=0) {
             // Standing still, he is still a body: whoever walks into him
             // meets his feet, and a shoulder moves him a little.
             const auto nudged=walkAmongPeople(0,0,dt);
@@ -4174,9 +4202,16 @@ public:
                 if(smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
                 if(jump&&!wasJump&&jumpOffset<=0)jumpVelocity=std::sqrt(2*22.*1.5);
                 wasJump=jump;
-                jumpOffset+=jumpVelocity*dt-11*dt*dt;
-                jumpVelocity-=22*dt;
-                if(jumpOffset<=0){jumpOffset=0;jumpVelocity=0;}
+                if(jumpVelocity-22*dt>-kFallTerminal){jumpOffset+=jumpVelocity*dt-11*dt*dt;jumpVelocity-=22*dt;}
+                else{jumpVelocity=-kFallTerminal;jumpOffset+=jumpVelocity*dt;}
+                if(jumpOffset<=0) {
+                    // Come down on water, from an aircraft: he swims.
+                    if(jumpVelocity<-5.&&tile(lon,lat)&&onWater(lon,lat)) {
+                        swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);
+                        text("stream-status","À l'eau — nagez vers la rive.");
+                    }
+                    jumpOffset=0;jumpVelocity=0;
+                }
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
                 const bool sprint=moving&&w.keyDown(GLFW_KEY_LEFT_SHIFT);
                 for(auto* a:animators)a->play(jumpOffset>0?"jump":sprint?"sprint":moving?"run":"idle");
