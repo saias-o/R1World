@@ -18,6 +18,9 @@ const std::set<std::string> kBusyBuilding = {"retail", "commercial", "kiosk", "s
 constexpr double kSampleStep = 5.0;       // metres between samples of a walked line
 constexpr double kWeld = 0.75;      // two samples closer than this are one node
 constexpr double kReach = 14.0;     // longest corner or crossing joined at a loose end
+// Passing someone who stands on the path: centre to centre, and the widest
+// step aside a sidewalk leaves room for before one has to stop instead.
+constexpr double kPass = 0.85, kMostDodge = 1.1;
 constexpr double kPavingLift = 0.21;  // the paving's drape lift in streets.cpp
 
 // Segments and rings bucketed on a grid, for "is this point in one of you".
@@ -324,6 +327,12 @@ const char* clipOf(Activity a) {
         case Activity::Talk: return "talk";
         case Activity::Sit: return "sit";
         case Activity::Flee: return "run";
+        // Carried off their line: the body's stagger is the game's spring,
+        // over a stance.
+        case Activity::Stagger: return "idle";
+        case Activity::Shrug: return "shrug";
+        case Activity::Angry: return "angry";
+        case Activity::Dust: return "dust";
     }
     return "idle";
 }
@@ -371,8 +380,9 @@ void Crowd::place(Walker& w) const {
     const double dx = (to.x - from.x) / l.length, dz = (to.z - from.z) / l.length;
     // Keep right of the direction of travel: two people meeting pass.
     // Right of (dx, dz) with z south is (-dz, dx).
-    w.x = from.x + (to.x - from.x) * t - dz * w.side;
-    w.z = from.z + (to.z - from.z) * t + dx * w.side;
+    const double side = w.side + w.dodge;
+    w.x = from.x + (to.x - from.x) * t - dz * side + w.offX;
+    w.z = from.z + (to.z - from.z) * t + dx * side + w.offZ;
     w.y = from.y + (to.y - from.y) * t;
     // Across a street the pavement's 15 cm kerb is stepped down.
     if (l.crossing && t > 0.12 && t < 0.88) w.y -= 0.15;
@@ -461,6 +471,88 @@ bool Crowd::spawn(size_t slot, const Scene& scene) {
     return false;
 }
 
+void Crowd::react(Walker& w) {
+    // A brush is shrugged off. A shove is not, and neither is a second bump.
+    const double r = random();
+    if (w.grudge <= 1.0 && w.bumpSpeed < kShove) {
+        w.activity = r < 0.7 ? Activity::Shrug : Activity::Angry;
+    } else {
+        w.activity = r < 0.6 ? Activity::Angry : Activity::Dust;
+    }
+    w.timer = w.activity == Activity::Shrug ? 1.8 + 0.6 * random() : 2.5 + 2.0 * random();
+}
+
+double Crowd::speedAlong(size_t slot, double dirX, double dirZ) const {
+    if (slot >= walkers_.size() || !walkers_[slot].alive) return 0;
+    const Walker& w = walkers_[slot];
+    if (w.activity != Activity::Walk && w.activity != Activity::Flee) return 0;
+    const CrowdPace& pace = pace_[slot % pace_.size()];
+    const double speed = w.activity == Activity::Flee ? pace.run : pace.walk;
+    return speed * (std::sin(w.heading) * dirX - std::cos(w.heading) * dirZ);
+}
+
+bool Crowd::bump(size_t slot, double dirX, double dirZ, double speed) {
+    if (slot >= walkers_.size()) return false;
+    Walker& w = walkers_[slot];
+    // A bench holds its sitter, and a bump lasts a moment.
+    if (!w.alive || w.activity == Activity::Sit || speed <= kBumpSpeed || w.bumpCool > 0) return false;
+    const double n = std::hypot(dirX, dirZ);
+    if (n < 1e-9) return false;
+    dirX /= n; dirZ /= n;
+    const bool shove = speed >= kShove;
+    w.bumpCool = 0.8;
+    ++w.bumps;
+    w.bumpX = dirX; w.bumpZ = dirZ; w.bumpSpeed = speed;
+    // Knocked back along the blow, further by a sprint than by a walk: the
+    // stagger's own steps, which the path is walked back from after.
+    const double push = speed * (shove ? 0.6 : 0.45);
+    w.pushX += dirX * push; w.pushZ += dirZ * push;
+    // What they were doing waits for them.
+    const bool reacting = w.activity == Activity::Stagger || w.activity == Activity::Shrug ||
+                          w.activity == Activity::Angry || w.activity == Activity::Dust;
+    if (!reacting) {
+        w.resume = w.activity == Activity::Flee ? Activity::Walk : w.activity;
+        w.resumeTimer = w.timer;
+    }
+    w.grudge += shove ? 2.0 : 1.0;
+    w.activity = Activity::Stagger;
+    w.timer = shove ? 0.7 : 0.35;
+    // Nobody is walked into without looking round at who did it.
+    w.lookTimer = std::max(w.lookTimer, w.timer + 4.0);
+    if (w.partner >= 0) walkers_[w.partner].lookTimer = std::max(walkers_[w.partner].lookTimer, 3.0);
+    return true;
+}
+
+void Crowd::lookAtPlayer(Walker& w, double dt, const Scene& scene) {
+    w.lookCool = std::max(0.0, w.lookCool - dt);
+    if (scene.playerX > 1e8) { w.lookTimer = 0; w.look = 0; return; }
+    const double px = scene.playerX - w.x, pz = scene.playerZ - w.z, d = std::hypot(px, pz);
+    // 1 straight ahead of them, -1 straight behind.
+    const double facing = d > 1e-6 ? (px * std::sin(w.heading) - pz * std::cos(w.heading)) / d : 1.0;
+    if (w.lookTimer > 0) {
+        w.lookTimer -= dt;
+        // Gone out of reach, or round behind them once he is past: the head
+        // follows him to its limit, holds there a moment, and lets him go.
+        if (d > 2 * kLookRange || (facing < -0.3 && d > 2.0)) w.lookTimer = std::min(w.lookTimer, 0.8);
+        if (w.lookTimer <= 0) w.lookCool = 5.0 + 10.0 * random();
+    } else if (w.lookCool <= 0 && d < kLookRange && facing > 0.25) {
+        // He passes in front of them, moving or right there. Not everyone
+        // looks up: someone on the telephone or deep in a conversation less.
+        const double speed = std::hypot(scene.playerVX, scene.playerVZ);
+        if (speed > 0.5 || d < 2.5) {
+            const double chance = speed >= kShove ? 0.95
+                                  : w.activity == Activity::Phone ? 0.35
+                                  : w.activity == Activity::Talk ? 0.5
+                                  : 0.8;
+            if (random() < chance) w.lookTimer = 2.5 + 3.5 * random();
+            else w.lookCool = 3.0 + 4.0 * random();
+        }
+    }
+    // Told off or shrugged at, he is faced; dusting down is done where they stand.
+    if ((w.activity == Activity::Shrug || w.activity == Activity::Angry) && d > 1e-6) w.heading = std::atan2(px, -pz);
+    w.look = w.lookTimer > 0 ? 1.0 : 0.0;
+}
+
 void Crowd::update(double dt, const Scene& scene) {
     if (!graph_) return;
     const auto& g = *graph_;
@@ -513,6 +605,12 @@ void Crowd::update(double dt, const Scene& scene) {
                     w.link = -1;
                 }
                 break;
+            case Activity::Stagger: case Activity::Shrug: case Activity::Angry: case Activity::Dust:
+                if ((w.timer -= dt) <= 0) {
+                    if (w.activity == Activity::Stagger) react(w);
+                    else { w.activity = w.resume; w.timer = w.resumeTimer; }
+                }
+                break;
             case Activity::Idle: case Activity::Wait: case Activity::Phone: case Activity::Talk:
                 if ((w.timer -= dt) <= 0) {
                     if (w.partner >= 0) {
@@ -541,14 +639,26 @@ void Crowd::update(double dt, const Scene& scene) {
                     }
                     break;
                 }
-                // Somebody standing in the way -- the player -- is waited for.
+                // The player in the way is passed: a step aside, taken from a
+                // few metres out, and held until he is behind. Measured from
+                // the walker's own line, not where the step has put them, so
+                // the step does not undo itself. Only with no room to pass
+                // does anyone stop.
                 const double px = scene.playerX - w.x, pz = scene.playerZ - w.z;
                 const double hx = std::sin(w.heading), hz = -std::cos(w.heading);
                 const double ahead = px * hx + pz * hz;
-                if (w.activity == Activity::Walk && ahead > 0 && ahead < 1.6 && std::abs(px * hz - pz * hx) < 0.7) {
-                    w.activity = Activity::Idle;
-                    w.timer = 1.5;
-                    break;
+                const double across = px * -hz + pz * hx + w.dodge;  // right of the line
+                w.dodgeWanted = 0;
+                if (w.activity == Activity::Walk && ahead > -0.6 && ahead < 4.0 && std::abs(across) < kPass) {
+                    w.dodgeWanted = across >= 0 ? across - kPass : across + kPass;
+                    if (std::abs(w.dodgeWanted) > kMostDodge) {
+                        w.dodgeWanted = std::clamp(w.dodgeWanted, -kMostDodge, kMostDodge);
+                        if (ahead > 0 && ahead < 0.9) {
+                            w.activity = Activity::Idle;
+                            w.timer = 1.0;
+                            break;
+                        }
+                    }
                 }
                 w.along += speed * dt;
                 while (w.link >= 0 && w.along >= g.links[w.link].length) {
@@ -562,7 +672,22 @@ void Crowd::update(double dt, const Scene& scene) {
                 break;
             }
         }
-        if (w.alive && w.link >= 0) place(w);
+        if (!w.alive) continue;
+        // A push dies away in about half a second; walking again, the path
+        // is regained in a couple of seconds, and so is the step aside.
+        const double fade = std::exp(-6.0 * dt);
+        w.pushX *= fade; w.pushZ *= fade;
+        if (w.link >= 0) { w.offX += w.pushX * dt; w.offZ += w.pushZ * dt; }
+        else { w.x += w.pushX * dt; w.z += w.pushZ * dt; }
+        if (w.activity == Activity::Walk || w.activity == Activity::Flee) {
+            const double back = std::exp(-1.2 * dt);
+            w.offX *= back; w.offZ *= back;
+            w.dodge += (w.dodgeWanted - w.dodge) * (1 - std::exp(-3.0 * dt));
+        }
+        if (w.link >= 0) place(w);
+        w.bumpCool = std::max(0.0, w.bumpCool - dt);
+        w.grudge *= std::exp(-dt / 30.0);
+        lookAtPlayer(w, dt, scene);
     }
     // Fill up to what the hour wants, a couple a frame.
     int missing = wanted_ - live(), tries = 2;

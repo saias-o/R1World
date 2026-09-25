@@ -721,7 +721,7 @@
       "license": "MIT",
       "licenseFile": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
       "generatedBy": "game/tools/r1/humans.py",
-      "modifications": "retargeted motion-capture clips, face rig folded into the head, decimated levels of detail, colour maps reduced; normal and specular maps not used",
+      "modifications": "retargeted motion-capture clips, face rig folded into the head but for the eyes, decimated levels of detail, colour maps reduced; normal and specular maps not used",
       "files": [
         "assets/models/humans/business_female_03.glb",
         "assets/models/humans/business_male_02.glb",

@@ -1274,8 +1274,10 @@ Rocketbox is 115 characters on one 3ds Max biped and 400-odd motion-capture
 clips for that biped: walks, runs, waits, a telephone, a conversation, a
 chair. `r1/humans.py` fetches what it needs at one pinned commit into
 `cache/downloads/rocketbox/`. `r1/humans_blender.py` then does the rest in
-Blender: metres, feet on the ground, facing +Z. It folds the 28 face bones into
-the head (nobody in a street is close enough to see a lip move) and retargets
+Blender: metres, feet on the ground, facing +Z. It folds 26 face bones into
+the head (nobody in a street is close enough to see a lip move) but keeps the
+two eyes, which a person's gaze turns (see [Meeting the player](#meeting-the-player)),
+and retargets
 every clip by copying each bone's world rotation. The pelvis position is scaled
 by the two skeletons' legs, measured as thigh plus shin, because a clip's first
 frame may already be sitting. `assets/models/humans/humans.json` says what came
@@ -1343,18 +1345,50 @@ night is empty.
 - **Stand, phone, talk.** They stop to stand, wait or look at a telephone.
   Some stand in pairs, facing each other, talking.
 - **Sit.** Some sit on the benches for half a minute to a minute and a half.
-- **Make way.** They stop for the player rather than walk through him, and run
-  for it when his car comes through at speed.
+- **Make way.** They step aside to pass the player where he stands, stop only
+  when the sidewalk leaves no room, and run for it when his car comes through
+  at speed.
 - **Appear out of sight.** Newcomers appear out of sight: behind the camera, or
   further than 70 m. People leave beyond 150 m.
 
 The simulation (`r1::Crowd`) needs no engine and `test_crowd.cpp` runs it
 headless.
 
+### Meeting the player
+
+- **Bodies.** Everyone is a body in the engine's physics (Jolt): each person
+  a kinematic capsule 44 cm across that follows them, and the player's feet a
+  standing capsule the same size, the engine's character body, moved every
+  step by `CharacterBodyNode::moveAndSlide`. He stops at whoever is in his
+  way and slides round them, and someone walking into him moves him. The game tests no
+  collision of its own; buildings and water are still the footprints
+  `blocked` walks, because they are not bodies yet.
+- **Bumps.** What his feet touched comes back from the engine
+  (`CharacterBodyNode::contacts`). A contact closing faster than 0.6 m/s is
+  a bump (`r1::Crowd::bump`). The person is carried off their line, 20 cm by a
+  jog and 70 cm by a sprint, and their back bends along the blow and swings
+  upright (the engine's `ImpactModifier`, a spring on the spine). His does
+  too, the other way, and his stride is broken for a moment.
+- **Answers.** Then they answer, facing him: a shrug for a brush, a
+  telling-off or dusting themselves down for a shove or a second bump.
+  These are Rocketbox's own `gestic_shrug`, `idle_angry` and `idle_dust`
+  captures, cut to a few seconds. The library has no fall and no stagger, which
+  is why the stagger is a spring. Then they go back to what they were doing.
+- **Gaze.** When he passes in front of someone, within 7 m, most look up:
+  eight in ten, a third of those on the telephone, half of a conversation,
+  nearly everyone for a sprint. Their eyes, head, neck and a little of the
+  spine turn to his eyes (the engine's `GazeModifier`) and follow him. Once he
+  is past, the head follows him to its limit (83° either side), holds there a
+  moment, and lets him go. Nobody is walked into without looking round at who
+  did it.
+- **Turning.** A body turns rather than snaps, round a corner or round to face
+  him.
+
 ### What they cost
 
 - **Shared parts.** Each person is a pooled node with its own animator over
-  its avatar's shared meshes, rig and clips.
+  its avatar's shared meshes, rig and clips. A person who has left is disabled,
+  not hidden: nothing animates them, and their capsule leaves the physics.
 - **Levels of detail.** The near model is drawn while a person stands taller
   than 3.5% of the screen, about 35 m away, and the far one beyond.
 - **Animation.** Within 12 m a person is posed every frame. Further out the

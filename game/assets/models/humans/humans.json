@@ -18,8 +18,12 @@
   },
   "height": 1.826,
   "pelvisHeight": 0.896,
-  "bones": 52,
-  "faceBonesFolded": 28,
+  "bones": 54,
+  "faceBonesFolded": 26,
+  "eyes": [
+   "Bip01 LEye",
+   "Bip01 REye"
+  ],
   "lods": [
    {
     "name": "Body",
@@ -68,8 +72,12 @@
    },
    "height": 1.824,
    "pelvisHeight": 0.896,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -119,6 +127,21 @@
      "seconds": 0.767,
      "speed": 2.411,
      "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 5.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -137,8 +160,12 @@
    },
    "height": 1.807,
    "pelvisHeight": 0.896,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -188,6 +215,21 @@
      "seconds": 0.767,
      "speed": 2.411,
      "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 5.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -206,8 +248,12 @@
    },
    "height": 1.812,
    "pelvisHeight": 0.896,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -257,6 +303,21 @@
      "seconds": 0.767,
      "speed": 2.411,
      "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 5.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -275,8 +336,12 @@
    },
    "height": 1.831,
    "pelvisHeight": 0.896,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -326,6 +391,21 @@
      "seconds": 0.767,
      "speed": 2.411,
      "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 5.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -344,8 +424,12 @@
    },
    "height": 1.806,
    "pelvisHeight": 0.896,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -395,6 +479,21 @@
      "seconds": 0.767,
      "speed": 2.411,
      "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 5.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -413,8 +512,12 @@
    },
    "height": 1.823,
    "pelvisHeight": 0.896,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -464,6 +567,21 @@
      "seconds": 0.767,
      "speed": 2.411,
      "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 5.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -482,8 +600,12 @@
    },
    "height": 1.743,
    "pelvisHeight": 0.928,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -533,6 +655,21 @@
      "seconds": 0.833,
      "speed": 2.269,
      "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 4.8,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -551,8 +688,12 @@
    },
    "height": 1.735,
    "pelvisHeight": 0.928,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -602,6 +743,21 @@
      "seconds": 0.833,
      "speed": 2.269,
      "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 4.8,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -620,8 +776,12 @@
    },
    "height": 1.736,
    "pelvisHeight": 0.924,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -671,6 +831,21 @@
      "seconds": 0.833,
      "speed": 2.269,
      "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 4.8,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -689,8 +864,12 @@
    },
    "height": 1.735,
    "pelvisHeight": 0.924,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -740,6 +919,21 @@
      "seconds": 0.833,
      "speed": 2.269,
      "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 4.8,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -758,8 +952,12 @@
    },
    "height": 1.744,
    "pelvisHeight": 0.928,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -809,6 +1007,21 @@
      "seconds": 0.833,
      "speed": 2.269,
      "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 4.8,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_dust_01.max.fbx"
     }
    },
    "seat": {
@@ -827,8 +1040,12 @@
    },
    "height": 1.743,
    "pelvisHeight": 0.924,
-   "bones": 52,
-   "faceBonesFolded": 28,
+   "bones": 54,
+   "faceBonesFolded": 26,
+   "eyes": [
+    "Bip01 LEye",
+    "Bip01 REye"
+   ],
    "lods": [
     {
      "name": "Near",
@@ -878,6 +1095,21 @@
      "seconds": 0.833,
      "speed": 2.269,
      "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    },
+    "shrug": {
+     "seconds": 1.833,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_shrug_01.max.fbx"
+    },
+    "angry": {
+     "seconds": 6.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_angry_01.max.fbx"
+    },
+    "dust": {
+     "seconds": 4.8,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_dust_01.max.fbx"
     }
    },
    "seat": {

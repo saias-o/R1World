@@ -173,3 +173,182 @@ TEST(Crowd, the_same_seed_walks_the_same_crowd) {
         CHECK(a.walkers()[i].x == b.walkers()[i].x && a.walkers()[i].z == b.walkers()[i].z);
     }
 }
+
+// ── meeting the player ──────────────────────────────────────────────────────
+
+namespace {
+// A street's crowd a while after it filled up, the eye far off.
+Crowd settled(const WalkGraph& g, uint32_t seed, int people) {
+    Crowd crowd;
+    crowd.reset(&g, seed, {{1.0, 2.4}});
+    crowd.setPopulation(people);
+    Crowd::Scene scene;
+    scene.eyeZ = 100;
+    for (int frame = 0; frame < 600; ++frame) crowd.update(1.0 / 30, scene);
+    return crowd;
+}
+// Someone on a sidewalk, away from the street's ends and from everyone else.
+int alone(const Crowd& crowd, bool walking, const std::set<int>& skip = {}, double room = 4.0) {
+    const auto& ws = crowd.walkers();
+    for (size_t i = 0; i < ws.size(); ++i) {
+        const Walker& w = ws[i];
+        if (!w.alive || w.link < 0 || std::abs(w.x) > 60 || skip.count(int(i))) continue;
+        if (walking != (w.activity == Activity::Walk)) continue;
+        if (!walking && w.activity != Activity::Idle && w.activity != Activity::Wait && w.activity != Activity::Phone) continue;
+        bool crowded = false;
+        for (size_t o = 0; o < ws.size(); ++o)
+            crowded = crowded || (o != i && ws[o].alive && std::hypot(ws[o].x - w.x, ws[o].z - w.z) < room);
+        if (!crowded) return int(i);
+    }
+    return -1;
+}
+}  // namespace
+
+// The contact itself is the engine's (the player's capsule meeting theirs in
+// Jolt, native/world.cpp); what follows it is the crowd's.
+TEST(Crowd, walking_into_someone_staggers_them_and_they_answer_it) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 5, 30);
+    const int i = alone(crowd, false);
+    CHECK(i >= 0);
+    const Walker& w = crowd.walkers()[i];
+    const double x0 = w.x, z0 = w.z;
+    // The player, jogging east into them from just west.
+    Crowd::Scene scene;
+    scene.eyeZ = 100;
+    scene.playerX = x0 - 2 * Crowd::kBodyRadius; scene.playerZ = z0;
+    CHECK(crowd.bump(size_t(i), 1.0, 0.0, 2.8));
+    crowd.update(1.0 / 30, scene);
+    CHECK(w.bumps == 1u);
+    CHECK(w.activity == Activity::Stagger);
+    CHECK(w.look == 1.0);
+    // The contacts of the next frames are the same bump, not new ones.
+    CHECK(!crowd.bump(size_t(i), 1.0, 0.0, 2.8));
+    // Carried on east, off their line, and they answer.
+    for (int frame = 0; frame < 20; ++frame) crowd.update(1.0 / 30, scene);
+    CHECK(w.x - x0 > 0.12);
+    CHECK(w.activity == Activity::Shrug || w.activity == Activity::Angry);
+    CHECK(std::string(clipOf(w.activity)) == (w.activity == Activity::Shrug ? "shrug" : "angry"));
+    // Facing him to say so.
+    CHECK(std::sin(w.heading) < -0.9);
+    // Then back to what they were doing.
+    for (int frame = 0; frame < 30 * 6; ++frame) crowd.update(1.0 / 30, scene);
+    CHECK(w.activity != Activity::Stagger && w.activity != Activity::Shrug && w.activity != Activity::Angry);
+    CHECK(w.bumps == 1u);
+}
+TEST(Crowd, leaning_on_someone_or_a_sitter_is_no_bump) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 5, 30);
+    const int i = alone(crowd, false);
+    CHECK(i >= 0);
+    CHECK(!crowd.bump(size_t(i), 1.0, 0.0, Crowd::kBumpSpeed * 0.9));
+    CHECK(crowd.walkers()[i].bumps == 0u);
+    CHECK(!crowd.bump(crowd.walkers().size() + 3, 1.0, 0.0, 5.0));
+}
+TEST(Crowd, a_sprint_knocks_someone_further_and_is_not_shrugged_off) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    double carried[2] = {0, 0};
+    for (int run = 0; run < 2; ++run) {
+        Crowd crowd = settled(g, 5, 30);
+        const int i = alone(crowd, false);
+        const Walker& w = crowd.walkers()[i];
+        const double x0 = w.x;
+        Crowd::Scene scene;
+        scene.eyeZ = 100;
+        scene.playerX = x0 - 2 * Crowd::kBodyRadius; scene.playerZ = w.z;
+        CHECK(crowd.bump(size_t(i), 1.0, 0.0, run == 0 ? 2.8 : 7.0));
+        for (int frame = 0; frame < 31; ++frame) crowd.update(1.0 / 30, scene);
+        carried[run] = w.x - x0;
+        if (run == 1) CHECK(w.activity == Activity::Angry || w.activity == Activity::Dust);
+    }
+    CHECK(carried[1] > 2.0 * carried[0]);
+    CHECK(carried[1] < 1.2);  // a stagger, not a flight
+}
+TEST(Crowd, a_walker_closes_on_whoever_is_ahead_of_them) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 13, 30);
+    const int i = alone(crowd, true);
+    CHECK(i >= 0);
+    const Walker& w = crowd.walkers()[i];
+    const double hx = std::sin(w.heading), hz = -std::cos(w.heading);
+    NEAR(crowd.speedAlong(size_t(i), hx, hz), 1.0, 1e-9);
+    NEAR(crowd.speedAlong(size_t(i), -hz, hx), 0.0, 1e-9);
+}
+TEST(Crowd, someone_walking_at_a_player_who_stands_there_steps_round_him) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 13, 30);
+    const int i = alone(crowd, true);
+    CHECK(i >= 0);
+    const Walker& w = crowd.walkers()[i];
+    const double hx = std::sin(w.heading), hz = -std::cos(w.heading);
+    Crowd::Scene scene;
+    scene.eyeZ = 100;
+    scene.playerX = w.x + 3.5 * hx; scene.playerZ = w.z + 3.5 * hz;
+    double closest = 1e9;
+    for (int frame = 0; frame < 30 * 7; ++frame) {
+        crowd.update(1.0 / 30, scene);
+        closest = std::min(closest, std::hypot(w.x - scene.playerX, w.z - scene.playerZ));
+    }
+    CHECK(w.bumps == 0u);
+    CHECK(closest >= 2 * Crowd::kBodyRadius + 0.2);
+    // Past him and back on their line.
+    CHECK((w.x - scene.playerX) * hx + (w.z - scene.playerZ) * hz > 1.0 || w.activity != Activity::Walk);
+}
+TEST(Crowd, people_look_up_at_the_player_passing_in_front_not_behind) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 21, 40);
+    int looked = 0, behind = 0, tried = 0;
+    std::set<int> done;
+    for (int attempt = 0; attempt < 12; ++attempt) {
+        int i = alone(crowd, false, done, 1.5);
+        if (i < 0) i = alone(crowd, true, done, 1.5);
+        if (i < 0) break;
+        done.insert(i);
+        ++tried;
+        const Walker& w = crowd.walkers()[i];
+        Crowd::Scene scene;
+        scene.eyeZ = 100;
+        // The player `ahead` metres in front of them (behind if negative),
+        // `t` to their right, crossing at 2.8 m/s: their frame is taken
+        // afresh each frame, since a walker turns at a corner.
+        auto put = [&](double ahead, double t, double speed) {
+            const double hx = std::sin(w.heading), hz = -std::cos(w.heading), rx = -hz, rz = hx;
+            scene.playerX = w.x + ahead * hx + t * rx; scene.playerZ = w.z + ahead * hz + t * rz;
+            scene.playerVX = speed * rx; scene.playerVZ = speed * rz;
+        };
+        // Behind them first: nobody looks round at footsteps.
+        bool sawBehind = false;
+        for (int frame = 0; frame < 45; ++frame) {
+            put(-3.0, -2.0 + 4.0 * frame / 45.0, 2.8);
+            crowd.update(1.0 / 30, scene);
+            sawBehind = sawBehind || w.look > 0;
+        }
+        behind += sawBehind;
+        // Then across in front of them.
+        bool saw = false;
+        for (int frame = 0; frame < 45; ++frame) {
+            put(3.0, -2.0 + 4.0 * frame / 45.0, 2.8);
+            crowd.update(1.0 / 30, scene);
+            saw = saw || w.look > 0;
+        }
+        looked += saw;
+        // Gone behind them and out of reach: they let him go.
+        for (int frame = 0; frame < 45; ++frame) {
+            put(-15.0, 0.0, 0.0);
+            crowd.update(1.0 / 30, scene);
+        }
+        CHECK(w.look == 0.0);
+        // Out of the next one's way.
+        scene.playerX = scene.playerZ = 1e9;
+        crowd.update(1.0 / 30, scene);
+    }
+    CHECK(tried >= 3);
+    CHECK(behind == 0);
+    CHECK(looked * 2 >= tried);
+}

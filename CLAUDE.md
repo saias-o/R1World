@@ -92,6 +92,20 @@ coûtait 35 ms au lieu de 4,5.
   ses règles (`engine/AGENTS.md`, `CONTRIBUTING.md`, `SPEC.md`, un test).
 - Une modification du moteur est **générique** : elle améliore Saida pour tout
   jeu, et R1World en profite. Rien dans le moteur ne connaît R1World.
+- **Le jeu est un projet, comme un projet Unity ou Unreal.** Ce qu'un moteur 3D
+  digne de ce nom (et optimisé) doit fournir se fait **dans le moteur**, pas
+  dans le jeu. Pour chaque fonctionnalité, on tranche :
+  - **générique et indispensable à un moteur** (contrôleur de personnage,
+    physique, animation, LOD, streaming…) → dans le moteur (`engine/src`) ;
+  - **générique mais pas indispensable** (trafic, foule…) → un plugin
+    (`engine/plugins/`, sur le modèle de `plugins/traffic`) ;
+  - **vraiment propre à R1World** (OSM, tuiles, globe, règles de ce monde) → le jeu.
+- Si le moteur a **presque** ce qu'il faut, on le complète au lieu de le
+  contourner : le jeu n'inclut pas Jolt, ne recompose pas des matrices que le
+  moteur tient, ne réécrit pas ce qu'un nœud du moteur fait déjà. Le
+  25 septembre, les pieds du joueur étaient un `CharacterVirtual` Jolt piloté à
+  la main alors que le moteur avait `CharacterBodyNode` ; il lui manquait un
+  déplacement immédiat, on le lui a donné (`moveAndSlide`).
 - Avant de conclure qu'une chose coûte cher, on la mesure :
   `--profile <trace.json>` sur n'importe quel exécutable Saida.
 

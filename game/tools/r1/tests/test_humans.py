@@ -53,6 +53,16 @@ class Humans(unittest.TestCase):
             self.assertIn("pelvisHeight", person["seat"])
             self.assertGreater(person["clips"]["walk"]["speed"], 0.8)
 
+    def test_every_passer_by_can_look_and_answer_a_bump(self):
+        # native/world.cpp turns the eyes toward the player (GazeModifier) and
+        # plays these after a bump (gen/crowd.cpp); the face rig folds, not them.
+        for person in MANIFEST["crowd"]:
+            clips, _, _ = animations(GAME / person["model"])
+            self.assertTrue({"shrug", "angry", "dust"} <= clips, person["name"])
+            self.assertEqual(person["eyes"], ["Bip01 LEye", "Bip01 REye"], person["name"])
+            for clip, seconds in humans.CLIP_SECONDS.items():
+                self.assertLessEqual(person["clips"][clip]["seconds"], seconds + 0.05, (person["name"], clip))
+
     def test_the_crowd_fits_its_share_of_the_arena(self):
         # Shared models have 15% of the 1 048 576-vertex arena (CLAUDE.md §5),
         # and the trees, props, boats and fleets already hold most of it.

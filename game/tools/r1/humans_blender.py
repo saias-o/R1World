@@ -7,9 +7,10 @@ decides which avatar goes where. The steps, in order:
 
 * The avatar's FBX (3ds Max biped, centimetres) is brought to metres, feet on
   z = 0, facing Blender's -Y (glTF +Z, like every model this game places).
-* The face rig -- jaw, lips, eyelids, 28 bones under the head -- is folded
+* The face rig -- jaw, lips, eyelids, 26 bones under the head -- is folded
   into the head: nobody in a street is close enough to see a lip move, and
-  each bone is a matrix per character per frame.
+  each bone is a matrix per character per frame. The two eyes stay: a
+  person's gaze turns them (the engine's GazeModifier), and no clip does.
 * Each clip is a Rocketbox motion-capture FBX on the same biped. It is
   retargeted by copying every bone's world rotation (and the pelvis's
   position, scaled by the two skeletons' legs) and baking. Where the library
@@ -32,6 +33,7 @@ job = json.load(open(sys.argv[sys.argv.index("--") + 1], encoding="utf-8"))
 FPS = 30
 HEAD = "Bip01 Head"
 PELVIS = "Bip01 Pelvis"
+EYES = ("Bip01 LEye", "Bip01 REye")
 
 
 def reset():
@@ -100,9 +102,12 @@ for o in (arm, body):
 body.parent = arm
 height = max(v.co.z for v in body.data.vertices)
 
-# The face rig folds into the head.
+# The face rig folds into the head, all but the eyes.
+eyes = [n for n in EYES if n in arm.data.bones]
+if len(eyes) != len(EYES):
+    raise SystemExit(f"{job['name']}: no eye bones under {HEAD}")
 face = []
-stack = [c for c in arm.data.bones[HEAD].children]
+stack = [c for c in arm.data.bones[HEAD].children if c.name not in EYES]
 while stack:
     b = stack.pop()
     face.append(b.name)
@@ -167,6 +172,8 @@ def bake_clip(spec):
     source = next(o for o in imported if o.type == "ARMATURE")
     action = source.animation_data.action
     f0, f1 = (int(round(x)) for x in action.frame_range)
+    if spec.get("seconds"):
+        f1 = min(f1, f0 + int(round(spec["seconds"] * FPS)))
     duration = (f1 - f0) / FPS
     # The travel the library extracted onto the root, removed and measured.
     travel = 0.0
@@ -194,7 +201,9 @@ def bake_clip(spec):
     delete([o for o in imported if o is not source])
 
     for pb in arm.pose.bones:
-        if pb.name not in source.pose.bones:
+        # The eyes stay as the avatar's rest put them in its head: another
+        # skeleton's eye bones are not guaranteed to lie the same way.
+        if pb.name not in source.pose.bones or pb.name in EYES:
             continue
         c = pb.constraints.new("COPY_ROTATION")
         c.target, c.subtarget = source, pb.name
@@ -327,6 +336,7 @@ report = {
     "pelvisHeight": round(pelvis_height, 3),
     "bones": len(arm.data.bones),
     "faceBonesFolded": len(face),
+    "eyes": eyes,
     "lods": [{"name": m.name, "triangles": sum(len(p.vertices) - 2 for p in m.data.polygons),
               "vertices": len(m.data.vertices)} for m in lods],
     "clips": {n: {k: v for k, v in c.items() if k not in ("action", "start", "end")} for n, c in clips.items()},

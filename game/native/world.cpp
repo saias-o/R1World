@@ -17,6 +17,9 @@
 #include "nodes/MeshNode.hpp"
 #include "nodes/ParticleSystemNode.hpp"
 #include "behaviours/LODGroupBehaviour.hpp"
+#include "physics/CharacterBodyNode.hpp"
+#include "physics/CollisionShapeNode.hpp"
+#include "physics/RigidBodyNode.hpp"
 #include "nodes/WebCanvasNode.hpp"
 #include "scripting/ScriptBehaviour.hpp"
 #include "runtime/CaptureArgs.hpp"
@@ -311,10 +314,16 @@ PreparedTile prepareTile(const r1::CookedTile& tile) {
 }
 
 // One of the crowd, as drawn: a pooled node with its own animator, the
-// shared meshes of one avatar under it (World::makePerson).
+// shared meshes of one avatar under it (World::makePerson). Over the clip,
+// the engine's two modifiers: the head turned toward the player, and the
+// spine's stagger when he walks into them.
 struct Person {
     saida::Node* node=nullptr; saida::Animator* animator=nullptr;
+    saida::RigidBodyNode* body=nullptr;  // their capsule in the engine's physics
+    saida::GazeModifier* gaze=nullptr; saida::ImpactModifier* impact=nullptr;
     const char* clip=""; float poseRate=-1.f;
+    uint32_t bumps=0;            // the walker's bumps already staggered
+    double yaw=0; bool shown=false;  // the heading drawn, eased toward the walker's
 };
 
 struct Loaded {
@@ -429,6 +438,12 @@ class World : public Rml::EventListener {
     glm::dvec3 smokeSwimStart{0}; saida::Node* smokeSwimBoat=nullptr;
     double smokeSailTime=0,smokeSailTop=0,smokeSailClear=0; glm::dvec3 smokeSailStart{0};
     std::vector<saida::Animator*> animators;
+    // The player among people (World::walkAmongPeople): his feet in the
+    // engine's physics, his body's stagger, the speed he means on foot
+    // (east, north, m/s), and what is left of a broken stride.
+    saida::CharacterBodyNode* feet=nullptr; int feetUnbuilt=0; bool feetRefused=false;
+    std::vector<saida::ImpactModifier*> playerImpacts;
+    double footEast=0,footNorth=0,stagger=0; size_t playerBumps=0;
     double jumpOffset=0,jumpVelocity=0,followDistance=kOnFootFollow;
     bool wasJump=false;
     bool smokeRan=false,smokeJumped=false;
@@ -534,13 +549,42 @@ class World : public Rml::EventListener {
         }
         return &kind;
     }
-    saida::Node* makePerson(Loaded& tile,size_t slot) {
+    // The Rocketbox biped's chains (r1/humans.py keeps its eyes for this).
+    // A person's gaze, not a turret's: the eyes go first and furthest, the
+    // head most of the way, the spine barely; past 83 degrees either side
+    // the head holds at its limit rather than turn round.
+    static saida::GazeModifier::Settings gazeSettings() {
+        saida::GazeModifier::Settings s;
+        s.chain={{"Bip01 Spine2",.15f,.25f},{"Bip01 Neck",.35f,.45f},{"Bip01 Head",1.f,.8f},
+                 {"Bip01 LEye",1.f,.35f},{"Bip01 REye",1.f,.35f}};
+        s.maxYaw=1.45f;s.maxPitchUp=.4f;s.maxPitchDown=.6f;s.response=5.f;
+        return s;
+    }
+    // A blow bends the back from the waist up, the head last and loosest,
+    // and the body swings back upright in under a second.
+    static saida::ImpactModifier::Settings impactSettings() {
+        saida::ImpactModifier::Settings s;
+        s.chain={{"Bip01 Spine",.3f},{"Bip01 Spine1",.25f},{"Bip01 Spine2",.2f},{"Bip01 Neck",.1f},{"Bip01 Head",.15f}};
+        s.frequency=1.4f;s.damping=.4f;s.maxAngle=.55f;
+        return s;
+    }
+    // People whose skeleton lacks a bone the gaze or the stagger needs:
+    // said once each (CLAUDE.md rule 3), and a failed smoke.
+    size_t bodiesRefused=0;
+    bool makePerson(Loaded& tile,size_t slot,Person& person) {
         HumanKind* kind=humanKind(slot);
-        if(!kind)return nullptr;
+        if(!kind)return false;
         auto root=std::make_unique<saida::Node>("person-"+kind->name);
         auto* animator=root->addBehaviour<saida::Animator>();
         animator->setRig(kind->rig);
         for(const auto& [name,clip]:kind->clips)animator->addClip(name,clip);
+        person.gaze=animator->addModifier<saida::GazeModifier>(*kind->rig,gazeSettings());
+        person.impact=animator->addModifier<saida::ImpactModifier>(*kind->rig,impactSettings());
+        if(!person.gaze->valid()||!person.impact->valid()) {
+            if(bodiesRefused++==0)
+                saida::Log::error("[World crowd] ",kind->model," lacks the spine, neck, head or eye bones the gaze and the "
+                                  "stagger turn (python -m r1.humans keeps them): its people will neither look nor stagger");
+        }
         for(const auto& [level,meshes]:kind->levels) {
             auto holder=std::make_unique<saida::Node>(level);
             for(const auto& m:meshes) {
@@ -553,8 +597,23 @@ class World : public Rml::EventListener {
         // Near while a person stands taller than about 3.5% of the screen,
         // some 35 m away; the far model's 500 triangles beyond.
         root->addBehaviour<saida::LODGroupBehaviour>()->setLevels({{"Near",.035f},{"Far",0.f}});
+        // Their body in the engine's physics: a kinematic capsule that follows
+        // the node wherever the crowd moves it, and that the player's feet
+        // meet (World::walkAmongPeople). In the node's units, drawn at scale.
+        auto body=std::make_unique<saida::RigidBodyNode>();
+        body->kinematic=true;
+        body->transform().position=glm::vec3(0.f,float(playerHeight*.5/humanScale),0.f);
+        auto capsule=std::make_unique<saida::CollisionShapeNode>();
+        capsule->shapeType=saida::CollisionShapeType::Capsule;
+        capsule->radius=float(r1::Crowd::kBodyRadius/humanScale);
+        capsule->height=float(playerHeight/humanScale);
+        capsule->axis=1;
+        body->addChild(std::move(capsule));
+        person.body=static_cast<saida::RigidBodyNode*>(root->addChild(std::move(body)));
         root->transform().scale=glm::vec3(float(humanScale));
-        return tile.node->addChild(std::move(root));
+        person.node=tile.node->addChild(std::move(root));
+        person.animator=animator;
+        return true;
     }
     void readCrowd(Loaded& tile) {
         tile.walks=r1::WalkGraph::from(tile.data.value("crowd",json()));
@@ -593,15 +652,90 @@ class World : public Rml::EventListener {
             if(driving) {
                 const glm::dvec3 p=l.frame.local(ecef(carLon,carLat,carAlt));
                 scene.carX=p.x;scene.carZ=p.z;scene.carSpeed=std::abs(carSpeed);
-            } else if(!sailing&&!piloting&&!swimming) {
+            }
+            // The player on foot: where he is, the speed he means (a tile's x
+            // is east and its z south, near enough across one tile), and his
+            // eyes, which is what people look at.
+            glm::dvec3 head(0);
+            const bool onFoot=!driving&&!sailing&&!piloting&&!swimming;
+            if(onFoot) {
                 const glm::dvec3 p=l.frame.local(ecef(lon,lat,alt));
                 scene.playerX=p.x;scene.playerZ=p.z;
+                scene.playerVX=footEast;scene.playerVZ=-footNorth;
+                head=l.frame.local(ecef(lon,lat,alt+jumpOffset+playerHeight*.93));
             }
             l.crowd.update(std::min(.05,double(delta)),scene);
-            syncPeople(l,eye);
+            syncPeople(l,eye,std::min(.05,double(delta)),onFoot?&head:nullptr);
         }
     }
-    void syncPeople(Loaded& tile,const glm::dvec3& eye) {
+    // A step of the player's among people, `east` and `north` metres: his
+    // feet are the engine's character body, a standing capsule moved and slid
+    // against the people's capsules (CharacterBodyNode::moveAndSlide), so he
+    // stops at whoever is in the way and slides round them, and whoever walks
+    // into him moves him. What his feet touched is then a bump each
+    // (World::meetPeople). Buildings and water stay `blocked`: they are not
+    // bodies.
+    glm::dvec2 walkAmongPeople(double east,double north,double dt) {
+        const glm::dvec2 intended=onward(lon,lat,east,north);
+        if(dt<=0)return intended;
+        // The scene's frame is the origin's: x east, y up, z south, near
+        // enough within the 350 m it is rebased at.
+        const glm::vec3 from(origin.local(ecef(lon,lat,alt))),to(origin.local(ecef(intended.x,intended.y,alt)));
+        glm::vec3 velocity=(to-from)/float(dt);
+        velocity.y=0;
+        feet->transform().position=from;
+        const glm::vec3 end=feet->moveAndSlide(velocity,float(dt));
+        // Built by its first physics step; one that never is means he walks
+        // through everyone, which is said once and fails the smoke.
+        if(feet->physicsWorld())feetUnbuilt=0;
+        else if(++feetUnbuilt==30&&!feetRefused) {
+            saida::Log::error("[World crowd] the player's feet are no physics body: he walks through people");
+            feetRefused=true;
+        }
+        meetPeople();
+        return onward(lon,lat,end.x-from.x,-(end.z-from.z));
+    }
+    // Every person the feet touched: the crowd answers the bump if it is one
+    // (r1::Crowd::bump), and the player's own body feels it.
+    void meetPeople() {
+        for(const auto& contact:feet->contacts()) {
+            if(!contact.node)continue;
+            for(auto tile:ring) {
+                auto found=loaded.find(tile.key());
+                if(found==loaded.end())continue;
+                Loaded& l=found->second;
+                for(size_t slot=0;slot<l.people.size();++slot) {
+                    if(l.people[slot].body!=contact.node)continue;
+                    // From him toward them (the normal points back at him),
+                    // in the tile's frame, level.
+                    glm::dvec3 toward=glm::transpose(l.frame.basis)*origin.basis*glm::dvec3(-glm::vec3(contact.normal));
+                    toward.y=0;
+                    const double length=glm::length(toward);
+                    if(length<1e-6)break;
+                    toward/=length;
+                    // How fast they close: his speed toward them, and theirs toward him.
+                    const double closing=footEast*toward.x-footNorth*toward.z+l.crowd.speedAlong(slot,-toward.x,-toward.z);
+                    if(l.crowd.bump(slot,toward.x,toward.z,closing))staggerPlayer(l,toward,closing);
+                    break;
+                }
+            }
+        }
+    }
+    // Running into someone, the player's own body takes the blow -- thrown
+    // back off whoever he hit -- and his stride is broken for a moment,
+    // longer the harder he hit.
+    void staggerPlayer(Loaded& tile,const glm::dvec3& toward,double speed) {
+        const glm::dvec3 back=glm::transpose(origin.basis)*tile.frame.basis*(-toward);
+        for(size_t i=0;i<animators.size()&&i<playerImpacts.size();++i) {
+            if(!animators[i]->node())continue;
+            glm::mat3 body(animators[i]->node()->worldTransform());
+            for(int c=0;c<3;++c)body[c]=glm::normalize(body[c]);
+            playerImpacts[i]->push(glm::transpose(body)*glm::vec3(back),float(std::min(5.,.6*speed)));
+        }
+        stagger=std::max(stagger,speed>=r1::Crowd::kShove?.45:.2);
+        ++playerBumps;
+    }
+    void syncPeople(Loaded& tile,const glm::dvec3& eye,double dt,const glm::dvec3* head) {
         const auto& walkers=tile.crowd.walkers();
         if(tile.people.size()<walkers.size())tile.people.resize(walkers.size());
         for(size_t i=0;i<tile.people.size();++i) {
@@ -609,18 +743,36 @@ class World : public Rml::EventListener {
             const bool live=i<walkers.size()&&walkers[i].alive;
             if(!p.node) {
                 if(!live)continue;
-                p.node=makePerson(tile,i);
-                if(!p.node)continue;
-                p.animator=p.node->getBehaviour<saida::Animator>();
+                if(!makePerson(tile,i,p))continue;
             }
-            if(!live){p.node->setVisible(false);continue;}
-            p.node->setVisible(true);
+            // Disabled rather than hidden: nobody animates a person who is not
+            // there, and their capsule leaves the physics with them.
+            if(!live){if(p.node->enabled())p.node->setEnabled(false);p.shown=false;continue;}
+            if(!p.node->enabled())p.node->setEnabled(true);
             const r1::Walker& w=walkers[i];
             double y=w.y;
             if(w.activity==r1::Activity::Sit)y-=crowdKinds[i%crowdKinds.size()].seatDrop;
             p.node->transform().position=glm::vec3(float(w.x),float(y),float(w.z));
+            // A body turns rather than snaps: round a corner, or round to
+            // face the player it is telling off. Someone new stands as placed.
+            if(!p.shown){p.yaw=w.heading;p.shown=true;p.bumps=w.bumps;}
+            else p.yaw+=std::remainder(w.heading-p.yaw,6.283185307179586)*(1-std::exp(-7.*dt));
             // Modelled facing +Z, like the player's body; this world's forward is -Z.
-            p.node->transform().rotation=glm::angleAxis(float(-w.heading),glm::vec3(0,1,0))*glm::quat(0,0,1,0);
+            const glm::quat facing=glm::angleAxis(float(-p.yaw),glm::vec3(0,1,0))*glm::quat(0,0,1,0);
+            p.node->transform().rotation=facing;
+            // Walked into: the stagger, along the blow, in the body's own axes.
+            if(w.bumps!=p.bumps) {
+                if(w.bumps>p.bumps&&p.impact)
+                    p.impact->push(glm::inverse(facing)*glm::vec3(float(w.bumpX),0.f,float(w.bumpZ)),
+                                   float(std::min(8.,1.1*w.bumpSpeed)));
+                p.bumps=w.bumps;
+            }
+            // Looking at him: his eyes, in the body's own axes and size.
+            if(p.gaze) {
+                if(w.look>0&&head)
+                    p.gaze->lookAt(glm::inverse(facing)*(glm::vec3(*head)-p.node->transform().position)/float(humanScale));
+                else p.gaze->release();
+            }
             const char* clip=r1::clipOf(w.activity);
             if(std::strcmp(clip,p.clip)!=0){p.animator->play(clip);p.clip=clip;}
             // Animation LOD: a pose every frame close by; further out the pose
@@ -3133,6 +3285,9 @@ public:
             for(auto clip:{"idle","run","sprint","jump"})
                 if(!a->clips().count(clip))throw std::runtime_error(std::string("Player animation missing: ")+clip);
             a->play("idle");
+            if(!a->rig())throw std::runtime_error("Player model has no skeleton");
+            playerImpacts.push_back(a->addModifier<saida::ImpactModifier>(*a->rig(),impactSettings()));
+            if(!playerImpacts.back()->valid())throw std::runtime_error("Player skeleton lacks the spine the stagger bends");
         }
         player->setEnabled(false);
         saida::Log::info("[World player] model ready, animators=",animators.size());
@@ -3145,6 +3300,20 @@ public:
         // wheels, which is a silent regression. It is said once, out loud.
         collectWheels(*car);
         saida::Log::info("[World car] model ready, wheels=",frontWheels.size()+rearWheels.size());
+        // His feet among people: the engine's character body, a capsule as
+        // wide as theirs and as tall as him, its position where he stands.
+        feet=e.sceneTree().world().createChild<saida::CharacterBodyNode>();
+        feet->setName("player-feet");
+        {
+            auto capsule=std::make_unique<saida::CollisionShapeNode>();
+            capsule->shapeType=saida::CollisionShapeType::Capsule;
+            capsule->radius=float(r1::Crowd::kBodyRadius);
+            capsule->height=float(playerHeight);
+            capsule->axis=1;
+            capsule->offset=glm::vec3(0.f,float(playerHeight*.5),0.f);
+            feet->addChild(std::move(capsule));
+        }
+        feet->setEnabled(false);
         prototypes=e.sceneTree().world().createChild<saida::Node>("Shared prototypes");
         prototypes->setEnabled(false);
         loadPaints();
@@ -3915,6 +4084,11 @@ public:
         }
         wasEnterKey=doorKey;
         bool moving=false;
+        footEast=footNorth=0;
+        stagger=std::max(0.,stagger-dt);
+        // His feet are a body while he is: not at the wheel, at the helm or
+        // at the controls, where people meet the vehicle instead.
+        if(feet->enabled()!=player->enabled())feet->setEnabled(player->enabled());
         if(driving) {
             if(smokeDriving){f=smokeBrake?-1.:1.;r=0;}
             driveCar(dt,f,r,w.keyDown(GLFW_KEY_SPACE)&&!smokeDriving);
@@ -3955,9 +4129,13 @@ public:
             if(moving)request(lon,lat);
         } else if(length>0) {
             double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?7.:2.8;
+            // A stride broken by running into someone (World::staggerPlayer).
+            if(stagger>0)speed*=.35;
             double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
             double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
-            auto next=onward(lon,lat,east,north);
+            footEast=east/dt;footNorth=north/dt;
+            // People are bodies: he stops at them and slides round them.
+            auto next=walkAmongPeople(east,north,dt);
             if(tile(next.x,next.y)) {
                 if(onWater(next.x,next.y)) {
                     lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
@@ -3973,6 +4151,11 @@ public:
                 }
             }else text("stream-status","Les données suivantes arrivent… déplacement retenu au bord du terrain.");
             request(lon,lat);
+        } else {
+            // Standing still, he is still a body: whoever walks into him
+            // meets his feet, and a shoulder moves him a little.
+            const auto nudged=walkAmongPeople(0,0,dt);
+            if(tile(nudged.x,nudged.y)&&!blocked(nudged.x,nudged.y)){lon=nudged.x;lat=nudged.y;alt=height(lon,lat);}
         }
         if(glm::length(origin.local(ecef(lon,lat,alt)))>350.)rebaseOrigin();
         if(!driving&&!sailing&&!piloting) {
@@ -4128,12 +4311,17 @@ public:
             saida::Log::info("[World E2E] player run/jump/landing/follow passed, distance=",followDistance);
             // A neighbourhood that asked for people and shows none is the
             // failure; a moor at night that asked for none is not one.
+            if(bodiesRefused>0||feetRefused) {
+                saida::Log::error("[World E2E] FAIL crowd: ",bodiesRefused," people cannot look or stagger",
+                                  feetRefused?", and the player's feet are no physics body":"");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
             if(crowdWanted()>0&&crowdLive()==0) {
                 saida::Log::error("[World E2E] FAIL crowd: ",crowdWanted()," people asked for, none placed");
                 testFailed=true;engine.sceneTree().quit();return;
             }
             saida::Log::info("[World E2E] crowd: ",crowdLive()," people of ",crowdWanted(),
-                             " asked for at ",localSolarHour(),"h solar (factor ",crowdFactor(),")");
+                             " asked for at ",localSolarHour(),"h solar (factor ",crowdFactor(),"), bumps ",playerBumps);
             smokeStarted=false;
             if(!smokeDroveOnce&&!onSeaIce(lon,lat)){startSmokeDrive();return;}
             if(!smokeDroveOnce)saida::Log::info("[World E2E] on the sea ice: no car to drive, the walk is the test");

@@ -208,7 +208,10 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   détail, dessinés à 0,8. `native/gen/crowd.cpp` cuit où l'on marche (trottoirs,
   voies piétonnes, traversées, bancs) et combien (inféré du contenu de la tuile,
   puis de l'heure solaire et de la pluie) ; on marche, attend, téléphone, discute,
-  s'assoit, on s'écarte du joueur et on fuit sa voiture.
+  s'assoit, on s'écarte du joueur et on fuit sa voiture. Joueur et passants sont
+  des corps dans la physique du moteur (Jolt) : il bute et glisse contre eux, le
+  heurt les fait chanceler et répondre, et qui le voit passer devant soi le suit
+  du regard.
 - **Aéroports et aéronefs** : `native/gen/airports.cpp` pose pistes, voies de
   circulation, aires de trafic et hélisurfaces telles qu'OSM les trace, peintes ;
   aérogares et hangars en verre et acier sauf hauteur taguée. Les appareils

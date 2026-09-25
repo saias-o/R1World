@@ -13,7 +13,8 @@ and nothing downloaded is committed except what this bakes:
 
 * `assets/models/humans/<name>.glb` -- one skinned mesh per level of detail,
   the library's own colour maps reduced (1024/512 px for the player,
-  512/256 for the crowd), the face rig folded into the head, and the clips
+  512/256 for the crowd), the face rig folded into the head but for the
+  eyes, which the game turns toward what a person looks at, and the clips
   retargeted onto the avatar (`humans_blender.py`).
 * `assets/models/humans/humans.json` -- heights, clip speeds, vertex counts
   and where every file came from, which the game reads at start-up.
@@ -74,7 +75,17 @@ CROWD_CLIPS = [
     ("talk", STATIC + "m_gestic_talk_neutral_01.max.fbx", STATIC + "f_gestic_talk_neutral_01.max.fbx", False, None),
     ("sit", STATIC + "m_sit_chair_idle_neutral_01.max.fbx", STATIC + "f_sit_chair_idle_neutral_01.max.fbx", False, None),
     ("run", TRAVEL + "m_run_slow_01.max.fbx", TRAVEL + "f_run_slow_01.max.fbx", True, None),
+    # What someone does after the player walks into them (gen/crowd.cpp):
+    # a shrug for a brush, a telling-off or dusting themselves down for a
+    # shove. The library has no fall and no stagger; the stagger itself is
+    # the engine's ImpactModifier, a spring on the spine.
+    ("shrug", STATIC + "m_gestic_shrug_01.max.fbx", STATIC + "f_gestic_shrug_01.max.fbx", False, None),
+    ("angry", STATIC + "m_idle_angry_01.max.fbx", STATIC + "f_idle_angry_01.max.fbx", False, None),
+    ("dust", STATIC + "m_idle_dust_01.max.fbx", STATIC + "f_idle_dust_01.max.fbx", False, None),
 ]
+# The reactions play for a few seconds and are cut there: a minute of
+# telling-off would be a minute of keys in every crowd model.
+CLIP_SECONDS = {"shrug": 4.0, "angry": 6.0, "dust": 6.0}
 # Triangles per level of detail. A street pedestrian of the PS2's last years
 # was 1.5-3 k triangles; the player keeps the whole scan (7.4 k).
 CROWD_LODS = [{"name": "Near", "triangles": 2400}, {"name": "Far", "triangles": 500}]
@@ -170,7 +181,7 @@ def _bake(name: str, sex: str, player: bool, work: Path, tree: list[dict]) -> di
     for clip, male, female, travels, speed in (PLAYER_CLIPS if player else CROWD_CLIPS):
         source = female if sex == "f" and female else male
         clips.append({"name": clip, "fbx": str(_fetch(source)), "inPlace": travels, "speed": speed,
-                      "file": source})
+                      "seconds": CLIP_SECONDS.get(clip), "file": source})
     model = OUT / ("player.glb" if player else f"{name.lower()}.glb")
     job = {"name": name, "avatar": str(_fetch(files["fbx"])), "textures": textures, "scale": SCALE,
            "clips": clips, "jump": "sprint" if player else None, "jumpSeconds": 0.74,
@@ -233,8 +244,8 @@ def _register(files: list[str]) -> None:
     doc["assets"].append({
         "name": name, "author": "Microsoft (Rocketbox Studios)", "source": f"https://github.com/{REPO}/tree/{COMMIT}",
         "license": "MIT", "licenseFile": LICENSE, "generatedBy": "game/tools/r1/humans.py",
-        "modifications": "retargeted motion-capture clips, face rig folded into the head, decimated levels of "
-                         "detail, colour maps reduced; normal and specular maps not used",
+        "modifications": "retargeted motion-capture clips, face rig folded into the head but for the eyes, "
+                         "decimated levels of detail, colour maps reduced; normal and specular maps not used",
         "files": sorted(files),
     })
     path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
