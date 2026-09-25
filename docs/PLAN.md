@@ -122,9 +122,11 @@ tuile dit lequel a répondu.
 | Trafic maritime moyen | Global Shipping Traffic Density (Banque mondiale) | CC BY 4.0 |
 
 Les données dérivées d'OSM sont soumises à l'ODbL, avec attribution visible en
-jeu. Aucune source `CC BY-NC`. Les assets sont **CC0 exclusivement** (Poly
-Haven, ambientCG, Kenney) ou dessinés par le projet, normalisés avant d'entrer :
-échelle métrique, albédos mesurés, un asset non conforme n'entre pas.
+jeu. Aucune source `CC BY-NC`. Les assets sont **CC0** (Poly Haven, ambientCG,
+Kenney) ou dessinés par le projet, avec une exception : les personnages sont
+Microsoft Rocketbox, **MIT**, notice conservée (`assets/licenses/`) et crédit en
+jeu, faute d'humains scannés et riggés en CC0. Tous sont normalisés avant
+d'entrer : échelle métrique, albédos mesurés, un asset non conforme n'entre pas.
 
 ---
 
@@ -199,7 +201,14 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   trois niveaux de détail dans `assets/world/landmarks/`. Ancre et orientation
   mesurées sur l'élément OSM trouvé par son `wikidata`, hauteur officielle.
 - **Voiture et circulation** : `F` pour monter/descendre, n'importe quelle voiture
-  se prend ; trafic sur le graphe OSM, `maxspeed` tagué d'abord.
+  se prend ; trafic sur le graphe OSM, `maxspeed` tagué d'abord. Véhicules
+  dessinés à 0,8 de leur taille, comme les personnes.
+- **Personnes et foule** : le joueur et la foule sont des scans riggés Rocketbox
+  (`r1/humans.py`), clips de capture de mouvement reciblés, deux niveaux de
+  détail, dessinés à 0,8. `native/gen/crowd.cpp` cuit où l'on marche (trottoirs,
+  voies piétonnes, traversées, bancs) et combien (inféré du contenu de la tuile,
+  puis de l'heure solaire et de la pluie) ; on marche, attend, téléphone, discute,
+  s'assoit, on s'écarte du joueur et on fuit sa voiture.
 - **Aéroports et aéronefs** : `native/gen/airports.cpp` pose pistes, voies de
   circulation, aires de trafic et hélisurfaces telles qu'OSM les trace, peintes ;
   aérogares et hangars en verre et acier sauf hauteur taguée. Les appareils
@@ -229,15 +238,6 @@ Chacune garde les règles du projet : rien ne dégrade un asset existant
 (`CLAUDE.md` §1), les couleurs sont des albédos, tout ce qui est inféré le dit
 dans le manifeste (I5), et le coût se compte contre l'arène et le CPU de la
 machine de référence (I4).
-
-### Human update
-- **Personnage jouable plus réaliste** : proportions, visage et animations plus
-  crédibles, en restant sobre en polygones et avec des niveaux de détail.
-- **Foule à la GTA PS2** : des passants vivants (marcher, attendre, traverser,
-  s'asseoir), en instances partagées comme les props.
-- **Densité automatique selon le lieu** : déduite de ce que la tuile contient
-  (commerces, bâti, transports, heure réelle), dense sur une avenue
-  commerçante, rare dans un village, personne en rase campagne la nuit.
 
 ### Animals update
 - **Beaucoup d'animaux, adaptés à l'endroit** : l'espèce découle du biome, de

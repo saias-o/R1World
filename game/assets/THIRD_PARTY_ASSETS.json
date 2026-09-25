@@ -25,7 +25,7 @@
       ]
     },
     {
-      "name": "Kenney Nature Kit \u2014 conifers",
+      "name": "Kenney Nature Kit — conifers",
       "usedInScene": false,
       "author": "Kenney",
       "source": "https://kenney.nl/assets/nature-kit",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "name": "Kenney props \u2014 street furniture and vegetation",
+      "name": "Kenney props — street furniture and vegetation",
       "author": "Kenney",
       "source": "https://kenney.nl/assets/city-kit-roads, https://kenney.nl/assets/graveyard-kit, https://kenney.nl/assets/fantasy-town-kit, https://kenney.nl/assets/nature-kit",
       "license": "CC0 1.0",
@@ -64,7 +64,7 @@
       ]
     },
     {
-      "name": "Kenney Car Kit \u2014 legacy unused sedan",
+      "name": "Kenney Car Kit — legacy unused sedan",
       "author": "Kenney",
       "source": "https://kenney.nl/assets/car-kit",
       "license": "CC0 1.0",
@@ -76,7 +76,7 @@
       ]
     },
     {
-      "name": "Kenney Watercraft Kit \u2014 boats, ships and containers",
+      "name": "Kenney Watercraft Kit — boats, ships and containers",
       "author": "Kenney",
       "source": "https://kenney.nl/assets/watercraft-kit",
       "license": "CC0 1.0",
@@ -712,6 +712,31 @@
         "assets/models/aircraft/bizjet_far.glb",
         "assets/models/aircraft/helicopter.glb",
         "assets/models/aircraft/helicopter_far.glb"
+      ]
+    },
+    {
+      "name": "Microsoft Rocketbox Avatar Library - player and crowd",
+      "author": "Microsoft (Rocketbox Studios)",
+      "source": "https://github.com/microsoft/Microsoft-Rocketbox/tree/0943055db6ec570bcef9f2c8b41c9e5467c808f9",
+      "license": "MIT",
+      "licenseFile": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
+      "generatedBy": "game/tools/r1/humans.py",
+      "modifications": "retargeted motion-capture clips, face rig folded into the head, decimated levels of detail, colour maps reduced; normal and specular maps not used",
+      "files": [
+        "assets/models/humans/business_female_03.glb",
+        "assets/models/humans/business_male_02.glb",
+        "assets/models/humans/female_adult_01.glb",
+        "assets/models/humans/female_adult_02.glb",
+        "assets/models/humans/female_adult_05.glb",
+        "assets/models/humans/female_adult_08.glb",
+        "assets/models/humans/female_adult_14.glb",
+        "assets/models/humans/humans.json",
+        "assets/models/humans/male_adult_01.glb",
+        "assets/models/humans/male_adult_03.glb",
+        "assets/models/humans/male_adult_05.glb",
+        "assets/models/humans/male_adult_06.glb",
+        "assets/models/humans/male_adult_13.glb",
+        "assets/models/humans/player.glb"
       ]
     }
   ]

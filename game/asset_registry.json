@@ -100,11 +100,6 @@
             "path": "assets/textures/surfaces/rock_mr.jpg",
             "type": "Texture"
         },
-        "10965556304463422824": {
-            "hash": 11390647631395167607,
-            "path": "assets/models/characters/player.glb",
-            "type": "Mesh"
-        },
         "1099925608537163141": {
             "hash": 6093935909095271028,
             "path": "assets/textures/surfaces/membrane_normal.jpg",
@@ -145,10 +140,20 @@
             "path": "assets/models/external/nature_selected/shrub.png",
             "type": "Texture"
         },
+        "1132348243290517549": {
+            "hash": 5286305816062055729,
+            "path": "assets/models/humans/male_adult_03.glb",
+            "type": "Mesh"
+        },
         "11325206094784922751": {
             "hash": 14978359545312136695,
             "path": "assets/textures/surfaces/forest_boreal_mr.jpg",
             "type": "Texture"
+        },
+        "11347265170864036363": {
+            "hash": 7385187855126968932,
+            "path": "assets/models/humans/female_adult_14.glb",
+            "type": "Mesh"
         },
         "11381784806612477552": {
             "hash": 818268933673101980,
@@ -275,6 +280,11 @@
             "path": "assets/models/external/nature_selected/grass_fresh.glb",
             "type": "Mesh"
         },
+        "12230691909850795833": {
+            "hash": 958389266597767904,
+            "path": "assets/models/humans/business_female_03.glb",
+            "type": "Mesh"
+        },
         "12307046234654400368": {
             "hash": 12136370461614285011,
             "path": "assets/skies/qwantani_afternoon.hdr",
@@ -390,6 +400,11 @@
             "path": "assets/textures/surfaces/riprap_albedo.jpg",
             "type": "Texture"
         },
+        "12848936806082929718": {
+            "hash": 11475607845990785760,
+            "path": "assets/models/humans/male_adult_13.glb",
+            "type": "Mesh"
+        },
         "12890509710164325837": {
             "hash": 5882390638137486309,
             "path": "assets/models/external/kenney_nature_kit/pine_sapling_small.bin",
@@ -500,6 +515,11 @@
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_diff_1k.jpg",
             "type": "Texture"
         },
+        "13691125909844886477": {
+            "hash": 9890524951285834822,
+            "path": "assets/models/humans/male_adult_01.glb",
+            "type": "Mesh"
+        },
         "1370305236008188240": {
             "hash": 8826245472379100950,
             "path": "assets/models/external/kenney_boats/boat_row_large.glb",
@@ -595,6 +615,11 @@
             "path": "assets/textures/facades/concrete_albedo.jpg",
             "type": "Texture"
         },
+        "14521854439017818613": {
+            "hash": 5987412245476850602,
+            "path": "assets/models/humans/female_adult_01.glb",
+            "type": "Mesh"
+        },
         "14545802220005290627": {
             "hash": 5047536361014655765,
             "path": "assets/models/vehicles/suv_far.glb",
@@ -644,6 +669,16 @@
             "hash": 8205072317706118071,
             "path": "assets/skies/qwantani_sunrise.hdr",
             "type": "Texture"
+        },
+        "14927369103000231322": {
+            "hash": 13073724166958232830,
+            "path": "assets/models/humans/humans.json",
+            "type": "Unknown"
+        },
+        "15019270674025316176": {
+            "hash": 11567830848527203824,
+            "path": "assets/models/humans/male_adult_05.glb",
+            "type": "Mesh"
         },
         "15144374929398895871": {
             "hash": 5468161483455873345,
@@ -759,6 +794,11 @@
             "hash": 14674249759734331411,
             "path": "assets/textures/facades/concrete_mr.jpg",
             "type": "Texture"
+        },
+        "15791888498194818231": {
+            "hash": 9702361317725699592,
+            "path": "assets/models/humans/player.glb",
+            "type": "Mesh"
         },
         "15852081403785450949": {
             "hash": 7713755728187426623,
@@ -894,6 +934,11 @@
             "hash": 13749321095108145938,
             "path": "assets/world/landmarks/sagrada_familia-r3-lod2.glb",
             "type": "Mesh"
+        },
+        "17532463796590925610": {
+            "hash": 3944752067792312599,
+            "path": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
+            "type": "Unknown"
         },
         "17534997703788934449": {
             "hash": 1097544280952446221,
@@ -1075,6 +1120,11 @@
             "path": "assets/textures/facades/siding_albedo.jpg",
             "type": "Texture"
         },
+        "2443161651121710857": {
+            "hash": 17567177768369584604,
+            "path": "assets/models/humans/male_adult_06.glb",
+            "type": "Mesh"
+        },
         "2444937345355907243": {
             "hash": 14217257955108901957,
             "path": "assets/textures/facades/brick_buff_normal.jpg",
@@ -1213,6 +1263,11 @@
         "3531514859552178091": {
             "hash": 7675569649326220548,
             "path": "assets/models/external/kenney_props/bench.glb",
+            "type": "Mesh"
+        },
+        "3547938176905193422": {
+            "hash": 18225439252605175651,
+            "path": "assets/models/humans/female_adult_08.glb",
             "type": "Mesh"
         },
         "3573493971231466178": {
@@ -1555,6 +1610,11 @@
             "path": "assets/world/landmarks/parthenon-r3.glb",
             "type": "Mesh"
         },
+        "6006182533386509906": {
+            "hash": 2113869125541306703,
+            "path": "assets/models/humans/female_adult_02.glb",
+            "type": "Mesh"
+        },
         "6021941552408368945": {
             "hash": 3327070197725738622,
             "path": "assets/textures/surfaces/tile_flat_albedo.jpg",
@@ -1810,6 +1870,11 @@
             "path": "assets/textures/surfaces/membrane_albedo.jpg",
             "type": "Texture"
         },
+        "8219947540979757024": {
+            "hash": 653703480226071917,
+            "path": "assets/models/humans/female_adult_05.glb",
+            "type": "Mesh"
+        },
         "8407279682963389319": {
             "hash": 9482857347900368384,
             "path": "assets/textures/surfaces/tile_flat_normal.jpg",
@@ -1824,6 +1889,11 @@
             "hash": 382952220692759452,
             "path": "assets/textures/surfaces/metal_seam_albedo.jpg",
             "type": "Texture"
+        },
+        "8458200714310578071": {
+            "hash": 2539195542312956097,
+            "path": "assets/models/humans/business_male_02.glb",
+            "type": "Mesh"
         },
         "8461370359445157452": {
             "hash": 14272083766030083516,

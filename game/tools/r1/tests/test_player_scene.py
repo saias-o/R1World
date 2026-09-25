@@ -12,7 +12,7 @@ GAME = Path(__file__).resolve().parents[3]
 
 
 class PlayerScene(unittest.TestCase):
-    PLAYER_MODEL = 'assets/models/characters/player.glb'
+    PLAYER_MODEL = 'assets/models/humans/player.glb'
 
     def check_player(self, scene):
         player = next(n for n in scene['scene']['children'] if 'player' in n.get('groups', []))

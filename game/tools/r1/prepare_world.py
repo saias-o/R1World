@@ -92,7 +92,7 @@ def main():
                                         "turbidity":WORLD_TURBIDITY,"altitude":0.0,
                                         "peakIntensity":solar.PEAK_INTENSITY}}]),
         node("Node","Player",groups=["player"],children=[
-            node("Node","Body",importedFrom="assets/models/characters/player.glb",
+            node("Node","Body",importedFrom="assets/models/humans/player.glb",
                  transform={"position":[0,0,0],"rotation":[0,1,0,0],"scale":[1,1,1]})]),
         # The player's car, and a member of the entry scene rather than of a
         # tile: it is his, so it survives the neighbourhood he teleports out of

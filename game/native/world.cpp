@@ -27,6 +27,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <nlohmann/json.hpp>
 #include "saida/traffic/Traffic.hpp"
+#include "gen/crowd.hpp"
 #include "gen/landmarks.hpp"
 #include "gen/palette.hpp"
 #include "gen/sea.hpp"
@@ -41,6 +42,7 @@
 #include <ctime>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <functional>
 #include <optional>
 
@@ -72,8 +74,14 @@ constexpr double kCarReach=4.5;         // m -- how close you stand to open the 
 constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refused out loud
 constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for water
 constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
-constexpr double kPlayerHeight=1.8;     // measured from player.glb's mesh accessor
-constexpr double kSwimHeadAbove=.60;    // keep the head and neck clear of the water
+// The player's height is read from assets/models/humans/humans.json, drawn
+// at its `scale`; the head stays this fraction of it clear of the water.
+constexpr double kSwimHeadAbove=.33;
+// Road vehicles are drawn at 80% of the size r1/vehicle_fleet.py authors
+// them at, as people are at 80% of their scan (r1/humans.py): the player's
+// call, made looking at them in the streets. Dimensions read from the fleet
+// manifest are scaled with them, so doors, cameras and gaps agree.
+constexpr double kVehicleScale=.8;
 // §5: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
@@ -113,6 +121,11 @@ constexpr double kGravity=9.81;
 // one: a car is five primitives, so forty cars is two hundred draws, which is
 // what the reference machine can spare beside a city.
 constexpr size_t kTrafficCars=80;
+// How many people the neighbourhood may show at once. Each is one skinned
+// draw per material (two or three) and one animator: sixty is what the
+// reference machine spends on a street without it showing in the frame time,
+// and the animators far away pose at a lower rate (World::syncPeople).
+constexpr size_t kCrowdPeople=60;
 // How many cars the player may leave standing around before the oldest is
 // cleared. They cost a node each and nothing else -- the mesh is shared -- but
 // a city paved with the player's abandoned cars is its own kind of wrong.
@@ -296,6 +309,13 @@ PreparedTile prepareTile(const r1::CookedTile& tile) {
     return prepared;
 }
 
+// One of the crowd, as drawn: a pooled node with its own animator, the
+// shared meshes of one avatar under it (World::makePerson).
+struct Person {
+    saida::Node* node=nullptr; saida::Animator* animator=nullptr;
+    const char* clip=""; float poseRate=-1.f;
+};
+
 struct Loaded {
     saida::Node* node=nullptr;
     // The cooked tile this was mounted from. Its manifest and its prop list
@@ -318,6 +338,10 @@ struct Loaded {
     std::vector<std::vector<saida::Node*>> carWheels;
     std::vector<double> carSpin;
     size_t wanted=0;                      // cars this tile's density asks for
+    // The people on its pavements (gen/crowd.hpp): the same shape as the
+    // traffic, for the same reason -- the crowd points at the graph.
+    r1::WalkGraph walks; r1::Crowd crowd;
+    std::vector<Person> people;           // keyed by walker slot, pooled
     // The manifest unpacked once at mount, because a frame cannot afford to
     // read JSON. See World::unpack.
     double west=0,east=0,south=0,north=0;
@@ -423,6 +447,202 @@ class World : public Rml::EventListener {
     };
     std::vector<VehicleModel> fleet;
     std::vector<glm::vec3> paints;
+
+    // ── people ──────────────────────────────────────────────────────────────
+    //
+    // assets/models/humans/humans.json (r1/humans.py): the player and the
+    // crowd, Rocketbox scans with their clips retargeted onto them. A crowd
+    // avatar is imported once into the shared prototypes; each person is a
+    // node of its own with its own animator over the avatar's shared meshes,
+    // rig and clips, so twelve avatars cost twelve uploads however many walk.
+    json humans;
+    double humanScale=.8,playerHeight=1.46;
+    struct HumanKind {
+        std::string name,model;
+        std::vector<std::pair<std::string,std::vector<std::unique_ptr<saida::MeshNode>>>> levels;
+        saida::Rig* rig=nullptr;
+        std::vector<std::pair<std::string,const saida::AnimationClip*>> clips;
+        r1::CrowdPace pace;
+        double seatDrop=0;  // origin below a seat's top when seated
+        bool ready=false;
+    };
+    std::vector<HumanKind> crowdKinds;
+    std::vector<r1::CrowdPace> crowdPace;
+    void loadHumans() {
+        std::ifstream input(game/"assets/models/humans/humans.json");
+        if(!input)throw std::runtime_error("Missing assets/models/humans/humans.json (python -m r1.humans)");
+        input>>humans;
+        humanScale=humans.at("scale").get<double>();
+        playerHeight=humans.at("player").at("height").get<double>()*humanScale;
+        for(const auto& entry:humans.at("crowd")) {
+            HumanKind kind;
+            kind.name=entry.at("name");kind.model=entry.at("model");
+            const auto& clips=entry.at("clips");
+            for(const char* clip:{"idle","walk","wait","phone","talk","sit","run"})
+                if(!clips.contains(clip))throw std::runtime_error("Crowd avatar "+kind.name+" has no clip "+clip);
+            // Drawn at `scale`, a clip covers ground at its captured speed
+            // times the scale, and a walker moving any faster would skate.
+            kind.pace.walk=clips.at("walk").at("speed").get<double>()*humanScale;
+            kind.pace.run=clips.at("run").at("speed").get<double>()*humanScale;
+            // A seated pelvis sits about 14 cm above the seat it was captured
+            // on (a 45 cm chair under a 59 cm pelvis), at the avatar's scale.
+            kind.seatDrop=(entry.at("seat").at("pelvisHeight").get<double>()-.14)*humanScale;
+            crowdPace.push_back(kind.pace);
+            warmList.push_back(kind.model);
+            crowdKinds.push_back(std::move(kind));
+        }
+        if(crowdKinds.empty())throw std::runtime_error("humans.json lists no crowd");
+        saida::Log::info("[World crowd] ",crowdKinds.size()," avatars, player ",playerHeight,
+                         " m, shared vertices=",humans.value("sharedVertices",0));
+    }
+    // A crowd avatar's shared parts, taken from its prototype on first use:
+    // its meshes by level of detail, its rig and its clips.
+    HumanKind* humanKind(size_t index) {
+        HumanKind& kind=crowdKinds[index%crowdKinds.size()];
+        if(kind.ready)return kind.rig?&kind:nullptr;
+        kind.ready=true;
+        saida::Node* source=prototype(kind.model);
+        if(!source){saida::Log::error("[World crowd] avatar will not load: ",kind.model);return nullptr;}
+        std::vector<saida::Animator*> animators;
+        source->findBehavioursInChildren(animators);
+        if(animators.empty()||!animators.front()->rig()) {
+            saida::Log::error("[World crowd] avatar has no skeleton: ",kind.model);return nullptr;
+        }
+        kind.rig=const_cast<saida::Rig*>(animators.front()->rig());
+        for(const auto& [name,clip]:animators.front()->clips())kind.clips.push_back({name,clip});
+        std::function<void(saida::Node&,const saida::Transform&,const std::string&)> walk=
+            [&](saida::Node& n,const saida::Transform& above,const std::string& level) {
+                saida::Transform here;
+                here.rotation=above.rotation*n.transform().rotation;
+                here.scale=above.scale*n.transform().scale;
+                here.position=above.position+above.rotation*(above.scale*n.transform().position);
+                const std::string mine=n.name()=="Near"||n.name()=="Far"?n.name():level;
+                if(n.mesh()&&!mine.empty()) {
+                    auto mesh=std::make_unique<saida::MeshNode>(n.name(),n.mesh(),n.material());
+                    mesh->transform()=here;
+                    auto found=std::find_if(kind.levels.begin(),kind.levels.end(),[&](const auto& l){return l.first==mine;});
+                    if(found==kind.levels.end()){kind.levels.emplace_back(mine,std::vector<std::unique_ptr<saida::MeshNode>>{});found=kind.levels.end()-1;}
+                    found->second.push_back(std::move(mesh));
+                }
+                for(auto& c:n.children())walk(*c,here,mine);
+            };
+        walk(*source,saida::Transform{},"");
+        if(kind.levels.size()!=2) {
+            saida::Log::error("[World crowd] ",kind.model," has ",kind.levels.size()," levels of detail, not Near and Far");
+            kind.rig=nullptr;return nullptr;
+        }
+        return &kind;
+    }
+    saida::Node* makePerson(Loaded& tile,size_t slot) {
+        HumanKind* kind=humanKind(slot);
+        if(!kind)return nullptr;
+        auto root=std::make_unique<saida::Node>("person-"+kind->name);
+        auto* animator=root->addBehaviour<saida::Animator>();
+        animator->setRig(kind->rig);
+        for(const auto& [name,clip]:kind->clips)animator->addClip(name,clip);
+        for(const auto& [level,meshes]:kind->levels) {
+            auto holder=std::make_unique<saida::Node>(level);
+            for(const auto& m:meshes) {
+                auto mesh=std::make_unique<saida::MeshNode>(m->name(),m->mesh(),m->material());
+                mesh->transform()=m->transform();
+                holder->addChild(std::move(mesh));
+            }
+            root->addChild(std::move(holder));
+        }
+        // Near while a person stands taller than about 3.5% of the screen,
+        // some 35 m away; the far model's 500 triangles beyond.
+        root->addBehaviour<saida::LODGroupBehaviour>()->setLevels({{"Near",.035f},{"Far",0.f}});
+        root->transform().scale=glm::vec3(float(humanScale));
+        return tile.node->addChild(std::move(root));
+    }
+    void readCrowd(Loaded& tile) {
+        tile.walks=r1::WalkGraph::from(tile.data.value("crowd",json()));
+        tile.crowd.reset(&tile.walks,uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u,crowdPace);
+    }
+    // The hour where the player stands, by the Sun: 12 when it is highest.
+    double localSolarHour() {
+        double unixSeconds=double(std::time(nullptr));gameTime(unixSeconds);
+        return std::fmod(std::fmod(unixSeconds/3600.+lon/15.,24.)+24.,24.);
+    }
+    double crowdFactor() {
+        double factor=r1::crowdHourFactor(localSolarHour());
+        // Rain and falling snow send people indoors, about half of them.
+        if(weather.known&&(weather.rain>.5||weather.snowfall>.3))factor*=.5;
+        return factor;
+    }
+    void updateCrowd(float delta) {
+        if(crowdKinds.empty())return;
+        size_t remaining=kCrowdPeople;
+        const double factor=crowdFactor();
+        for(auto tile:ring) {
+            auto found=loaded.find(tile.key());
+            if(found==loaded.end())continue;
+            Loaded& l=found->second;
+            if(l.walks.links.empty())continue;
+            const size_t share=std::min<size_t>(size_t(std::lround(l.walks.people*factor)),remaining);
+            remaining-=share;
+            l.crowd.setPopulation(int(share));
+            r1::Crowd::Scene scene;
+            const glm::dvec3 eye=cameraTileLocal(l);
+            scene.eyeX=eye.x;scene.eyeZ=eye.z;
+            const glm::vec3 ahead=camera->transform().rotation*glm::vec3(0,0,-1);
+            const glm::dvec3 look=glm::transpose(l.frame.basis)*origin.basis*glm::dvec3(ahead.x,ahead.y,ahead.z);
+            const double flat=std::hypot(look.x,look.z);
+            if(flat>1e-6){scene.faceX=look.x/flat;scene.faceZ=look.z/flat;}
+            if(driving) {
+                const glm::dvec3 p=l.frame.local(ecef(carLon,carLat,carAlt));
+                scene.carX=p.x;scene.carZ=p.z;scene.carSpeed=std::abs(carSpeed);
+            } else if(!sailing&&!piloting&&!swimming) {
+                const glm::dvec3 p=l.frame.local(ecef(lon,lat,alt));
+                scene.playerX=p.x;scene.playerZ=p.z;
+            }
+            l.crowd.update(std::min(.05,double(delta)),scene);
+            syncPeople(l,eye);
+        }
+    }
+    void syncPeople(Loaded& tile,const glm::dvec3& eye) {
+        const auto& walkers=tile.crowd.walkers();
+        if(tile.people.size()<walkers.size())tile.people.resize(walkers.size());
+        for(size_t i=0;i<tile.people.size();++i) {
+            Person& p=tile.people[i];
+            const bool live=i<walkers.size()&&walkers[i].alive;
+            if(!p.node) {
+                if(!live)continue;
+                p.node=makePerson(tile,i);
+                if(!p.node)continue;
+                p.animator=p.node->getBehaviour<saida::Animator>();
+            }
+            if(!live){p.node->setVisible(false);continue;}
+            p.node->setVisible(true);
+            const r1::Walker& w=walkers[i];
+            double y=w.y;
+            if(w.activity==r1::Activity::Sit)y-=crowdKinds[i%crowdKinds.size()].seatDrop;
+            p.node->transform().position=glm::vec3(float(w.x),float(y),float(w.z));
+            // Modelled facing +Z, like the player's body; this world's forward is -Z.
+            p.node->transform().rotation=glm::angleAxis(float(-w.heading),glm::vec3(0,1,0))*glm::quat(0,0,1,0);
+            const char* clip=r1::clipOf(w.activity);
+            if(std::strcmp(clip,p.clip)!=0){p.animator->play(clip);p.clip=clip;}
+            // Animation LOD: a pose every frame close by; further out the pose
+            // is resampled at 15, 8 and 4 Hz and held in between, which costs
+            // nothing (Animator::PoseRateMode::Hold).
+            const double d=std::hypot(w.x-eye.x,w.z-eye.z);
+            const float rate=d<12.?0.f:d<30.?15.f:d<60.?8.f:4.f;
+            if(rate!=p.poseRate) {
+                p.animator->setPoseRate(rate,saida::Animator::PoseRateMode::Hold);
+                p.poseRate=rate;
+            }
+        }
+    }
+    size_t crowdWanted() const {
+        size_t n=0;
+        for(const auto& [key,tile]:loaded)n+=size_t(tile.crowd.wanted());
+        return n;
+    }
+    size_t crowdLive() const {
+        size_t n=0;
+        for(const auto& [key,tile]:loaded)n+=size_t(tile.crowd.live());
+        return n;
+    }
     // Tiles are cooked in this process, on the service's threads (gen/).
     std::unique_ptr<r1::WorldService> service;
     std::map<std::string,saida::AssetID> textures;
@@ -2201,12 +2421,14 @@ class World : public Rml::EventListener {
             VehicleModel spec;
             spec.name=entry.at("name");spec.length=entry.at("length");spec.width=entry.at("width");
             spec.height=entry.at("height");spec.wheelbase=entry.at("wheelbase");spec.wheelRadius=entry.at("wheelRadius");
+            for(double* d:{&spec.length,&spec.width,&spec.height,&spec.wheelbase,&spec.wheelRadius})*d*=kVehicleScale;
             auto root=std::make_unique<saida::Node>("vehicle-"+spec.name);
             for(const auto& level:std::vector<std::pair<std::string,std::string>>{{"near","Near"},{"far","Far"}}) {
                 auto* source=prototype(entry.at(level.first).at("path").get<std::string>());
                 if(!source)throw std::runtime_error("Vehicle asset failed: "+spec.name);
                 auto child=clonePlant(*source);child->setName(level.second);
                 child->transform().rotation=glm::quat(0,0,1,0); // Authored forward +Z.
+                child->transform().scale=glm::vec3(float(kVehicleScale));
                 root->addChild(std::move(child));
             }
             spec.prototype=prototypes->addChild(std::move(root));fleet.push_back(spec);
@@ -2792,6 +3014,7 @@ class World : public Rml::EventListener {
                 // out from under it.
                 unpack(entry->second);
                 readGraph(entry->second);
+                readCrowd(entry->second);
                 mountAircraft(entry->second);
                 placeTiles();
                 lastMountMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-mountStarted).count();
@@ -2899,8 +3122,11 @@ public:
         if(!player)throw std::runtime_error("Earth scene is missing the player");
         player->findBehavioursInChildren(animators);
         if(animators.empty())throw std::runtime_error("Player model has no Animator");
+        loadHumans();
+        // The body is drawn at the people's scale; its height is the manifest's.
+        for(auto& child:player->children())child->transform().scale=glm::vec3(float(humanScale));
         for(auto* a:animators) {
-            for(auto clip:{"idle","run","jump"})
+            for(auto clip:{"idle","run","sprint","jump"})
                 if(!a->clips().count(clip))throw std::runtime_error(std::string("Player animation missing: ")+clip);
             a->play("idle");
         }
@@ -2909,6 +3135,7 @@ public:
         car=e.sceneTree().firstInGroup("vehicle");
         if(!car)throw std::runtime_error("Earth scene is missing the player's car");
         car->setEnabled(false);
+        for(auto& child:car->children())child->transform().scale=glm::vec3(float(kVehicleScale));
         // The kit names its four wheels, and the names are the contract: a
         // re-export that renamed them would leave a car sliding on frozen
         // wheels, which is a silent regression. It is said once, out loud.
@@ -3180,7 +3407,7 @@ public:
         if(smokeSailTime<1.5)return;
         const double covered=glm::length(ecef(lon,lat,alt)-smokeSwimStart);
         const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
-        if(!swimming||!onWater(lon,lat)||covered<1.||rootBelow<.7||rootBelow>1.4) {
+        if(!swimming||!onWater(lon,lat)||covered<1.||rootBelow<playerHeight*.39||rootBelow>playerHeight*.78) {
             saida::Log::error("[World E2E] FAIL swim: covered=",covered,"m, water=",onWater(lon,lat),
                               ", body depth=",rootBelow,"m");
             testFailed=true;engine.sceneTree().quit();return;
@@ -3620,7 +3847,7 @@ public:
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
         if(!fast)cost.props=timed([&]{streamProps();});
         cost.distant=timed([&]{updateFar();updateFarPack();});
-        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateSea(delta);});
+        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateCrowd(delta);updateSea(delta);});
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
         if((farPack.node!=nullptr)!=fogFar)applyWeather();
@@ -3750,7 +3977,7 @@ public:
                 swimLean+=(double(moving)-swimLean)*(1-std::exp(-5*dt));
                 const double lean=35.*rad*swimLean;
                 const double heave=.035*std::sin(swimTime*4.);
-                const double rootBelow=kPlayerHeight*std::cos(lean)-kSwimHeadAbove;
+                const double rootBelow=playerHeight*(std::cos(lean)-kSwimHeadAbove);
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt-rootBelow+heave)));
                 player->transform().rotation=glm::angleAxis(float(-swimHeading*rad),glm::vec3(0,1,0))
                                              *glm::angleAxis(float(-lean),glm::vec3(1,0,0));
@@ -3764,7 +3991,8 @@ public:
                 jumpVelocity-=22*dt;
                 if(jumpOffset<=0){jumpOffset=0;jumpVelocity=0;}
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
-                for(auto* a:animators)a->play(jumpOffset>0?"jump":moving?"run":"idle");
+                const bool sprint=moving&&w.keyDown(GLFW_KEY_LEFT_SHIFT);
+                for(auto* a:animators)a->play(jumpOffset>0?"jump":sprint?"sprint":moving?"run":"idle");
             }
         }
         updateSinkingCar(dt);
@@ -3786,7 +4014,7 @@ public:
         const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
                               :piloting?plane.type->length*.9+10.
                               :driving?std::max(kDrivingFollow,vehicleSpec(*car).length*.7+5.):kOnFootFollow;
-        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?2.1:1.6;
+        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?playerHeight*1.17:playerHeight*.89;
         const glm::vec3 anchor=sailing&&boat.node?boat.node->transform().position
                               :piloting&&plane.node?plane.node->transform().position
                               :driving?car->transform().position:player->transform().position;
@@ -3880,7 +4108,7 @@ public:
         if(smokeWaterSpawn&&smokeWalk>1.5) {
             const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
             const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
-            testFailed=!swimming||!onWater(lon,lat)||carParked||covered<1.||rootBelow<.7||rootBelow>1.4;
+            testFailed=!swimming||!onWater(lon,lat)||carParked||covered<1.||rootBelow<playerHeight*.39||rootBelow>playerHeight*.78;
             saida::Log::info("[World E2E] ",testFailed?"FAIL":"PASS"," water spawn: swam ",covered,
                              "m, body depth=",rootBelow,"m, car parked=",carParked);
             engine.sceneTree().quit();return;
@@ -3894,6 +4122,14 @@ public:
                 saida::Log::error("[World E2E] FAIL player animation/jump/follow");testFailed=true;engine.sceneTree().quit();return;
             }
             saida::Log::info("[World E2E] player run/jump/landing/follow passed, distance=",followDistance);
+            // A neighbourhood that asked for people and shows none is the
+            // failure; a moor at night that asked for none is not one.
+            if(crowdWanted()>0&&crowdLive()==0) {
+                saida::Log::error("[World E2E] FAIL crowd: ",crowdWanted()," people asked for, none placed");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            saida::Log::info("[World E2E] crowd: ",crowdLive()," people of ",crowdWanted(),
+                             " asked for at ",localSolarHour(),"h solar (factor ",crowdFactor(),")");
             smokeStarted=false;
             if(!smokeDroveOnce&&!onSeaIce(lon,lat)){startSmokeDrive();return;}
             if(!smokeDroveOnce)saida::Log::info("[World E2E] on the sea ice: no car to drive, the walk is the test");

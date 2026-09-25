@@ -15,6 +15,9 @@ bool isMotorway(const std::string& highway);
 // A length tag in metres, or `fallback` when absent or absurd (0 < n <= 50).
 double lengthTag(const std::string* value, double fallback);
 double roadWidth(const Tags& tags);
+// The sides ("left", "right") a road has a sidewalk on, and whether that is
+// inferred (an urban street with no `sidewalk` tag) rather than tagged.
+std::vector<std::pair<std::string, bool>> sidewalkSides(const Tags& tags);
 
 // Lays flat regions (engine x, z) on the rendered terrain: each triangle is
 // cut to the terrain triangle under it and takes that triangle's plane, so a

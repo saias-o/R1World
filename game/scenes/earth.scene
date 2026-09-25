@@ -57,7 +57,7 @@
             "enabled": true,
             "children": [],
             "behaviours": [],
-            "importedFrom": "assets/models/characters/player.glb",
+            "importedFrom": "assets/models/humans/player.glb",
             "transform": {
               "position": [
                 0,

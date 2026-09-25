@@ -14,7 +14,7 @@ A map of the Earth opens. Click a place, or type coordinates, or take one of the
 five shortcuts, then press **Go**. The starting tile is downloaded, cooked and
 mounted first; you land as soon as it is safe, while surrounding tiles and
 decorative objects continue streaming during play:
-The animated character is controlled in third person.
+The player, a scanned and rigged Rocketbox avatar, is controlled in third person, among a crowd drawn from the same library (see [The people](#the-people)).
 **ZQSD / WASD** to walk, **Maj** to run, **Space** to jump, the mouse to orbit, **M** or **Échap**
 for the map again, **Reprendre** to return where you were. A car is parked
 beside you at every arrival and the streets have traffic on them: **F** gets in
@@ -695,7 +695,8 @@ both come straight back; standing still costs nothing.
 — city car, saloon, SUV, off-roader, sports car, lorry and bus — each with a
 near model and a far one without trim, switched by `LODGroupBehaviour`.
 `assets/models/vehicles/fleet.json` lists their dimensions and vertex counts
-(27 732 for the whole fleet) and the game reads it at start-up. The player's
+(27 732 for the whole fleet) and the game reads it at start-up, drawing them
+and their dimensions at 0.8 (see [Smaller, on purpose](#smaller-on-purpose)). The player's
 car is the city car; traffic draws from the whole fleet, mostly cars, with
 lorries and buses only on faster through roads.
 
@@ -1233,6 +1234,118 @@ seen from afar on land. The sky shows a faint vertical seam where the
 equirectangular photograph wraps. It is the engine's, turns with the Sun, and
 shows most on an even grey sky.
 
+## The people
+
+The player and everyone in the street are people now, not a kit figure: the
+Kenney block character is gone, and in its place are thirteen scanned and
+rigged avatars from Microsoft's **Rocketbox** library (MIT), everyday clothes
+only, six men and six women in the crowd and one for the player.
+
+```powershell
+python -m r1.humans        # from game/tools, with Blender 4.2 installed
+```
+
+### One library for the player and the crowd
+
+Rocketbox is 115 characters on one 3ds Max biped and 400-odd motion-capture
+clips for that biped: walks, runs, waits, a telephone, a conversation, a
+chair. `r1/humans.py` fetches what it needs at one pinned commit into
+`cache/downloads/rocketbox/`. `r1/humans_blender.py` then does the rest in
+Blender: metres, feet on the ground, facing +Z. It folds the 28 face bones into
+the head (nobody in a street is close enough to see a lip move) and retargets
+every clip by copying each bone's world rotation. The pelvis position is scaled
+by the two skeletons' legs, measured as thigh plus shin, because a clip's first
+frame may already be sitting. `assets/models/humans/humans.json` says what came
+out.
+
+The library has no jump. The player's is the flight phase of the sprint (the
+frame where the lower foot is highest), held for the 0.74 s the game's jump
+lasts.
+
+| | triangles | exported vertices | textures |
+|---|---:|---:|---|
+| Player | 7 364 (the whole scan) | 4 584 | 1024 / 512 px |
+| Passer-by, near | 2 400 | 1 571–2 010 | 512 / 256 px |
+| Passer-by, far | 500 | 432–617 | same |
+
+A street pedestrian of the PS2's last years was 1.5–3 k triangles. The thirteen
+together are 33 181 shared vertices, which `test_humans.py` holds under
+40 000, the share of the arena that the trees, props, boats and fleets leave.
+The colour maps are the scans' own, reduced. Their mean albedos (skin and cloth
+0.05–0.28) are measured, and the bake refuses a map above 0.35 (rule 2).
+
+### Smaller, on purpose
+
+People are drawn at 0.8 of their scanned size, and so are the road vehicles
+(`kVehicleScale` in `native/world.cpp`). The player now stands 1.46 m and the
+city car is 2.9 m long. This was the player's call, made looking at them in
+the streets. The fleet's dimensions are scaled with the models, so doors,
+cameras, parking and the traffic's gaps agree with what is drawn. A clip
+drawn at 0.8 covers ground at 0.8 of its captured speed. The player's run and
+sprint are retimed in the bake, so 2.8 m/s and 7 m/s (Shift) keep the feet on
+the ground. Passers-by walk at exactly their clip's pace, 0.81 m/s for the men
+and 0.97 m/s for the women.
+
+### Where they walk is surveyed
+
+`native/gen/crowd.cpp` cooks a walking network into every tile (the manifest's
+`crowd`):
+
+- **Sidewalks.** It uses the ones the streets are drawn with, tagged or
+  inferred exactly as `streets.cpp` infers them, walked down their middle.
+- **Footways.** OSM's footways, pedestrian streets, paths and steps.
+- **Cuts.** Every stretch that enters a building or a carriageway is cut out.
+- **Joins.** Loose ends are joined to the nearest walk of another street:
+  round the corner, or across the road. That is where people cross, stepping
+  down the kerb.
+- **Benches.** The benches the props actually placed seat two each, at the
+  bench's own seat height.
+
+### How many is inferred, and says so
+
+The tile asks for a number from what it holds: pavement, shops and offices,
+bus stops, crossings and signals, and buildings. The number is capped at 40
+people per tile, and the manifest keeps the inputs and says that the number is
+inferred (I5). At run time it is multiplied by the local solar hour. There is
+nearly nobody before dawn; the morning rush, lunch and the evening peak are the
+busiest. Rain or falling snow halves it. The whole neighbourhood shares 60
+people, and the tiles nearest the player fill first, as the traffic does. A
+commercial avenue at noon is busy, a village is quiet, and the open country at
+night is empty.
+
+### What they do
+
+- **Walk.** People walk, keeping to the right so that two meeting pass each
+  other, and choose a street at every junction.
+- **Stand, phone, talk.** They stop to stand, wait or look at a telephone.
+  Some stand in pairs, facing each other, talking.
+- **Sit.** Some sit on the benches for half a minute to a minute and a half.
+- **Make way.** They stop for the player rather than walk through him, and run
+  for it when his car comes through at speed.
+- **Appear out of sight.** Newcomers appear out of sight: behind the camera, or
+  further than 70 m. People leave beyond 150 m.
+
+The simulation (`r1::Crowd`) needs no engine and `test_crowd.cpp` runs it
+headless.
+
+### What they cost
+
+- **Shared parts.** Each person is a pooled node with its own animator over
+  its avatar's shared meshes, rig and clips.
+- **Levels of detail.** The near model is drawn while a person stands taller
+  than 3.5% of the screen, about 35 m away, and the far one beyond.
+- **Animation.** Within 12 m a person is posed every frame. Further out the
+  pose is resampled at 15, 8 and 4 Hz and held in between. That is the
+  engine's `Animator::setPoseRate(hz, PoseRateMode::Hold)`, added for this and
+  for any game with a crowd. The engine's older reduced rate still blended
+  every bone on every frame, and so saved almost nothing.
+
+### Not there yet
+
+People do not yet look both ways: a traffic car does not stop for someone on a
+crossing. Nobody is a child, nobody dresses for the region, and nobody
+enters a building (the Interior update).
+
 ## The Sun follows the player
 
 A world you teleport across breaks an assumption every earlier phase held
@@ -1400,7 +1513,8 @@ of the sparsest, in one run.
 
 Map data is © OpenStreetMap contributors (ODbL). Elevation comes from the
 Copernicus DEM GLO-90 through Open-Meteo, the weather from Open-Meteo, and the
-sea ice from NOAA CoastWatch/PolarWatch (Metop-C ASCAT ice classification). The selection map is Natural Earth
+sea ice from NOAA CoastWatch/PolarWatch (Metop-C ASCAT ice classification). The people are
+Microsoft Rocketbox avatars and motion capture (MIT, `assets/licenses/Microsoft-Rocketbox-MIT.txt`). The selection map is Natural Earth
 (public domain) and is used for selection only — never as terrain. Asset
 provenance and checksums are recorded in `assets/THIRD_PARTY_ASSETS.json`, and
 attribution is visible in-game.

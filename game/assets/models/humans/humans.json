@@ -1,0 +1,889 @@
+{
+ "source": "https://github.com/microsoft/Microsoft-Rocketbox",
+ "commit": "0943055db6ec570bcef9f2c8b41c9e5467c808f9",
+ "license": "MIT",
+ "licenseFile": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
+ "author": "Microsoft (Rocketbox Studios)",
+ "scale": 0.8,
+ "generatedBy": "game/tools/r1/humans.py",
+ "sharedVertices": 33181,
+ "player": {
+  "name": "Male_Adult_08",
+  "sex": "m",
+  "model": "assets/models/humans/player.glb",
+  "source": "Assets/Avatars/Adults/Male_Adult_08/Export/Male_Adult_08.fbx",
+  "albedo": {
+   "body": 0.183,
+   "head": 0.109
+  },
+  "height": 1.826,
+  "pelvisHeight": 0.896,
+  "bones": 52,
+  "faceBonesFolded": 28,
+  "lods": [
+   {
+    "name": "Body",
+    "triangles": 7364,
+    "vertices": 3907,
+    "exportedVertices": 4584
+   }
+  ],
+  "clips": {
+   "idle": {
+    "seconds": 11.667,
+    "speed": 0.0,
+    "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_neutral_01.max.fbx"
+   },
+   "walk": {
+    "seconds": 1.2,
+    "speed": 1.012,
+    "source": "Assets/Animations/all_animations_max_motextr_xy/m_walk_neutral_01.max.fbx"
+   },
+   "run": {
+    "seconds": 0.528,
+    "speed": 3.5,
+    "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+   },
+   "sprint": {
+    "seconds": 0.4,
+    "speed": 8.75,
+    "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_fast_01.max.fbx"
+   },
+   "jump": {
+    "seconds": 0.733,
+    "speed": 0.0,
+    "source": "m_run_fast_01.max.fbx (flight frame 4)"
+   }
+  }
+ },
+ "crowd": [
+  {
+   "name": "Male_Adult_01",
+   "sex": "m",
+   "model": "assets/models/humans/male_adult_01.glb",
+   "source": "Assets/Avatars/Adults/Male_Adult_01/Export/Male_Adult_01.fbx",
+   "albedo": {
+    "body": 0.279,
+    "head": 0.103
+   },
+   "height": 1.824,
+   "pelvisHeight": 0.896,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1469,
+     "exportedVertices": 1856
+    },
+    {
+     "name": "Far",
+     "triangles": 500,
+     "vertices": 404,
+     "exportedVertices": 568
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 11.667,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.012,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 31.9,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_cell_phone_talk_01.max.fbx"
+    },
+    "talk": {
+     "seconds": 35.567,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 36.1,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.767,
+     "speed": 2.411,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.591,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Male_Adult_03",
+   "sex": "m",
+   "model": "assets/models/humans/male_adult_03.glb",
+   "source": "Assets/Avatars/Adults/Male_Adult_03/Export/Male_Adult_03.fbx",
+   "albedo": {
+    "body": 0.058,
+    "head": 0.127
+   },
+   "height": 1.807,
+   "pelvisHeight": 0.896,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1329,
+     "exportedVertices": 1720
+    },
+    {
+     "name": "Far",
+     "triangles": 500,
+     "vertices": 326,
+     "exportedVertices": 507
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 11.667,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.012,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 31.9,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_cell_phone_talk_01.max.fbx"
+    },
+    "talk": {
+     "seconds": 35.567,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 36.1,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.767,
+     "speed": 2.411,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.591,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Male_Adult_05",
+   "sex": "m",
+   "model": "assets/models/humans/male_adult_05.glb",
+   "source": "Assets/Avatars/Adults/Male_Adult_05/Export/Male_Adult_05.fbx",
+   "albedo": {
+    "body": 0.129,
+    "head": 0.117
+   },
+   "height": 1.812,
+   "pelvisHeight": 0.896,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2399,
+     "vertices": 1417,
+     "exportedVertices": 1830
+    },
+    {
+     "name": "Far",
+     "triangles": 499,
+     "vertices": 361,
+     "exportedVertices": 542
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 11.667,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.012,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 31.9,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_cell_phone_talk_01.max.fbx"
+    },
+    "talk": {
+     "seconds": 35.567,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 36.1,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.767,
+     "speed": 2.411,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.591,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Male_Adult_06",
+   "sex": "m",
+   "model": "assets/models/humans/male_adult_06.glb",
+   "source": "Assets/Avatars/Adults/Male_Adult_06/Export/Male_Adult_06.fbx",
+   "albedo": {
+    "body": 0.091,
+    "head": 0.107
+   },
+   "height": 1.831,
+   "pelvisHeight": 0.896,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1546,
+     "exportedVertices": 1839
+    },
+    {
+     "name": "Far",
+     "triangles": 498,
+     "vertices": 420,
+     "exportedVertices": 544
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 11.667,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.012,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 31.9,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_cell_phone_talk_01.max.fbx"
+    },
+    "talk": {
+     "seconds": 35.567,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 36.1,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.767,
+     "speed": 2.411,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.591,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Male_Adult_13",
+   "sex": "m",
+   "model": "assets/models/humans/male_adult_13.glb",
+   "source": "Assets/Avatars/Adults/Male_Adult_13/Export/Male_Adult_13.fbx",
+   "albedo": {
+    "body": 0.081,
+    "head": 0.101
+   },
+   "height": 1.806,
+   "pelvisHeight": 0.896,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2399,
+     "vertices": 1216,
+     "exportedVertices": 1571
+    },
+    {
+     "name": "Far",
+     "triangles": 499,
+     "vertices": 260,
+     "exportedVertices": 432
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 11.667,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.012,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 31.9,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_cell_phone_talk_01.max.fbx"
+    },
+    "talk": {
+     "seconds": 35.567,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 36.1,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.767,
+     "speed": 2.411,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.591,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Business_Male_02",
+   "sex": "m",
+   "model": "assets/models/humans/business_male_02.glb",
+   "source": "Assets/Avatars/Professions/Business_Male_02/Export/Business_Male_02.fbx",
+   "albedo": {
+    "body": 0.051,
+    "head": 0.105
+   },
+   "height": 1.823,
+   "pelvisHeight": 0.896,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1325,
+     "exportedVertices": 1771
+    },
+    {
+     "name": "Far",
+     "triangles": 500,
+     "vertices": 326,
+     "exportedVertices": 528
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 11.667,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.012,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.0,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 31.9,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_cell_phone_talk_01.max.fbx"
+    },
+    "talk": {
+     "seconds": 35.567,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 36.1,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/m_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.767,
+     "speed": 2.411,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/m_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.591,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Female_Adult_01",
+   "sex": "f",
+   "model": "assets/models/humans/female_adult_01.glb",
+   "source": "Assets/Avatars/Adults/Female_Adult_01/Export/Female_Adult_01.fbx",
+   "albedo": {
+    "body": 0.16,
+    "head": 0.194
+   },
+   "height": 1.743,
+   "pelvisHeight": 0.928,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1484,
+     "exportedVertices": 1855
+    },
+    {
+     "name": "Far",
+     "triangles": 500,
+     "vertices": 384,
+     "exportedVertices": 518
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 15.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.214,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 20.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_cell_phone_textmessage.max.fbx"
+    },
+    "talk": {
+     "seconds": 27.333,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 33.233,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.833,
+     "speed": 2.269,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.611,
+    "pelvisForward": -0.0
+   }
+  },
+  {
+   "name": "Female_Adult_02",
+   "sex": "f",
+   "model": "assets/models/humans/female_adult_02.glb",
+   "source": "Assets/Avatars/Adults/Female_Adult_02/Export/Female_Adult_02.fbx",
+   "albedo": {
+    "body": 0.273,
+    "head": 0.123
+   },
+   "height": 1.735,
+   "pelvisHeight": 0.928,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1342,
+     "exportedVertices": 1849
+    },
+    {
+     "name": "Far",
+     "triangles": 493,
+     "vertices": 325,
+     "exportedVertices": 509
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 15.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.214,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 20.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_cell_phone_textmessage.max.fbx"
+    },
+    "talk": {
+     "seconds": 27.333,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 33.233,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.833,
+     "speed": 2.269,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.611,
+    "pelvisForward": -0.0
+   }
+  },
+  {
+   "name": "Female_Adult_05",
+   "sex": "f",
+   "model": "assets/models/humans/female_adult_05.glb",
+   "source": "Assets/Avatars/Adults/Female_Adult_05/Export/Female_Adult_05.fbx",
+   "albedo": {
+    "body": 0.238,
+    "head": 0.08
+   },
+   "height": 1.736,
+   "pelvisHeight": 0.924,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1531,
+     "exportedVertices": 1975
+    },
+    {
+     "name": "Far",
+     "triangles": 499,
+     "vertices": 427,
+     "exportedVertices": 592
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 15.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.214,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 20.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_cell_phone_textmessage.max.fbx"
+    },
+    "talk": {
+     "seconds": 27.333,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 33.233,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.833,
+     "speed": 2.269,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.611,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Female_Adult_08",
+   "sex": "f",
+   "model": "assets/models/humans/female_adult_08.glb",
+   "source": "Assets/Avatars/Adults/Female_Adult_08/Export/Female_Adult_08.fbx",
+   "albedo": {
+    "body": 0.157,
+    "head": 0.107
+   },
+   "height": 1.735,
+   "pelvisHeight": 0.924,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2399,
+     "vertices": 1468,
+     "exportedVertices": 1888
+    },
+    {
+     "name": "Far",
+     "triangles": 500,
+     "vertices": 376,
+     "exportedVertices": 543
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 15.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.214,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 20.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_cell_phone_textmessage.max.fbx"
+    },
+    "talk": {
+     "seconds": 27.333,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 33.233,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.833,
+     "speed": 2.269,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.611,
+    "pelvisForward": 0.0
+   }
+  },
+  {
+   "name": "Female_Adult_14",
+   "sex": "f",
+   "model": "assets/models/humans/female_adult_14.glb",
+   "source": "Assets/Avatars/Adults/Female_Adult_14/Export/Female_Adult_14.fbx",
+   "albedo": {
+    "body": 0.133,
+    "head": 0.108
+   },
+   "height": 1.744,
+   "pelvisHeight": 0.928,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2399,
+     "vertices": 1474,
+     "exportedVertices": 1947
+    },
+    {
+     "name": "Far",
+     "triangles": 497,
+     "vertices": 392,
+     "exportedVertices": 586
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 15.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.214,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 20.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_cell_phone_textmessage.max.fbx"
+    },
+    "talk": {
+     "seconds": 27.333,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 33.233,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.833,
+     "speed": 2.269,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.611,
+    "pelvisForward": -0.0
+   }
+  },
+  {
+   "name": "Business_Female_03",
+   "sex": "f",
+   "model": "assets/models/humans/business_female_03.glb",
+   "source": "Assets/Avatars/Professions/Business_Female_03/Export/Business_Female_03.fbx",
+   "albedo": {
+    "body": 0.114,
+    "head": 0.07
+   },
+   "height": 1.743,
+   "pelvisHeight": 0.924,
+   "bones": 52,
+   "faceBonesFolded": 28,
+   "lods": [
+    {
+     "name": "Near",
+     "triangles": 2400,
+     "vertices": 1444,
+     "exportedVertices": 2010
+    },
+    {
+     "name": "Far",
+     "triangles": 499,
+     "vertices": 385,
+     "exportedVertices": 617
+    }
+   ],
+   "clips": {
+    "idle": {
+     "seconds": 15.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_neutral_01.max.fbx"
+    },
+    "walk": {
+     "seconds": 1.2,
+     "speed": 1.214,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_walk_neutral_01.max.fbx"
+    },
+    "wait": {
+     "seconds": 47.5,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_idle_waiting_01.max.fbx"
+    },
+    "phone": {
+     "seconds": 20.533,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_cell_phone_textmessage.max.fbx"
+    },
+    "talk": {
+     "seconds": 27.333,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_gestic_talk_neutral_01.max.fbx"
+    },
+    "sit": {
+     "seconds": 33.233,
+     "speed": 0.0,
+     "source": "Assets/Animations/all_animations_max_motextr_static/f_sit_chair_idle_neutral_01.max.fbx"
+    },
+    "run": {
+     "seconds": 0.833,
+     "speed": 2.269,
+     "source": "Assets/Animations/all_animations_max_motextr_xy/f_run_slow_01.max.fbx"
+    }
+   },
+   "seat": {
+    "pelvisHeight": 0.611,
+    "pelvisForward": -0.0
+   }
+  }
+ ]
+}

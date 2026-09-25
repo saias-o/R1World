@@ -17,18 +17,6 @@ const std::set<std::string> kUrban = {"primary", "secondary", "tertiary", "resid
 const std::set<std::string> kCobbled = {"sett", "cobblestone", "unhewn_cobblestone", "cobblestone:flattened",
                                         "paving_stones"};
 
-std::vector<std::pair<std::string, bool>> sidewalkSides(const Tags& tags) {
-    const std::string general = tagOr(tags, "sidewalk");
-    std::vector<std::pair<std::string, bool>> out;
-    for (const char* side : {"left", "right"}) {
-        const std::string tagged = tagOr(tags, (std::string("sidewalk:") + side).c_str(), general);
-        if (tagged == "no" || tagged == "none" || tagged == "separate") continue;
-        if (tagged == "yes" || tagged == "both" || tagged == side) out.push_back({side, false});
-        else if (tagged.empty() && kUrban.count(tagOr(tags, "highway"))) out.push_back({side, true});
-    }
-    return out;
-}
-
 // The edges of a region, bucketed on a 2 m grid, for "which part of this
 // segment lies along your boundary" questions.
 struct EdgeIndex {
@@ -81,6 +69,18 @@ struct EdgeIndex {
     }
 };
 }  // namespace
+
+std::vector<std::pair<std::string, bool>> sidewalkSides(const Tags& tags) {
+    const std::string general = tagOr(tags, "sidewalk");
+    std::vector<std::pair<std::string, bool>> out;
+    for (const char* side : {"left", "right"}) {
+        const std::string tagged = tagOr(tags, (std::string("sidewalk:") + side).c_str(), general);
+        if (tagged == "no" || tagged == "none" || tagged == "separate") continue;
+        if (tagged == "yes" || tagged == "both" || tagged == side) out.push_back({side, false});
+        else if (tagged.empty() && kUrban.count(tagOr(tags, "highway"))) out.push_back({side, true});
+    }
+    return out;
+}
 
 bool isMotorway(const std::string& highway) { return kMotor.count(highway) > 0; }
 

@@ -2,6 +2,7 @@
 
 #include "airports.hpp"
 #include "buildings.hpp"
+#include "crowd.hpp"
 #include "harbours.hpp"
 #include "landmarks.hpp"
 #include "scatter.hpp"
@@ -229,6 +230,9 @@ CookedTile cookTile(const Observations& in) {
     out.tile = tile;
     nlohmann::json boats = nlohmann::json::array();
     Scatter props, nature;
+    // Nobody walks on the open sea or on the pack.
+    nlohmann::json crowd = {{"revision", kCrowdRevision}, {"nodes", nlohmann::json::array()},
+                            {"links", nlohmann::json::array()}, {"seats", nlohmann::json::array()}, {"people", 0}};
     out.seaIce = in.seaIce;
     if (pack) {
         out.parts = pack->parts;
@@ -254,6 +258,7 @@ CookedTile cookTile(const Observations& in) {
             if (bounds.west <= f.lon && f.lon <= bounds.east && bounds.south <= f.lat && f.lat <= bounds.north)
                 inTile.push_back(&f);
         props = planProps(inTile, ground, profile, roadSegments);
+        crowd = buildWalkGraph(roads, osm.features, buildings, footprints, elevations, anchor, props.nodes);
         nature = planNature(osm, tile, anchor, ground);
         // The landmark first after the ground: it is what the player came to
         // see, and the game swaps its far model out once it has streamed.
@@ -308,7 +313,7 @@ CookedTile cookTile(const Observations& in) {
         {"airportsPending", in.airportsPending}, {"provisional", in.provisional}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},
         {"landmarkRevision", kLandmarkRevision},
         {"landmarkReplacedWays", ocean ? nlohmann::json::array() : landmarks.replaced},
-        {"nature", nature.stats}, {"streets", streets.stats}, {"traffic", laneGraph},
+        {"nature", nature.stats}, {"streets", streets.stats}, {"traffic", laneGraph}, {"crowd", crowd},
         {"inference", built.stats.json()},
         {"buildingGeometryLod", buildingLod == BuildingLod::Full ? "full" :
                                 buildingLod == BuildingLod::UnifiedBase ? "unified-base" : "simple-roofline"},

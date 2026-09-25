@@ -356,6 +356,13 @@ TEST(Cook, a_dense_paris_tile_fits_its_budget_and_says_what_it_inferred) {
           t.manifest["inference"]["count"].get<int>());
     CHECK(t.manifest["region"] == "Paris intra-muros");
 }
+TEST(Cook, the_heart_of_paris_is_busy_and_its_people_have_somewhere_to_walk) {
+    const CookedTile t = cookTile(paris(tileAt(2.3522, 48.8566)));
+    const auto& crowd = t.manifest["crowd"];
+    CHECK(crowd["nodes"].size() > 200 && crowd["links"].size() > 200);
+    CHECK(crowd["inputs"]["crossingsJoined"].get<int>() > 10);
+    CHECK_MSG(crowd["people"].get<int>() >= 30, crowd["inputs"]);
+}
 TEST(Cook, a_resident_target_uses_building_lod_without_losing_the_ground) {
     Observations in = paris(tileAt(2.3522, 48.8566));
     in.targetVertices = 80000;
