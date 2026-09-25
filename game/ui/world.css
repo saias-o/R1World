@@ -25,5 +25,5 @@ input { display: inline-block; width: 150px; height: 28px; padding: 8px; backgro
 #coordinates { position: absolute; top: 28px; left: 32px; width: 580px; background-color: #142934; padding: 12px 18px; }
 #stream-status { position: absolute; top: 80px; left: 32px; width: 580px; background-color: #142934; padding: 8px 14px; font-size: 14px; }
 #local-conditions { position: absolute; top: 28px; right: 32px; width: 520px; background-color: #142934; padding: 10px 14px; font-size: 14px; }
-#controls { position: absolute; bottom: 28px; left: 32px; width: 780px; background-color: #142934; padding: 10px 16px; font-size: 15px; }
+#controls { position: absolute; bottom: 28px; right: 32px; width: 940px; background-color: #142934; padding: 10px 16px; font-size: 15px; }
 #crosshair { position: absolute; left: 714px; top: 440px; font-size: 20px; }

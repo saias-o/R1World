@@ -14,6 +14,12 @@ A map of the Earth opens. Click a place, or type coordinates, or take one of the
 five shortcuts, then press **Go**. The starting tile is downloaded, cooked and
 mounted first; you land as soon as it is safe, while surrounding tiles and
 decorative objects continue streaming during play:
+During play, a north-up minimap sits at the bottom left. It covers about 900 m,
+follows the player on foot and in vehicles, and draws a few named streets from
+the same cached OSM observations as the world. Above it are the destination's
+local time, city and country. City names come from OSM address tags in resident
+tiles; the country uses those tags or the weather time zone and the bundled
+public-domain IANA time-zone table. Missing place data is labelled as such.
 The player, a scanned and rigged Rocketbox avatar, is controlled in third person, among a crowd drawn from the same library (see [The people](#the-people)).
 **ZQSD / WASD** to walk, **Maj** to run, **Space** to jump, the mouse to orbit, **M** or **Échap**
 for the map again, **Reprendre** to return where you were. A car is parked

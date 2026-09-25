@@ -227,6 +227,7 @@ CookedTile cookTile(const Observations& in) {
     const double measuredGround = 1.0 - double(inferred) / std::max(1, triangles);
 
     CookedTile out;
+    out.minimap = makeMiniMapTile(roads, osm, bounds);
     out.tile = tile;
     nlohmann::json boats = nlohmann::json::array();
     Scatter props, nature;

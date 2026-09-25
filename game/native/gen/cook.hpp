@@ -7,6 +7,7 @@
 #include "mesh.hpp"
 #include "osm.hpp"
 #include "seaice.hpp"
+#include "../minimap.hpp"
 
 #include <memory>
 
@@ -44,6 +45,9 @@ struct CookedTile {
     nlohmann::json props = nlohmann::json::array();
     // What `ready.json` said: the frame, the collision data, what was inferred.
     nlohmann::json manifest;
+    // Small display-only road/place extract from the same observations as the
+    // geometry. It is transient, never written into the deterministic manifest.
+    MiniMapTile minimap;
     // What the ice was read from, for what the game draws past the tiles.
     std::shared_ptr<const SeaIce> seaIce;
     double cookMs = 0;

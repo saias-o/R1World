@@ -42,7 +42,8 @@ function Get-Units {
     $gen = @('-ffp-contract=off')
     # world.cpp alone includes the engine's headers: an engine change that
     # moved a member must recompile it, or it and the library disagree.
-    $units = @(@{ Source = (Join-Path $native 'world.cpp'); Extra = @(); Engine = $true })
+    $units = @(@{ Source = (Join-Path $native 'world.cpp'); Extra = @(); Engine = $true },
+               @{ Source = (Join-Path $native 'minimap.cpp'); Extra = @() })
     foreach ($dir in @('gen', 'third_party\clipper2\src')) {
         Get-ChildItem -LiteralPath (Join-Path $native $dir) -Filter '*.cpp' | Sort-Object Name |
             ForEach-Object { $units += @{ Source = $_.FullName; Extra = $gen } }
@@ -53,6 +54,8 @@ function Get-Units {
 # The newest header any unit may include: touching one rebuilds them all.
 function Get-HeaderTime {
     $newest = [datetime]::MinValue
+    Get-ChildItem -LiteralPath $native -Filter '*.hpp' |
+        ForEach-Object { if ($_.LastWriteTime -gt $newest) { $newest = $_.LastWriteTime } }
     Get-ChildItem -LiteralPath (Join-Path $native 'gen') -Filter '*.hpp' |
         ForEach-Object { if ($_.LastWriteTime -gt $newest) { $newest = $_.LastWriteTime } }
     return $newest

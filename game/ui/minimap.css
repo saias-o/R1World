@@ -1,0 +1,14 @@
+body { margin: 0; font-family: NextSans; color: #f3f4f0; }
+#mini-panel { position: absolute; left: 0; top: 0; width: 324px; height: 340px; background-color: #13232b; border: 2px #b5c5c4; }
+#mini-time { position: absolute; left: 14px; top: 8px; width: 294px; height: 21px; font-size: 16px; font-weight: bold; color: #d4f2ad; }
+#mini-place { position: absolute; left: 14px; top: 32px; width: 294px; height: 22px; font-size: 14px; color: #ecf0ed; }
+#mini-map { position: absolute; left: 12px; top: 65px; width: 296px; height: 256px; overflow: hidden; background-color: #33454a; border: 1px #648089; }
+#mini-roads { position: absolute; left: 0; top: 0; width: 296px; height: 256px; }
+.mini-road { position: absolute; background-color: #8da5a2; }
+.rank-0 { background-color: #69827f; }
+.rank-1 { background-color: #a4b6b0; }
+.rank-2 { background-color: #d6d9c6; }
+.rank-3 { background-color: #eee0aa; }
+.mini-street { position: absolute; width: 110px; height: 20px; font-size: 12px; text-align: center; color: #faf8e9; background-color: #273940; }
+#mini-player { position: absolute; left: 136px; top: 116px; width: 24px; height: 24px; font-size: 28px; font-weight: bold; text-align: center; color: #d4f2ad; background-color: #142934; border-radius: 12px; }
+#mini-north { position: absolute; right: 8px; top: 5px; font-size: 12px; font-weight: bold; color: #d4f2ad; }

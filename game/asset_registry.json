@@ -920,6 +920,11 @@
             "path": "assets/textures/surfaces/tile_grey_albedo.jpg",
             "type": "Texture"
         },
+        "17399957188702478568": {
+            "hash": 2624132567206976974,
+            "path": "assets/world/timezone-countries.json",
+            "type": "Unknown"
+        },
         "17401933841249509415": {
             "hash": 16521662471742416674,
             "path": "assets/models/vehicles/bus.glb",
@@ -1151,7 +1156,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 1640461410869059468,
+            "hash": 9546717922318031227,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },

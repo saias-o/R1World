@@ -5,15 +5,17 @@ set -e
 cd "$(dirname "$0")"
 export PATH="/c/msys64/ucrt64/bin:$PATH"
 OUT=../generated/tools
-mkdir -p $OUT/obj
+mkdir -p $OUT/obj $OUT/tmp
+export TMPDIR="$(pwd)/$OUT/tmp" TEMP="$(pwd)/$OUT/tmp" TMP="$(pwd)/$OUT/tmp"
 FLAGS="-std=gnu++17 -O2 -ffp-contract=off -Wall -Wextra -I. -Ithird_party/clipper2/include -Ithird_party/earcut -I../../engine/third_party/json"
-for f in gen/*.cpp third_party/clipper2/src/*.cpp tools/r1cook.cpp tests/*.cpp; do
-  o=$OUT/obj/$(basename $(dirname $f))_$(basename $f .cpp).o
-  if [ ! -f $o ] || [ $f -nt $o ] || [ -n "$(find gen tests -name '*.hpp' -newer $o)" ]; then
+for f in minimap.cpp gen/*.cpp third_party/clipper2/src/*.cpp tools/r1cook.cpp tests/*.cpp; do
+  if [ "$f" = minimap.cpp ]; then o=$OUT/obj/minimap.o
+  else o=$OUT/obj/$(basename $(dirname $f))_$(basename $f .cpp).o; fi
+  if [ ! -f $o ] || [ $f -nt $o ] || [ -n "$(find gen tests . -maxdepth 1 -name '*.hpp' -newer $o)" ]; then
     g++ $FLAGS -c $f -o $o &
   fi
 done
 wait
-LIB=$(ls $OUT/obj/gen_*.o $OUT/obj/src_*.o)
+LIB=$(ls $OUT/obj/gen_*.o $OUT/obj/src_*.o $OUT/obj/minimap.o)
 g++ $LIB $OUT/obj/tools_r1cook.o -o $OUT/r1cook.exe -lwinhttp -static-libgcc -static-libstdc++
 g++ $LIB $OUT/obj/tests_*.o -o $OUT/r1test.exe -lwinhttp -static-libgcc -static-libstdc++

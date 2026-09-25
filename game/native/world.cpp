@@ -36,6 +36,7 @@
 #include "gen/palette.hpp"
 #include "gen/sea.hpp"
 #include "gen/service.hpp"
+#include "minimap.hpp"
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -373,7 +374,7 @@ struct Loaded {
 
 class World : public Rml::EventListener {
     saida::Engine& engine; fs::path game;
-    saida::WebCanvasNode* ui; saida::CameraNode* camera;
+    saida::WebCanvasNode* ui; saida::WebCanvasNode* minimapUi; saida::CameraNode* camera;
     saida::Node* player=nullptr;
     // The player's car. A member of the entry scene beside him, not a prop of
     // the tile it happens to stand on: it is his, so a teleport takes it along
@@ -457,6 +458,9 @@ class World : public Rml::EventListener {
     size_t smokeTrafficSeen=0; bool smokeTrafficMoved=false;
     uint64_t generation=0; std::vector<Rml::Element*> listeners;
     std::map<std::string,Loaded> loaded;
+    std::map<std::string,std::string> zoneCountries,countryNames;
+    uint64_t minimapRevision=0,minimapDrawnRevision=~uint64_t(0);
+    double minimapLon=1e9,minimapLat=1e9;
     saida::Node* prototypes=nullptr;
     std::map<std::string,saida::Node*> naturePrototypes;
     struct VehicleModel {
@@ -874,6 +878,42 @@ class World : public Rml::EventListener {
         for(size_t at;(at=shown.find('\''))!=std::string::npos;)shown.replace(at,1,"’");
         if(ui->setElementText(id,shown))last=s;
     }
+    void miniText(const std::string& id,const std::string& s) {
+        auto& last=written["mini:text:"+id];
+        if(last==s)return;
+        std::string shown=s;
+        for(size_t at;(at=shown.find('\''))!=std::string::npos;)shown.replace(at,1,"’");
+        if(minimapUi->setElementText(id,shown))last=s;
+    }
+    void layoutMinimap() {
+        const float scale=ui->screenSize().x/1440.f;
+        const glm::vec2 edge=ui->screenPosition();
+        const glm::vec3 position(edge.x+32.f*scale,edge.y+(900.f-28.f-344.f)*scale,0.f);
+        auto& transform=minimapUi->transform();
+        if(glm::distance(transform.position,position)>.1f)transform.position=position;
+        if(std::abs(transform.scale.x-scale)>.001f)transform.scale=glm::vec3(scale);
+    }
+    void updateMinimap() {
+        layoutMinimap();
+        std::vector<const r1::MiniMapTile*> tiles;
+        tiles.reserve(loaded.size());
+        for(const auto& [key,entry]:loaded)tiles.push_back(&entry.served->cooked.minimap);
+        const std::string zone=localConditions()?conditions.value("timezone",std::string()):"";
+        miniText("mini-time",localClock());
+        miniText("mini-place",r1::miniMapPlace(tiles,zoneCountries,countryNames,zone,lon,lat));
+        if(minimapDrawnRevision!=minimapRevision||metresBetween(minimapLon,minimapLat,lon,lat)>8.) {
+            const std::string roads=r1::miniMapRoadRml(tiles,lon,lat);
+            auto& last=written["mini:roads"];
+            if(last!=roads&&minimapUi->setElementRml("mini-roads",roads))last=roads;
+            minimapLon=lon;minimapLat=lat;minimapDrawnRevision=minimapRevision;
+        }
+        const double heading=driving?carYaw:sailing?boat.yaw:piloting?plane.yaw:yaw;
+        const std::string rotation="rotate("+number(heading,0)+"deg)";
+        auto& previous=written["mini:heading"];
+        if(previous!=rotation)if(auto* marker=minimapUi->findElementById("mini-player")) {
+            marker->SetProperty("transform",rotation);minimapUi->notifyJsMutation();previous=rotation;
+        }
+    }
     std::string value(const std::string& id) {
         auto* e=dynamic_cast<Rml::ElementFormControl*>(ui->findElementById(id));return e?e->GetValue():"";
     }
@@ -906,6 +946,7 @@ class World : public Rml::EventListener {
     }
     void showMap(bool show) {
         menu=show;style("menu","display",show?"block":"none");style("hud","display",show?"none":"block");
+        minimapUi->setEnabled(!show);
         style("resume","display",playing?"inline-block":"none");
         engine.window().setCursorCaptured(!show);
     }
@@ -2432,14 +2473,8 @@ class World : public Rml::EventListener {
         const int offset=known?conditions.value("utcOffsetSeconds",0):int(std::round(lon/15.))*3600;
         const std::time_t local=std::time_t(unixSeconds)+offset;
         std::tm parts{};gmtime_s(&parts,&local);
-        std::ostringstream out;out<<std::put_time(&parts,"%d/%m %H:%M");
-        if(known) {
-            std::string zone=conditions.value("timezone",std::string(""));
-            const auto slash=zone.rfind('/');if(slash!=std::string::npos)zone=zone.substr(slash+1);
-            std::replace(zone.begin(),zone.end(),'_',' ');
-            return out.str()+" · "+zone;
-        }
-        return out.str()+" · fuseau estimé par longitude";
+        std::ostringstream out;out<<std::put_time(&parts,"%H:%M");
+        return out.str()+(known?" · heure locale":" · fuseau estimé");
     }
     std::string weatherLabel() {
         if(!localConditions())return "Météo locale indisponible";
@@ -3142,7 +3177,7 @@ class World : public Rml::EventListener {
             const bool stale=current&&current->serial!=it->second.served->serial;
             if(!keep.count(it->first)||stale){it->second.node->queueFree();it=loaded.erase(it);removed=true;}else ++it;
         }
-        if(removed)trim();
+        if(removed){++minimapRevision;trim();}
         size_t count=0,indices=0;
         for(auto& [k,t]:loaded)if(wanted.count(k)){count+=t.data.at("vertices").get<size_t>();indices+=t.data.value("indices",size_t(0));}
         // The far landmarks share the arena with the tiles (gen/landmarks.cpp).
@@ -3172,6 +3207,7 @@ class World : public Rml::EventListener {
                 const auto mountStarted=std::chrono::steady_clock::now();
                 auto* ptr=engine.sceneTree().world().addChild(buildTile(t.key(),*served));
                 auto [entry,inserted]=loaded.try_emplace(t.key(),ptr,served);
+                ++minimapRevision;
                 // Counted at once: several tiles mount in one tick, and each
                 // must see the ones mounted before it.
                 count+=vertices;indices+=tileIndices;
@@ -3288,8 +3324,17 @@ public:
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
         residentIndexBudget=size_t(double(e.resources().geometryCapacity().indices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
+        minimapUi=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("minimap-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
-        if(!ui||!camera)throw std::runtime_error("Earth scene is missing its camera or map");
+        if(!ui||!minimapUi||!camera)throw std::runtime_error("Earth scene is missing its camera, map or minimap");
+        minimapUi->setEnabled(false);
+        {
+            std::ifstream input(game/"assets/world/timezone-countries.json");
+            if(!input)throw std::runtime_error("Missing assets/world/timezone-countries.json");
+            const json places=json::parse(input);
+            zoneCountries=places.at("zones").get<std::map<std::string,std::string>>();
+            countryNames=places.at("countries").get<std::map<std::string,std::string>>();
+        }
         player=e.sceneTree().firstInGroup("player");
         if(!player)throw std::runtime_error("Earth scene is missing the player");
         player->findBehavioursInChildren(animators);
@@ -4300,7 +4345,8 @@ public:
         }
         if(hud>.5) {
             hud=0;
-            text("local-conditions",localClock()+"  |  "+weatherLabel());
+            updateMinimap();
+            text("local-conditions",weatherLabel());
             text("coordinates",number(lat)+"°  /  "+number(lon)+"°     "+number(alt,1)+" m"
                  +(driving?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":"")
                  +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" nœuds":"")

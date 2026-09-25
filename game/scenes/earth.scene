@@ -180,6 +180,26 @@
         "hotReload": false,
         "interactive": true,
         "renderOrder": 1000
+      },
+      {
+        "type": "WebCanvasNode",
+        "name": "Minimap",
+        "enabled": true,
+        "children": [],
+        "behaviours": [],
+        "groups": ["minimap-ui"],
+        "transform": {
+          "position": [32, 532, 0],
+          "rotation": [1, 0, 0, 0],
+          "scale": [1, 1, 1]
+        },
+        "width": 328,
+        "height": 344,
+        "mode": 0,
+        "url": "ui/minimap.html",
+        "hotReload": false,
+        "interactive": false,
+        "renderOrder": 1001
       }
     ],
     "behaviours": [],
