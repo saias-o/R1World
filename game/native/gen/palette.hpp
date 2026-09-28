@@ -144,6 +144,7 @@ struct Palette {
     std::vector<PropKind> props;
     std::map<std::string, SignModel> signs;
     std::map<std::string, TownSignKit> townSigns;  // by country
+    std::map<std::string, TownSignKit> streetSigns;  // street-name blades, by country
     std::vector<BoatKind> boats;
     std::vector<AircraftType> aircraft;
     // Traffic paints: albedos, not paint chips (CLAUDE.md rule 2).

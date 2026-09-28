@@ -50,7 +50,7 @@ class CatalogueIsWhole(unittest.TestCase):
 
     def test_every_face_is_drawn_for_every_range(self):
         for code in PLATES:
-            for _, rng in MOUNTS.values():
+            for _, rng in signage.mounts_of(code).values():
                 self.assertTrue(signage.face_path(code, rng).exists(), (code, rng))
 
     def test_the_town_kit_draws_every_capital_a_french_place_is_written_in(self):
@@ -63,14 +63,22 @@ class CatalogueIsWhole(unittest.TestCase):
                 self.assertTrue((GAME / plate[part]).exists())
         self.assertTrue((GAME / kit["post"]).exists() and (GAME / kit["bar"]).exists())
 
-    def test_plates_stand_where_the_iisr_puts_them(self):
-        # The lowest plate's lower edge: 1 m in the country, 2.30 m in town,
-        # so the top of the sign stands above that by its plates.
+    def test_plates_stand_where_the_regulations_put_them(self):
+        # The lowest plate's lower edge: in France 1 m in the country and
+        # 2.30 m in town (IISR), in the United States 5 ft and 7 ft (MUTCD);
+        # the top of the sign stands above that by its plates.
+        self.assertEqual(signage.COUNTRY_MOUNTS["FR"], {"rural": (1.00, "normale"), "urban": (2.30, "petite")})
+        self.assertEqual(signage.COUNTRY_MOUNTS["US"], {"rural": (1.52, "us"), "urban": (2.13, "us")})
         for code in SIGNS:
-            rural = self.doc["signs"][code]["mounts"]["rural"]["height"]
-            urban = self.doc["signs"][code]["mounts"]["urban"]["height"]
-            self.assertGreater(rural, 1.4)
-            self.assertGreater(urban, 2.6)
+            for mount, (low, _) in signage.mounts_of(code).items():
+                self.assertGreater(self.doc["signs"][code]["mounts"][mount]["height"], low + 0.3, (code, mount))
+
+    def test_the_blades_read_white_on_green(self):
+        kit = self.doc["streets"]["US"]
+        self.assertTrue(0.03 <= _luminance(signage.GREEN) <= 0.09)
+        self.assertGreater(kit["lowerEdge"], 2.1)
+        for ch in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789":
+            self.assertTrue((GAME / kit["glyphs"][ch]["model"]).exists(), ch)
 
 
 if __name__ == "__main__":

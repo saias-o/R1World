@@ -206,7 +206,9 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   fait taire ce qui est deviné, et le manifeste dit quelle règle a posé quoi
   (`native/gen/predict.hpp`). Panneaux dessinés d'après l'IISR
   (`r1/signage.py`), panneaux d'agglomération au nom de la commune lu dans les
-  adresses.
+  adresses. Rulebooks : France (IISR) et États-Unis (MUTCD : stops, yield,
+  mph, sens interdits, plaques de noms de rue). Les panneaux relevés par OSM
+  sont dessinés là où ils ont été relevés.
 - **Ponts** : tabliers au gabarit, rampes et remblais à 5 %, piles, culées ; ce
   que le tablier ne peut pas donner est creusé dans le relief
   (`native/gen/bridges.cpp`). On y marche et on y roule, dessus comme dessous.

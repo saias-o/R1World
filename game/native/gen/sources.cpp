@@ -263,14 +263,7 @@ std::vector<ElevationGrid> ObservationStore::groundAround(const Tile& tile) cons
     return out;
 }
 
-nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& path) const {
-    std::optional<nlohmann::json> stale;
-    std::error_code ec;
-    if (fs::exists(path, ec)) {
-        auto doc = readJson(path);
-        if (doc.value("r1QueryVersion", 1) >= kOsmBaseVersion) return doc;
-        stale = std::move(doc);
-    }
+std::string ObservationStore::osmQuery(const Bounds& b) {
     char bbox[160], wide[160];
     std::snprintf(bbox, sizeof bbox, "%.8f,%.8f,%.8f,%.8f", b.south, b.west, b.north, b.east);
     // Runways five kilometres around: a terminal's stands are a mile or two
@@ -319,7 +312,7 @@ nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& pa
 out body;
 >;
 out skel qt;
-is_in({C})->.here;
+is_in{C}->.here;
 area.here["admin_level"="2"]["ISO3166-1"];
 out tags;)";
     // The country is asked of the neighbourhood's centre: the highway code
@@ -328,6 +321,18 @@ out tags;)";
     std::snprintf(centre, sizeof centre, "%.8f,%.8f", (b.south + b.north) / 2, (b.west + b.east) / 2);
     for (const auto& [key, box] : {std::pair<std::string, std::string>{"{B}", bbox}, {"{W}", wide}, {"{C}", centre}})
         for (size_t at; (at = query.find(key)) != std::string::npos;) query.replace(at, key.size(), "(" + box + ")");
+    return query;
+}
+
+nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& path) const {
+    std::optional<nlohmann::json> stale;
+    std::error_code ec;
+    if (fs::exists(path, ec)) {
+        auto doc = readJson(path);
+        if (doc.value("r1QueryVersion", 1) >= kOsmBaseVersion) return doc;
+        stale = std::move(doc);
+    }
+    const std::string query = osmQuery(b);
     const std::string body = "data=" + net::urlEncode(query);
     std::string failures;
     for (const int i : endpointOrder()) {

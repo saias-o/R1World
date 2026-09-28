@@ -3528,8 +3528,8 @@ public:
         for(const auto& b:r1::palette().boats)warmList.push_back("assets/models/external/kenney_boats/"+b.model+".glb");
         for(const auto& k:r1::palette().props)for(const auto& m:k.models)warmList.push_back(m);
         for(const auto& [code,sign]:r1::palette().signs)for(const auto& [mount,m]:sign.mounts)warmList.push_back(m);
-        for(const auto& [country,kit]:r1::palette().townSigns) {
-            for(const auto& m:{kit.post,kit.bar})warmList.push_back(m);
+        for(const auto* kits:{&r1::palette().townSigns,&r1::palette().streetSigns})for(const auto& [country,kit]:*kits) {
+            for(const auto& m:{kit.post,kit.bar})if(!m.empty())warmList.push_back(m);
             for(const auto& [lines,p]:kit.plates)for(const auto& m:{p.left,p.middle,p.right})warmList.push_back(m);
             for(const auto& [ch,g]:kit.glyphs)warmList.push_back(g.first);
         }
@@ -3563,7 +3563,7 @@ public:
         else if(id=="zoom-in")zoomMap(zoom*2);
         else if(id=="zoom-out")zoomMap(zoom/2);
         else if(id=="reset-map")zoomMap(1);
-        else {std::map<std::string,glm::dvec2> places{{"paris",{2.3522,48.8566}},{"tokyo",{139.7671,35.6812}},{"newyork",{-73.9855,40.758}},{"cape",{18.4241,-33.9249}},{"sydney",{151.2093,-33.8688}},{"pole",{0.,90.}}};
+        else {std::map<std::string,glm::dvec2> places{{"paris",{2.3522,48.8566}},{"tokyo",{139.7671,35.6812}},{"newyork",{-73.9855,40.758}},{"lawrence",{-95.2436,38.9585}},{"cape",{18.4241,-33.9249}},{"sydney",{151.2093,-33.8688}},{"pole",{0.,90.}}};
             if(places.count(id)){auto p=places.at(id);select(p.x,p.y);zoomMap(zoom);warming=true;request(pickLon,pickLat);}}
     }
     // The driver's own two phases, kept out of update() so the flow reads:
@@ -4151,7 +4151,7 @@ public:
         cost=FrameCost{};
         if(generation!=ui->documentGeneration()||listeners.empty()) {
             generation=ui->documentGeneration();listeners.clear();
-            for(auto id:{"map","go","resume","zoom-in","zoom-out","reset-map","paris","tokyo","newyork","cape","sydney","pole"})
+            for(auto id:{"map","go","resume","zoom-in","zoom-out","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
             if(!listeners.empty()) {

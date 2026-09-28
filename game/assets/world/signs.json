@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "revision": 1,
- "note": "Road signs drawn by the project from the IISR (tools/r1/signage.py). Keys are OSM traffic_sign codes; the generator predicts which stands where (native/gen/predict.cpp).",
+ "note": "Road signs drawn by the project from the IISR and the MUTCD (tools/r1/signage.py). Keys are OSM traffic_sign codes; the generator predicts which stands where (native/gen/predict.cpp).",
  "mounts": {
   "rural": {
    "lowerEdge": 1.0,
@@ -50,6 +50,26 @@
      "model": "assets/models/signs/fr_ab6-urban-r1.glb",
      "vertices": 187,
      "height": 2.986
+    }
+   }
+  },
+  "FR:AB4": {
+   "plates": [
+    {
+     "code": "FR:AB4",
+     "title": "Arrêt à l'intersection"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_ab4-rural-r1.glb",
+     "vertices": 331,
+     "height": 1.8
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_ab4-urban-r1.glb",
+     "vertices": 331,
+     "height": 2.9
     }
    }
   },
@@ -293,6 +313,326 @@
     }
    }
   },
+  "US:R1-1": {
+   "plates": [
+    {
+     "code": "US:R1-1",
+     "title": "Stop"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r1-1-rural-r1.glb",
+     "vertices": 331,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r1-1-urban-r1.glb",
+     "vertices": 331,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R1-2": {
+   "plates": [
+    {
+     "code": "US:R1-2",
+     "title": "Yield"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r1-2-rural-r1.glb",
+     "vertices": 151,
+     "height": 2.256
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r1-2-urban-r1.glb",
+     "vertices": 151,
+     "height": 2.866
+    }
+   }
+  },
+  "US:R5-1": {
+   "plates": [
+    {
+     "code": "US:R5-1",
+     "title": "Do not enter"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r5-1-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r5-1-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[15]": {
+   "plates": [
+    {
+     "code": "US:R2-1[15]",
+     "title": "Speed limit 15 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_15-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_15-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[20]": {
+   "plates": [
+    {
+     "code": "US:R2-1[20]",
+     "title": "Speed limit 20 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_20-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_20-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[25]": {
+   "plates": [
+    {
+     "code": "US:R2-1[25]",
+     "title": "Speed limit 25 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_25-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_25-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[30]": {
+   "plates": [
+    {
+     "code": "US:R2-1[30]",
+     "title": "Speed limit 30 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_30-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_30-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[35]": {
+   "plates": [
+    {
+     "code": "US:R2-1[35]",
+     "title": "Speed limit 35 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_35-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_35-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[40]": {
+   "plates": [
+    {
+     "code": "US:R2-1[40]",
+     "title": "Speed limit 40 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_40-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_40-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[45]": {
+   "plates": [
+    {
+     "code": "US:R2-1[45]",
+     "title": "Speed limit 45 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_45-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_45-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[50]": {
+   "plates": [
+    {
+     "code": "US:R2-1[50]",
+     "title": "Speed limit 50 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_50-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_50-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[55]": {
+   "plates": [
+    {
+     "code": "US:R2-1[55]",
+     "title": "Speed limit 55 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_55-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_55-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[60]": {
+   "plates": [
+    {
+     "code": "US:R2-1[60]",
+     "title": "Speed limit 60 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_60-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_60-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[65]": {
+   "plates": [
+    {
+     "code": "US:R2-1[65]",
+     "title": "Speed limit 65 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_65-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_65-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[70]": {
+   "plates": [
+    {
+     "code": "US:R2-1[70]",
+     "title": "Speed limit 70 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_70-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_70-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
+  "US:R2-1[75]": {
+   "plates": [
+    {
+     "code": "US:R2-1[75]",
+     "title": "Speed limit 75 mph"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r2-1_75-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.282
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r2-1_75-urban-r1.glb",
+     "vertices": 163,
+     "height": 2.892
+    }
+   }
+  },
   "FR:A2b,FR:B14[30]": {
    "plates": [
     {
@@ -314,6 +654,30 @@
      "model": "assets/models/signs/fr_a2b+fr_b14_30-urban-r1.glb",
      "vertices": 393,
      "height": 3.563
+    }
+   }
+  },
+  "US:R1-1,US:R1-3P": {
+   "plates": [
+    {
+     "code": "US:R1-1",
+     "title": "Stop"
+    },
+    {
+     "code": "US:R1-3P",
+     "title": "All way"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/us_r1-1+us_r1-3p-rural-r1.glb",
+     "vertices": 453,
+     "height": 2.484
+    },
+    "urban": {
+     "model": "assets/models/signs/us_r1-1+us_r1-3p-urban-r1.glb",
+     "vertices": 453,
+     "height": 3.094
     }
    }
   }
@@ -563,6 +927,247 @@
    },
    "post": "assets/models/signs/town/post-r1.glb",
    "bar": "assets/models/signs/town/bar-r1.glb"
+  }
+ },
+ "streets": {
+  "US": {
+   "cap": 0.1,
+   "line": 0.22,
+   "pad": 0.05,
+   "end": 0.04,
+   "lowerEdge": 2.45,
+   "plates": {
+    "1": {
+     "height": 0.2,
+     "left": "assets/models/signs/street/blade_left-r1.glb",
+     "middle": "assets/models/signs/street/blade_middle-r1.glb",
+     "right": "assets/models/signs/street/blade_right-r1.glb"
+    }
+   },
+   "glyphs": {
+    "A": {
+     "model": "assets/models/signs/street/glyph_0041-r1.glb",
+     "advance": 0.084
+    },
+    "B": {
+     "model": "assets/models/signs/street/glyph_0042-r1.glb",
+     "advance": 0.084
+    },
+    "C": {
+     "model": "assets/models/signs/street/glyph_0043-r1.glb",
+     "advance": 0.084
+    },
+    "D": {
+     "model": "assets/models/signs/street/glyph_0044-r1.glb",
+     "advance": 0.088
+    },
+    "E": {
+     "model": "assets/models/signs/street/glyph_0045-r1.glb",
+     "advance": 0.08
+    },
+    "F": {
+     "model": "assets/models/signs/street/glyph_0046-r1.glb",
+     "advance": 0.078
+    },
+    "G": {
+     "model": "assets/models/signs/street/glyph_0047-r1.glb",
+     "advance": 0.088
+    },
+    "H": {
+     "model": "assets/models/signs/street/glyph_0048-r1.glb",
+     "advance": 0.084
+    },
+    "I": {
+     "model": "assets/models/signs/street/glyph_0049-r1.glb",
+     "advance": 0.03
+    },
+    "J": {
+     "model": "assets/models/signs/street/glyph_004a-r1.glb",
+     "advance": 0.078
+    },
+    "K": {
+     "model": "assets/models/signs/street/glyph_004b-r1.glb",
+     "advance": 0.084
+    },
+    "L": {
+     "model": "assets/models/signs/street/glyph_004c-r1.glb",
+     "advance": 0.078
+    },
+    "M": {
+     "model": "assets/models/signs/street/glyph_004d-r1.glb",
+     "advance": 0.102
+    },
+    "N": {
+     "model": "assets/models/signs/street/glyph_004e-r1.glb",
+     "advance": 0.084
+    },
+    "O": {
+     "model": "assets/models/signs/street/glyph_004f-r1.glb",
+     "advance": 0.094
+    },
+    "P": {
+     "model": "assets/models/signs/street/glyph_0050-r1.glb",
+     "advance": 0.084
+    },
+    "Q": {
+     "model": "assets/models/signs/street/glyph_0051-r1.glb",
+     "advance": 0.094
+    },
+    "R": {
+     "model": "assets/models/signs/street/glyph_0052-r1.glb",
+     "advance": 0.084
+    },
+    "S": {
+     "model": "assets/models/signs/street/glyph_0053-r1.glb",
+     "advance": 0.084
+    },
+    "T": {
+     "model": "assets/models/signs/street/glyph_0054-r1.glb",
+     "advance": 0.088
+    },
+    "U": {
+     "model": "assets/models/signs/street/glyph_0055-r1.glb",
+     "advance": 0.084
+    },
+    "V": {
+     "model": "assets/models/signs/street/glyph_0056-r1.glb",
+     "advance": 0.084
+    },
+    "W": {
+     "model": "assets/models/signs/street/glyph_0057-r1.glb",
+     "advance": 0.118
+    },
+    "X": {
+     "model": "assets/models/signs/street/glyph_0058-r1.glb",
+     "advance": 0.084
+    },
+    "Y": {
+     "model": "assets/models/signs/street/glyph_0059-r1.glb",
+     "advance": 0.084
+    },
+    "Z": {
+     "model": "assets/models/signs/street/glyph_005a-r1.glb",
+     "advance": 0.084
+    },
+    "À": {
+     "model": "assets/models/signs/street/glyph_00c0-r1.glb",
+     "advance": 0.084
+    },
+    "Â": {
+     "model": "assets/models/signs/street/glyph_00c2-r1.glb",
+     "advance": 0.084
+    },
+    "Ä": {
+     "model": "assets/models/signs/street/glyph_00c4-r1.glb",
+     "advance": 0.084
+    },
+    "Ç": {
+     "model": "assets/models/signs/street/glyph_00c7-r1.glb",
+     "advance": 0.084
+    },
+    "É": {
+     "model": "assets/models/signs/street/glyph_00c9-r1.glb",
+     "advance": 0.08
+    },
+    "È": {
+     "model": "assets/models/signs/street/glyph_00c8-r1.glb",
+     "advance": 0.08
+    },
+    "Ê": {
+     "model": "assets/models/signs/street/glyph_00ca-r1.glb",
+     "advance": 0.08
+    },
+    "Ë": {
+     "model": "assets/models/signs/street/glyph_00cb-r1.glb",
+     "advance": 0.08
+    },
+    "Î": {
+     "model": "assets/models/signs/street/glyph_00ce-r1.glb",
+     "advance": 0.078
+    },
+    "Ï": {
+     "model": "assets/models/signs/street/glyph_00cf-r1.glb",
+     "advance": 0.078
+    },
+    "Ô": {
+     "model": "assets/models/signs/street/glyph_00d4-r1.glb",
+     "advance": 0.094
+    },
+    "Ö": {
+     "model": "assets/models/signs/street/glyph_00d6-r1.glb",
+     "advance": 0.094
+    },
+    "Ù": {
+     "model": "assets/models/signs/street/glyph_00d9-r1.glb",
+     "advance": 0.084
+    },
+    "Û": {
+     "model": "assets/models/signs/street/glyph_00db-r1.glb",
+     "advance": 0.084
+    },
+    "Ü": {
+     "model": "assets/models/signs/street/glyph_00dc-r1.glb",
+     "advance": 0.084
+    },
+    "Ÿ": {
+     "model": "assets/models/signs/street/glyph_0178-r1.glb",
+     "advance": 0.084
+    },
+    "0": {
+     "model": "assets/models/signs/street/glyph_0030-r1.glb",
+     "advance": 0.084
+    },
+    "1": {
+     "model": "assets/models/signs/street/glyph_0031-r1.glb",
+     "advance": 0.084
+    },
+    "2": {
+     "model": "assets/models/signs/street/glyph_0032-r1.glb",
+     "advance": 0.084
+    },
+    "3": {
+     "model": "assets/models/signs/street/glyph_0033-r1.glb",
+     "advance": 0.084
+    },
+    "4": {
+     "model": "assets/models/signs/street/glyph_0034-r1.glb",
+     "advance": 0.084
+    },
+    "5": {
+     "model": "assets/models/signs/street/glyph_0035-r1.glb",
+     "advance": 0.084
+    },
+    "6": {
+     "model": "assets/models/signs/street/glyph_0036-r1.glb",
+     "advance": 0.084
+    },
+    "7": {
+     "model": "assets/models/signs/street/glyph_0037-r1.glb",
+     "advance": 0.084
+    },
+    "8": {
+     "model": "assets/models/signs/street/glyph_0038-r1.glb",
+     "advance": 0.084
+    },
+    "9": {
+     "model": "assets/models/signs/street/glyph_0039-r1.glb",
+     "advance": 0.084
+    },
+    "-": {
+     "model": "assets/models/signs/street/glyph_002d-r1.glb",
+     "advance": 0.064
+    },
+    "'": {
+     "model": "assets/models/signs/street/glyph_0027-r1.glb",
+     "advance": 0.042
+    },
+    ".": {
+     "model": "assets/models/signs/street/glyph_002e-r1.glb",
+     "advance": 0.03
+    }
+   },
+   "post": "assets/models/signs/street/post-r1.glb",
+   "bar": ""
   }
  }
 }

@@ -44,15 +44,30 @@ WHITE = (0.40, 0.40, 0.39)
 YELLOW = (0.42, 0.26, 0.015)
 RED = (0.26, 0.018, 0.02)
 BLACK = (0.025, 0.025, 0.025)
+# ASTM D4956 type I green, luminance factor 0.03 to 0.09: the street-name blade.
+GREEN = (0.010, 0.085, 0.035)
 # The back of a plate and its post: galvanised steel, weathered.
 STEEL = (0.22, 0.22, 0.21)
 
 # The two mounts: height of the lowest plate's lower edge, and the range.
 MOUNTS = {"rural": (1.00, "normale"), "urban": (2.30, "petite")}
+# Each country's mounts. The United States (MUTCD 2A.18): 5 ft above the road
+# in the open, 7 ft where people walk; the conventional-road sizes.
+COUNTRY_MOUNTS = {
+    "FR": MOUNTS,
+    "US": {"rural": (1.52, "us"), "urban": (2.13, "us")},
+}
+
+
+def mounts_of(code: str) -> dict:
+    return COUNTRY_MOUNTS[code.split(":")[0]]
 # IISR 4e partie, art. 5: dimensions by range, in metres.
 RANGE = {
-    "normale": {"triangle": 1.00, "disc": 0.85, "diamond": 0.70, "zone": (0.85, 1.25)},
-    "petite": {"triangle": 0.70, "disc": 0.65, "diamond": 0.50, "zone": (0.65, 0.95)},
+    "normale": {"triangle": 1.00, "disc": 0.85, "diamond": 0.70, "zone": (0.85, 1.25), "octagon": 0.80},
+    "petite": {"triangle": 0.70, "disc": 0.65, "diamond": 0.50, "zone": (0.65, 0.95), "octagon": 0.60},
+    # MUTCD table 2B-1, conventional road: STOP 30 in, YIELD 36 in, DO NOT
+    # ENTER 30 in, SPEED LIMIT 24 x 30 in, the ALL WAY plaque 18 x 6 in.
+    "us": {"octagon": 0.762, "triangle": 0.914, "square": 0.762, "speed": (0.610, 0.762), "plaque": (0.457, 0.152)},
 }
 THICKNESS = 0.012
 POST_RADIUS = 0.035
@@ -205,6 +220,8 @@ def _text(draw, text: str, cx: float, cy: float, height: float, width: float, ga
     x0 = cx - total / 2
     for i, ch in enumerate(text):
         gx = x0 + i * (width + gap)
+        if ch == " ":
+            continue
         for line in _glyph(ch):
             pts = [(gx + x * width, cy - height / 2 + y * height) for x, y in line]
             draw.line(pts, fill=fill, width=int(round(stroke)), joint="curve")
@@ -250,6 +267,15 @@ def outline(shape: str, rng: str, inset: float = 0.0):
     if shape == "zone":
         w, h = dims["zone"]
         return rounded_rect(w - 2 * inset, h - 2 * inset, max(0.0, 0.04 - inset)), h
+    if shape == "octagon":
+        side = dims["octagon"]  # across the flats
+        return rounded_polygon(8, side / 2 - inset, math.pi / 8, max(0.0, side * 0.02 - inset)), side
+    if shape == "square":
+        side = dims["square"]
+        return rounded_rect(side - 2 * inset, side - 2 * inset, max(0.0, 0.03 - inset)), side
+    if shape in ("speed", "plaque"):
+        w, h = dims[shape]
+        return rounded_rect(w - 2 * inset, h - 2 * inset, max(0.0, 0.025 - inset)), max(w, h)
     raise ValueError(shape)
 
 
@@ -313,21 +339,74 @@ def _paint_zone30(draw, shape, rng, size):
     _text(draw, "30", cx, cy, 0.20 * size, 0.10 * size, 0.045 * size, 0.040 * size, _rgb(BLACK))
 
 
+def _paint_stop(draw, shape, rng, size):
+    ext = outline(shape, rng)[1]
+    draw.polygon(_poly_px(outline(shape, rng)[0], ext, size), fill=_rgb(WHITE))
+    draw.polygon(_poly_px(outline(shape, rng, 0.025 * ext)[0], ext, size), fill=_rgb(RED))
+    _text(draw, "STOP", size / 2, size / 2, 0.30 * size, 0.15 * size, 0.055 * size, 0.062 * size, _rgb(WHITE))
+
+
+def _paint_yield(draw, shape, rng, size):
+    _bordered(RED, WHITE, 0.12)(draw, shape, rng, size)
+    _text(draw, "YIELD", size / 2, size * 0.33, 0.075 * size, 0.052 * size, 0.02 * size, 0.02 * size, _rgb(RED))
+
+
+def _paint_all_way(draw, shape, rng, size):
+    ext = outline(shape, rng)[1]
+    draw.polygon(_poly_px(outline(shape, rng)[0], ext, size), fill=_rgb(RED))
+    draw.polygon(_poly_px(outline(shape, rng, 0.012 * ext)[0], ext, size), fill=_rgb(WHITE))
+    _text(draw, "ALL WAY", size / 2, size / 2, 0.16 * size, 0.085 * size, 0.035 * size, 0.035 * size, _rgb(RED))
+
+
+def _paint_speed(value: int):
+    def paint(draw, shape, rng, size):
+        ext = outline(shape, rng)[1]
+        draw.polygon(_poly_px(outline(shape, rng)[0], ext, size), fill=_rgb(WHITE))
+        draw.polygon(_poly_px(outline(shape, rng, 0.02 * ext)[0], ext, size), fill=_rgb(BLACK))
+        draw.polygon(_poly_px(outline(shape, rng, 0.03 * ext)[0], ext, size), fill=_rgb(WHITE))
+        _text(draw, "SPEED", size / 2, size * 0.20, 0.10 * size, 0.07 * size, 0.03 * size, 0.024 * size, _rgb(BLACK))
+        _text(draw, "LIMIT", size / 2, size * 0.36, 0.10 * size, 0.07 * size, 0.03 * size, 0.024 * size, _rgb(BLACK))
+        _text(draw, str(value), size / 2, size * 0.66, 0.30 * size, 0.15 * size, 0.06 * size, 0.06 * size, _rgb(BLACK))
+    return paint
+
+
+def _paint_dne(draw, shape, rng, size):
+    ext = outline(shape, rng)[1]
+    draw.polygon(_poly_px(outline(shape, rng)[0], ext, size), fill=_rgb(BLACK))
+    draw.polygon(_poly_px(outline(shape, rng, 0.008 * ext)[0], ext, size), fill=_rgb(WHITE))
+    r = 0.46 * size
+    draw.ellipse((size / 2 - r, size / 2 - r, size / 2 + r, size / 2 + r), fill=_rgb(RED))
+    draw.rectangle((size * 0.2, size * 0.45, size * 0.8, size * 0.55), fill=_rgb(WHITE))
+    _text(draw, "DO NOT", size / 2, size * 0.33, 0.09 * size, 0.06 * size, 0.022 * size, 0.022 * size, _rgb(WHITE))
+    _text(draw, "ENTER", size / 2, size * 0.67, 0.09 * size, 0.06 * size, 0.022 * size, 0.022 * size, _rgb(WHITE))
+
+
 LIMITS = (20, 30, 40, 50, 60, 70, 80, 90, 110, 130)
+US_LIMITS = tuple(range(15, 80, 5))
 
 PLATES = {
     "FR:AB3a": Plate("FR:AB3a", "Cédez le passage", "triangle-down", _paint_ab3a),
     "FR:AB6": Plate("FR:AB6", "Route prioritaire", "diamond", _paint_ab6),
+    "FR:AB4": Plate("FR:AB4", "Arrêt à l'intersection", "octagon", _paint_stop),
     "FR:A2b": Plate("FR:A2b", "Ralentisseur de type dos-d'âne", "triangle-up", _paint_a2b),
     "FR:B30": Plate("FR:B30", "Entrée d'une zone 30", "zone", _paint_zone30),
     **{f"FR:B14[{v}]": Plate(f"FR:B14[{v}]", f"Limitation de vitesse à {v} km/h", "disc", _paint_limit(v))
        for v in LIMITS},
+    # The United States, from the MUTCD.
+    "US:R1-1": Plate("US:R1-1", "Stop", "octagon", _paint_stop),
+    "US:R1-3P": Plate("US:R1-3P", "All way", "plaque", _paint_all_way),
+    "US:R1-2": Plate("US:R1-2", "Yield", "triangle-down", _paint_yield),
+    "US:R5-1": Plate("US:R5-1", "Do not enter", "square", _paint_dne),
+    **{f"US:R2-1[{v}]": Plate(f"US:R2-1[{v}]", f"Speed limit {v} mph", "speed", _paint_speed(v)) for v in US_LIMITS},
 }
 
 # A sign is plates on one post, top first, as the regulation stacks them.
+# A plaque never stands alone: it is hung under the sign it qualifies.
+PLAQUES = {"US:R1-3P"}
 SIGNS = {
-    **{code: (code,) for code in PLATES},
+    **{code: (code,) for code in PLATES if code not in PLAQUES},
     "FR:A2b,FR:B14[30]": ("FR:A2b", "FR:B14[30]"),
+    "US:R1-1,US:R1-3P": ("US:R1-1", "US:R1-3P"),
 }
 
 
@@ -391,7 +470,7 @@ def model_path(sign: str, mount: str) -> Path:
 
 def bake(sign: str, mount: str) -> tuple[Path, int, float]:
     """One sign on one mount: its path, vertex count and height."""
-    low, rng = MOUNTS[mount]
+    low, rng = mounts_of(sign)[mount]
     parts: list[MeshPart] = []
     back, post = Mesh(), Mesh()
     gap = 0.05
@@ -450,15 +529,20 @@ def town_plate_height(lines: int) -> float:
 
 
 def _flat_part(width: float, height: float, x0: float, texture, color=(1.0, 1.0, 1.0),
-               front: float = THICKNESS / 2) -> list:
+               front: float = THICKNESS / 2, both: bool = False) -> list:
     """A rectangle facing +Z from x0 to x0 + width, from 0 to height, mapped
-    whole to its texture; its back and edges in steel."""
+    whole to its texture; its back and edges in steel, or with `both` its
+    back faced too (a street-name blade is read from either side)."""
     face, rear = Mesh(), Mesh()
     x1 = x0 + width
     face.add_quad((x0, 0.0, front), (x1, 0.0, front), (x1, height, front), (x0, height, front),
                   ((0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)))
     z0 = -THICKNESS / 2
-    rear.add_quad((x1, 0.0, z0), (x0, 0.0, z0), (x0, height, z0), (x1, height, z0))
+    if both:
+        face.add_quad((x1, 0.0, z0), (x0, 0.0, z0), (x0, height, z0), (x1, height, z0),
+                      ((1.0, 1.0), (0.0, 1.0), (0.0, 0.0), (1.0, 0.0)))
+    else:
+        rear.add_quad((x1, 0.0, z0), (x0, 0.0, z0), (x0, height, z0), (x1, height, z0))
     for (a, b) in (((x0, 0.0), (x1, 0.0)), ((x1, height), (x0, height)), ((x1, 0.0), (x1, height)),
                    ((x0, height), (x0, 0.0))):
         rear.add_quad((a[0], a[1], z0), (b[0], b[1], z0), (b[0], b[1], front), (a[0], a[1], front))
@@ -506,7 +590,7 @@ def glyph_advance(ch: str) -> float:
     return box + GLYPH_STROKE + GLYPH_SPACING
 
 
-def _glyph_atlas():
+def _glyph_atlas(ink=BLACK, paper=WHITE, name="town_glyphs"):
     from PIL import Image, ImageDraw
     k = GLYPH_PIXELS * SUPERSAMPLE
     cell_h = int(round((1 + GLYPH_ABOVE + GLYPH_BELOW) * GLYPH_PIXELS))
@@ -519,7 +603,7 @@ def _glyph_atlas():
         placed[ch] = (x, y)
         x += widths[ch]
     atlas_h = rows * cell_h
-    big = Image.new("RGB", (atlas_w * SUPERSAMPLE, atlas_h * SUPERSAMPLE), _rgb(WHITE))
+    big = Image.new("RGB", (atlas_w * SUPERSAMPLE, atlas_h * SUPERSAMPLE), _rgb(paper))
     draw = ImageDraw.Draw(big)
     for ch in TOWN_GLYPHS:
         px, py = placed[ch]
@@ -531,19 +615,19 @@ def _glyph_atlas():
         marks = _ACCENTS[ACCENTED[ch][1]] if ch in ACCENTED else []
         for line, width in [(l, box) for l in letter] + [(m, max(box, ACCENT_WIDTH)) for m in marks]:
             pts = [(centre + (gx - 0.5) * width * k, top + gy * k) for gx, gy in line]
-            draw.line(pts, fill=_rgb(BLACK), width=int(round(stroke)), joint="curve")
+            draw.line(pts, fill=_rgb(ink), width=int(round(stroke)), joint="curve")
             for qx, qy in (pts[0], pts[-1]):
-                draw.ellipse((qx - stroke / 2, qy - stroke / 2, qx + stroke / 2, qy + stroke / 2), fill=_rgb(BLACK))
+                draw.ellipse((qx - stroke / 2, qy - stroke / 2, qx + stroke / 2, qy + stroke / 2), fill=_rgb(ink))
     image = big.resize((atlas_w, atlas_h), Image.LANCZOS)
-    path = FACE_DIR / f"town_glyphs-r{REVISION}.png"
+    path = FACE_DIR / f"{name}-r{REVISION}.png"
     image.save(path, optimize=True)
     uv = {ch: (placed[ch][0] / atlas_w, placed[ch][1] / atlas_h, (placed[ch][0] + widths[ch]) / atlas_w,
                (placed[ch][1] + cell_h) / atlas_h) for ch in TOWN_GLYPHS}
     return path, uv
 
 
-def _write(parts: list, name: str) -> str:
-    path = MODEL_DIR / "town" / f"{name}-r{REVISION}.glb"
+def _write(parts: list, name: str, folder: str = "town") -> str:
+    path = MODEL_DIR / folder / f"{name}-r{REVISION}.glb"
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(f".{os.getpid()}.tmp")
     write_glb(temporary, parts)
@@ -551,8 +635,8 @@ def _write(parts: list, name: str) -> str:
     return path.relative_to(GAME).as_posix()
 
 
-def _uri(texture: Path) -> str:
-    return os.path.relpath(texture, MODEL_DIR / "town").replace(os.sep, "/")
+def _uri(texture: Path, folder: str = "town") -> str:
+    return os.path.relpath(texture, MODEL_DIR / folder).replace(os.sep, "/")
 
 
 def bake_town_kit() -> dict:
@@ -590,14 +674,78 @@ def bake_town_kit() -> dict:
     return kit
 
 
+# ── street-name blades (US D3-1) ────────────────────────────────────────────
+# White capitals on green, read from both sides, two blades crossed on one
+# post at each corner. Assembled in the game like a town's sign.
+
+BLADE_CAP = 0.10          # 4 in capitals, MUTCD 2D.43 on a residential street
+BLADE_PAD = 0.05
+BLADE_END = 0.04
+BLADE_LOWER_EDGE = 2.45   # the lower blade, clear of a truck's mirror
+BLADE_STACK = 0.22        # the upper blade above it
+
+
+def _blade_textures() -> dict:
+    from PIL import Image, ImageDraw
+    height = BLADE_CAP + 2 * BLADE_PAD
+    per_metre = 512
+    h = int(round(height * per_metre))
+    rim, line = int(0.006 * per_metre), max(1, int(0.008 * per_metre))
+    out = {}
+    for part, width in (("left", BLADE_END), ("middle", 0.25), ("right", BLADE_END)):
+        w = int(round(width * per_metre))
+        image = Image.new("RGB", (w, h), _rgb(GREEN))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, rim, w, rim + line), fill=_rgb(WHITE))
+        draw.rectangle((0, h - rim - line, w, h - rim), fill=_rgb(WHITE))
+        if part == "left":
+            draw.rectangle((rim, rim, rim + line, h - rim), fill=_rgb(WHITE))
+        if part == "right":
+            draw.rectangle((w - rim - line, rim, w - rim, h - rim), fill=_rgb(WHITE))
+        path = FACE_DIR / f"blade_{part}-r{REVISION}.png"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(path, optimize=True)
+        out[part] = path
+    return out
+
+
+def bake_blade_kit() -> dict:
+    height = BLADE_CAP + 2 * BLADE_PAD
+    kit = {"cap": BLADE_CAP, "line": BLADE_STACK, "pad": BLADE_PAD, "end": BLADE_END, "lowerEdge": BLADE_LOWER_EDGE,
+           "plates": {}, "glyphs": {}}
+    textures = _blade_textures()
+    kit["plates"]["1"] = {
+        "height": round(height, 4),
+        "left": _write(_flat_part(BLADE_END, height, 0.0, _uri(textures["left"], "street"), both=True), "blade_left", "street"),
+        "middle": _write(_flat_part(1.0, height, 0.0, _uri(textures["middle"], "street"), both=True), "blade_middle", "street"),
+        "right": _write(_flat_part(BLADE_END, height, -BLADE_END, _uri(textures["right"], "street"), both=True), "blade_right", "street"),
+    }
+    post = Mesh()
+    _post(post, 1.0)
+    kit["post"] = _write([MeshPart("Post", post, Material("Sign post", (*STEEL, 1.0), 0.5))], "post", "street")
+    kit["bar"] = ""
+    atlas, uv = _glyph_atlas(WHITE, GREEN, "blade_glyphs")
+    for ch in TOWN_GLYPHS:
+        u0, v0, u1, v1 = uv[ch]
+        width = glyph_advance(ch) * BLADE_CAP
+        z = THICKNESS / 2 + 0.002
+        y0, y1 = -GLYPH_BELOW * BLADE_CAP, (1 + GLYPH_ABOVE) * BLADE_CAP
+        m = Mesh()
+        m.add_quad((0.0, y0, z), (width, y0, z), (width, y1, z), (0.0, y1, z), ((u0, v1), (u1, v1), (u1, v0), (u0, v0)))
+        name = "glyph_" + "_".join(f"{ord(c):04x}" for c in ch)
+        material = Material("Blade letters", (1.0, 1.0, 1.0, 1.0), 0.45, base_color_texture=_uri(atlas, "street"))
+        kit["glyphs"][ch] = {"model": _write([MeshPart("Glyph", m, material)], name, "street"), "advance": round(width, 5)}
+    return kit
+
+
 def ship() -> Path:
     for plate in PLATES.values():
-        for rng in {r for _, r in MOUNTS.values()}:
+        for rng in {r for _, r in mounts_of(plate.code).values()}:
             draw_face(plate, rng)
     signs = {}
     for sign, plates in SIGNS.items():
         entry = {"plates": [{"code": c, "title": PLATES[c].title} for c in plates], "mounts": {}}
-        for mount in MOUNTS:
+        for mount in mounts_of(sign):
             path, vertices, top = bake(sign, mount)
             entry["mounts"][mount] = {"model": path.relative_to(GAME).as_posix(), "vertices": vertices,
                                       "height": round(top, 3)}
@@ -605,12 +753,14 @@ def ship() -> Path:
     doc = {
         "schema": 1,
         "revision": REVISION,
-        "note": "Road signs drawn by the project from the IISR (tools/r1/signage.py). "
+        "note": "Road signs drawn by the project from the IISR and the MUTCD (tools/r1/signage.py). "
                 "Keys are OSM traffic_sign codes; the generator predicts which stands where (native/gen/predict.cpp).",
         "mounts": {m: {"lowerEdge": low, "range": rng} for m, (low, rng) in MOUNTS.items()},
         "signs": signs,
         # Assembled in the game around a place's name (native/gen/predict.cpp).
         "towns": {"FR": bake_town_kit()},
+        # Street names at the corners, assembled the same way.
+        "streets": {"US": bake_blade_kit()},
     }
     CATALOGUE.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return CATALOGUE

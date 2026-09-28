@@ -626,3 +626,18 @@ TEST(Ships, the_channel_has_ships_and_the_desert_has_none) {
         CHECK((*doc)["hulls"].contains(s["model"].get<std::string>()));
     }
 }
+
+TEST(Sources, the_overpass_question_is_well_formed) {
+    // A malformed question is an HTTP 400 on every endpoint: no new place
+    // could ever load. Version 7 shipped one (`is_in((lat,lon))`).
+    const std::string q = ObservationStore::osmQuery({48.85, 2.29, 48.86, 2.30});
+    CHECK(q.find("((") == std::string::npos && q.find("))") == std::string::npos);
+    CHECK(q.find("{B}") == std::string::npos && q.find("{W}") == std::string::npos && q.find("{C}") == std::string::npos);
+    CHECK(q.find("is_in(48.85500000,2.29500000)->.here;") != std::string::npos);
+    int depth = 0;
+    for (char c : q) {
+        depth += c == '(' ? 1 : c == ')' ? -1 : 0;
+        CHECK(depth >= 0 && depth <= 2);
+    }
+    CHECK(depth == 0);
+}

@@ -35,9 +35,24 @@
             "path": "assets/models/vehicles/truck.glb",
             "type": "Mesh"
         },
+        "10185040939580821166": {
+            "hash": 12851376299156546463,
+            "path": "assets/models/signs/street/glyph_0058-r1.glb",
+            "type": "Mesh"
+        },
+        "10227522817173145257": {
+            "hash": 4206083514807481815,
+            "path": "assets/models/signs/street/glyph_00d4-r1.glb",
+            "type": "Mesh"
+        },
         "10251819809601361931": {
             "hash": 10716123527285187602,
             "path": "assets/models/signs/fr_b14_30-urban-r1.glb",
+            "type": "Mesh"
+        },
+        "10256794250704656884": {
+            "hash": 8586592382942994987,
+            "path": "assets/models/signs/street/glyph_0035-r1.glb",
             "type": "Mesh"
         },
         "10260613083936957005": {
@@ -60,6 +75,11 @@
             "path": "assets/models/signs/town/glyph_0051-r1.glb",
             "type": "Mesh"
         },
+        "10435320935901964342": {
+            "hash": 17639619222606431349,
+            "path": "assets/models/signs/us_r2-1_75-urban-r1.glb",
+            "type": "Mesh"
+        },
         "10440717539151597023": {
             "hash": 9102509151535982680,
             "path": "assets/models/signs/fr_ab6-rural-r1.glb",
@@ -75,6 +95,11 @@
             "path": "assets/models/signs/faces/fr_b14_130-normale-r1.png",
             "type": "Texture"
         },
+        "10459289095859325351": {
+            "hash": 10167557367051800801,
+            "path": "assets/models/signs/us_r2-1_55-rural-r1.glb",
+            "type": "Mesh"
+        },
         "10512625487224729199": {
             "hash": 5041062877627536745,
             "path": "assets/models/signs/faces/fr_b14_110-normale-r1.png",
@@ -84,6 +109,16 @@
             "hash": 15589912908490408827,
             "path": "assets/textures/surfaces/soil_arid_mr.jpg",
             "type": "Texture"
+        },
+        "10611418419082933723": {
+            "hash": 5172326991691068981,
+            "path": "assets/models/signs/us_r2-1_20-urban-r1.glb",
+            "type": "Mesh"
+        },
+        "10615331639074777549": {
+            "hash": 13546119591733400299,
+            "path": "assets/models/signs/street/glyph_0033-r1.glb",
+            "type": "Mesh"
         },
         "10667931363589278107": {
             "hash": 17402881141806526146,
@@ -115,6 +150,11 @@
             "path": "assets/textures/surfaces/tile_canal_normal.jpg",
             "type": "Texture"
         },
+        "10861181724992641285": {
+            "hash": 15013026224451238501,
+            "path": "assets/models/signs/us_r2-1_40-urban-r1.glb",
+            "type": "Mesh"
+        },
         "1086941664311147812": {
             "hash": 2198879554639685540,
             "path": "assets/models/signs/fr_b14_30-rural-r1.glb",
@@ -140,6 +180,21 @@
             "path": "assets/textures/surfaces/rock_mr.jpg",
             "type": "Texture"
         },
+        "10955453247691982196": {
+            "hash": 4775314560383088565,
+            "path": "assets/models/signs/faces/us_r2-1_40-us-r1.png",
+            "type": "Texture"
+        },
+        "10963678339868103266": {
+            "hash": 611315285034633586,
+            "path": "assets/models/signs/faces/blade_left-r1.png",
+            "type": "Texture"
+        },
+        "10969270233397706001": {
+            "hash": 9152922755204767655,
+            "path": "assets/models/signs/street/glyph_004d-r1.glb",
+            "type": "Mesh"
+        },
         "1099925608537163141": {
             "hash": 6093935909095271028,
             "path": "assets/textures/surfaces/membrane_normal.jpg",
@@ -150,9 +205,24 @@
             "path": "assets/models/signs/town/glyph_0027-r1.glb",
             "type": "Mesh"
         },
+        "11064658736045294221": {
+            "hash": 6854034757764607977,
+            "path": "assets/models/signs/faces/us_r2-1_15-us-r1.png",
+            "type": "Texture"
+        },
         "11077123032362222503": {
             "hash": 825924902146868092,
             "path": "assets/models/external/nature_cards/broadleaf.png",
+            "type": "Texture"
+        },
+        "11087779563444538143": {
+            "hash": 14858742006671085895,
+            "path": "assets/models/signs/street/glyph_004e-r1.glb",
+            "type": "Mesh"
+        },
+        "1108935439538916923": {
+            "hash": 536556546390445385,
+            "path": "assets/models/signs/faces/us_r2-1_20-us-r1.png",
             "type": "Texture"
         },
         "11103282204312302750": {
@@ -225,6 +295,11 @@
             "path": "assets/textures/facades/render_mr.jpg",
             "type": "Texture"
         },
+        "11429058891080532431": {
+            "hash": 4557158484704506231,
+            "path": "assets/models/signs/street/glyph_002d-r1.glb",
+            "type": "Mesh"
+        },
         "11429220939861462731": {
             "hash": 14357097194554739423,
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_nor_gl_1k.jpg",
@@ -245,9 +320,19 @@
             "path": "assets/skies/qwantani_dusk_1.hdr",
             "type": "Texture"
         },
+        "11453891065844083021": {
+            "hash": 5164640362063914597,
+            "path": "assets/models/signs/us_r2-1_55-urban-r1.glb",
+            "type": "Mesh"
+        },
         "11478873376804402379": {
             "hash": 10355329136700605666,
             "path": "assets/world/landmarks/burj_khalifa-r3.glb",
+            "type": "Mesh"
+        },
+        "11556516719648670368": {
+            "hash": 9669987082828902577,
+            "path": "assets/models/signs/us_r5-1-rural-r1.glb",
             "type": "Mesh"
         },
         "11569941434593218959": {
@@ -285,6 +370,11 @@
             "path": "assets/models/signs/fr_b14_90-urban-r1.glb",
             "type": "Mesh"
         },
+        "11747861873636607108": {
+            "hash": 14101986362866418701,
+            "path": "assets/models/signs/us_r2-1_50-urban-r1.glb",
+            "type": "Mesh"
+        },
         "1176457584870127476": {
             "hash": 17321171425847707638,
             "path": "assets/textures/surfaces/farmland_mr.jpg",
@@ -293,6 +383,11 @@
         "11791384038718943201": {
             "hash": 10848907647775899530,
             "path": "assets/models/vehicles/sport.glb",
+            "type": "Mesh"
+        },
+        "11847830737469193640": {
+            "hash": 9614725517229731229,
+            "path": "assets/models/signs/us_r2-1_70-urban-r1.glb",
             "type": "Mesh"
         },
         "1186708753548117409": {
@@ -330,6 +425,11 @@
             "path": "assets/models/external/trees_lod/quiver_tree_slim.glb",
             "type": "Mesh"
         },
+        "12005960524810303568": {
+            "hash": 4749093788149579426,
+            "path": "assets/models/signs/street/blade_middle-r1.glb",
+            "type": "Mesh"
+        },
         "12120231710156165246": {
             "hash": 12288720006028242934,
             "path": "assets/models/external/kenney_boats/cargo_container_b.glb",
@@ -345,10 +445,20 @@
             "path": "assets/models/vehicles/suv.glb",
             "type": "Mesh"
         },
+        "121688710059543883": {
+            "hash": 7615004534226410681,
+            "path": "assets/models/signs/us_r2-1_20-rural-r1.glb",
+            "type": "Mesh"
+        },
         "12190100396979270698": {
             "hash": 6793497951419645721,
             "path": "assets/textures/facades/concrete_panel_albedo.jpg",
             "type": "Texture"
+        },
+        "12196288667028506666": {
+            "hash": 6523102140518886278,
+            "path": "assets/models/signs/street/glyph_0049-r1.glb",
+            "type": "Mesh"
         },
         "12211020889104212060": {
             "hash": 1072867189479364973,
@@ -365,9 +475,19 @@
             "path": "assets/models/humans/business_female_03.glb",
             "type": "Mesh"
         },
+        "12242054952179453534": {
+            "hash": 12335882222301003369,
+            "path": "assets/models/signs/us_r2-1_25-rural-r1.glb",
+            "type": "Mesh"
+        },
         "12260085732010634007": {
             "hash": 12742813641226646648,
             "path": "assets/models/signs/town/glyph_0047-r1.glb",
+            "type": "Mesh"
+        },
+        "1227261557106612725": {
+            "hash": 18267006617766458195,
+            "path": "assets/models/signs/street/glyph_00d9-r1.glb",
             "type": "Mesh"
         },
         "1228619748521123832": {
@@ -480,9 +600,19 @@
             "path": "assets/models/signs/fr_b14_90-rural-r1.glb",
             "type": "Mesh"
         },
+        "12684269158797852751": {
+            "hash": 13537809263127288959,
+            "path": "assets/models/signs/street/glyph_00db-r1.glb",
+            "type": "Mesh"
+        },
         "12693770938712301425": {
             "hash": 12437710388790149778,
             "path": "assets/models/signs/fr_b14_40-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "12749259336586169398": {
+            "hash": 14922111545986651293,
+            "path": "assets/models/signs/street/glyph_004a-r1.glb",
             "type": "Mesh"
         },
         "12761409532284206640": {
@@ -530,10 +660,25 @@
             "path": "assets/models/humans/male_adult_13.glb",
             "type": "Mesh"
         },
+        "12875666530477847404": {
+            "hash": 301499269769367719,
+            "path": "assets/models/signs/street/glyph_00c9-r1.glb",
+            "type": "Mesh"
+        },
+        "12885792651495354718": {
+            "hash": 5587367974833217434,
+            "path": "assets/models/signs/faces/us_r2-1_30-us-r1.png",
+            "type": "Texture"
+        },
         "12890509710164325837": {
             "hash": 5882390638137486309,
             "path": "assets/models/external/kenney_nature_kit/pine_sapling_small.bin",
             "type": "Unknown"
+        },
+        "12898165000899018720": {
+            "hash": 13789954836470215317,
+            "path": "assets/models/signs/us_r5-1-urban-r1.glb",
+            "type": "Mesh"
         },
         "12900305429000009921": {
             "hash": 12350097303040955276,
@@ -590,6 +735,11 @@
             "path": "assets/models/signs/faces/fr_b14_110-petite-r1.png",
             "type": "Texture"
         },
+        "13091871350456739138": {
+            "hash": 1312938552952503829,
+            "path": "assets/models/signs/us_r2-1_15-urban-r1.glb",
+            "type": "Mesh"
+        },
         "13111794619578189054": {
             "hash": 6272487676898454493,
             "path": "assets/world/landmarks/sagrada_familia-r3.glb",
@@ -645,6 +795,11 @@
             "path": "assets/models/signs/fr_ab3a-urban-r1.glb",
             "type": "Mesh"
         },
+        "1340907221348222990": {
+            "hash": 4964235014381181392,
+            "path": "assets/models/signs/faces/us_r1-1-us-r1.png",
+            "type": "Texture"
+        },
         "13413210018139794012": {
             "hash": 16291479167162693180,
             "path": "assets/textures/surfaces/forest_tropical_normal.jpg",
@@ -670,6 +825,11 @@
             "path": "assets/world/landmarks/empire_state_building-r3-lod1.glb",
             "type": "Mesh"
         },
+        "13501879189639405267": {
+            "hash": 4233665290653493549,
+            "path": "assets/models/signs/us_r2-1_25-urban-r1.glb",
+            "type": "Mesh"
+        },
         "13546313537533355355": {
             "hash": 14357097194554739423,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_nor_gl_1k.jpg",
@@ -680,6 +840,11 @@
             "path": "assets/textures/surfaces/concrete_tile_mr.jpg",
             "type": "Texture"
         },
+        "1363063151524726807": {
+            "hash": 17184977657865323421,
+            "path": "assets/models/signs/us_r2-1_45-urban-r1.glb",
+            "type": "Mesh"
+        },
         "13653665000171179054": {
             "hash": 4680064562558377052,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_nor_gl_1k.jpg",
@@ -689,6 +854,16 @@
             "hash": 5347993614936994189,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_diff_1k.jpg",
             "type": "Texture"
+        },
+        "13673902465371095130": {
+            "hash": 4644605114143427151,
+            "path": "assets/models/signs/street/glyph_0030-r1.glb",
+            "type": "Mesh"
+        },
+        "13688258639732206243": {
+            "hash": 3312521557322825360,
+            "path": "assets/models/signs/street/glyph_0047-r1.glb",
+            "type": "Mesh"
         },
         "13691125909844886477": {
             "hash": 742819075536445761,
@@ -704,6 +879,11 @@
             "hash": 12544961104635484731,
             "path": "assets/textures/surfaces/cracked_earth_mr.jpg",
             "type": "Texture"
+        },
+        "13709376887700422911": {
+            "hash": 15815905801467124507,
+            "path": "assets/models/signs/street/glyph_0041-r1.glb",
+            "type": "Mesh"
         },
         "13751667415432449359": {
             "hash": 3859721668572772011,
@@ -795,10 +975,25 @@
             "path": "assets/textures/surfaces/mud_albedo.jpg",
             "type": "Texture"
         },
+        "14090359524490844263": {
+            "hash": 3361332562783124627,
+            "path": "assets/models/signs/street/glyph_004f-r1.glb",
+            "type": "Mesh"
+        },
+        "1412975030885046700": {
+            "hash": 4090304118612698035,
+            "path": "assets/models/signs/street/glyph_0045-r1.glb",
+            "type": "Mesh"
+        },
         "14219444032277492959": {
             "hash": 12435981215151756996,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_arm_1k.jpg",
             "type": "Texture"
+        },
+        "14257571332095936797": {
+            "hash": 12593345145284465351,
+            "path": "assets/models/signs/street/blade_right-r1.glb",
+            "type": "Mesh"
         },
         "14289982382543389213": {
             "hash": 1155291895151475995,
@@ -836,7 +1031,7 @@
             "type": "Mesh"
         },
         "14593234149963606598": {
-            "hash": 10227351922546964881,
+            "hash": 10475227427477147203,
             "path": "assets/world/signs.json",
             "type": "Unknown"
         },
@@ -870,6 +1065,16 @@
             "path": "assets/models/external/nature_cards/quiver_tree_slim.png",
             "type": "Texture"
         },
+        "1476205107630755768": {
+            "hash": 11418214536529617692,
+            "path": "assets/models/signs/us_r1-2-urban-r1.glb",
+            "type": "Mesh"
+        },
+        "14826515651026477814": {
+            "hash": 1812385937623435611,
+            "path": "assets/models/signs/street/glyph_0031-r1.glb",
+            "type": "Mesh"
+        },
         "14829374661664298212": {
             "hash": 15932095546901038657,
             "path": "assets/world/landmarks/brandenburg_gate-r3-lod1.glb",
@@ -879,6 +1084,16 @@
             "hash": 5063559829734088901,
             "path": "assets/textures/ground/forrest_ground_01_rough_1k.jpg",
             "type": "Texture"
+        },
+        "14848565182228412843": {
+            "hash": 17133792585115709475,
+            "path": "assets/models/signs/faces/blade_middle-r1.png",
+            "type": "Texture"
+        },
+        "14900938898289711572": {
+            "hash": 160222221550089981,
+            "path": "assets/models/signs/us_r2-1_30-urban-r1.glb",
+            "type": "Mesh"
         },
         "14922746739256743631": {
             "hash": 8205072317706118071,
@@ -908,6 +1123,11 @@
         "15144374929398895871": {
             "hash": 5468161483455873345,
             "path": "assets/models/vehicles/bus_far.glb",
+            "type": "Mesh"
+        },
+        "15188875353753372854": {
+            "hash": 18292839602058934945,
+            "path": "assets/models/signs/us_r2-1_70-rural-r1.glb",
             "type": "Mesh"
         },
         "15211902689359524263": {
@@ -950,6 +1170,11 @@
             "path": "assets/textures/facades/timber_albedo.jpg",
             "type": "Texture"
         },
+        "15318806372839009494": {
+            "hash": 18322863551816368959,
+            "path": "assets/models/signs/street/glyph_0032-r1.glb",
+            "type": "Mesh"
+        },
         "15349313070310629554": {
             "hash": 799691860116620249,
             "path": "assets/textures/surfaces/farmland_albedo.jpg",
@@ -959,6 +1184,16 @@
             "hash": 9355882243525975633,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_trunk_diff_1k.jpg",
             "type": "Texture"
+        },
+        "15365191756501754515": {
+            "hash": 16815268577630609163,
+            "path": "assets/models/signs/street/glyph_0048-r1.glb",
+            "type": "Mesh"
+        },
+        "15373741830460035101": {
+            "hash": 9491143354054416575,
+            "path": "assets/models/signs/us_r1-1+us_r1-3p-rural-r1.glb",
+            "type": "Mesh"
         },
         "15374812747493576515": {
             "hash": 6723276661686199723,
@@ -990,6 +1225,11 @@
             "path": "assets/textures/surfaces/sea_ice_normal.jpg",
             "type": "Texture"
         },
+        "15556823660141185662": {
+            "hash": 9326661359347252162,
+            "path": "assets/models/signs/faces/blade_right-r1.png",
+            "type": "Texture"
+        },
         "1557929129814296348": {
             "hash": 5023509231941440061,
             "path": "assets/models/external/nature_cards/broadleaf.source.json",
@@ -1005,6 +1245,11 @@
             "path": "assets/world/landmarks/arc_de_triomphe-r3-lod1.glb",
             "type": "Mesh"
         },
+        "15643217212925808332": {
+            "hash": 11722364917801946161,
+            "path": "assets/models/signs/street/glyph_00cf-r1.glb",
+            "type": "Mesh"
+        },
         "15685313678389118020": {
             "hash": 10917355006684245255,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_diff_1k.jpg",
@@ -1013,6 +1258,11 @@
         "15726731038827798721": {
             "hash": 6128970002315594014,
             "path": "assets/models/signs/town/glyph_00c9-r1.glb",
+            "type": "Mesh"
+        },
+        "15744409582282276054": {
+            "hash": 18303986206267173165,
+            "path": "assets/models/signs/us_r2-1_65-urban-r1.glb",
             "type": "Mesh"
         },
         "15774656852943925629": {
@@ -1035,10 +1285,35 @@
             "path": "assets/models/humans/player.glb",
             "type": "Mesh"
         },
+        "15822022204290362615": {
+            "hash": 4964235014381181392,
+            "path": "assets/models/signs/faces/fr_ab4-petite-r1.png",
+            "type": "Texture"
+        },
+        "15830615374755021248": {
+            "hash": 12616892293277541035,
+            "path": "assets/models/signs/street/glyph_005a-r1.glb",
+            "type": "Mesh"
+        },
         "15852081403785450949": {
             "hash": 7713755728187426623,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_01_1k.gltf",
             "type": "Mesh"
+        },
+        "15974402442436961515": {
+            "hash": 4374929012918634023,
+            "path": "assets/models/signs/street/glyph_0052-r1.glb",
+            "type": "Mesh"
+        },
+        "1597666352880747629": {
+            "hash": 15596445685018993039,
+            "path": "assets/models/signs/us_r1-2-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "15989521805496595474": {
+            "hash": 14823291151780402550,
+            "path": "assets/models/signs/faces/us_r2-1_45-us-r1.png",
+            "type": "Texture"
         },
         "16003152461599342197": {
             "hash": 6437858176574353037,
@@ -1060,6 +1335,11 @@
             "path": "assets/world/landmarks/leaning_tower_of_pisa-r3-lod1.glb",
             "type": "Mesh"
         },
+        "16121789250379471521": {
+            "hash": 5702846325514641783,
+            "path": "assets/models/signs/street/glyph_004b-r1.glb",
+            "type": "Mesh"
+        },
         "16213716747384128296": {
             "hash": 16076470222456239596,
             "path": "assets/models/signs/fr_b30-rural-r1.glb",
@@ -1075,10 +1355,20 @@
             "path": "assets/skies/qwantani_mid_morning.hdr",
             "type": "Texture"
         },
+        "16353801767885148506": {
+            "hash": 6764858470327020672,
+            "path": "assets/models/signs/faces/us_r2-1_70-us-r1.png",
+            "type": "Texture"
+        },
         "16357445360820104972": {
             "hash": 15119588208043498809,
             "path": "assets/models/signs/town/glyph_004e-r1.glb",
             "type": "Mesh"
+        },
+        "1638620057791322177": {
+            "hash": 12109478806974217964,
+            "path": "assets/models/signs/faces/blade_glyphs-r1.png",
+            "type": "Texture"
         },
         "16424036235485257864": {
             "hash": 2363780504168245709,
@@ -1120,6 +1410,11 @@
             "path": "assets/models/external/nature_cards/urban_tree.glb",
             "type": "Mesh"
         },
+        "16738308117648534659": {
+            "hash": 18109605500962710275,
+            "path": "assets/models/signs/street/glyph_00dc-r1.glb",
+            "type": "Mesh"
+        },
         "1677692118262414434": {
             "hash": 12612768739838237659,
             "path": "assets/models/external/nature_cards/quiver_tree_slim-slice.png",
@@ -1144,6 +1439,11 @@
             "hash": 17450328844672430159,
             "path": "assets/textures/facades/earth_mr.jpg",
             "type": "Texture"
+        },
+        "17056593193120532598": {
+            "hash": 11523398484327481671,
+            "path": "assets/models/signs/street/glyph_0055-r1.glb",
+            "type": "Mesh"
         },
         "17084595504188701708": {
             "hash": 18120353416103955508,
@@ -1225,6 +1525,11 @@
             "path": "assets/models/signs/town/plate_right_2-r1.glb",
             "type": "Mesh"
         },
+        "17473746289797362017": {
+            "hash": 5084179557004917953,
+            "path": "assets/models/signs/us_r2-1_15-rural-r1.glb",
+            "type": "Mesh"
+        },
         "17482462589103235886": {
             "hash": 12864905088062525357,
             "path": "assets/textures/surfaces/sand_red_albedo.jpg",
@@ -1235,10 +1540,20 @@
             "path": "assets/world/landmarks/sagrada_familia-r3-lod2.glb",
             "type": "Mesh"
         },
+        "17499550145822769110": {
+            "hash": 13701102002066165817,
+            "path": "assets/models/signs/us_r2-1_45-rural-r1.glb",
+            "type": "Mesh"
+        },
         "17532463796590925610": {
             "hash": 3944752067792312599,
             "path": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
             "type": "Unknown"
+        },
+        "17534993012932060129": {
+            "hash": 535045854106305165,
+            "path": "assets/models/signs/us_r1-1-urban-r1.glb",
+            "type": "Mesh"
         },
         "17534997703788934449": {
             "hash": 1097544280952446221,
@@ -1248,6 +1563,16 @@
         "17581629350746979177": {
             "hash": 10788036496045935979,
             "path": "assets/models/external/kenney_boats/boat_speed_g.glb",
+            "type": "Mesh"
+        },
+        "1758306462489609223": {
+            "hash": 8318858023095516685,
+            "path": "assets/models/signs/faces/us_r2-1_75-us-r1.png",
+            "type": "Texture"
+        },
+        "17618026215103060089": {
+            "hash": 2138165183204490415,
+            "path": "assets/models/signs/fr_ab4-rural-r1.glb",
             "type": "Mesh"
         },
         "17622459326252029324": {
@@ -1270,6 +1595,11 @@
             "path": "assets/textures/facades/brick_dark_albedo.jpg",
             "type": "Texture"
         },
+        "17707678327523474581": {
+            "hash": 13016498488775562787,
+            "path": "assets/models/signs/street/glyph_0051-r1.glb",
+            "type": "Mesh"
+        },
         "1777072293541225068": {
             "hash": 13740595242360371613,
             "path": "assets/world/landmarks/petronas_towers-r3.glb",
@@ -1290,9 +1620,24 @@
             "path": "assets/models/aircraft/bizjet_far.glb",
             "type": "Mesh"
         },
+        "17948411765956415097": {
+            "hash": 7754243673191236679,
+            "path": "assets/models/signs/street/glyph_0056-r1.glb",
+            "type": "Mesh"
+        },
+        "17970777292955014387": {
+            "hash": 11857468754955301976,
+            "path": "assets/models/signs/street/glyph_0044-r1.glb",
+            "type": "Mesh"
+        },
         "17990124020303915130": {
             "hash": 16424462417367707174,
             "path": "assets/models/signs/town/glyph_00c8-r1.glb",
+            "type": "Mesh"
+        },
+        "18012970732103254015": {
+            "hash": 9672284423694335068,
+            "path": "assets/models/signs/street/glyph_0054-r1.glb",
             "type": "Mesh"
         },
         "18046948938539271538": {
@@ -1370,6 +1715,11 @@
             "path": "assets/textures/surfaces/sand_beach_normal.jpg",
             "type": "Texture"
         },
+        "183659073216055795": {
+            "hash": 7371221168014878065,
+            "path": "assets/models/signs/us_r2-1_75-rural-r1.glb",
+            "type": "Mesh"
+        },
         "18404651324015935747": {
             "hash": 3493117419224747185,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_nor_gl_1k.jpg",
@@ -1409,6 +1759,16 @@
             "hash": 13300163794532337650,
             "path": "assets/world/landmarks/arc_de_triomphe-r3.glb",
             "type": "Mesh"
+        },
+        "1976734181850725331": {
+            "hash": 4964235014381181392,
+            "path": "assets/models/signs/faces/fr_ab4-normale-r1.png",
+            "type": "Texture"
+        },
+        "2036114696196183038": {
+            "hash": 17452695738680092047,
+            "path": "assets/models/signs/faces/us_r2-1_50-us-r1.png",
+            "type": "Texture"
         },
         "2042137087847271605": {
             "hash": 4935156889823412843,
@@ -1470,6 +1830,11 @@
             "path": "assets/models/signs/town/glyph_0055-r1.glb",
             "type": "Mesh"
         },
+        "2403310405579371887": {
+            "hash": 17304421315033703177,
+            "path": "assets/models/signs/us_r2-1_60-rural-r1.glb",
+            "type": "Mesh"
+        },
         "2443161651121710857": {
             "hash": 15211565989467747551,
             "path": "assets/models/humans/male_adult_06.glb",
@@ -1489,6 +1854,11 @@
             "hash": 5537844667250219054,
             "path": "assets/world/landmarks/pyramid_of_menkaure-r3-lod2.glb",
             "type": "Mesh"
+        },
+        "2485637500419389281": {
+            "hash": 12860217109192155081,
+            "path": "assets/models/signs/faces/us_r2-1_25-us-r1.png",
+            "type": "Texture"
         },
         "2559775731795110223": {
             "hash": 8095978399875303401,
@@ -1510,6 +1880,11 @@
             "path": "assets/models/signs/town/glyph_0050-r1.glb",
             "type": "Mesh"
         },
+        "2736814340238292004": {
+            "hash": 12677403637926553871,
+            "path": "assets/models/signs/street/glyph_0036-r1.glb",
+            "type": "Mesh"
+        },
         "2761878184278259819": {
             "hash": 13359917934413413209,
             "path": "assets/textures/surfaces/pavement_albedo.jpg",
@@ -1519,6 +1894,11 @@
             "hash": 9546717922318031227,
             "path": "scenes/earth.scene",
             "type": "Scene"
+        },
+        "2791850155702352182": {
+            "hash": 9850005195929271461,
+            "path": "assets/models/signs/street/glyph_004c-r1.glb",
+            "type": "Mesh"
         },
         "2864240820762689910": {
             "hash": 10355056984367396550,
@@ -1543,6 +1923,11 @@
         "2965780674674210366": {
             "hash": 1350043797720941082,
             "path": "assets/world/landmarks/burj_khalifa-r3-lod2.glb",
+            "type": "Mesh"
+        },
+        "2978929553820768334": {
+            "hash": 16601632887726848001,
+            "path": "assets/models/signs/street/glyph_00ce-r1.glb",
             "type": "Mesh"
         },
         "2980352726614349373": {
@@ -1605,6 +1990,11 @@
             "path": "assets/world/traffic_paints.json",
             "type": "Unknown"
         },
+        "3379638955046041605": {
+            "hash": 12909744241235757451,
+            "path": "assets/models/signs/street/glyph_00c7-r1.glb",
+            "type": "Mesh"
+        },
         "3415922082190133732": {
             "hash": 12810877391955314787,
             "path": "assets/world/landmarks/statue_of_liberty-r3.glb",
@@ -1640,6 +2030,11 @@
             "path": "assets/models/external/kenney_nature_kit/fir_sapling_1k.gltf",
             "type": "Mesh"
         },
+        "3512833203491460444": {
+            "hash": 3711364846146232055,
+            "path": "assets/models/signs/street/glyph_0050-r1.glb",
+            "type": "Mesh"
+        },
         "3514752056742828844": {
             "hash": 9702576312395588907,
             "path": "assets/models/signs/town/glyph_004d-r1.glb",
@@ -1663,6 +2058,11 @@
         "3547938176905193422": {
             "hash": 6548785593813312512,
             "path": "assets/models/humans/female_adult_08.glb",
+            "type": "Mesh"
+        },
+        "3550329384931842998": {
+            "hash": 9317976588475574262,
+            "path": "assets/models/signs/street/glyph_002e-r1.glb",
             "type": "Mesh"
         },
         "3573493971231466178": {
@@ -1705,6 +2105,11 @@
             "path": "assets/textures/surfaces/snow_clean_mr.jpg",
             "type": "Texture"
         },
+        "3695884678095450690": {
+            "hash": 6784178022864065099,
+            "path": "assets/models/signs/street/glyph_00c4-r1.glb",
+            "type": "Mesh"
+        },
         "3752522462855092985": {
             "hash": 15223555387667516680,
             "path": "assets/textures/surfaces/savanna_normal.jpg",
@@ -1713,6 +2118,11 @@
         "3782441881669700944": {
             "hash": 3011600536635194599,
             "path": "assets/world/landmarks/st_basils_cathedral-r3-lod2.glb",
+            "type": "Mesh"
+        },
+        "3787821846313922841": {
+            "hash": 14132144042752009777,
+            "path": "assets/models/signs/us_r2-1_35-rural-r1.glb",
             "type": "Mesh"
         },
         "381442657168135737": {
@@ -1724,6 +2134,11 @@
             "hash": 16906919971634070160,
             "path": "assets/models/external/polyhaven_trees/fir_sapling_1k.gltf",
             "type": "Mesh"
+        },
+        "3918998752220943297": {
+            "hash": 12195147819421097634,
+            "path": "assets/models/signs/faces/us_r1-3p-us-r1.png",
+            "type": "Texture"
         },
         "3926827857106185737": {
             "hash": 11759329051566754776,
@@ -1743,6 +2158,11 @@
         "3972904857344725364": {
             "hash": 203535353985136605,
             "path": "assets/models/signs/town/glyph_0033-r1.glb",
+            "type": "Mesh"
+        },
+        "4056017926864033190": {
+            "hash": 16880833961970548873,
+            "path": "assets/models/signs/us_r2-1_40-rural-r1.glb",
             "type": "Mesh"
         },
         "4073064183386803616": {
@@ -1795,6 +2215,11 @@
             "path": "assets/textures/surfaces/forest_temperate_albedo.jpg",
             "type": "Texture"
         },
+        "4337825617174245947": {
+            "hash": 15769435637331398208,
+            "path": "assets/models/signs/fr_ab4-urban-r1.glb",
+            "type": "Mesh"
+        },
         "433788652062831255": {
             "hash": 15040395979837605170,
             "path": "assets/models/signs/town/glyph_0045-r1.glb",
@@ -1833,6 +2258,11 @@
         "4502234956889143942": {
             "hash": 15561139238326934931,
             "path": "assets/models/signs/fr_b14_110-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "4503802964505810893": {
+            "hash": 16488571763848966477,
+            "path": "assets/models/signs/us_r1-1+us_r1-3p-urban-r1.glb",
             "type": "Mesh"
         },
         "4512768183613768751": {
@@ -1945,6 +2375,11 @@
             "path": "assets/world/landmarks/colosseum-r3-lod2.glb",
             "type": "Mesh"
         },
+        "497504481594021124": {
+            "hash": 14777516818771569047,
+            "path": "assets/models/signs/street/glyph_0059-r1.glb",
+            "type": "Mesh"
+        },
         "5000829476177517925": {
             "hash": 1540915446277840530,
             "path": "assets/models/signs/town/bar-r1.glb",
@@ -2050,6 +2485,11 @@
             "path": "assets/models/external/nature_cards/quiver_tree-slice.png",
             "type": "Texture"
         },
+        "5582276904638797974": {
+            "hash": 3480911654807863447,
+            "path": "assets/models/signs/faces/us_r5-1-us-r1.png",
+            "type": "Texture"
+        },
         "5590390086830389759": {
             "hash": 17591118370853374907,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_nor_gl_1k.jpg",
@@ -2105,6 +2545,11 @@
             "path": "assets/models/signs/fr_ab3a-rural-r1.glb",
             "type": "Mesh"
         },
+        "5907497426095796392": {
+            "hash": 9320371301622099807,
+            "path": "assets/models/signs/street/glyph_00cb-r1.glb",
+            "type": "Mesh"
+        },
         "5916148923958700009": {
             "hash": 9444299277894483346,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_twig_diff_1k.jpg",
@@ -2123,6 +2568,11 @@
         "5966913870909260549": {
             "hash": 1018330929592724949,
             "path": "assets/world/landmarks/parthenon-r3.glb",
+            "type": "Mesh"
+        },
+        "5996166590899373047": {
+            "hash": 14470313018425025515,
+            "path": "assets/models/signs/street/post-r1.glb",
             "type": "Mesh"
         },
         "6006182533386509906": {
@@ -2149,6 +2599,11 @@
             "hash": 7597585586211863537,
             "path": "assets/skies/qwantani_sunset.hdr",
             "type": "Texture"
+        },
+        "6150484182168626621": {
+            "hash": 773528182643074959,
+            "path": "assets/models/signs/street/glyph_0042-r1.glb",
+            "type": "Mesh"
         },
         "6158851635430564781": {
             "hash": 335414483202800027,
@@ -2250,6 +2705,11 @@
             "path": "assets/models/signs/faces/fr_b14_70-normale-r1.png",
             "type": "Texture"
         },
+        "6695491851820061373": {
+            "hash": 676349647035302359,
+            "path": "assets/models/signs/street/glyph_00c8-r1.glb",
+            "type": "Mesh"
+        },
         "6705464619695437735": {
             "hash": 6672934107117788154,
             "path": "assets/textures/surfaces/frost_mr.jpg",
@@ -2290,10 +2750,25 @@
             "path": "assets/world/landmarks/st_peters_basilica-r3.glb",
             "type": "Mesh"
         },
+        "6901950647077484709": {
+            "hash": 14913131082850094758,
+            "path": "assets/models/signs/us_r1-1-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "7005326745710076461": {
+            "hash": 11818998661650029849,
+            "path": "assets/models/signs/us_r2-1_65-rural-r1.glb",
+            "type": "Mesh"
+        },
         "702396419434324797": {
             "hash": 9940349880960739191,
             "path": "assets/models/external/nature_cards/quiver_tree.source.json",
             "type": "Unknown"
+        },
+        "7029437233825922172": {
+            "hash": 10953867231333545585,
+            "path": "assets/models/signs/us_r2-1_50-rural-r1.glb",
+            "type": "Mesh"
         },
         "7042319855337841422": {
             "hash": 13020061540921443845,
@@ -2325,10 +2800,30 @@
             "path": "assets/textures/surfaces/tile_canal_albedo.jpg",
             "type": "Texture"
         },
+        "7178613371314812198": {
+            "hash": 9324661191658308119,
+            "path": "assets/models/signs/street/glyph_0178-r1.glb",
+            "type": "Mesh"
+        },
+        "7222580013172111217": {
+            "hash": 5134812742243221541,
+            "path": "assets/models/signs/us_r2-1_35-urban-r1.glb",
+            "type": "Mesh"
+        },
+        "7231136831886357555": {
+            "hash": 11347882133632894568,
+            "path": "assets/models/signs/faces/us_r1-2-us-r1.png",
+            "type": "Texture"
+        },
         "7287320863551833219": {
             "hash": 12377852095728387139,
             "path": "assets/licenses/Kenney-Nature-Kit-CC0.txt",
             "type": "Unknown"
+        },
+        "729662682326043706": {
+            "hash": 7623263248244743985,
+            "path": "assets/models/signs/us_r2-1_30-rural-r1.glb",
+            "type": "Mesh"
         },
         "7314010697726977604": {
             "hash": 8139057011118366164,
@@ -2339,6 +2834,21 @@
             "hash": 13340635321685871106,
             "path": "assets/models/external/nature_cards/fir_sapling.png",
             "type": "Texture"
+        },
+        "7354099867524448850": {
+            "hash": 6658882727818342631,
+            "path": "assets/models/signs/street/glyph_00ca-r1.glb",
+            "type": "Mesh"
+        },
+        "7396504244788634088": {
+            "hash": 10820631969034465299,
+            "path": "assets/models/signs/faces/us_r2-1_60-us-r1.png",
+            "type": "Texture"
+        },
+        "743357014045054279": {
+            "hash": 16828226699948066787,
+            "path": "assets/models/signs/street/glyph_0039-r1.glb",
+            "type": "Mesh"
         },
         "7455158753150242283": {
             "hash": 14684432706986996583,
@@ -2390,6 +2900,16 @@
             "path": "assets/textures/facades/earth_albedo.jpg",
             "type": "Texture"
         },
+        "7667921765242256965": {
+            "hash": 7742189530413491339,
+            "path": "assets/models/signs/street/glyph_0043-r1.glb",
+            "type": "Mesh"
+        },
+        "7682059016545867337": {
+            "hash": 15649213077175489643,
+            "path": "assets/models/signs/street/glyph_00d6-r1.glb",
+            "type": "Mesh"
+        },
         "7722628716839558075": {
             "hash": 10277236050221285881,
             "path": "assets/models/signs/town/glyph_0052-r1.glb",
@@ -2418,6 +2938,16 @@
         "7803497246469165791": {
             "hash": 18264312062401052432,
             "path": "assets/models/external/kenney_props/waste_bin.glb",
+            "type": "Mesh"
+        },
+        "7844485774027863451": {
+            "hash": 17680519425585276193,
+            "path": "assets/models/signs/faces/us_r2-1_55-us-r1.png",
+            "type": "Texture"
+        },
+        "7850659110642887715": {
+            "hash": 4674240779314912245,
+            "path": "assets/models/signs/us_r2-1_60-urban-r1.glb",
             "type": "Mesh"
         },
         "7865065919478493": {
@@ -2470,6 +3000,11 @@
             "path": "assets/models/humans/female_adult_05.glb",
             "type": "Mesh"
         },
+        "8279687529826946174": {
+            "hash": 4796820961717347027,
+            "path": "assets/models/signs/street/glyph_00c0-r1.glb",
+            "type": "Mesh"
+        },
         "8393515834972828599": {
             "hash": 6622871848215686691,
             "path": "assets/models/signs/fr_b14_130-rural-r1.glb",
@@ -2505,6 +3040,11 @@
             "path": "assets/textures/facades/earth_normal.jpg",
             "type": "Texture"
         },
+        "846471967566852225": {
+            "hash": 11546448034882573145,
+            "path": "assets/models/signs/street/glyph_0057-r1.glb",
+            "type": "Mesh"
+        },
         "8470852928767272279": {
             "hash": 13414958785405814345,
             "path": "assets/world/landmarks/st_basils_cathedral-r3-lod1.glb",
@@ -2535,6 +3075,11 @@
             "path": "assets/world/landmarks/sydney_opera_house-r3-lod1.glb",
             "type": "Mesh"
         },
+        "8721333434781281364": {
+            "hash": 5100590253722727111,
+            "path": "assets/models/signs/street/glyph_0034-r1.glb",
+            "type": "Mesh"
+        },
         "8737563480005008073": {
             "hash": 9958126647981124091,
             "path": "assets/models/signs/faces/fr_b14_80-normale-r1.png",
@@ -2544,6 +3089,16 @@
             "hash": 7985189331832526625,
             "path": "assets/models/signs/town/glyph_0042-r1.glb",
             "type": "Mesh"
+        },
+        "8801008018087801025": {
+            "hash": 5516476757103203859,
+            "path": "assets/models/signs/street/glyph_00c2-r1.glb",
+            "type": "Mesh"
+        },
+        "8891909711509396261": {
+            "hash": 16092348331843801909,
+            "path": "assets/models/signs/faces/us_r2-1_35-us-r1.png",
+            "type": "Texture"
         },
         "8892943375755858906": {
             "hash": 623887583112166685,
@@ -2595,6 +3150,21 @@
             "path": "assets/world/landmarks/burj_khalifa-r3-lod1.glb",
             "type": "Mesh"
         },
+        "9142080633733723033": {
+            "hash": 9679194014903369608,
+            "path": "assets/models/signs/faces/us_r2-1_65-us-r1.png",
+            "type": "Texture"
+        },
+        "9195383826052671986": {
+            "hash": 430334977872553805,
+            "path": "assets/models/signs/street/glyph_0046-r1.glb",
+            "type": "Mesh"
+        },
+        "9207360085781941389": {
+            "hash": 1074268488943197751,
+            "path": "assets/models/signs/street/glyph_0053-r1.glb",
+            "type": "Mesh"
+        },
         "9354603239638997047": {
             "hash": 4610950340166906645,
             "path": "assets/models/signs/town/glyph_0035-r1.glb",
@@ -2603,6 +3173,11 @@
         "9362403766653960405": {
             "hash": 6241860449834878068,
             "path": "assets/world/landmarks/big_ben-r3.glb",
+            "type": "Mesh"
+        },
+        "9363195781907462529": {
+            "hash": 2552268504254258456,
+            "path": "assets/models/signs/street/blade_left-r1.glb",
             "type": "Mesh"
         },
         "936423245872336619": {
@@ -2645,6 +3220,11 @@
             "path": "assets/models/external/nature_selected/grass_tall.png",
             "type": "Texture"
         },
+        "9592573572913870653": {
+            "hash": 18432201502397792702,
+            "path": "assets/models/signs/street/glyph_0027-r1.glb",
+            "type": "Mesh"
+        },
         "9614193751727879334": {
             "hash": 2865732032586941819,
             "path": "assets/world/landmarks/pyramid_of_menkaure-r3.glb",
@@ -2659,6 +3239,11 @@
             "hash": 8625248630744489666,
             "path": "assets/models/external/polyhaven_trees/island_tree_01.bin",
             "type": "Unknown"
+        },
+        "9681522068926727623": {
+            "hash": 4307524210169568791,
+            "path": "assets/models/signs/street/glyph_0038-r1.glb",
+            "type": "Mesh"
         },
         "9707553953933687028": {
             "hash": 3657416769702741115,
@@ -2694,6 +3279,11 @@
             "hash": 4250714583943682792,
             "path": "assets/licenses/ambientCG-CC0.txt",
             "type": "Unknown"
+        },
+        "9969077444783896650": {
+            "hash": 14066656505742101371,
+            "path": "assets/models/signs/street/glyph_0037-r1.glb",
+            "type": "Mesh"
         }
     },
     "schema": 2,

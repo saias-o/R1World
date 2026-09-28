@@ -141,8 +141,13 @@ TEST(Predict, a_surveyed_give_way_silences_the_guess) {
     const P2 line = s.at(-124, 0);
     s.osm.features.push_back({s.next++, line.x, line.y, {{"highway", "give_way"}}});
     const auto out = s.run();
-    CHECK(signs(out, "FR:AB3a").empty());
+    // The surveyed one is drawn where it was mapped; no guess beside it.
+    const auto give = signs(out, "FR:AB3a");
+    CHECK(give.size() == 1);
+    CHECK(out.stats["rules"]["survey"]["placed"] == 1);
     CHECK(out.stats["rules"]["fr.roundabout.give_way"]["silencedBySurvey"] == 1);
+    // It faces the traffic driving towards the ring (east): it looks west.
+    CHECK(give[0].faces.x < -0.9);
 }
 
 TEST(Predict, an_expressway_crossing_a_lane_without_a_node_passes_over_it) {

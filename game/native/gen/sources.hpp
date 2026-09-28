@@ -66,6 +66,8 @@ public:
     // The relief of the eight tiles around, those on disk: never a download.
     // A bridge reaching past a tile is solved on it (gen/bridges.hpp).
     std::vector<ElevationGrid> groundAround(const Tile& tile) const;
+    // The Overpass question about a neighbourhood's box, as it is sent.
+    static std::string osmQuery(const Bounds& b);
     // The box the answer at `path` was asked about: where its observations
     // stop, and the world does not (gen/predict.cpp). Nothing if unknown.
     std::optional<Bounds> regionOf(const Tile& tile, const std::optional<Shared>& shared, const std::string& path) const;

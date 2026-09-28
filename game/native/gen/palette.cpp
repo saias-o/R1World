@@ -110,6 +110,16 @@ void loadPalette(const std::string& gameRoot) {
     for (const auto& [code, j] : signs.at("signs").items())
         for (const auto& [mount, m] : j.at("mounts").items()) p->signs[code].mounts[mount] = m.at("model").get<std::string>();
     if (p->signs.empty()) throw std::runtime_error("assets/world/signs.json lists no sign");
+    auto kitOf = [](const nlohmann::json& j) {
+        TownSignKit k;
+        k.cap = j.at("cap"); k.line = j.at("line"); k.pad = j.at("pad"); k.end = j.at("end");
+        k.lowerEdge = j.at("lowerEdge"); k.post = j.at("post"); k.bar = j.at("bar");
+        for (const auto& [lines, plate] : j.at("plates").items())
+            k.plates[std::stoi(lines)] = {plate.at("left"), plate.at("middle"), plate.at("right"), plate.at("height")};
+        for (const auto& [ch, g] : j.at("glyphs").items()) k.glyphs[ch] = {g.at("model"), g.at("advance").get<double>()};
+        return k;
+    };
+    for (const auto& [country, j] : signs.at("streets").items()) p->streetSigns[country] = kitOf(j);
     for (const auto& [country, j] : signs.at("towns").items()) {
         TownSignKit k;
         k.cap = j.at("cap"); k.line = j.at("line"); k.pad = j.at("pad"); k.end = j.at("end");

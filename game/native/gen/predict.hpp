@@ -36,7 +36,7 @@
 namespace r1 {
 
 // Bump when a rule, the arbitration or the placement changes what comes out.
-constexpr int kPredictRevision = 1;
+constexpr int kPredictRevision = 2;
 
 // Whose highway code applies here: the country OSM's own boundaries put the
 // neighbourhood in (measured, question 7 on), else a coarse outline for the
@@ -130,9 +130,21 @@ struct Rule {
 struct Rulebook {
     const char* country;
     std::vector<Rule> (*rules)();
+    // What a surveyed `highway=give_way` and `highway=stop` node is, in this
+    // country's own code: the sign OSM saw without naming it.
+    const char* giveWay = "";
+    const char* stop = "";
+    // And a stop surveyed as every approach's (`stop=all`), when the code has one.
+    const char* allWay = "";
+    // Surveyed codes that silence guesses of other codes: they regulate the
+    // same thing (a stop and a give-way at one entry, a town's limit either way).
+    std::vector<std::pair<std::string, std::vector<std::string>>> aliases;
 };
 const std::vector<Rulebook>& rulebooks();
+// The rulebook written for a country, or nullptr.
+const Rulebook* rulebookFor(const std::string& country);
 std::vector<Rule> frenchRules();
+std::vector<Rule> unitedStatesRules();
 // The rules that hold everywhere: how roads are built, not what a code says.
 std::vector<Rule> structureRules();
 // The country's rulebook, then the rules that hold everywhere.

@@ -690,8 +690,31 @@ letter from a single glyph atlas, the red bar on the way out). A gate is only
 posted where the OSM answer reaches past it: at the edge of the box Overpass
 was asked about, a town seems to end where only the data does.
 
+The United States rulebook (`gen/rules_us.cpp`), from the MUTCD:
+
+| Rule | Says | Confidence |
+|---|---|---|
+| `us.roundabout.yield` | YIELD (R1-2) at every roundabout entry | 0.95 |
+| `us.one_way.do_not_enter` | DO NOT ENTER (R5-1) at a one-way street's exit end, facing the wrong way | 0.90 |
+| `us.stop.minor` | STOP (R1-1) on a minor road meeting a major one without lights; the stem of an equal T | 0.80 |
+| `us.speed.limit` | SPEED LIMIT (R2-1) where the limit changes, in mph | 0.75 |
+| `us.street.names` | two street-name blades (D3-1) crossed on a corner post, names from OSM, abbreviated as the Postal Service does; 16 per tile, the busiest crossings first | 0.60-0.84 |
+| `us.stop.all_way` | STOP with ALL WAY (R1-3P) where two equal residential streets cross without lights | 0.60 |
+
+No stop sign stands at a crossing with traffic lights. Measured on Lawrence,
+Kansas, where OSM surveys stop signs: 53 of the 70 two-way stops the rules
+proposed on one tile stand on a surveyed one.
+
+**What OSM surveyed is drawn**, not only obeyed: a `traffic_sign`, a
+`highway=stop` or `give_way` node whose sign the catalogue has stands where it
+was mapped, turned to the traffic driving towards the next junction (or as
+its `direction` says); beside the road, to the traffic that has it on its
+right. A stop mapped on the crossing node itself is every approach's when OSM
+says `stop=all`; otherwise it silences nothing, and the rules say whose it is.
+
 The manifest's `predicted` section says, rule by rule, what was proposed,
-silenced by survey, merged, placed.
+silenced by survey, merged, placed (and, for the survey, what could not be
+placed, and why).
 
 ### Bridges
 
