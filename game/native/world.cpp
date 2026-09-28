@@ -90,6 +90,9 @@ constexpr double kVehicleScale=.8;
 // §5: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
+// What a walker or a car climbs without noticing: a kerb, a ramp's next
+// metre. A surface higher than this above him is a wall or a ceiling.
+constexpr double kStepUp=1.2;
 constexpr double kStreamAheadSeconds=45.; // prepare the road before the car reaches it
 constexpr size_t kStreamRequestLimit=25; // the world service's bounded priority list
 constexpr double kOnFootFollow=4.5,kDrivingFollow=8.5;
@@ -250,6 +253,15 @@ struct Deck {
     glm::dvec2 low{1e30},high{-1e30};
     double y=0;
 };
+// A piece of road off the ground (gen/bridges.hpp), in its tile's frame: the
+// axis a -> b at the road surface, the half width it carries, and whether it
+// is an embankment (solid down to the ground, its slopes walkable) or a deck
+// (passed under).
+struct RaisedPiece {
+    glm::dvec2 a{0},b{0}; double ya=0,yb=0; bool solid=false;
+    double half[2]{0,0}; bool rail[2]{false,false};  // right of a -> b, then left
+    glm::dvec2 low{1e30},high{-1e30};
+};
 // A moored boat as the manifest lists it; `node` is found once it has streamed.
 struct Mooring {
     std::string name,kind,model;
@@ -364,6 +376,7 @@ struct Loaded {
     int waterRows=0,waterCols=0; std::vector<uint8_t> water;
     bool ocean=false,seaIce=false;
     std::vector<Deck> decks; glm::dvec2 deckLow{1e30},deckHigh{-1e30};
+    std::vector<RaisedPiece> raised; glm::dvec2 raisedLow{1e30},raisedHigh{-1e30};
     std::vector<Mooring> boats;
     std::vector<AircraftSpot> aircraft;
     // Snow lying on the ground and the roofs (World::updateSnowCover): which
@@ -1163,6 +1176,20 @@ class World : public Rml::EventListener {
                 tile.deckLow=glm::min(tile.deckLow,deck.low);tile.deckHigh=glm::max(tile.deckHigh,deck.high);
                 tile.decks.push_back(std::move(deck));
             }
+        auto raised=tile.data.find("raised");
+        if(raised!=tile.data.end())
+            for(const auto& entry:*raised) {
+                RaisedPiece r;
+                r.a={double(entry.at("a")[0]),double(entry.at("a")[2])};r.ya=entry.at("a")[1];
+                r.b={double(entry.at("b")[0]),double(entry.at("b")[2])};r.yb=entry.at("b")[1];
+                for(int s=0;s<2;++s){r.half[s]=entry.at("half")[s];r.rail[s]=entry.at("rail")[s];}
+                r.solid=entry.at("solid");
+                // An embankment's slopes reach out 2 in 3 below its road.
+                const double reach=std::max(r.half[0],r.half[1])+(r.solid?1.5*20.:1.2);
+                r.low=glm::min(r.a,r.b)-glm::dvec2(reach);r.high=glm::max(r.a,r.b)+glm::dvec2(reach);
+                tile.raisedLow=glm::min(tile.raisedLow,r.low);tile.raisedHigh=glm::max(tile.raisedHigh,r.high);
+                tile.raised.push_back(r);
+            }
         auto boats=tile.data.find("boats");
         if(boats!=tile.data.end())
             for(const auto& entry:*boats) {
@@ -1205,8 +1232,69 @@ class World : public Rml::EventListener {
         }
         return false;
     }
-    double height(double x,double y) {
+    // The surfaces off the ground at (x, y): bridge decks and embankments
+    // (gen/bridges.hpp). Each is handed to `seen(level, solid, parapet)`:
+    // `solid` says whoever is below it meets a wall, not a ceiling; a
+    // parapet is the edge of a deck, a wall for whoever stands on it.
+    template<class F> void raisedAt(const Loaded& t,double x,double y,F&& seen) const {
+        if(t.raised.empty())return;
+        const glm::dvec3 p=t.frame.local(ecef(x,y,0.));
+        const glm::dvec2 q(p.x,p.z);
+        if(q.x<t.raisedLow.x||q.x>t.raisedHigh.x||q.y<t.raisedLow.y||q.y>t.raisedHigh.y)return;
+        for(const RaisedPiece& r:t.raised) {
+            if(q.x<r.low.x||q.x>r.high.x||q.y<r.low.y||q.y>r.high.y)continue;
+            const glm::dvec2 d=r.b-r.a;const double l2=glm::dot(d,d);
+            if(l2<=0)continue;
+            // Each piece is a capsule: round past its ends, so the outside of
+            // a bend is covered where two pieces meet.
+            const double f=std::clamp(glm::dot(q-r.a,d)/l2,0.,1.);
+            const glm::dvec2 across=q-(r.a+f*d);
+            const int side=glm::dot(across,glm::dvec2(-d.y,d.x))>=0?0:1;
+            const double top=r.ya+(r.yb-r.ya)*f,off=glm::length(across),half=r.half[side];
+            if(off<=half)seen(top,r.solid,false);
+            else if(r.solid)seen(top-(off-half)/1.5,true,false);
+            // A band wider than a fast car's step in one frame.
+            else if(r.rail[side]&&off<=half+1.2)seen(top,false,true);
+        }
+    }
+    // What a walker or a car at altitude `standing` stands on at (x, y): the
+    // highest surface within a step of him, so a bridge carries whoever is on
+    // it and passes over whoever is under it. With no `standing`, the highest.
+    double height(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
         auto* t=tile(x,y);if(!t)throw std::runtime_error("Missing terrain");
+        const double ground=terrainHeight(*t,x,y);
+        const bool any=std::isnan(standing);
+        double best=ground;
+        // A piece belongs to the tile its middle is in: near a tile's edge,
+        // the deck under a foot may be its neighbour's.
+        for(const auto& [key,other]:loaded)
+            raisedAt(other,x,y,[&](double level,bool,bool parapet){
+                if(parapet||level<=best)return;
+                if(any||level<=standing+kStepUp)best=level;
+            });
+        return best;
+    }
+    // A wall off the ground for someone at `standing`: an embankment rising above
+    // his step, a deck too low to pass under, or a deck's parapet.
+    bool raisedWall(double x,double y,double standing) {
+        if(std::isnan(standing))return false;
+        auto* t=tile(x,y);if(!t)return false;
+        const double ground=terrainHeight(*t,x,y);
+        bool wall=false,parapet=false,floor=false;
+        for(const auto& [key,other]:loaded)
+            raisedAt(other,x,y,[&](double level,bool solid,bool rail){
+                if(level<=ground)return;
+                const bool close=std::abs(level-standing)<1.5;
+                if(rail){parapet|=close;return;}
+                if(level<=standing+kStepUp){floor|=close;return;}
+                wall|=solid||level-1.2<standing+2.;
+            });
+        // A parapet is a wall only where no deck carries the foot: where two
+        // decks meet, one's edge is the other's floor.
+        return wall||(parapet&&!floor);
+    }
+    double terrainHeight(const Loaded& tile,double x,double y) const {
+        const Loaded* t=&tile;
         double deck=0;if(onDeck(*t,x,y,&deck))return deck;
         const int n=t->gridSize;
         double u=std::clamp((wrap(x)-t->west)/(t->east-t->west),0.,1.)*(n-1);
@@ -1219,9 +1307,13 @@ class World : public Rml::EventListener {
     }
     // The tile's water grid and fully oceanic tiles must answer the same
     // question for walkers, cars and boats. Piers remain dry walkable decks.
-    bool onWater(double x,double y) {
+    // `standing`: whoever is at that altitude on a bridge over the water is dry.
+    bool onWater(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
         const auto* t=tile(x,y);
-        return t&&!onDeck(*t,x,y)&&(t->ocean||waterCode(*t,x,y)!=0);
+        if(!t||onDeck(*t,x,y)||!(t->ocean||waterCode(*t,x,y)!=0))return false;
+        // A bridge's parapet stands between whoever is on it and the river.
+        if(!std::isnan(standing)&&(height(x,y,standing)>terrainHeight(*t,x,y)+.5||raisedWall(x,y,standing)))return false;
+        return true;
     }
     int waterCode(const Loaded& t,double x,double y) const {
         if(t.water.empty())return 0;
@@ -1241,8 +1333,9 @@ class World : public Rml::EventListener {
         if(!t||t->ocean)return 0.;
         return waterCode(*t,x,y)==1?height(x,y):0.;
     }
-    bool blocked(double x,double y) {
-        if(onWater(x,y))return true;
+    bool blocked(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
+        if(onWater(x,y,standing))return true;
+        if(raisedWall(x,y,standing))return true;
         for(auto& [key,t]:loaded) {
             // A point can only be inside a building or a tree of a tile it is
             // in. Two metres of margin covers a footprint digitised a hair over
@@ -1286,7 +1379,7 @@ class World : public Rml::EventListener {
     // walk reports -- and the car asks four times a frame to sit on a slope, so
     // it asks the question that has an answer.
     double groundAt(double x,double y,double fallback) {
-        return tile(x,y)?height(x,y):fallback;
+        return tile(x,y)?height(x,y,fallback):fallback;
     }
     // Yaw, then the slope the wheels are actually standing on. Measured off the
     // terrain grid over the car's own wheelbase and track rather than inferred
@@ -1351,14 +1444,34 @@ class World : public Rml::EventListener {
     // out of the water and out of a building. The golden-angle spiral is the
     // spawn search's, for the same reason it is used there: it covers a disc
     // evenly without preferring a compass direction.
-    bool freeSpot(double x0,double y0,double radius,double& outLon,double& outLat) {
-        if(tile(x0,y0)&&!blocked(x0,y0)){outLon=x0;outLat=y0;return true;}
+    // `standing`: the level the spot must be on -- beside a car on a bridge
+    // is on the bridge, not on the ground six metres below its parapet.
+    bool freeSpot(double x0,double y0,double radius,double& outLon,double& outLat,
+                  double standing=std::numeric_limits<double>::quiet_NaN()) {
+        auto free=[&](double x,double y){
+            if(!tile(x,y)||blocked(x,y,standing))return false;
+            return std::isnan(standing)||std::abs(height(x,y,standing)-standing)<kStepUp;
+        };
+        if(free(x0,y0)){outLon=x0;outLat=y0;return true;}
         for(int i=1;i<=120;++i) {
             double a=i*2.39996323,d=radius*std::sqrt(double(i)/120.);
             auto q=advance(x0,y0,d*cos(a),d*sin(a));
-            if(tile(q.x,q.y)&&!blocked(q.x,q.y)){outLon=q.x;outLat=q.y;return true;}
+            if(free(q.x,q.y)){outLon=q.x;outLat=q.y;return true;}
         }
         return false;
+    }
+    // How far one can go from (x, y) at `level` along a heading before a
+    // wall, a parapet, water or the edge of the loaded world: the level is
+    // followed step by step, up a ramp and onto a deck.
+    double clearAhead(double x,double y,double level,double heading,double step,double limit) {
+        double clear=0;
+        for(double d=step;d<=limit;d+=step) {
+            auto q=onward(x,y,sin(heading*rad)*d,cos(heading*rad)*d);
+            if(!tile(q.x,q.y)||blocked(q.x,q.y,level))break;
+            level=height(q.x,q.y,level);
+            clear=d;
+        }
+        return clear;
     }
     // Park the car beside a dry spawn. A swimmer cannot arrive with a car.
     void parkCar() {
@@ -1378,7 +1491,7 @@ class World : public Rml::EventListener {
         // would be, and a spiral out from there when that spot is a wall.
         auto beside=onward(lon,lat,cos(yaw*rad)*3.,-sin(yaw*rad)*3.);
         double x,y;
-        if(!freeSpot(beside.x,beside.y,14.,x,y)) {
+        if(!freeSpot(beside.x,beside.y,14.,x,y,alt)) {
             // Loud, and said to the player too. A car that silently is not
             // there looks exactly like a car that failed to load, which is the
             // shape of failure this file has already been bitten by three
@@ -1491,6 +1604,8 @@ class World : public Rml::EventListener {
         collectWheels(*car);
     }
 
+    // Why the car last stopped against something, for whoever reads the log.
+    std::string carStop="nothing";
     double carDistance() const {
         return glm::length(ecef(lon,lat,alt)-ecef(carLon,carLat,carAlt));
     }
@@ -1527,9 +1642,9 @@ class World : public Rml::EventListener {
         double x=0,y=0;bool found=false;
         for(double side:{2.6,-2.6}) {
             auto q=onward(carLon,carLat,cos(carYaw*rad)*side,-sin(carYaw*rad)*side);
-            if(tile(q.x,q.y)&&!blocked(q.x,q.y)){x=q.x;y=q.y;found=true;break;}
+            if(tile(q.x,q.y)&&!blocked(q.x,q.y,carAlt)&&std::abs(height(q.x,q.y,carAlt)-carAlt)<kStepUp){x=q.x;y=q.y;found=true;break;}
         }
-        if(!found)found=freeSpot(carLon,carLat,9.,x,y);
+        if(!found)found=freeSpot(carLon,carLat,9.,x,y,carAlt);
         if(!found) {
             text("stream-status","Impossible de descendre ici — avancez un peu.");
             saida::Log::warn("[World car] no standable ground within 9 m of ",carLon,", ",carLat);
@@ -1570,7 +1685,7 @@ class World : public Rml::EventListener {
     // speed and its heading from one frame to the next, which is the whole of
     // what makes driving feel unlike walking.
     void driveCar(double dt,double throttle,double steerInput,bool handbrake) {
-        if(onWater(lon,lat)){sinkCar(lon,lat);return;}
+        if(onWater(lon,lat,alt)){sinkCar(lon,lat);return;}
         if(throttle>0)carSpeed=std::min(kCarTopSpeed,carSpeed+kCarAccel*throttle*dt);
         else if(throttle<0) {
             // Reverse is what the brake becomes once the car has stopped, which
@@ -1607,8 +1722,16 @@ class World : public Rml::EventListener {
             text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
             return;
         }
-        if(onWater(next.x,next.y)){sinkCar(next.x,next.y);return;}
-        if(blocked(next.x,next.y)) {
+        // A parapet is thinner than a fast car's step: look along the step.
+        const double stepLength=std::abs(carSpeed)*dt;
+        for(double s=.4;s<stepLength;s+=.4) {
+            const auto mid=onward(lon,lat,sin(carYaw*rad)*s*(carSpeed<0?-1:1),cos(carYaw*rad)*s*(carSpeed<0?-1:1));
+            if(tile(mid.x,mid.y)&&raisedWall(mid.x,mid.y,alt)){carStop="a bridge's wall";carSpeed=0;
+                text("stream-status","Obstacle — la voiture s'arrête.");return;}
+        }
+        if(onWater(next.x,next.y,alt)){carStop="water";sinkCar(next.x,next.y);return;}
+        if(blocked(next.x,next.y,alt)) {
+            carStop=raisedWall(next.x,next.y,alt)?"a bridge's wall":"an obstacle";
             carSpeed=0;
             text("stream-status","Obstacle — la voiture s'arrête.");
             return;
@@ -1616,6 +1739,7 @@ class World : public Rml::EventListener {
         // Traffic is the one obstacle that moves, so `blocked` -- which reads
         // footprints and water -- cannot know about it.
         if(trafficAt(next.x,next.y,2.6)) {
+            carStop="traffic";
             carSpeed=0;
             text("stream-status","Voiture devant — la circulation vous arrête.");
             return;
@@ -1967,7 +2091,7 @@ class World : public Rml::EventListener {
         if(onRoof)*onRoof=false;
         if(wet)*wet=false;
         if(!tile(x,y))return planeGround;
-        double surface=height(x,y);
+        double surface=height(x,y,above);
         if(onWater(x,y)){surface=waterLevel(x,y);if(wet)*wet=true;}
         const double roof=roofAt(x,y,above);
         if(roof>surface){surface=roof;if(onRoof)*onRoof=true;if(wet)*wet=false;}
@@ -2366,8 +2490,8 @@ class World : public Rml::EventListener {
         checkStanding=false;
         if(!playing||pending||driving||sailing||piloting||swimming||!tile(lon,lat))return;
         // The finer survey (IGN) may have replaced the quick one under him.
-        if(jumpOffset<=0)alt=height(lon,lat);
-        if(!blocked(lon,lat))return;
+        if(jumpOffset<=0)alt=height(lon,lat,alt);
+        if(!blocked(lon,lat,alt))return;
         double x,y;
         if(!freeSpot(lon,lat,40.,x,y))return;
         saida::Log::info("[World] a building arrived where the player stood: moved to ",x,", ",y);
@@ -3126,7 +3250,9 @@ class World : public Rml::EventListener {
                          ": ",vertices," vertices, ",ice->measured?"measured ":"inferred ",ice->date,
                          " build_ms=",std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count());
     }
-    void streamProps() {
+    // `roadside`: only what is read from the road -- the signs, which the
+    // tile lists before its furniture -- for a driver above 15 km/h.
+    void streamProps(bool roadside=false) {
         const auto start=std::chrono::steady_clock::now();
         // Scene/GPU APIs stay on the render thread. Yield between objects;
         // the budget is soft because one model import is indivisible.
@@ -3134,6 +3260,10 @@ class World : public Rml::EventListener {
             auto it=loaded.find(t.key());if(it==loaded.end())continue;
             auto& l=it->second;
             while(l.nextProp<l.props.size()) {
+                if(roadside) {
+                    const auto& doc=l.props[l.nextProp];
+                    if(!doc.contains("groups")||std::find(doc["groups"].begin(),doc["groups"].end(),"roadside")==doc["groups"].end())break;
+                }
                 try {
                     const auto& doc=l.props[l.nextProp];
                     bool plant=doc.contains("groups")&&std::find(doc["groups"].begin(),doc["groups"].end(),"vegetation")!=doc["groups"].end();
@@ -3299,8 +3429,7 @@ class World : public Rml::EventListener {
                 // walking straight into the nearest real wall is not a failure.
                 double best=0;
                 for(int direction=0;direction<32;++direction){
-                    double heading=direction*11.25,clear=0;
-                    for(double d=.5;d<=12;d+=.5){auto q=onward(lon,lat,sin(heading*rad)*d,cos(heading*rad)*d);if(!tile(q.x,q.y)||blocked(q.x,q.y))break;clear=d;}
+                    double heading=direction*11.25,clear=clearAhead(lon,lat,alt,heading,.5,12.);
                     if(clear>best){best=clear;yaw=heading;}
                 }
                 if(!tellSun()){saida::Log::error("[World E2E] FAIL the sun cycle did not take the observer");testFailed=true;engine.sceneTree().quit();return;}
@@ -3398,6 +3527,12 @@ public:
         // Nearest first to be needed last: warm() takes from the back.
         for(const auto& b:r1::palette().boats)warmList.push_back("assets/models/external/kenney_boats/"+b.model+".glb");
         for(const auto& k:r1::palette().props)for(const auto& m:k.models)warmList.push_back(m);
+        for(const auto& [code,sign]:r1::palette().signs)for(const auto& [mount,m]:sign.mounts)warmList.push_back(m);
+        for(const auto& [country,kit]:r1::palette().townSigns) {
+            for(const auto& m:{kit.post,kit.bar})warmList.push_back(m);
+            for(const auto& [lines,p]:kit.plates)for(const auto& m:{p.left,p.middle,p.right})warmList.push_back(m);
+            for(const auto& [ch,g]:kit.glyphs)warmList.push_back(g.first);
+        }
         for(const char* dir:{"assets/models/external/nature_selected","assets/models/external/nature_cards"}) {
             std::error_code ec;
             for(const auto& f:fs::directory_iterator(game/dir,ec))
@@ -3447,12 +3582,7 @@ public:
         // spawn runs for the walk, over a road's worth of distance.
         smokeClear=0;double heading=carYaw;
         for(int direction=0;direction<32;++direction) {
-            double candidate=direction*11.25,clear=0;
-            for(double d=1.;d<=60.;d+=1.) {
-                auto q=onward(carLon,carLat,sin(candidate*rad)*d,cos(candidate*rad)*d);
-                if(!tile(q.x,q.y)||blocked(q.x,q.y))break;
-                clear=d;
-            }
+            double candidate=direction*11.25,clear=clearAhead(carLon,carLat,carAlt,candidate,1.,60.);
             if(clear>smokeClear){smokeClear=clear;heading=candidate;}
         }
         carYaw=heading;
@@ -4086,12 +4216,13 @@ public:
         // mobilier, clutter, détail de façade -- and shrinks the rest. Street
         // furniture is streamed in rather than drawn from a pool, so dropping
         // it means not spending the frame's 2 ms importing what the player is
-        // about to leave behind. It resumes the moment he slows down.
+        // about to leave behind. It resumes the moment he slows down. The
+        // signs do not wait: they are what a driver reads (gen/predict.hpp).
         ring=nearby(lon,lat);
         const uint64_t moved=engine.sceneTree().world().indexedNodesTotal()-indexedAtFrame;
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
-        if(!fast)cost.props=timed([&]{streamProps();});
+        cost.props=timed([&]{streamProps(fast);});
         cost.distant=timed([&]{updateFar();updateFarPack();});
         cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateCrowd(delta);updateSea(delta);});
         conditionsRead+=delta;
@@ -4191,8 +4322,8 @@ public:
                     if(navigable(next.x,next.y)) {
                         lon=next.x;lat=next.y;alt=waterLevel(lon,lat);moving=true;
                         swimHeading=wrap(std::atan2(east,north)/rad);
-                    } else if(!blocked(next.x,next.y)) {
-                        lon=next.x;lat=next.y;alt=height(lon,lat);swimming=false;moving=true;
+                    } else if(!blocked(next.x,next.y,alt)) {
+                        lon=next.x;lat=next.y;alt=height(lon,lat,alt);swimming=false;moving=true;
                         text("stream-status","À terre.");
                         saida::Log::info("[World swim] ashore at ",lon,", ",lat);
                     }
@@ -4210,15 +4341,15 @@ public:
             // People are bodies: he stops at them and slides round them.
             auto next=walkAmongPeople(east,north,dt);
             if(tile(next.x,next.y)) {
-                if(onWater(next.x,next.y)) {
+                if(onWater(next.x,next.y,alt)) {
                     lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
                     swimming=true;swimTime=0;swimLean=0;
                     swimHeading=wrap(std::atan2(east,north)/rad);
                     jumpOffset=jumpVelocity=0;moving=true;
                     text("stream-status","À l'eau — nagez vers la rive.");
                     saida::Log::info("[World swim] entered water at ",lon,", ",lat);
-                } else if(!blocked(next.x,next.y)){
-                    lon=next.x;lat=next.y;alt=height(lon,lat);moving=true;
+                } else if(!blocked(next.x,next.y,alt)){
+                    lon=next.x;lat=next.y;alt=height(lon,lat,alt);moving=true;
                     auto facing=glm::angleAxis(float(-std::atan2(east,north)),glm::vec3(0,1,0));
                     player->transform().rotation=glm::slerp(player->transform().rotation,facing,float(1-std::exp(-16*dt)));
                 }
@@ -4228,7 +4359,7 @@ public:
             // Standing still, he is still a body: whoever walks into him
             // meets his feet, and a shoulder moves him a little.
             const auto nudged=walkAmongPeople(0,0,dt);
-            if(tile(nudged.x,nudged.y)&&!blocked(nudged.x,nudged.y)){lon=nudged.x;lat=nudged.y;alt=height(lon,lat);}
+            if(tile(nudged.x,nudged.y)&&!blocked(nudged.x,nudged.y,alt)){lon=nudged.x;lat=nudged.y;alt=height(lon,lat,alt);}
         }
         if(glm::length(origin.local(ecef(lon,lat,alt)))>350.)rebaseOrigin();
         if(!driving&&!sailing&&!piloting) {
@@ -4251,7 +4382,7 @@ public:
                 else{jumpVelocity=-kFallTerminal;jumpOffset+=jumpVelocity*dt;}
                 if(jumpOffset<=0) {
                     // Come down on water, from an aircraft: he swims.
-                    if(jumpVelocity<-5.&&tile(lon,lat)&&onWater(lon,lat)) {
+                    if(jumpVelocity<-5.&&tile(lon,lat)&&onWater(lon,lat,alt)) {
                         swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);
                         text("stream-status","À l'eau — nagez vers la rive.");
                     }
@@ -4314,7 +4445,7 @@ public:
         for(double d=.25;d<=clear;d+=.25){
             auto q=onward(lon,lat,backward.x*d,-backward.z*d);
             if(!tile(q.x,q.y)&&piloting)continue;  // in the air, unstreamed ground ahead is no wall
-            if(!tile(q.x,q.y)||height(q.x,q.y)+.3>alt+jumpOffset+.06+eye+backward.y*d){clear=std::max(.15,d-.25);break;}
+            if(!tile(q.x,q.y)||height(q.x,q.y,alt+jumpOffset)+.3>alt+jumpOffset+.06+eye+backward.y*d){clear=std::max(.15,d-.25);break;}
         }
         followDistance=clear<followDistance?clear:followDistance+(clear-followDistance)*(1-std::exp(-7*dt));
         camera->transform().position=target+backward*float(followDistance);
@@ -4411,8 +4542,15 @@ public:
         if(smokeApproach) {
             if(carDistance()<=kCarReach*.8){smokeApproach=false;beginSmokeDriving();return;}
             if(smokeApproachTime>20.) {
+                // What stands in the way, said: the next step toward the car.
+                auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
+                const double l=std::max(1e-6,std::hypot(to.x,to.z));
+                const auto q=onward(lon,lat,to.x/l*.5,-to.z/l*.5);
                 saida::Log::error("[World E2E] FAIL could not walk back to the car, still ",
-                                  carDistance(),"m away after ",smokeApproachTime,"s");
+                                  carDistance(),"m away after ",smokeApproachTime,"s; player at ",lon,", ",lat,
+                                  " alt ",alt,", car alt ",carAlt,"; next step: water=",onWater(q.x,q.y,alt),
+                                  " raised wall=",raisedWall(q.x,q.y,alt)," blocked=",blocked(q.x,q.y,alt),
+                                  " level there ",height(q.x,q.y,alt));
                 testFailed=true;engine.sceneTree().quit();
             }
             return;
@@ -4477,7 +4615,7 @@ public:
             // the map was clicked and some of them are courtyards.
             if(covered<needed||smokeTopSpeed<7.2||std::abs(carSpeed)<=kCarExitSpeed) {
                 saida::Log::error("[World E2E] FAIL drive: covered=",covered,
-                                  "m of ",smokeClear,"m clear, top=",smokeTopSpeed," m/s");
+                                  "m of ",smokeClear,"m clear, top=",smokeTopSpeed," m/s","; last stopped by ",carStop," at ",carLon,", ",carLat," alt ",carAlt);
                 testFailed=true;engine.sceneTree().quit();return;
             }
             saida::Log::info("[World E2E] drive passed, covered=",covered,

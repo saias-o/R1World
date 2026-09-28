@@ -110,7 +110,7 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
     double sidewalkMetres = 0, footMetres = 0;
     for (const OsmWay& road : roads) {
         const Tags& tags = road.tags;
-        if (taggedYes(tags, "tunnel") || taggedYes(tags, "bridge")) continue;
+        if (taggedYes(tags, "tunnel") || taggedYes(tags, "bridge") || has(tags, "r1:raised")) continue;
         const std::string highway = tagOr(tags, "highway");
         std::vector<P2> line;
         for (const P2& p : road.points) {

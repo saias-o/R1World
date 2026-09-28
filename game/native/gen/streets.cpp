@@ -174,7 +174,8 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
     for (const OsmWay& road : roads) {
         const Tags& tags = road.tags;
         if (tagOr(tags, "area") == "yes" || tagOr(tags, "footway") == "crossing") continue;
-        if (taggedYes(tags, "tunnel") || taggedYes(tags, "bridge")) { ++graded; continue; }
+        // Bridges and embankments are built off the ground (gen/bridges).
+        if (taggedYes(tags, "tunnel") || taggedYes(tags, "bridge") || has(tags, "r1:raised")) { ++graded; continue; }
         std::vector<P2> line;
         for (const P2& p : road.points) { const P3 e = anchor.toEngine(p.x, p.y, 0.0); line.push_back({e.x, e.z}); }
         if (clip::length(line) < 0.1) continue;

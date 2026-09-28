@@ -642,6 +642,98 @@ mined out of it; the archives are never opened at run time. What ships is
 **556 kB** of extracted, texture-embedded, repainted GLB, recorded in
 `assets/THIRD_PARTY_ASSETS.json` with its licence.
 
+## What the maps do not say: the predictive model
+
+The world is built from what was surveyed; for the details, the maps are
+silent but the place is not. A départementale leaving a roundabout in the
+country is a priority road; a hump has its 30 just before it; a motorway that
+crosses a lane without a shared node passes over it. Those regularities are
+written as **rules** (`native/gen/predict.hpp`), and the model runs in four
+stages whose order is the contract:
+
+1. **Facts** — the neighbourhood's roads as a graph (`gen/roadnet.cpp`),
+   welded on OSM's shared nodes, with directions of travel. An intersection is
+   where a driver *chooses*: the merge of a split roundabout exit is not one,
+   which is the bug that first kept every priority diamond off the map.
+2. **Rules** propose, each with its confidence and the OSM element it reasoned
+   from. One **rulebook per country** (`gen/rules_fr.cpp` for France), plus the
+   rules that hold everywhere (`gen/rules_structure.cpp`). The country is
+   **measured**: Overpass question 7 asks OSM which admin boundary the
+   neighbourhood is in; an older answer falls back to a coarse outline and the
+   manifest says so. Adding a country is one rules file and one line in
+   `rulebooks()`.
+3. **Arbitration** — a sign OSM surveyed (`traffic_sign`, `highway=give_way`)
+   silences the guess within 30 m (§3 I5); two guesses of one sign for the same
+   traffic merge; each sign belongs to the tile it stands on; 160 per tile.
+4. **Emission** — scene nodes on shared models, streamed before the furniture
+   and *while driving*: the signs are what a driver reads.
+
+The French rulebook today:
+
+| Rule | Says | Confidence |
+|---|---|---|
+| `fr.roundabout.give_way` | AB3a at every roundabout entry (R415-10) | 0.97 |
+| `fr.roundabout.exit_priority` | AB6 60 m after an exit onto a départementale, in the country; no 80 | 0.80 |
+| `fr.speed.limit` | a signed limit is repeated after each junction and posted where it changes; the default (80 / 50) never is | 0.75 |
+| `fr.zone30.gate` | B30 where a zone 30 is entered from a road known to be faster | 0.85 |
+| `fr.hump.warning` | A2b over a B14 30 before a hump, both ways, unless the road is already at 30 | 0.80 |
+| `any.grade_separation` | an expressway crossing a road without a shared node crosses on a bridge; the more important on top | 0.90 |
+
+| `fr.town.gates` | EB10 driving into a town, EB20 driving out, named after the commune its buildings give as their address | 0.85 |
+
+A town is its buildings on a 40 m grid, grown by 80 m, of at least fifteen:
+where a road leaves it for open country, its name is posted, read from the
+`addr:city` the town's buildings and shops carry -- never guessed: a town
+whose addresses do not say gets no sign. The sign is assembled from shared
+parts (posts, the plate's ends, a middle stretched to the name, one model per
+letter from a single glyph atlas, the red bar on the way out). A gate is only
+posted where the OSM answer reaches past it: at the edge of the box Overpass
+was asked about, a town seems to end where only the data does.
+
+The manifest's `predicted` section says, rule by rule, what was proposed,
+silenced by survey, merged, placed.
+
+### Bridges
+
+Bridges are built (`native/gen/bridges.cpp`), surveyed ones and predicted
+ones alike, and they change the landscape: the profile is solved on the
+neighbourhood's roads before anything else is cooked.
+
+- A deck clears what passes under it -- 4.75 m over a road, 2.6 m over a path
+  -- plus its structure, and spans straight between its abutments, never
+  sagging into a valley.
+- Roads climb to it on embankments at 5 % at most (8 % on foot), and every
+  road joined to an embankment climbs with it.
+- A predicted crossing or anything over an expressway may rise 7.5 m; a
+  surveyed bridge, drawn by OSM at the level of its streets, 2.5 m. What it
+  cannot rise to, the ground gives: the road beneath is dug under it, and the
+  tile's relief is refined to the terrain mesh's resolution to take the dig.
+- Decks mapped side by side (two carriageways and a footway) are one deck at
+  one level: the gap is decked over, parapets only on the outside.
+- Drawn: carriageway, pavements and kerbs on the deck, parapets and cornices,
+  the underside, piers where the deck stands high (never on the road below),
+  abutments closing each embankment, and the embankments' 2-in-3 grass slopes.
+  Concrete is its measured colour alone: the project's concrete photographs
+  are facades.
+- Walked and driven: the manifest's `raised` pieces are read by level. A
+  bridge carries whoever is on it and passes over whoever is under it; an
+  embankment is a wall from below and a slope from its side; a parapet stops
+  a walker and a car, before the river does. Traffic drives the bridges at
+  their solved level. Every tile carries the pieces over it, whichever tile
+  draws them.
+- The ground a bridge is solved on includes the neighbouring tiles' relief when
+  it is on disk, so both tiles a bridge crosses solve it alike.
+
+Measured on the cache: a tile still cooks in 280-380 ms; Paris along the Seine
+builds about 4 km of deck around a tile, the Vannes N165 interchange its
+overpass, ramps and embankments.
+
+The signs are drawn by the project from the IISR (`tools/r1/signage.py`): no
+third-party artwork, faces in the measured luminance factors of RA1 sheeting,
+two mounts (lower edge at 1 m in the country, 2.30 m in town, the normal and
+small ranges). Measured on the cache: 5–15 ms of prediction for a tile that
+cooks in 60–400 ms.
+
 ## The car
 
 You arrive on foot and there is a car beside you. **F** gets in, the same

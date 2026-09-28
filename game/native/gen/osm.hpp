@@ -29,6 +29,9 @@ struct OsmData {
     std::vector<OsmWay> aeroways, military;
     std::vector<P2> trees;
     std::vector<OsmNode> features;
+    // ISO 3166-1 alpha-2 of the country the neighbourhood's centre is in, as
+    // OSM's own boundaries say; empty in an answer older than question 7.
+    std::string country;
     int queryVersion = 1;
 };
 

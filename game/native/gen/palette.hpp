@@ -94,6 +94,24 @@ struct PropKind {
     std::vector<std::pair<std::string, std::vector<std::string>>> tags;
 };
 
+// One sign of `assets/world/signs.json` (tools/r1/signage.py): its model on
+// each mount ("rural": lower edge at 1 m, "urban": at 2.30 m), keyed by the
+// OSM `traffic_sign` code the predictive model proposes (gen/predict.cpp).
+struct SignModel {
+    std::map<std::string, std::string> mounts;
+};
+
+// The parts a town's entry and exit signs (EB10, EB20) are assembled from
+// around its name, in one country's code (tools/r1/signage.py).
+struct TownSignKit {
+    double cap = 0.14, line = 0.23, pad = 0.13, end = 0.1, lowerEdge = 1.0;
+    struct Plate { std::string left, middle, right; double height = 0; };
+    std::map<int, Plate> plates;  // by number of lines
+    std::string post, bar;
+    // A capital (UTF-8) -> its model and advance in metres.
+    std::map<std::string, std::pair<std::string, double>> glyphs;
+};
+
 struct BoatKind {
     std::string name, model, kind;
     double length = 0, top = 0, accel = 0, turn = 0, lengthRatio = 0, draft = 0.25;
@@ -124,6 +142,8 @@ struct Palette {
     struct IceSwatch { Swatch swatch; std::string family; };
     std::map<std::string, IceSwatch> seaIce;
     std::vector<PropKind> props;
+    std::map<std::string, SignModel> signs;
+    std::map<std::string, TownSignKit> townSigns;  // by country
     std::vector<BoatKind> boats;
     std::vector<AircraftType> aircraft;
     // Traffic paints: albedos, not paint chips (CLAUDE.md rule 2).

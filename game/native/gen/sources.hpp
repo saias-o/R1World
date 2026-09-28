@@ -28,12 +28,19 @@ public:
 
 // The Overpass question, as a number: an answer to an older one is used only
 // when the network cannot give the current one, and the manifest says so.
-constexpr int kOsmQueryVersion = 6;  // 6: aeroways and military areas
+constexpr int kOsmQueryVersion = 7;  // 6: aeroways and military areas; 7: country, humps, signs
+// The question that brought the aero layer: an answer to it or a later one
+// needs no layer of its own.
+constexpr int kOsmAeroVersion = 6;
 // The oldest answer a tile is cooked from without asking Overpass again.
 // What version 6 added -- aeroways, military areas, the runways around -- is
 // fetched for an older answer as a layer of its own (`fetchAero`), a few
 // kilobytes beside its ten megabytes: re-asking the whole neighbourhood for
 // it made every place already visited wait on Overpass at Go.
+// What version 7 added -- the country the neighbourhood is in, traffic
+// calming and surveyed signs, for the predictive model (gen/predict.hpp) --
+// is not worth that wait: an older answer is cooked without it, and the
+// manifest says so (`predicted.calmingNodesQueried`).
 constexpr int kOsmBaseVersion = 5;
 
 class ObservationStore {
@@ -56,6 +63,12 @@ public:
     std::optional<nlohmann::json> osm(const Tile& tile, const std::optional<Shared>& shared, bool* stale = nullptr) const;
     // Which file `osm` would read.
     std::optional<std::string> osmPath(const Tile& tile, const std::optional<Shared>& shared, bool* stale = nullptr) const;
+    // The relief of the eight tiles around, those on disk: never a download.
+    // A bridge reaching past a tile is solved on it (gen/bridges.hpp).
+    std::vector<ElevationGrid> groundAround(const Tile& tile) const;
+    // The box the answer at `path` was asked about: where its observations
+    // stop, and the world does not (gen/predict.cpp). Nothing if unknown.
+    std::optional<Bounds> regionOf(const Tile& tile, const std::optional<Shared>& shared, const std::string& path) const;
     std::optional<std::pair<ElevationGrid, std::string>> ground(const Tile& tile) const;
 
     // From the network, written to disk before they return. Throw
@@ -91,7 +104,8 @@ private:
     std::optional<std::string> find(const Tile& tile, const char* name) const;
     // Every answer on disk that covers this tile: its own, and every
     // neighbourhood query whatever position the player asked it from.
-    std::vector<std::string> candidates(const Tile& tile, const std::optional<Shared>& shared) const;
+    std::vector<std::string> candidates(const Tile& tile, const std::optional<Shared>& shared,
+                                        std::map<std::string, Bounds>* regions = nullptr) const;
 };
 
 std::string sha256Hex(const std::string& data);

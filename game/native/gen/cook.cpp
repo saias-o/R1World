@@ -1,10 +1,12 @@
 #include "cook.hpp"
 
 #include "airports.hpp"
+#include "bridges.hpp"
 #include "buildings.hpp"
 #include "crowd.hpp"
 #include "harbours.hpp"
 #include "landmarks.hpp"
+#include "predict.hpp"
 #include "scatter.hpp"
 #include "seaice.hpp"
 #include "streets.hpp"
@@ -67,10 +69,18 @@ CookedTile cookTile(const Observations& in) {
     const Bounds bounds = tile.bounds();
     const P2 center = tile.center();
     const OsmData& osm = *in.osm;
-    const ElevationGrid& elevations = in.elevations;
-    for (double h : elevations.values)
+    for (double h : in.elevations.values)
         if (!std::isfinite(h)) throw std::runtime_error("Elevation source returned non-finite data");
     const Anchor anchor = Anchor::at(center.x, center.y, 0);
+    // What the maps do not say comes first: the crossings the model predicts
+    // are bridges, and bridges decide where the roads leave the ground and
+    // where the ground is dug under them. Everything after stands on that.
+    const GroundAt surveyedGround = [&](double lon, double lat) { return groundPoint(lon, lat, in.elevations, anchor); };
+    PredictOutput predicted = predictDetails(osm, tile, anchor, surveyedGround, in.osmExtent);
+    const GroundField field(in.elevations, in.around);
+    const GradePlan grades = planGrades(osm, predicted.structures, field, anchor, bounds);
+    const ElevationGrid dug = grades.carves.empty() ? ElevationGrid{} : carvedGround(in.elevations, grades);
+    const ElevationGrid& elevations = grades.carves.empty() ? in.elevations : dug;
     const GroundAt ground = [&](double lon, double lat) { return groundPoint(lon, lat, elevations, anchor); };
     const auto elevationAt = [&](double lon, double lat) { return elevations.sample(lon, lat); };
 
@@ -155,15 +165,28 @@ CookedTile cookTile(const Observations& in) {
                                 surfaceMaterial(swatch.name, swatch.color, swatch.roughness,
                                                 groundFamily(name, profile.ground.name, climate))});
     }
-    const std::vector<OsmWay> roads = clipRoads(osm.roads, bounds);
+    const std::vector<OsmWay> roads = clipRoads(grades.roads, bounds);
     StreetOutput streets = buildStreets(roads, osm.features, elevations, anchor, footprints);
+    BridgeOutput bridges = buildBridges(grades, bounds, elevations, anchor);
     // Road centre lines in engine metres, so a bench faces its street.
     std::vector<Segment2> roadSegments;
     for (const OsmWay& w : roads) {
         const P3 a = ground(w.points.front().x, w.points.front().y), b = ground(w.points.back().x, w.points.back().y);
         roadSegments.push_back({{a.x, a.z}, {b.x, b.z}});
     }
-    nlohmann::json laneGraph = buildLaneGraph(roads, ground, int(buildings.size()), center.x, center.y);
+    // Traffic drives over the bridges, at the level they were solved at, cut
+    // pieces at the tile's edge included.
+    std::map<P2, double> laneLevels = grades.levels;
+    for (const OsmWay& w : roads)
+        if (taggedYes(w.tags, "bridge") || has(w.tags, "r1:raised"))
+            for (const P2& p : w.points)
+                if (!laneLevels.count(p))
+                    if (auto level = grades.levelAt(p)) laneLevels[p] = *level;
+    const GroundAt roadGround = [&](double lon, double lat) {
+        auto it = laneLevels.find({lon, lat});
+        return it == laneLevels.end() ? ground(lon, lat) : anchor.toEngine(lon, lat, it->second);
+    };
+    nlohmann::json laneGraph = buildLaneGraph(roads, roadGround, int(buildings.size()), center.x, center.y);
     Works works = buildWorks(osm.maritime, lightFeatures, ground, anchor, cells, harbour);
     // Runways, taxiways, aprons and what is parked on them; one helicopter
     // per military base. Nothing parks in water, inside the tile or out.
@@ -175,7 +198,7 @@ CookedTile cookTile(const Observations& in) {
 
     auto assemble = [&](std::vector<MeshPart>& harbourParts) {
         std::vector<MeshPart> parts;
-        for (auto* list : {&terrainParts, &streets.parts, &harbourParts, &built.parts})
+        for (auto* list : {&terrainParts, &streets.parts, &bridges.parts, &harbourParts, &built.parts})
             for (MeshPart& p : *list) parts.push_back(p);
         for (const MeshPart& p : airports.parts) parts.push_back(p);
         return parts;
@@ -261,9 +284,20 @@ CookedTile cookTile(const Observations& in) {
         props = planProps(inTile, ground, profile, roadSegments);
         crowd = buildWalkGraph(roads, osm.features, buildings, footprints, elevations, anchor, props.nodes);
         nature = planNature(osm, tile, anchor, ground);
+        // The signs were placed on the surveyed ground: they stand on the dug
+        // one, or on the embankment beside them.
+        for (auto& n : predicted.nodes) {
+            auto& position = n["transform"]["position"];
+            const P3 geo = anchor.toGeodetic(position[0].get<double>(), 0.0, position[2].get<double>());
+            const auto raised = grades.levelNear({geo.x, geo.y}, 5.0);
+            position[1] = raised ? anchor.toEngine(geo.x, geo.y, *raised).y : ground(geo.x, geo.y).y;
+        }
         // The landmark first after the ground: it is what the player came to
         // see, and the game swaps its far model out once it has streamed.
         for (auto& n : landmarks.nodes) out.props.push_back(n);
+        // The signs next: they are read from the road, so they stream while
+        // driving, when the rest of the furniture waits (native/world.cpp).
+        for (auto& n : predicted.nodes) out.props.push_back(n);
         for (auto& n : nature.nodes) out.props.push_back(n);
         for (auto& n : props.nodes) out.props.push_back(n);
         if (cells.hasSea()) out.props.push_back(seaNode(bounds, anchor));
@@ -315,7 +349,9 @@ CookedTile cookTile(const Observations& in) {
         {"airportsPending", in.airportsPending}, {"provisional", in.provisional}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},
         {"landmarkRevision", kLandmarkRevision},
         {"landmarkReplacedWays", ocean ? nlohmann::json::array() : landmarks.replaced},
-        {"nature", nature.stats}, {"streets", streets.stats}, {"traffic", laneGraph}, {"crowd", crowd},
+        {"nature", nature.stats}, {"streets", streets.stats},
+        {"predicted", ocean || pack ? nlohmann::json({{"revision", kPredictRevision}, {"signs", 0}}) : predicted.stats},
+        {"bridges", bridges.stats}, {"raised", ocean || pack ? nlohmann::json::array() : bridges.raised}, {"traffic", laneGraph}, {"crowd", crowd},
         {"inference", built.stats.json()},
         {"buildingGeometryLod", buildingLod == BuildingLod::Full ? "full" :
                                 buildingLod == BuildingLod::UnifiedBase ? "unified-base" : "simple-roofline"},

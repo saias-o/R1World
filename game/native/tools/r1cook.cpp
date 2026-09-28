@@ -89,6 +89,8 @@ int main(int argc, char** argv) {
             in.airportsPending = line.value("airportsPending", false);
             line["parseMs"] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - parseStart).count();
             in.elevations = ground->first;
+            in.around = store.groundAround(tile);
+            if (const auto path = store.osmPath(tile, shared)) in.osmExtent = store.regionOf(tile, shared, *path);
             in.elevationSource = ground->second;
             in.targetVertices = tileTarget;
             r1::CookedTile cooked;
@@ -101,6 +103,8 @@ int main(int argc, char** argv) {
             line["vertices"] = cooked.manifest["vertices"];
             line["buildingGeometryLod"] = cooked.manifest["buildingGeometryLod"];
             line["buildings"] = cooked.manifest["buildings"];
+            line["predicted"] = cooked.manifest["predicted"];
+            line["bridges"] = cooked.manifest["bridges"];
             nlohmann::json parts = nlohmann::json::array();
             for (const auto& p : cooked.parts)
                 parts.push_back({{"name", p.name}, {"vertices", p.mesh.vertexCount()}, {"triangles", p.mesh.indices.size() / 3}});
@@ -119,6 +123,8 @@ int main(int argc, char** argv) {
                 f.write(reinterpret_cast<const char*>(bytes.data()), std::streamsize(bytes.size()));
                 std::ofstream s(glb + "/" + tile.key() + ".props.json", std::ios::binary);
                 s << cooked.props.dump();
+                std::ofstream r(glb + "/" + tile.key() + ".raised.json", std::ios::binary);
+                r << cooked.manifest["raised"].dump();
             }
         } catch (const std::exception& e) {
             line["error"] = e.what();

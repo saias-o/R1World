@@ -47,6 +47,9 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
                 Tags tags = readTags(e);
                 if (tagOr(tags, "natural") == "tree") trees.insert(p);
                 if (!tags.empty() && featureIds.insert(id).second) out.features.push_back({id, p.x, p.y, std::move(tags)});
+            } else if (type == "area") {
+                const Tags tags = readTags(e);
+                if (out.country.empty()) out.country = tagOr(tags, "ISO3166-1", tagOr(tags, "ISO3166-1:alpha2"));
             } else if (type == "way") {
                 if (wayIds.insert(e.at("id").get<int64_t>()).second) rawWays.push_back(&e);
             }

@@ -470,6 +470,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                 if (!download(target.region, target.path, true)) unwatch(tile, target.path, true);
             }
             in.osm = source(*document, layer);
+            in.osmExtent = store.regionOf(tile, shared, *document);
         } else {
             in.osm = std::make_shared<const OsmData>();
             in.offline = true;
@@ -482,6 +483,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             in.elevations = ElevationGrid{tile.bounds(), 2, {0.0, 0.0, 0.0, 0.0}};
             in.elevationSource = "temporary flat ground (relief pending)";
         }
+        in.around = store.groundAround(tile);
         in.seaIce = seaIceFor(tile, in.elevations, firstVisit);
         return in;
     }

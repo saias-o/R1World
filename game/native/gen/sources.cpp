@@ -119,13 +119,17 @@ std::optional<ObservationStore::Shared> ObservationStore::shared(const std::vect
     return Shared{r, root_ + "/cache/world/sources/" + sha256Hex(text).substr(0, 20) + ".json"};
 }
 
-std::vector<std::string> ObservationStore::candidates(const Tile& tile, const std::optional<Shared>& current) const {
+std::vector<std::string> ObservationStore::candidates(const Tile& tile, const std::optional<Shared>& current,
+                                                     std::map<std::string, Bounds>* regions) const {
     std::vector<std::string> out;
     std::error_code ec;
-    auto add = [&](const std::string& path) {
-        if (fs::exists(path, ec) && std::find(out.begin(), out.end(), path) == out.end()) out.push_back(path);
+    auto add = [&](const std::string& path, const Bounds& region) {
+        if (fs::exists(path, ec) && std::find(out.begin(), out.end(), path) == out.end()) {
+            out.push_back(path);
+            if (regions) (*regions)[path] = region;
+        }
     };
-    if (current) add(current->path);
+    if (current) add(current->path, current->region);
     // A group is the three rows around a centre row, each taking the three
     // columns around the column its own ring puts the player's longitude in
     // (world.cpp `nearby`). Between two column boundaries of those rows the
@@ -152,13 +156,22 @@ std::vector<std::string> ObservationStore::candidates(const Tile& tile, const st
                 for (int dc = -1; dc <= 1; ++dc) group.push_back({r, (c + dc + n) % n});
             }
             if (std::find(group.begin(), group.end(), tile) == group.end()) continue;
-            if (const auto s = shared(group)) add(s->path);
+            if (const auto s = shared(group)) add(s->path, s->region);
         }
     }
     // A tile asked for on its own, outside any group, had a query of its own.
-    if (const auto s = shared({tile})) add(s->path);
-    if (auto path = find(tile, "osm.json")) add(*path);
+    if (const auto s = shared({tile})) add(s->path, s->region);
+    if (auto path = find(tile, "osm.json")) add(*path, tile.bounds());
     return out;
+}
+
+std::optional<Bounds> ObservationStore::regionOf(const Tile& tile, const std::optional<Shared>& shared,
+                                                 const std::string& path) const {
+    std::map<std::string, Bounds> regions;
+    candidates(tile, shared, &regions);
+    auto it = regions.find(path);
+    if (it == regions.end()) return std::nullopt;
+    return it->second;
 }
 
 namespace {
@@ -202,7 +215,7 @@ std::optional<std::string> ObservationStore::osmPath(const Tile& tile, const std
         const int version = queryVersionOf(path);
         if (version < kOsmBaseVersion) continue;
         // An answer to the current question first (it carries the aero
-        // layer), then the widest.
+        // layer and the country), then the widest.
         const bool current = version >= kOsmQueryVersion;
         const auto size = fs::file_size(path, ec);
         if (best.empty() || (current && !bestCurrent) || (current == bestCurrent && size > bestSize)) {
@@ -227,6 +240,27 @@ std::optional<std::pair<ElevationGrid, std::string>> ObservationStore::ground(co
             return std::make_pair(gridFrom(doc, b), std::string("Copernicus DEM GLO-90 via Open-Meteo (fallback)"));
     }
     return std::nullopt;
+}
+
+std::vector<ElevationGrid> ObservationStore::groundAround(const Tile& tile) const {
+    std::vector<ElevationGrid> out;
+    const double width = tile.bounds().east - tile.bounds().west;
+    for (int dr = -1; dr <= 1; ++dr) {
+        const int row = tile.row + dr;
+        if (row < 0 || row >= kRows) continue;
+        const double lat = -90.0 + (row + 0.5) * kStep;
+        for (int dc = -1; dc <= 1; ++dc) {
+            const Tile n = tileAt(tile.center().x + dc * width, lat);
+            if (n == tile) continue;
+            try {
+                if (auto g = ground(n)) out.push_back(std::move(g->first));
+            } catch (const std::exception&) {
+                // An unreadable neighbour: the bridge is solved on this
+                // tile's own ground, never a refused tile.
+            }
+        }
+    }
+    return out;
 }
 
 nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& path) const {
@@ -278,11 +312,21 @@ nlohmann::json ObservationStore::fetchOsm(const Bounds& b, const std::string& pa
   node[power~"^(tower|pole)$"]{B};
   node[man_made~"^(water_tower|windmill|lighthouse|mast)$"]{B};
   node[natural~"^(rock|stone)$"]{B};
+  node[traffic_calming]{B};
+  node[highway~"^(give_way|stop)$"]{B};
+  node[traffic_sign]{B};
 );
 out body;
 >;
-out skel qt;)";
-    for (const auto& [key, box] : {std::pair<std::string, std::string>{"{B}", bbox}, {"{W}", wide}})
+out skel qt;
+is_in({C})->.here;
+area.here["admin_level"="2"]["ISO3166-1"];
+out tags;)";
+    // The country is asked of the neighbourhood's centre: the highway code
+    // the predictive model reads (gen/predict.cpp) is measured, not drawn.
+    char centre[80];
+    std::snprintf(centre, sizeof centre, "%.8f,%.8f", (b.south + b.north) / 2, (b.west + b.east) / 2);
+    for (const auto& [key, box] : {std::pair<std::string, std::string>{"{B}", bbox}, {"{W}", wide}, {"{C}", centre}})
         for (size_t at; (at = query.find(key)) != std::string::npos;) query.replace(at, key.size(), "(" + box + ")");
     const std::string body = "data=" + net::urlEncode(query);
     std::string failures;
@@ -312,7 +356,7 @@ std::string ObservationStore::aeroSibling(const std::string& mainPath) {
 
 std::optional<std::string> ObservationStore::aeroPath(const Tile& tile, const std::optional<Shared>& shared,
                                                       const std::string& mainPath, bool& needed) const {
-    needed = queryVersionOf(mainPath) < kOsmQueryVersion;
+    needed = queryVersionOf(mainPath) < kOsmAeroVersion;
     if (!needed) return std::nullopt;
     std::error_code ec;
     for (const auto& candidate : candidates(tile, shared)) {

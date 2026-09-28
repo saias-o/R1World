@@ -20,7 +20,14 @@ struct Observations {
     Tile tile;
     // Shared: one neighbourhood query is read once for its nine tiles.
     std::shared_ptr<const OsmData> osm;
+    // The box the OSM answer was asked about, when known: past it, nothing
+    // was observed, which is not the same as nothing being there.
+    std::optional<Bounds> osmExtent;
     ElevationGrid elevations;
+    // The relief of the tiles around, those already on disk: a bridge or its
+    // ramps reaching past the tile are solved on the same ground from both
+    // sides (gen/bridges.hpp). Missing ones fall back to this tile's own.
+    std::vector<ElevationGrid> around;
     std::string elevationSource;
     bool offline = false;  // OSM missing: use Natural Earth's approximate coast
     bool groundPending = false;  // measured relief is still on its way

@@ -1,0 +1,568 @@
+{
+ "schema": 1,
+ "revision": 1,
+ "note": "Road signs drawn by the project from the IISR (tools/r1/signage.py). Keys are OSM traffic_sign codes; the generator predicts which stands where (native/gen/predict.cpp).",
+ "mounts": {
+  "rural": {
+   "lowerEdge": 1.0,
+   "range": "normale"
+  },
+  "urban": {
+   "lowerEdge": 2.3,
+   "range": "petite"
+  }
+ },
+ "signs": {
+  "FR:AB3a": {
+   "plates": [
+    {
+     "code": "FR:AB3a",
+     "title": "Cédez le passage"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_ab3a-rural-r1.glb",
+     "vertices": 151,
+     "height": 1.805
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_ab3a-urban-r1.glb",
+     "vertices": 151,
+     "height": 2.863
+    }
+   }
+  },
+  "FR:AB6": {
+   "plates": [
+    {
+     "code": "FR:AB6",
+     "title": "Route prioritaire"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_ab6-rural-r1.glb",
+     "vertices": 187,
+     "height": 1.96
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_ab6-urban-r1.glb",
+     "vertices": 187,
+     "height": 2.986
+    }
+   }
+  },
+  "FR:A2b": {
+   "plates": [
+    {
+     "code": "FR:A2b",
+     "title": "Ralentisseur de type dos-d'âne"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_a2b-rural-r1.glb",
+     "vertices": 151,
+     "height": 1.805
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_a2b-urban-r1.glb",
+     "vertices": 151,
+     "height": 2.863
+    }
+   }
+  },
+  "FR:B30": {
+   "plates": [
+    {
+     "code": "FR:B30",
+     "title": "Entrée d'une zone 30"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b30-rural-r1.glb",
+     "vertices": 163,
+     "height": 2.25
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b30-urban-r1.glb",
+     "vertices": 163,
+     "height": 3.25
+    }
+   }
+  },
+  "FR:B14[20]": {
+   "plates": [
+    {
+     "code": "FR:B14[20]",
+     "title": "Limitation de vitesse à 20 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_20-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_20-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[30]": {
+   "plates": [
+    {
+     "code": "FR:B14[30]",
+     "title": "Limitation de vitesse à 30 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_30-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_30-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[40]": {
+   "plates": [
+    {
+     "code": "FR:B14[40]",
+     "title": "Limitation de vitesse à 40 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_40-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_40-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[50]": {
+   "plates": [
+    {
+     "code": "FR:B14[50]",
+     "title": "Limitation de vitesse à 50 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_50-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_50-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[60]": {
+   "plates": [
+    {
+     "code": "FR:B14[60]",
+     "title": "Limitation de vitesse à 60 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_60-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_60-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[70]": {
+   "plates": [
+    {
+     "code": "FR:B14[70]",
+     "title": "Limitation de vitesse à 70 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_70-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_70-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[80]": {
+   "plates": [
+    {
+     "code": "FR:B14[80]",
+     "title": "Limitation de vitesse à 80 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_80-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_80-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[90]": {
+   "plates": [
+    {
+     "code": "FR:B14[90]",
+     "title": "Limitation de vitesse à 90 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_90-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_90-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[110]": {
+   "plates": [
+    {
+     "code": "FR:B14[110]",
+     "title": "Limitation de vitesse à 110 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_110-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_110-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:B14[130]": {
+   "plates": [
+    {
+     "code": "FR:B14[130]",
+     "title": "Limitation de vitesse à 130 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_b14_130-rural-r1.glb",
+     "vertices": 283,
+     "height": 1.85
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_b14_130-urban-r1.glb",
+     "vertices": 283,
+     "height": 2.95
+    }
+   }
+  },
+  "FR:A2b,FR:B14[30]": {
+   "plates": [
+    {
+     "code": "FR:A2b",
+     "title": "Ralentisseur de type dos-d'âne"
+    },
+    {
+     "code": "FR:B14[30]",
+     "title": "Limitation de vitesse à 30 km/h"
+    }
+   ],
+   "mounts": {
+    "rural": {
+     "model": "assets/models/signs/fr_a2b+fr_b14_30-rural-r1.glb",
+     "vertices": 393,
+     "height": 2.705
+    },
+    "urban": {
+     "model": "assets/models/signs/fr_a2b+fr_b14_30-urban-r1.glb",
+     "vertices": 393,
+     "height": 3.563
+    }
+   }
+  }
+ },
+ "towns": {
+  "FR": {
+   "cap": 0.14,
+   "line": 0.23,
+   "pad": 0.13,
+   "end": 0.1,
+   "lowerEdge": 1.0,
+   "plates": {
+    "1": {
+     "height": 0.4,
+     "left": "assets/models/signs/town/plate_left_1-r1.glb",
+     "middle": "assets/models/signs/town/plate_middle_1-r1.glb",
+     "right": "assets/models/signs/town/plate_right_1-r1.glb"
+    },
+    "2": {
+     "height": 0.63,
+     "left": "assets/models/signs/town/plate_left_2-r1.glb",
+     "middle": "assets/models/signs/town/plate_middle_2-r1.glb",
+     "right": "assets/models/signs/town/plate_right_2-r1.glb"
+    }
+   },
+   "glyphs": {
+    "A": {
+     "model": "assets/models/signs/town/glyph_0041-r1.glb",
+     "advance": 0.1176
+    },
+    "B": {
+     "model": "assets/models/signs/town/glyph_0042-r1.glb",
+     "advance": 0.1176
+    },
+    "C": {
+     "model": "assets/models/signs/town/glyph_0043-r1.glb",
+     "advance": 0.1176
+    },
+    "D": {
+     "model": "assets/models/signs/town/glyph_0044-r1.glb",
+     "advance": 0.1232
+    },
+    "E": {
+     "model": "assets/models/signs/town/glyph_0045-r1.glb",
+     "advance": 0.112
+    },
+    "F": {
+     "model": "assets/models/signs/town/glyph_0046-r1.glb",
+     "advance": 0.1092
+    },
+    "G": {
+     "model": "assets/models/signs/town/glyph_0047-r1.glb",
+     "advance": 0.1232
+    },
+    "H": {
+     "model": "assets/models/signs/town/glyph_0048-r1.glb",
+     "advance": 0.1176
+    },
+    "I": {
+     "model": "assets/models/signs/town/glyph_0049-r1.glb",
+     "advance": 0.042
+    },
+    "J": {
+     "model": "assets/models/signs/town/glyph_004a-r1.glb",
+     "advance": 0.1092
+    },
+    "K": {
+     "model": "assets/models/signs/town/glyph_004b-r1.glb",
+     "advance": 0.1176
+    },
+    "L": {
+     "model": "assets/models/signs/town/glyph_004c-r1.glb",
+     "advance": 0.1092
+    },
+    "M": {
+     "model": "assets/models/signs/town/glyph_004d-r1.glb",
+     "advance": 0.1428
+    },
+    "N": {
+     "model": "assets/models/signs/town/glyph_004e-r1.glb",
+     "advance": 0.1176
+    },
+    "O": {
+     "model": "assets/models/signs/town/glyph_004f-r1.glb",
+     "advance": 0.1316
+    },
+    "P": {
+     "model": "assets/models/signs/town/glyph_0050-r1.glb",
+     "advance": 0.1176
+    },
+    "Q": {
+     "model": "assets/models/signs/town/glyph_0051-r1.glb",
+     "advance": 0.1316
+    },
+    "R": {
+     "model": "assets/models/signs/town/glyph_0052-r1.glb",
+     "advance": 0.1176
+    },
+    "S": {
+     "model": "assets/models/signs/town/glyph_0053-r1.glb",
+     "advance": 0.1176
+    },
+    "T": {
+     "model": "assets/models/signs/town/glyph_0054-r1.glb",
+     "advance": 0.1232
+    },
+    "U": {
+     "model": "assets/models/signs/town/glyph_0055-r1.glb",
+     "advance": 0.1176
+    },
+    "V": {
+     "model": "assets/models/signs/town/glyph_0056-r1.glb",
+     "advance": 0.1176
+    },
+    "W": {
+     "model": "assets/models/signs/town/glyph_0057-r1.glb",
+     "advance": 0.1652
+    },
+    "X": {
+     "model": "assets/models/signs/town/glyph_0058-r1.glb",
+     "advance": 0.1176
+    },
+    "Y": {
+     "model": "assets/models/signs/town/glyph_0059-r1.glb",
+     "advance": 0.1176
+    },
+    "Z": {
+     "model": "assets/models/signs/town/glyph_005a-r1.glb",
+     "advance": 0.1176
+    },
+    "À": {
+     "model": "assets/models/signs/town/glyph_00c0-r1.glb",
+     "advance": 0.1176
+    },
+    "Â": {
+     "model": "assets/models/signs/town/glyph_00c2-r1.glb",
+     "advance": 0.1176
+    },
+    "Ä": {
+     "model": "assets/models/signs/town/glyph_00c4-r1.glb",
+     "advance": 0.1176
+    },
+    "Ç": {
+     "model": "assets/models/signs/town/glyph_00c7-r1.glb",
+     "advance": 0.1176
+    },
+    "É": {
+     "model": "assets/models/signs/town/glyph_00c9-r1.glb",
+     "advance": 0.112
+    },
+    "È": {
+     "model": "assets/models/signs/town/glyph_00c8-r1.glb",
+     "advance": 0.112
+    },
+    "Ê": {
+     "model": "assets/models/signs/town/glyph_00ca-r1.glb",
+     "advance": 0.112
+    },
+    "Ë": {
+     "model": "assets/models/signs/town/glyph_00cb-r1.glb",
+     "advance": 0.112
+    },
+    "Î": {
+     "model": "assets/models/signs/town/glyph_00ce-r1.glb",
+     "advance": 0.1092
+    },
+    "Ï": {
+     "model": "assets/models/signs/town/glyph_00cf-r1.glb",
+     "advance": 0.1092
+    },
+    "Ô": {
+     "model": "assets/models/signs/town/glyph_00d4-r1.glb",
+     "advance": 0.1316
+    },
+    "Ö": {
+     "model": "assets/models/signs/town/glyph_00d6-r1.glb",
+     "advance": 0.1316
+    },
+    "Ù": {
+     "model": "assets/models/signs/town/glyph_00d9-r1.glb",
+     "advance": 0.1176
+    },
+    "Û": {
+     "model": "assets/models/signs/town/glyph_00db-r1.glb",
+     "advance": 0.1176
+    },
+    "Ü": {
+     "model": "assets/models/signs/town/glyph_00dc-r1.glb",
+     "advance": 0.1176
+    },
+    "Ÿ": {
+     "model": "assets/models/signs/town/glyph_0178-r1.glb",
+     "advance": 0.1176
+    },
+    "0": {
+     "model": "assets/models/signs/town/glyph_0030-r1.glb",
+     "advance": 0.1176
+    },
+    "1": {
+     "model": "assets/models/signs/town/glyph_0031-r1.glb",
+     "advance": 0.1176
+    },
+    "2": {
+     "model": "assets/models/signs/town/glyph_0032-r1.glb",
+     "advance": 0.1176
+    },
+    "3": {
+     "model": "assets/models/signs/town/glyph_0033-r1.glb",
+     "advance": 0.1176
+    },
+    "4": {
+     "model": "assets/models/signs/town/glyph_0034-r1.glb",
+     "advance": 0.1176
+    },
+    "5": {
+     "model": "assets/models/signs/town/glyph_0035-r1.glb",
+     "advance": 0.1176
+    },
+    "6": {
+     "model": "assets/models/signs/town/glyph_0036-r1.glb",
+     "advance": 0.1176
+    },
+    "7": {
+     "model": "assets/models/signs/town/glyph_0037-r1.glb",
+     "advance": 0.1176
+    },
+    "8": {
+     "model": "assets/models/signs/town/glyph_0038-r1.glb",
+     "advance": 0.1176
+    },
+    "9": {
+     "model": "assets/models/signs/town/glyph_0039-r1.glb",
+     "advance": 0.1176
+    },
+    "-": {
+     "model": "assets/models/signs/town/glyph_002d-r1.glb",
+     "advance": 0.0896
+    },
+    "'": {
+     "model": "assets/models/signs/town/glyph_0027-r1.glb",
+     "advance": 0.0588
+    },
+    ".": {
+     "model": "assets/models/signs/town/glyph_002e-r1.glb",
+     "advance": 0.042
+    }
+   },
+   "post": "assets/models/signs/town/post-r1.glb",
+   "bar": "assets/models/signs/town/bar-r1.glb"
+  }
+ }
+}

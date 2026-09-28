@@ -200,6 +200,16 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   recette (`r1/landmark_recipes.py`, vocabulaire de `r1/sculpt.py`) cuite en
   trois niveaux de détail dans `assets/world/landmarks/`. Ancre et orientation
   mesurées sur l'élément OSM trouvé par son `wikidata`, hauteur officielle.
+- **Modèle prédictif des détails** : ce que les cartes ne disent pas, le lieu
+  le dit. Des règles par pays (`native/gen/rules_fr.cpp`) proposent panneaux et
+  ouvrages depuis le graphe routier, le pays est lu dans OSM, ce qui est relevé
+  fait taire ce qui est deviné, et le manifeste dit quelle règle a posé quoi
+  (`native/gen/predict.hpp`). Panneaux dessinés d'après l'IISR
+  (`r1/signage.py`), panneaux d'agglomération au nom de la commune lu dans les
+  adresses.
+- **Ponts** : tabliers au gabarit, rampes et remblais à 5 %, piles, culées ; ce
+  que le tablier ne peut pas donner est creusé dans le relief
+  (`native/gen/bridges.cpp`). On y marche et on y roule, dessus comme dessous.
 - **Voiture et circulation** : `F` pour monter/descendre, n'importe quelle voiture
   se prend ; trafic sur le graphe OSM, `maxspeed` tagué d'abord. Véhicules
   dessinés à 0,8 de leur taille, comme les personnes.

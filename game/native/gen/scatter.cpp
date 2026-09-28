@@ -350,15 +350,16 @@ nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& 
                                          {95.0, -11.0, 141.5, 21.0}, {112.0, -48.0, 179.5, -8.0},
                                          {11.0, -35.0, 42.0, 5.0}, {-78.5, 17.5, -76.0, 18.6}};
     std::vector<P3> nodes;
-    std::map<std::pair<long long, long long>, int> index;
     nlohmann::json lanes = nlohmann::json::array();
     int measured = 0, inferred = 0;
     double metres = 0;
+    // Welded in plan and in height: a bridge's node is not the road's beneath.
+    std::map<std::tuple<long long, long long, long long>, int> index3;
     auto nodeAt = [&](P3 p) {
-        const auto key = std::make_pair(pyround(p.x / kWeld), pyround(p.z / kWeld));
-        auto it = index.find(key);
-        if (it != index.end()) return it->second;
-        index[key] = int(nodes.size());
+        const auto key = std::make_tuple(pyround(p.x / kWeld), pyround(p.z / kWeld), pyround(p.y / 3.0));
+        auto it = index3.find(key);
+        if (it != index3.end()) return it->second;
+        index3[key] = int(nodes.size());
         nodes.push_back(p);
         return int(nodes.size()) - 1;
     };
@@ -366,7 +367,8 @@ nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& 
         const Tags& tags = road.tags;
         const std::string highway = tagOr(tags, "highway");
         if (!isMotorway(highway) || highway == "service" || tagOr(tags, "area") == "yes") continue;
-        if (taggedYes(tags, "tunnel") || taggedYes(tags, "bridge")) continue;
+        // Bridges are driven at the level they were solved at (gen/bridges).
+        if (taggedYes(tags, "tunnel")) continue;
         double speed = classSpeed.count(highway) ? classSpeed.at(highway) : 11.1;
         bool isMeasured = false;
         if (const std::string* raw = tag(tags, "maxspeed"); raw && !raw->empty()) {
