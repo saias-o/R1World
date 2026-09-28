@@ -134,6 +134,15 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
 
     void say(const std::string& line) const { if (options.log) options.log(line); }
 
+    bool requested(const std::string& path) const {
+        std::lock_guard<std::mutex> guard(lock);
+        for (const Tile& tile : wanted) {
+            auto it = awaiting.find(tile);
+            if (it != awaiting.end() && it->second.count(path)) return true;
+        }
+        return false;
+    }
+
     void watch(const Tile& tile, const std::string& path) {
         std::lock_guard<std::mutex> guard(lock);
         awaiting[tile].insert(path);
@@ -251,18 +260,24 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             self->overpass.acquire();
             const auto asked = Clock::now();
             try {
-                if (aero) {
-                    self->store.fetchAero(region, path);
+                // A teleport can leave many queries waiting for the two
+                // Overpass slots. Do not spend a slot on an old destination.
+                if (!self->requested(path)) {
+                    self->say("OSM-SKIPPED " + std::filesystem::path(path).filename().string());
                 } else {
-                    if (self->options.fetchOsm) self->options.fetchOsm(region, path);
-                    else self->store.fetchOsm(region, path);
+                    if (aero) {
+                        self->store.fetchAero(region, path);
+                    } else {
+                        if (self->options.fetchOsm) self->options.fetchOsm(region, path);
+                        else self->store.fetchOsm(region, path);
+                    }
+                    {
+                        std::lock_guard<std::mutex> guard(self->lock);
+                        self->landed.insert(path);
+                    }
+                    self->say(std::string(aero ? "AERO-LAYER " : "OSM ") + std::filesystem::path(path).filename().string() + " in " +
+                              std::to_string(int(std::chrono::duration<double>(Clock::now() - asked).count())) + " s");
                 }
-                {
-                    std::lock_guard<std::mutex> guard(self->lock);
-                    self->landed.insert(path);
-                }
-                self->say(std::string(aero ? "AERO-LAYER " : "OSM ") + std::filesystem::path(path).filename().string() + " in " +
-                          std::to_string(int(std::chrono::duration<double>(Clock::now() - asked).count())) + " s");
             } catch (const std::exception& e) {
                 self->say(std::string(aero ? "AERO-LAYER-FAILED " : "OSM-QUERY-FAILED ") +
                           std::filesystem::path(path).filename().string() + " " + e.what());
@@ -294,32 +309,38 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         std::thread([self = shared_from_this(), tile, path, quick] {
             Counter c(self->fetching);
             self->quickGroundSlots.acquire();
-            try {
-                auto ground = self->options.quickGround ? self->options.quickGround(tile) : self->store.quickGround(tile);
-                {
-                    std::lock_guard<std::mutex> guard(self->lock);
-                    self->quickGrounds[tile] = std::move(ground);
-                    self->landed.insert(quick);
+            if (self->requested(path)) {
+                try {
+                    auto ground = self->options.quickGround ? self->options.quickGround(tile) : self->store.quickGround(tile);
+                    {
+                        std::lock_guard<std::mutex> guard(self->lock);
+                        if (std::find(self->wanted.begin(), self->wanted.end(), tile) != self->wanted.end()) {
+                            self->quickGrounds[tile] = std::move(ground);
+                            self->landed.insert(quick);
+                        }
+                    }
+                    self->wake.notify_all();
+                } catch (const std::exception& e) {
+                    self->say("QUICK-GROUND-FAILED " + tile.key() + " " + e.what());
                 }
-                self->wake.notify_all();
-            } catch (const std::exception& e) {
-                self->say("QUICK-GROUND-FAILED " + tile.key() + " " + e.what());
             }
             self->quickGroundSlots.release();
             self->detailedGroundSlots.acquire();
-            try {
-                if (self->options.fetchGround) self->options.fetchGround(tile);
-                else self->store.fetchGround(tile);
-                {
-                    std::lock_guard<std::mutex> guard(self->lock);
-                    self->quickGrounds.erase(tile);
-                    self->landed.insert(quick);
-                    self->landed.insert(path);
+            if (self->requested(path)) {
+                try {
+                    if (self->options.fetchGround) self->options.fetchGround(tile);
+                    else self->store.fetchGround(tile);
+                    {
+                        std::lock_guard<std::mutex> guard(self->lock);
+                        self->quickGrounds.erase(tile);
+                        self->landed.insert(quick);
+                        self->landed.insert(path);
+                    }
+                    self->say("GROUND " + tile.key() + " ready");
+                } catch (const std::exception& e) {
+                    self->say("GROUND-FAILED " + tile.key() + " " + e.what());
+                    self->failedDownload(path, quick);
                 }
-                self->say("GROUND " + tile.key() + " ready");
-            } catch (const std::exception& e) {
-                self->say("GROUND-FAILED " + tile.key() + " " + e.what());
-                self->failedDownload(path, quick);
             }
             self->detailedGroundSlots.release();
             {
@@ -567,6 +588,21 @@ void WorldService::want(std::vector<Tile> priority, std::vector<std::vector<Tile
         state_->groups = std::move(groups);
         ++state_->clock;
         for (const Tile& t : state_->wanted) state_->lastWanted[t] = state_->clock;
+        // A destination change must release observations queued for places
+        // which are no longer relevant. Otherwise old Overpass and elevation
+        // requests monopolise the network for minutes after a teleport.
+        const std::set<Tile> current(state_->wanted.begin(), state_->wanted.end());
+        for (auto it = state_->awaiting.begin(); it != state_->awaiting.end();)
+            if (!current.count(it->first)) it = state_->awaiting.erase(it);
+            else ++it;
+        for (auto it = state_->quickGrounds.begin(); it != state_->quickGrounds.end();)
+            if (!current.count(it->first)) it = state_->quickGrounds.erase(it);
+            else ++it;
+        std::set<std::string> awaitedPaths;
+        for (const auto& [tile, paths] : state_->awaiting) awaitedPaths.insert(paths.begin(), paths.end());
+        for (auto it = state_->landed.begin(); it != state_->landed.end();)
+            if (!awaitedPaths.count(*it)) it = state_->landed.erase(it);
+            else ++it;
     }
     state_->wake.notify_all();
 }

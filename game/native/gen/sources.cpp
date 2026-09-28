@@ -8,8 +8,16 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <map>
+#include <mutex>
 #include <sstream>
 #include <thread>
+
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#define STBI_NO_STDIO
+#include "../../../engine/third_party/stb/stb_image.h"
 
 namespace fs = std::filesystem;
 
@@ -369,6 +377,89 @@ nlohmann::json ObservationStore::fetchSeaIce(double lon, double lat) const {
 }
 
 namespace {
+// The public AWS Terrain Tiles archive is a global, already tiled DEM. A
+// single 256px image covers many of our small world tiles, so one download
+// replaces dozens of point requests to Open-Meteo during a teleport. Keep the
+// source image on disk too: a return visit needs no network at all.
+struct TerrainImage { std::vector<unsigned char> rgb; };
+
+std::shared_ptr<const TerrainImage> terrainImage(const std::string& root, int x, int y) {
+    static std::mutex mutex;
+    static std::map<std::string, std::shared_ptr<const TerrainImage>> memory;
+    const std::string key = root + "/cache/world/terrain/12/" + std::to_string(x) + "/" + std::to_string(y) + ".png";
+    std::lock_guard<std::mutex> guard(mutex);
+    if (auto it = memory.find(key); it != memory.end()) return it->second;
+
+    auto decode = [](const std::string& bytes) -> std::shared_ptr<const TerrainImage> {
+        int width = 0, height = 0, channels = 0;
+        auto* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(bytes.data()), int(bytes.size()),
+                                             &width, &height, &channels, 3);
+        if (!pixels || width != 256 || height != 256) {
+            stbi_image_free(pixels);
+            throw SourceUnavailable("Mapzen terrain tile is not a 256px PNG");
+        }
+        auto image = std::make_shared<TerrainImage>();
+        image->rgb.assign(pixels, pixels + 256 * 256 * 3);
+        stbi_image_free(pixels);
+        return image;
+    };
+
+    std::error_code ec;
+    if (fs::exists(key, ec)) {
+        try {
+            std::ifstream input(key, std::ios::binary);
+            const std::string bytes((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+            auto image = decode(bytes);
+            if (memory.size() >= 16) memory.erase(memory.begin());
+            memory[key] = image;
+            return image;
+        } catch (const std::exception&) {
+            fs::remove(key, ec);  // a truncated download is never a cache hit
+        }
+    }
+
+    const std::string url = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/12/" +
+                            std::to_string(x) + "/" + std::to_string(y) + ".png";
+    const auto response = net::request("GET", url, {}, {}, 12.0);
+    if (response.status != 200) throw SourceUnavailable("Mapzen terrain tile: HTTP " + std::to_string(response.status));
+    auto image = decode(response.body);
+    try {
+        fs::create_directories(fs::path(key).parent_path());
+        const std::string tmp = key + ".tmp" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
+        { std::ofstream output(tmp, std::ios::binary); output.write(response.body.data(), std::streamsize(response.body.size())); }
+        fs::rename(tmp, key, ec);
+        if (ec) fs::remove(tmp, ec);
+    } catch (const std::exception&) {
+        // The fetched image is still valid for this session when the cache is
+        // read-only. The next visit will retry the download.
+    }
+    if (memory.size() >= 16) memory.erase(memory.begin());
+    memory[key] = image;
+    return image;
+}
+
+ElevationGrid mapzenGround(const Bounds& b, const std::string& root) {
+    constexpr int zoom = 12, n = 1 << zoom, size = 7;
+    if (b.south < -85.0 || b.north > 85.0) throw SourceUnavailable("Mapzen Mercator terrain stops at 85 degrees");
+    ElevationGrid grid{b, size, {}};
+    for (int row = 0; row < size; ++row) for (int col = 0; col < size; ++col) {
+        const double lon = b.west + (b.east - b.west) * col / (size - 1);
+        const double lat = b.south + (b.north - b.south) * row / (size - 1);
+        const double tx = std::clamp((lon + 180.0) / 360.0 * n, 0.0, double(n) - 1e-9);
+        const double ty = std::clamp((1.0 - std::asinh(std::tan(radians(lat))) / M_PI) * 0.5 * n,
+                                     0.0, double(n) - 1e-9);
+        const int x = int(tx), y = int(ty);
+        const auto image = terrainImage(root, x, y);
+        const int px = std::clamp(int((tx - x) * 256), 0, 255);
+        const int py = std::clamp(int((ty - y) * 256), 0, 255);
+        const size_t i = size_t((py * 256 + px) * 3);
+        const double h = image->rgb[i] * 256.0 + image->rgb[i + 1] + image->rgb[i + 2] / 256.0 - 32768.0;
+        if (image->rgb[i] == 0 || !std::isfinite(h)) throw SourceUnavailable("Mapzen terrain tile has no elevation here");
+        grid.values.push_back(h);
+    }
+    return grid;
+}
+
 // Copernicus GLO-90 through Open-Meteo, 7x7: its 90 m is all there is.
 ElevationGrid copernicus(const Bounds& b, double timeout, int attempts) {
     const int size = 7;
@@ -472,16 +563,32 @@ std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& 
             if (log_) log_(std::string("ELEVATION-FALLBACK ") + e.what());
         }
     }
-    const ElevationGrid g = copernicus(b, 120.0, 3);
-    const std::string source = "Copernicus DEM GLO-90 via Open-Meteo (fallback)";
+    ElevationGrid g;
+    std::string source;
+    try {
+        g = mapzenGround(b, root_);
+        source = "Mapzen Terrain Tiles (SRTM and open DEM via AWS)";
+    } catch (const std::exception& e) {
+        if (log_) log_(std::string("ELEVATION-FALLBACK ") + e.what());
+        g = copernicus(b, 120.0, 3);
+        source = "Copernicus DEM GLO-90 via Open-Meteo (fallback)";
+    }
     writeGround(path, g, source);
     return {g, source};
 }
 
 std::pair<ElevationGrid, std::string> ObservationStore::quickGround(const Tile& tile) const {
     const Bounds b = tile.bounds();
-    const std::string source = "Copernicus DEM GLO-90 via Open-Meteo (fallback)";
-    const ElevationGrid g = copernicus(b, 4.0, 1);
+    ElevationGrid g;
+    std::string source;
+    try {
+        g = mapzenGround(b, root_);
+        source = "Mapzen Terrain Tiles (SRTM and open DEM via AWS)";
+    } catch (const std::exception& e) {
+        if (log_) log_(std::string("ELEVATION-FALLBACK ") + e.what());
+        g = copernicus(b, 4.0, 1);
+        source = "Copernicus DEM GLO-90 via Open-Meteo (fallback)";
+    }
     // Outside France this is the ground `fetchGround` would have fetched: it
     // is kept. Inside, IGN's finer survey still comes with the upgrade.
     if (!ignEligible(b)) writeGround(tileFolder(tile) + "/ground-elevation.json", g, source);
