@@ -30,6 +30,7 @@ struct BuildingOutput {
     // clears or stops against, and what a helicopter lands on.
     std::vector<double> tops;
     std::vector<InteriorPlan> interiors;
+    nlohmann::json interiorUnavailable = nlohmann::json::array();
     BuildingStats stats;
     // Open roofs (gen/fuel): their fuel canopies, and the canopy lettering.
     nlohmann::json fuelStations = nlohmann::json::array();

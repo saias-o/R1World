@@ -12,6 +12,8 @@ struct InteriorPlan {
     int64_t id = 0;
     size_t footprint = 0, edge = 0;
     std::string recipe, name, nameSource, entranceSource;
+    std::string useSource = "inferred:building", region, doorStyle = "sliding";
+    std::vector<P3> exteriorVehicles; // Observed ground, synthesized parking positions.
     Ring ring;
     P2 door, along, inward;
     double width = 2.4, floor = 0, ceiling = 3.6, approach = 0;
@@ -29,7 +31,17 @@ struct InteriorPlan {
     static InteriorPlan read(const nlohmann::json& j);
 };
 struct InteriorFixture { P2 at, size; double height; std::string kind; int variant = 0; };
-struct InteriorLayout { std::vector<InteriorFixture> fixtures; };
+struct InteriorRoom { std::string use; Ring ring; };
+struct InteriorLayout { std::vector<InteriorFixture> fixtures; std::vector<InteriorRoom> rooms; };
+bool retailInterior(const std::string& recipe);
+std::string interiorRecipe(const Tags& tags);
+std::string interiorName(const Tags& tags);
+// Attach observed civic/office uses and entrances without mutating observations.
+std::vector<OsmWay> interiorBuildings(const std::vector<OsmWay>& buildings, const OsmData& osm,
+                                    const std::function<P3(double,double)>& ground);
+InteriorLayout layoutBuildingInterior(const InteriorPlan& plan);
+std::vector<MeshPart> buildBuildingFixture(const InteriorFixture& fixture);
+std::vector<MeshPart> buildInteriorDoor(const InteriorPlan& plan);
 bool retailUse(const Tags& tags);
 std::string retailRecipe(const Tags& tags);
 std::string retailName(const Tags& tags);

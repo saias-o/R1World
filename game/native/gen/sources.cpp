@@ -298,6 +298,10 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
   way[amenity=fuel]{B};
   node[amenity=fuel]{B};
   node[entrance]{B};
+  nwr[amenity~"^(police|school|kindergarten|college|university|hospital|clinic|doctors|prison|place_of_worship|townhall|courthouse|bank|fire_station|restaurant|cafe|bar|pub)$"]{B};
+  nwr[office]{B};
+  nwr[craft]{B};
+  node[military=gendarmerie]{B};
   way[man_made~"^(pier|breakwater|groyne|quay)$"]{B};
   way[leisure=marina]{B};
   way[harbour]{B};
@@ -422,7 +426,7 @@ std::optional<nlohmann::json> ObservationStore::seaIce(double lon, double lat) c
 
 std::optional<std::string> ObservationStore::retailPath(const Tile& tile,const std::optional<Shared>& shared,
                                                        const std::string& mainPath) const {
-    if(queryVersionOf(mainPath)>=9)return std::nullopt;
+    if(queryVersionOf(mainPath)>=kOsmQueryVersion)return std::nullopt;
     // A layer of the current version first; an older one is still read
     // while the current one is fetched (it has the shops, not the stations).
     const auto layers=candidates(tile,shared,nullptr,".retail.json");
@@ -440,7 +444,8 @@ nlohmann::json ObservationStore::fetchRetail(const Bounds& b,const std::string& 
     const std::string box=bbox;
     const std::string query="[out:json][timeout:45];(way[amenity=parking]"+box+";way[shop]"+box+
         ";node[shop]"+box+";node[entrance]"+box+";way[amenity=fuel]"+box+";node[amenity=fuel]"+box+
-        ";);out body;>;out skel qt;";
+        ";nwr[amenity~\"^(police|school|kindergarten|college|university|hospital|clinic|doctors|prison|place_of_worship|townhall|courthouse|bank|fire_station|restaurant|cafe|bar|pub)$\"]"+box+
+        ";nwr[office]"+box+";nwr[craft]"+box+";node[military=gendarmerie]"+box+";);out body;>;out skel qt;";
     std::string failures;
     for(int i:endpointOrder())try {
         auto doc=nlohmann::json::parse(net::requestJson(kOverpass[i],"data="+net::urlEncode(query),"application/x-www-form-urlencoded"));

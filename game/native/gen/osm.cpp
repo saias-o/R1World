@@ -31,6 +31,7 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
     out.queryVersion = document.value("r1QueryVersion", 1);
     out.retailQueried=out.queryVersion>=8 || retail;
     out.fuelQueried=out.queryVersion>=9 || (retail && retail->value("r1RetailVersion",1)>=2);
+    out.interiorUsesQueried=out.queryVersion>=10 || (retail && retail->value("r1RetailVersion",1)>=3);
     std::unordered_map<int64_t, P2> nodes;
     std::vector<const nlohmann::json*> rawWays;
     std::set<P2> trees;

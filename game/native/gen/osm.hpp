@@ -35,6 +35,7 @@ struct OsmData {
     int queryVersion = 1;
     bool retailQueried = false;
     bool fuelQueried = false;
+    bool interiorUsesQueried = false;
 };
 
 // `layer`, when given, is a second answer read into the same data (the aero

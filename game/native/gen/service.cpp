@@ -523,7 +523,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                 if (!download(target.region, target.path, true)) unwatch(tile, target.path, true);
             }
             const auto retail=store.retailPath(tile,shared,*document);
-            if(options.enrichRetail&&store.queryVersion(*document)<9&&(!retail||!store.retailCurrent(*retail))) {
+            if(options.enrichRetail&&store.queryVersion(*document)<kOsmQueryVersion&&(!retail||!store.retailCurrent(*retail))) {
                 const auto target=store.retailTarget(tile,shared);watch(tile,target.path);
                 if(!download(target.region,target.path,false,true))unwatch(tile,target.path,true);
             }

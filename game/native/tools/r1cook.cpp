@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
             std::optional<nlohmann::json> retail;
             if(const auto path=store.osmPath(tile,shared)) {
                 auto layer=store.retailPath(tile,shared,*path);
-                if((!layer||!store.retailCurrent(*layer))&&fetch&&store.queryVersion(*path)<9) {
+                if((!layer||!store.retailCurrent(*layer))&&fetch&&store.queryVersion(*path)<r1::kOsmQueryVersion) {
                     auto target=store.retailTarget(tile,shared);retail=store.fetchRetail(target.region,target.path);
                 } else if(layer)retail=r1::readJson(*layer);
             }
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
             line["props"] = cooked.props.size();
             for (const char* k : {"streets", "inference", "props", "nature", "harbour", "ground", "water", "landmarks",
                                   "landmarkReplacedWays", "boats", "decks", "airports", "aircraft", "osmQueryVersion", "retail", "interiors",
-                                  "fuel", "lettering", "nature"})
+                                  "fuel", "lettering", "interiorStreaming"})
                 line["manifest"][k] = cooked.manifest[k];
             line["manifest"]["traffic"] = {{"nodes", cooked.manifest["traffic"]["nodes"].size()},
                                            {"lanes", cooked.manifest["traffic"]["lanes"].size()},

@@ -367,17 +367,44 @@ Le pôle, la banquise et la neige sont faits (§7). Reste :
   plus rabotés par la grille d'élévation grossière, et un horizon qui ne
   s'arrête plus à la brume de 5 km sur la terre ferme.
 
-### Interior update
-Après la Market update, qui en pose les bases.
-- **Tous les bâtiments sont visitables** : pas seulement les magasins.
-- **Les portes s'ouvrent avec une animation**, à l'approche ou avec une touche.
-- **Un intérieur meublé** : canapés, tables, chaises, cuisines, lits,
-  salles de bain, selon le type de bâtiment et la région.
-- **Généré par seed, comme Minecraft** : le seed d'un intérieur dérive de
-  l'identifiant OSM du bâtiment (I3), donc chaque joueur voit exactement le
-  même appartement au même endroit, sans que rien ne soit stocké ni transmis.
-- **Seulement à portée** : comme pour les magasins, l'intérieur n'est construit
-  que quand on s'approche de la porte et il est libéré en s'éloignant.
+### Interior update — générateur v24
+- **Le socle des magasins s'étend au bâti ordinaire** : logements privés,
+  écoles, commissariats et gendarmeries, bureaux, garages, centres de soins,
+  lieux de culte, restaurants, entrepôts et prisons ont des recettes distinctes.
+  Les usages tagués gagnent ; les nœuds de service et les campus cartographiés
+  complètent les bâtiments anonymes. À défaut, le logement reste une inférence.
+- **Le logement contient des pièces** : salon avec canapé et table basse,
+  cuisine équipée et coin repas, chambre avec lit et rangement, salle de bain
+  avec douche, lavabo et toilettes, quand l'emprise permet ces pièces. Les
+  cloisons ont de vrais passages sur un couloir dégagé ; murs et meubles
+  arrêtent le joueur. Les écoles ont des tables, chaises et tableaux ; les
+  commissariats un accueil, une attente, des bureaux, archives et auditions.
+- **Les entreprises ont des bureaux**, écrans, rangements et salles de réunion.
+  Les garages ont des établis, des outils et des voitures issues de la flotte
+  existante, dedans et devant lorsque l'espace le permet. Le stationnement
+  synthétisé exclut bâtiments, routes, eau et terrain trop pentu.
+- **Les portes sont animées** : battants dans le bâti ordinaire, portes
+  coulissantes conservées pour les magasins, avec capteur des deux côtés.
+  Le portail seul est percé dans la façade régionale ; la toiture et les
+  hauteurs observées sont conservées. Un seuil raccorde le plancher au terrain.
+- **Le mobilier dérive du seed OSM et de la région**. Seul le plan léger
+  accompagne la tuile ; les pièces, meubles, portes et lumières sont construits
+  à moins de 65 m, libérés au-delà de 85 m, deux intérieurs au plus. Celui du
+  joueur reste prioritaire ; les prototypes de meubles et voitures sont partagés.
+- **Le budget reste 24 000 sommets par intérieur** et 120 000 par tuile.
+  Chaque façade percée est triangulée autour de sa porte avec huit coins
+  soudés, au lieu de quatre bandes superposées ; emprises, portes, hauteurs,
+  silhouettes et textures régionales sont conservées dans les LOD existants.
+  Un refus de capacité se dit et peut être retenté lors d'une visite ultérieure.
+- **Observations** : question Overpass 10, couche `.retail.json` version 3
+  pour les usages civiques et professionnels manquant aux anciens caches.
+  Le manifeste sépare usage observé, rattachement au campus inféré et
+  aménagement synthétisé ; il dit aussi pourquoi un bâtiment est indisponible.
+- **À poursuivre** : étages visitables, escaliers et ascenseurs. Cette version
+  aménage le rez-de-chaussée ; les emprises trop étroites pour une porte, les
+  volumes surélevés sans accès et les bâtiments sans hauteur libre restent
+  signalés comme indisponibles. Les monuments remplacés par leurs assets
+  particuliers ne passent pas encore par ce générateur d'intérieur.
 
 ---
 

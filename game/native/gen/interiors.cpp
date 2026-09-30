@@ -9,8 +9,11 @@ P2 InteriorPlan::point(double u,double v) const { return {door.x+along.x*u+inwar
 P2 InteriorPlan::local(P2 p) const { return {(p.x-door.x)*along.x+(p.y-door.y)*along.y,(p.x-door.x)*inward.x+(p.y-door.y)*inward.y}; }
 nlohmann::json InteriorPlan::json() const {
     nlohmann::json polygon=nlohmann::json::array(); for(auto p:ring)polygon.push_back({p.x,p.y});
+    nlohmann::json cars=nlohmann::json::array();for(auto p:exteriorVehicles)cars.push_back({p.x,p.y,p.z});
     return {{"id",id},{"footprint",footprint},{"edge",edge},{"recipe",recipe},{"name",name},
         {"nameSource",nameSource},{"entranceSource",entranceSource},{"layoutSource","synthesized"},
+        {"useSource",useSource},{"region",region},{"doorStyle",doorStyle},{"storeysFurnished",1},
+        {"exteriorVehicles",cars},{"vehicleSource",exteriorVehicles.empty()?"none":"synthesized:clear-forecourt"},
         {"ring",polygon},{"door",{door.x,door.y}},{"along",{along.x,along.y}},
         {"inward",{inward.x,inward.y}},{"width",width},{"floor",floor},{"ceiling",ceiling},{"approach",approach},
         {"anchor",anchor?nlohmann::json{anchor->x,anchor->y}:nlohmann::json()},{"anchorName",anchorName},
@@ -24,13 +27,16 @@ InteriorPlan InteriorPlan::read(const nlohmann::json& j) {
     p.inward={j.at("inward")[0],j.at("inward")[1]};p.width=j.at("width");p.floor=j.at("floor");
     p.ceiling=j.at("ceiling");p.approach=j.at("approach");
     if(j.contains("anchor")&&j["anchor"].is_array())p.anchor=P2{j["anchor"][0],j["anchor"][1]};
-    p.anchorName=j.value("anchorName","");return p;
+    p.anchorName=j.value("anchorName","");p.useSource=j.value("useSource","inferred:building");
+    p.region=j.value("region","");p.doorStyle=j.value("doorStyle","sliding");
+    if(j.contains("exteriorVehicles"))for(const auto& c:j["exteriorVehicles"])p.exteriorVehicles.push_back({c[0],c[1],c[2]});
+    return p;
 }
 bool retailUse(const Tags& t) {
     const auto shop=tagOr(t,"shop"); const auto b=tagOr(t,"building");
     // A funeral home is tagged shop=* but is no walk-in store: no shelves,
     // no sliding doors, no fascia; it keeps its ordinary building.
-    if(shop=="funeral_directors")return false;
+    if(shop=="funeral_directors"||shop=="car_repair"||shop=="car"||shop=="tyres")return false;
     // A fuel station (shop=gas, shop=convenience on its canopy) and a roof
     // on posts are no walk-in store either: gen/fuel draws them.
     if(tagOr(t,"amenity")=="fuel"||b=="roof")return false;
@@ -66,7 +72,7 @@ bool chooseRetailPortal(InteriorPlan& p,const std::vector<P2>& targets,
     auto clearance=[&](P2 q,P2 along,P2 inward) {
         double depth=0;
         for(double v=.5;v<=12.;v+=.5) {
-            for(double u:{-1.5,0.,1.5})
+            for(double u:{-p.width/2-.15,0.,p.width/2+.15})
                 if(!pointInPolygon({q.x+along.x*u+inward.x*v,q.y+along.y*u+inward.y*v},p.ring))return depth;
             depth=v;
         }
@@ -78,14 +84,15 @@ bool chooseRetailPortal(InteriorPlan& p,const std::vector<P2>& targets,
         if(slide&&std::any_of(doors.begin(),doors.end(),[](const Door& d){return d.distance<=1.5;}))break;
         for(auto target:targets)for(size_t e=0;e<p.ring.size();++e) {
             P2 a=p.ring[e],b=p.ring[(e+1)%p.ring.size()];const double len=dist(a,b);
-            if(len<4.8||(eligible&&!eligible(e)))continue;
+            const double margin=p.doorStyle=="sliding"?2.:p.width/2+.3;
+            if(len<(p.doorStyle=="sliding"?4.8:2*margin)||(eligible&&!eligible(e)))continue;
             const P2 along{(b.x-a.x)/len,(b.y-a.y)/len};
             auto add=[&](double t){
                 const P2 q{a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t};
                 doors.push_back({e,q,along,dist(q,target),clearance(q,along,{-along.y,along.x})});
             };
-            if(!slide)add(std::clamp(((target.x-a.x)*(b.x-a.x)+(target.y-a.y)*(b.y-a.y))/(len*len),2./len,1.-2./len));
-            else for(double s=2;s<=len-2+1e-9;s+=1)add(s/len);
+            if(!slide)add(std::clamp(((target.x-a.x)*(b.x-a.x)+(target.y-a.y)*(b.y-a.y))/(len*len),margin/len,1.-margin/len));
+            else for(double s=margin;s<=len-margin+1e-9;s+=1)add(s/len);
         }
     }
     if(doors.empty())return false;
@@ -120,6 +127,7 @@ void box(Mesh& m,const InteriorPlan& p,double u,double v,double y,double w,doubl
 
 }
 InteriorLayout layoutInterior(const InteriorPlan& p) {
+    if(!retailInterior(p.recipe))return layoutBuildingInterior(p);
     InteriorLayout out;
     double reach=0,back=0;
     for(auto q:p.ring) {
@@ -241,6 +249,8 @@ std::string interiorFixtureKey(const InteriorFixture& f) {
            std::to_string(f.height)+"/"+std::to_string(f.variant);
 }
 std::vector<MeshPart> buildInteriorFixture(InteriorFixture fixture) {
+    if(fixture.kind!="checkout"&&fixture.kind!="display"&&fixture.kind!="rail"&&fixture.kind!="shelf"&&fixture.kind!="kiosk")
+        return buildBuildingFixture(fixture);
     InteriorPlan p;p.id=fixture.variant;p.along={1,0};p.inward={0,1};fixture.at={0,0};
     Mesh fixtures,goods,trim,labels;
     auto random=seeded(p.id,0x494E544552494F52LL);
@@ -301,7 +311,7 @@ std::vector<MeshPart> buildInteriorShell(const InteriorPlan& p) {
     };
     // Metric porcelain joints and suspended ceiling rails; bounded for very
     // large malls, with the same floor/ceiling surface covering the full ring.
-    const double pitch=std::max(1.,std::max(hi-lo,back)/96.);
+    const double pitch=std::max(p.recipe=="home"?2.:1.,std::max(hi-lo,back)/96.);
     for(double u=std::ceil(lo/pitch)*pitch;u<hi;u+=pitch) {
         stripe(p.point(u,0),p.point(u,back),p.floor+.003,.004);
         stripe(p.point(u,0),p.point(u,back),p.ceiling-.035,.012);
@@ -322,6 +332,8 @@ std::vector<MeshPart> buildInteriorShell(const InteriorPlan& p) {
         box(lights,p,u,v,p.ceiling-p.floor-.08,.28,1.8,.035);
     }
     auto mat=mineral("Polished mineral floor",{.23,.235,.22,1},.4);
+    if(p.recipe=="home")mat=mineral("Residential warm mineral floor",{.20,.15,.10,1},.72);
+    if(p.recipe=="garage"||p.recipe=="warehouse")mat=mineral("Workshop concrete floor",{.13,.135,.13,1},.9);
     return {{"Interior floor and accessible threshold",std::move(floor),mat},
         {"Interior ceiling",std::move(ceiling),plain("Acoustic ceiling",{.30,.30,.28,1},.95)},
         {"Interior lining",std::move(lining),plain("Interior plaster",{.26,.265,.25,1},.9)},
@@ -336,7 +348,7 @@ bool interiorBlocked(const InteriorPlan& p,const InteriorLayout& layout,P2 q,dou
         if(e==p.edge&&std::abs(local.x)+radius<p.width*.5*opening)continue;
         return true;
     }
-    for(auto f:layout.fixtures)
+    for(auto f:layout.fixtures)if(f.height>.05)
         if(std::abs(local.x-f.at.x)<f.size.x/2+radius&&std::abs(local.y-f.at.y)<f.size.y/2+radius)return true;
     return false;
 }

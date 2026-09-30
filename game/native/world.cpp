@@ -261,8 +261,12 @@ struct LiveInterior {
     r1::InteriorLayout layout;
     saida::Node* node=nullptr;
     saida::Node* leaves[2]{nullptr,nullptr};
+    r1::P2 low{1e30,1e30},high{-1e30,-1e30};
     double opening=0,hold=0;
     bool refused=false;
+    bool contains(r1::P2 at) const {
+        return at.x>=low.x&&at.x<=high.x&&at.y>=low.y&&at.y<=high.y&&r1::pointInPolygon(at,plan.ring);
+    }
 };
 struct StoreParking { std::string name;std::vector<r1::Ring> rings; };
 // A walkable deck over the water -- a pier -- in its tile's frame.
@@ -1327,8 +1331,14 @@ class World : public Rml::EventListener {
     static void unpack(Loaded& tile) {
         if(auto rooms=tile.data.find("interiors");rooms!=tile.data.end())for(const auto& entry:*rooms) {
             LiveInterior room;room.plan=r1::InteriorPlan::read(entry);
+            for(auto p:room.plan.ring){room.low.x=std::min(room.low.x,p.x);room.low.y=std::min(room.low.y,p.y);
+                room.high.x=std::max(room.high.x,p.x);room.high.y=std::max(room.high.y,p.y);}
             if(room.plan.footprint<tile.footprints.size())tile.footprints[room.plan.footprint].interior=int(tile.interiors.size());
             tile.interiors.push_back(std::move(room));
+        }
+        if(auto streaming=tile.data.find("interiorStreaming");streaming!=tile.data.end()&&streaming->contains("unavailable")) {
+            std::map<std::string,size_t> reasons;for(const auto& p:streaming->at("unavailable"))++reasons[p.at("reason").get<std::string>()];
+            for(const auto& [reason,count]:reasons)saida::Log::info("[World interiors] ",count," buildings unavailable: ",reason);
         }
         for(const auto& doc:tile.props) {
             auto groups=doc.find("groups");
@@ -1466,17 +1476,21 @@ class World : public Rml::EventListener {
         const double ground=terrainHeight(*t,x,y);
         const bool any=std::isnan(standing);
         double best=ground;
-        for(const auto& [key,other]:loaded)for(const auto& room:other.interiors) {
+        const auto worldPoint=ecef(x,y,ground);
+        for(const auto& [key,other]:loaded) {
+          const auto local=other.frame.local(worldPoint);const r1::P2 q{local.x,local.z};
+          for(const auto& room:other.interiors) {
+            if(q.x<room.low.x-4.5||q.x>room.high.x+4.5||q.y<room.low.y-4.5||q.y>room.high.y+4.5)continue;
             const auto& p=room.plan;
-            const auto local=other.frame.local(ecef(x,y,ground));
-            const r1::P2 q{local.x,local.z},door=p.local(q);
+            const auto door=p.local(q);
             double level=0;
-            if(r1::pointInPolygon(q,p.ring))level=p.floor;
+            if(room.contains(q))level=p.floor;
             else if(std::abs(door.x)<p.width/2+.4&&door.y>=-4&&door.y<=0)
                 level=p.floor+(p.approach-p.floor)*(-door.y/4);
             else continue;
             // Store floors replace the terrain inside, even on a slope.
             return level-other.frame.local(ecef(x,y,0.)).y;
+          }
         }
         // A piece belongs to the tile its middle is in: near a tile's edge,
         // the deck under a foot may be its neighbour's.
@@ -1549,15 +1563,20 @@ class World : public Rml::EventListener {
     bool blocked(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
         if(onWater(x,y,standing))return true;
         if(raisedWall(x,y,standing))return true;
+        const auto worldPoint=ecef(x,y,height(x,y));
         for(auto& [key,t]:loaded) {
             // A point can only be inside a building or a tree of a tile it is
             // in. Two metres of margin covers a footprint digitised a hair over
             // its own tile edge; the other eight tiles cost one comparison.
             if(t.interiors.empty()&&!inside(t,x,y,2e-5))continue;
-            glm::dvec3 p=t.frame.local(ecef(x,y,height(x,y)));
+            glm::dvec3 p=t.frame.local(worldPoint);
             const glm::dvec2 q(p.x,p.z);
             for(const auto& trunk:t.trunks)
                 if(std::abs(q.x-trunk.x)<.55&&std::abs(q.y-trunk.y)<.55&&std::hypot(q.x-trunk.x,q.y-trunk.y)<.55)return true;
+            for(const auto& room:t.interiors)if(room.node)for(auto car:room.plan.exteriorVehicles) {
+                const auto local=room.plan.local({q.x,q.y}),at=room.plan.local({car.x,car.z});
+                if(std::abs(local.x-at.x)<1.4&&std::abs(local.y-at.y)<2.6)return true;
+            }
             for(const auto& shape:t.footprints) {
                 // The rings are already parsed and already carry their box
                 // (see Footprint). Testing the box first is what turns five
@@ -3285,9 +3304,12 @@ class World : public Rml::EventListener {
     void updateInteriors(double dt) {
         struct Candidate { Loaded* tile; LiveInterior* room; double distance; };
         std::vector<Candidate> candidates;bool released=false;size_t active=0;
-        for(auto& [key,t]:loaded)for(auto& room:t.interiors) {
-            const auto q=t.frame.local(ecef(lon,lat,alt));const r1::P2 at{q.x,q.z};
-            const double distance=r1::pointInPolygon(at,room.plan.ring)?0:r1::dist(at,room.plan.door);
+        const auto playerEcef=ecef(lon,lat,alt);
+        for(auto& [key,t]:loaded) {
+          const auto q=t.frame.local(playerEcef);const r1::P2 at{q.x,q.z};
+          for(auto& room:t.interiors) {
+            const double distance=room.contains(at)?0:r1::dist(at,room.plan.door);
+            if(distance>85)room.refused=false; // Retry a capacity refusal on a later visit.
             if(room.node&&distance>85) {
                 room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
                 room.layout={};room.opening=0;released=true;
@@ -3301,19 +3323,23 @@ class World : public Rml::EventListener {
                 room.hold=sensor?1.5:std::max(0.,room.hold-dt);
                 room.opening=r1::slideDoor(room.opening,room.hold>0,dt);
                 for(int side=0;side<2;++side) {
-                    double u=(side?1:-1)*room.plan.width*(.25+.5*room.opening);
-                    auto at=room.plan.point(u,-.025);
+                    const double sign=side?1.:-1.;const auto& plan=room.plan;
+                    const double angle=room.opening*r1::kPi*.5;
+                    double u=plan.doorStyle=="sliding"?sign*plan.width*(.25+.5*room.opening):sign*plan.width*(.5-.25*std::cos(angle));
+                    auto at=plan.point(u,plan.doorStyle=="sliding"?-.025:plan.width*.25*std::sin(angle));
                     room.leaves[side]->transform().position={float(at.x),float(room.plan.floor),float(at.y)};
+                    room.leaves[side]->transform().rotation=glm::angleAxis(float(-std::atan2(plan.along.y,plan.along.x)+(plan.doorStyle=="swing"?sign*angle:0.)),glm::vec3(0,1,0));
                 }
             }
+          }
         }
         if(released)trim();
-        std::sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a.distance<b.distance;});
+        std::sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a.distance!=b.distance?a.distance<b.distance:a.room->plan.id<b.room->plan.id;});
         if(active>=2&&!candidates.empty()) {
             LiveInterior* farthest=nullptr;double farDistance=candidates.front().distance+5;
             for(auto& [key,t]:loaded)for(auto& room:t.interiors)if(room.node) {
                 auto q=t.frame.local(ecef(lon,lat,alt));r1::P2 at{q.x,q.z};
-                if(r1::pointInPolygon(at,room.plan.ring))continue;
+                if(room.contains(at))continue;
                 const double d=r1::dist(at,room.plan.door);
                 if(d>farDistance){farDistance=d;farthest=&room;}
             }
@@ -3324,7 +3350,7 @@ class World : public Rml::EventListener {
         }
         if(active>=2||candidates.empty())return;
         auto& room=*candidates.front().room;auto& t=*candidates.front().tile;const auto& p=room.plan;
-        room.layout=r1::layoutInterior(p);auto parts=r1::buildInteriorShell(p);auto door=r1::buildDoorLeaf(p.width);
+        room.layout=r1::layoutInterior(p);auto parts=r1::buildInteriorShell(p);auto door=r1::buildInteriorDoor(p);
         std::map<std::string,std::vector<r1::MeshPart>> furnishings;
         for(const auto& fixture:room.layout.fixtures) {
             const auto key=r1::interiorFixtureKey(fixture);
@@ -3347,7 +3373,7 @@ class World : public Rml::EventListener {
                 // The existing opaque roof and exterior walls cast the room's
                 // sun shadow. Thin linings and ceiling rails must not cast a
                 // second, nearly coincident shadow onto that same surface.
-                node->castShadows()=up.name.find("Sliding door")!=std::string::npos;
+                node->castShadows()=up.name.find("door")!=std::string::npos;
                 parent.addChild(std::move(node));
             }
         };
@@ -3363,11 +3389,18 @@ class World : public Rml::EventListener {
                 if(prototype[i].mesh.empty())continue;
                 const auto up=uploadOf(prototype[i],i);
                 auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(
-                    "generated/interior-prototypes/v23/"+key+"/"+std::to_string(i),up.vertices,up.indices));
+                    "generated/interior-prototypes/v24/"+key+"/"+std::to_string(i),up.vertices,up.indices));
                 if(!mesh)throw std::runtime_error("furniture prototype allocation refused");
                 prototypes[key].push_back({mesh,material(prototype[i].material),i==0||i==2});
             }
             for(const auto& fixture:room.layout.fixtures) {
+                if(fixture.kind=="vehicle") {
+                    if(fleet.empty())throw std::runtime_error("garage requires the road vehicle fleet");
+                    auto instance=clonePlant(*fleet[fixture.variant%std::min<size_t>(5,fleet.size())].prototype);vehicleLod(*instance);
+                    const auto at=p.point(fixture.at.x,fixture.at.y);
+                    instance->transform().position={float(at.x),float(p.floor+.04),float(at.y)};
+                    instance->transform().rotation=glm::angleAxis(float(yaw),glm::vec3(0,1,0));root->addChild(std::move(instance));continue;
+                }
                 for(const auto& [mesh,paint,shadow]:prototypes.at(r1::interiorFixtureKey(fixture))) {
                     auto instance=std::make_unique<saida::MeshNode>(fixture.kind,mesh,paint);
                     instance->castShadows()=shadow;
@@ -3377,8 +3410,14 @@ class World : public Rml::EventListener {
                     root->addChild(std::move(instance));
                 }
             }
+            for(const auto at:p.exteriorVehicles) {
+                if(fleet.empty())throw std::runtime_error("garage requires the road vehicle fleet");
+                auto instance=clonePlant(*fleet[size_t(uint64_t(p.id)%std::min<size_t>(5,fleet.size()))].prototype);vehicleLod(*instance);
+                instance->transform().position={float(at.x),float(at.y+.04),float(at.z)};
+                instance->transform().rotation=glm::angleAxis(float(yaw),glm::vec3(0,1,0));root->addChild(std::move(instance));
+            }
             for(int side=0;side<2;++side) {
-                auto leaf=std::make_unique<saida::Node>("Automatic sliding leaf");upload(*leaf,door);
+                auto leaf=std::make_unique<saida::Node>(p.doorStyle=="sliding"?"Automatic sliding leaf":"Automatic swing leaf");upload(*leaf,door);
                 auto at=p.point((side?1:-1)*p.width*.25,-.025);
                 leaf->transform().position={float(at.x),float(p.floor),float(at.y)};
                 leaf->transform().rotation=glm::angleAxis(float(yaw),glm::vec3(0,1,0));
@@ -3387,19 +3426,21 @@ class World : public Rml::EventListener {
             auto a=p.ring[p.edge],b=p.ring[(p.edge+1)%p.ring.size()];
             const double fasciaHeight=std::clamp(p.ceiling-p.floor-2.8,.3,1.1);
             const double letterHeight=std::min(.75,fasciaHeight-.12);
-            if(auto sign=lettering(p.name,r1::dist(a,b)-.8,letterHeight,{.65f,.65f,.61f})) {
-                sign->transform().position={float((a.x+b.x)/2-p.inward.x*.29),
-                    float(p.floor+2.8+(fasciaHeight-letterHeight)/2),float((a.y+b.y)/2-p.inward.y*.29)};
+            if(p.recipe!="home"&&p.recipe!="warehouse")if(auto sign=lettering(p.name,r1::retailInterior(p.recipe)?r1::dist(a,b)-.8:3.,letterHeight,{.65f,.65f,.61f})) {
+                const auto center=r1::retailInterior(p.recipe)?r1::P2{(a.x+b.x)/2,(a.y+b.y)/2}:p.door;
+                sign->transform().position={float(center.x-p.inward.x*.29),
+                    float(p.floor+(r1::retailInterior(p.recipe)?2.8+(fasciaHeight-letterHeight)/2:2.22)),float(center.y-p.inward.y*.29)};
                 // Glyphs face +Z, the shop's exterior is -inward. Reverse
                 // their baseline relative to the polygon's CCW edge.
                 sign->transform().rotation=glm::angleAxis(float(yaw+r1::kPi),glm::vec3(0,1,0));
                 root->addChild(std::move(sign));
-            } else saida::Log::warn("[World interiors] font cannot spell store name: ",p.name);
+            } else saida::Log::warn("[World interiors] font cannot spell building name: ",p.name);
             // A few ceiling lights, scoped to this streamed room.
             // A mall's supermarket is lit where it is, not only at the door:
             // over its checkouts and around its mapped position.
             std::vector<r1::P2> lit;
             for(double v:{3.,11.,20.})lit.push_back(p.point(0,v));
+            if(!r1::retailInterior(p.recipe))for(size_t i=0;i<room.layout.rooms.size()&&i<8;++i)lit.push_back(r1::centroid(room.layout.rooms[i].ring));
             if(p.anchor) {
                 const r1::P2 a=*p.anchor,d=p.door;const double l=r1::dist(a,d);
                 const r1::P2 toward{(a.x-d.x)/l,(a.y-d.y)/l},across{-toward.y,toward.x};
@@ -3409,9 +3450,10 @@ class World : public Rml::EventListener {
             }
             for(const auto at:lit) {
                 if(!r1::pointInPolygon(at,p.ring))continue;
-                auto light=std::make_unique<saida::LightNode>("Retail ceiling light",saida::LightType::Point);
+                auto light=std::make_unique<saida::LightNode>("Interior ceiling light",saida::LightType::Point);
                 light->transform().position={float(at.x),float(p.ceiling-.25),float(at.y)};
-                light->color={1.f,.93f,.82f};light->intensity=3.f;light->range=12.f;light->castShadows=false;
+                light->color={1.f,.93f,.82f};light->intensity=r1::retailInterior(p.recipe)?3.f:.8f;
+                light->range=r1::retailInterior(p.recipe)?12.f:8.f;light->castShadows=false;
                 root->addChild(std::move(light));
             }
             room.node=t.node->addChild(std::move(root));
@@ -3425,7 +3467,7 @@ class World : public Rml::EventListener {
         }
     }
     int retailTestPhase=0;int64_t retailTestId=0;double retailTestTime=0,retailTestV=-3;const char* retailTestWait="";
-    bool retailTest() const { return smoke&&std::getenv("R1WORLD_RETAIL_SMOKE"); }
+    bool retailTest() const { return smoke&&(std::getenv("R1WORLD_RETAIL_SMOKE")||std::getenv("R1WORLD_INTERIOR_SMOKE")); }
     // R1WORLD_RETAIL_SHOT=<png> with R1WORLD_RETAIL_SHOT_AT=outside|inside|
     // anchor photographs the store the traversal chose, facing into it (or,
     // for "anchor", from behind a mall's checkouts toward its supermarket),
@@ -3447,21 +3489,49 @@ class World : public Rml::EventListener {
     }
     void runRetailTest(double dt) {
         smokeStarted=false;retailTestTime+=dt;
+        if(captureQueued)return;
         auto fail=[&](const char* why){saida::Log::error("[World retail E2E] FAIL ",why);testFailed=true;engine.sceneTree().quit();};
         if(retailTestTime>45){saida::Log::error("[World retail E2E] phase=",retailTestPhase," v=",retailTestV," waiting=",retailTestWait);fail("interior traversal timed out");return;}
         Loaded* owner=nullptr;LiveInterior* found=nullptr;
+        const std::string recipe=std::getenv("R1WORLD_INTERIOR_SMOKE")?std::getenv("R1WORLD_INTERIOR_SMOKE"):"";
         for(auto& [key,t]:loaded)for(auto& r:t.interiors)
-            if((retailTestId&&r.plan.id==retailTestId)||(!retailTestId&&r.node)) {owner=&t;found=&r;break;}
+            if((retailTestId&&r.plan.id==retailTestId)||(!retailTestId&&r.node&&(recipe.empty()?r1::retailInterior(r.plan.recipe):r.plan.recipe==recipe))) {owner=&t;found=&r;break;}
         if(!found)return;
         auto& r=*found;retailTestId=r.plan.id;
+        double walkDepth=0;
+        for(double v=.5;v<=12;v+=.5) {
+            if(!r1::pointInPolygon(r.plan.point(0,v+.4),r.plan.ring))break;
+            walkDepth=v;
+        }
+        if(walkDepth<1.){fail("interior has no walkable entrance aisle");return;}
         auto position=[&](double u,double v){auto p=r.plan.point(u,v);return r1::Anchor::at(owner->data.at("lon"),owner->data.at("lat"),0).toGeodetic(p.x,r.plan.floor,p.y);};
         // A shop near a tile edge has its forecourt in the neighbour, which
         // may still be streaming: wait for it rather than walk off the world.
         auto resident=[&](double v){auto p=position(0,v);retailTestWait="a tile at the shop to stream in";return tile(p.x,p.y)!=nullptr;};
         auto move=[&](double v,bool check){auto p=position(0,v);if(check&&blocked(p.x,p.y,alt))return false;
             lon=p.x;lat=p.y;alt=height(lon,lat,alt);return true;};
-        if(retailTestPhase==0) {if(!r.node||!resident(-18)||!resident(12))return;
+        if(retailTestPhase==0) {if(!r.node||!resident(-18)||!resident(walkDepth))return;
             const std::string shotAt=std::getenv("R1WORLD_RETAIL_SHOT_AT")?std::getenv("R1WORLD_RETAIL_SHOT_AT"):"";
+            if(shotAt=="room") {
+                const r1::InteriorRoom* room=nullptr;
+                for(const auto& candidate:r.layout.rooms) {
+                    if(!room)room=&candidate;
+                    if((r.plan.recipe=="school"&&candidate.use=="classroom")||
+                       (r.plan.recipe=="home"&&candidate.use=="living")||
+                       (r.plan.recipe=="garage"&&candidate.use=="garage")){room=&candidate;break;}
+                }
+                if(!room){fail("no furnished room to photograph");return;}
+                auto center=r.plan.local(r1::centroid(room->ring));double front=1e30,back=-1e30;
+                for(auto p:room->ring){auto q=r.plan.local(p);front=std::min(front,q.y);back=std::max(back,q.y);}
+                auto anchor=r1::Anchor::at(owner->data.at("lon"),owner->data.at("lat"),0);
+                auto cameraPoint=r.plan.point(center.x,front+.5),targetPoint=r.plan.point(center.x,back-.5);
+                auto cameraGeo=anchor.toGeodetic(cameraPoint.x,r.plan.floor+1.65,cameraPoint.y);
+                auto targetGeo=anchor.toGeodetic(targetPoint.x,r.plan.floor+1.2,targetPoint.y);
+                auto eye=origin.local(ecef(cameraGeo.x,cameraGeo.y,cameraGeo.z));
+                auto aim=origin.local(ecef(targetGeo.x,targetGeo.y,targetGeo.z));
+                captureView.set=true;for(int i=0;i<3;++i){captureView.position[i]=eye[i];captureView.target[i]=aim[i];}
+                retailShot("room",r.plan);worldCapture.pngPath=std::getenv("R1WORLD_RETAIL_SHOT");return;
+            }
             if(shotAt=="outside"){move(-18,false);retailShot("outside",r.plan);return;}
             if(shotAt=="anchor") {
                 if(!r.plan.anchor){fail("no supermarket mapped inside this store");return;}
@@ -3476,10 +3546,10 @@ class World : public Rml::EventListener {
             move(-3,false);retailTestPhase=1;return;}
         if(retailTestPhase==1) {
             if(retailTestV<2&&r.opening<.99)return;
-            retailTestV=std::min(12.,retailTestV+std::min(dt,.1)*5.);
+            retailTestV=std::min(walkDepth,retailTestV+std::min(dt,.1)*5.);
             if(!move(retailTestV,true)){fail("open doorway or central aisle blocked");return;}
-            if(retailTestV>=12){saida::Log::info("[World retail E2E] entered ",r.plan.name," and walked 12 m inside");
-                if(retailShot("inside",r.plan)){retailTestV=12;return;}
+            if(retailTestV>=walkDepth){saida::Log::info("[World retail E2E] entered ",r.plan.name," recipe=",r.plan.recipe," and walked ",walkDepth," m inside");
+                if(retailShot("inside",r.plan)){retailTestV=walkDepth;return;}
                 retailTestPhase=2;}
             return;
         }

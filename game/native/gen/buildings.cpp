@@ -1,5 +1,6 @@
 #include "buildings.hpp"
 #include "fuel.hpp"
+#include "clip.hpp"
 
 #include <algorithm>
 #include <regex>
@@ -535,7 +536,7 @@ struct Planned {
     int64_t id;
     const Tags* tags;
     Ring ring;
-    double ground, foundation;
+    double ground, foundation, interiorFloor;
     OrientedBox box;
     Gabarit gabarit;
     bool commercial, detailed;
@@ -623,8 +624,9 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         for (const P2& p : *ring) { cx += p.x; cz += p.y; }
         cx /= ring->size(); cz /= ring->size();
         const double distance = std::hypot(cx - detailCenter.x, cz - detailCenter.y);
-        const double floor=retail?*std::max_element(samples.begin(),samples.end())+.08:ground;
-        planned.push_back({way->id, &way->tags, std::move(*ring), floor, foundation, box, gabarit, commercial,
+        const double interiorFloor=*std::max_element(samples.begin(),samples.end())+.08;
+        const double floor=retail?interiorFloor:ground;
+        planned.push_back({way->id, &way->tags, std::move(*ring), floor, foundation, interiorFloor, box, gabarit, commercial,
                            distance <= detailRadius});
     }
     for (size_t owner = 0; owner < planned.size(); ++owner) {
@@ -675,9 +677,13 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const bool raised = truthy(taggedLength(tagOr(*b.tags, "min_height"))) ||
                             truthy(taggedLength(tagOr(*b.tags, "building:min_level")));
         std::optional<InteriorPlan> interior;
-        if (retailUse(*b.tags) && !raised && g.wallHeight>=3.1) {
-            InteriorPlan p;p.id=b.id;p.ring=b.ring;p.floor=b.ground;p.footprint=out.footprints.size()-1;
-            p.ceiling=p.floor+std::min(4.2,g.wallHeight-.15);p.recipe=retailRecipe(*b.tags);p.name=retailName(*b.tags);
+        if (!interiorRecipe(*b.tags).empty() && !raised && yEave-b.interiorFloor>=2.2) {
+            InteriorPlan p;p.id=b.id;p.ring=b.ring;p.floor=b.interiorFloor;p.footprint=out.footprints.size()-1;
+            p.recipe=interiorRecipe(*b.tags);p.name=interiorName(*b.tags);p.region=profile.key;
+            p.useSource=tagOr(*b.tags,"r1:useSource","inferred:building");
+            p.doorStyle=retailInterior(p.recipe)?"sliding":"swing";
+            p.width=retailInterior(p.recipe)?2.4:p.recipe=="garage"?2.8:1.2;
+            p.ceiling=p.floor+std::min(retailInterior(p.recipe)?4.2:p.recipe=="garage"?4.:3.,yEave-p.floor-.1);
             p.nameSource=has(*b.tags,"name")?"measured:name":has(*b.tags,"brand")?"measured:brand":"synthesized";
             p.entranceSource=tagOr(*b.tags,"r1:entranceSource","inferred");
             if(const auto at=retailPoints(tagOr(*b.tags,"r1:anchor"));!at.empty()) {
@@ -693,9 +699,11 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                 // The approach meets the sampled terrain four metres outside.
                 p.approach=p.floor-.08;
                 interior=p;out.interiors.push_back(p);
-                for(auto& part:buildShopfront(p))out.parts.push_back(std::move(part));
+                if(retailInterior(p.recipe))for(auto& part:buildShopfront(p))out.parts.push_back(std::move(part));
             }
         }
+        if(!interior&&!interiorRecipe(*b.tags).empty())out.interiorUnavailable.push_back({
+            {"id",b.id},{"reason",raised?"raised-building":yEave-b.interiorFloor<2.2?"insufficient-headroom":"no-exposed-door-edge"}});
         const size_t count = b.ring.size();
         for (size_t e = 0; e < count; ++e) {
             const P2 p0 = b.ring[e], p1 = b.ring[(e + 1) % count];
@@ -703,10 +711,29 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             if (!frame) continue;
             const bool unifiedBase = lod != BuildingLod::Full && !b.detailed;
             const double base = !raised && unifiedBase ? b.foundation - b.ground : 0.0;
-            if(interior) {
+            if(interior&&retailInterior(interior->recipe)) {
                 face(foundations.mesh(wallSwatch), *frame, 0.0, b.foundation-b.ground, frame->length, 0.0);
                 const double low=interior->ceiling-b.ground;
                 if(g.wallHeight>low)face(wallMesh,*frame,0.,low,frame->length,g.wallHeight);
+                continue;
+            }
+            if(interior&&e==interior->edge) {
+                // Keep the regional facade; cut only its actual doorway.
+                if(!unifiedBase)face(foundations.mesh(wallSwatch),*frame,0.,b.foundation-b.ground,frame->length,0.);
+                const double middle=dist(p0,interior->door),half=interior->width/2;
+                const double threshold=interior->floor-b.ground;
+                const std::pair<double,double> scale{1./profile.bayWidth,1./profile.storeyHeight};
+                // Eight welded corners cover a facade with a rectangular
+                // doorway. Four overlapping strips need extra T-junctions
+                // and exhausted a dense Vannes tile's arena budget.
+                clip::Polygon facade{{{0,base},{frame->length,base},{frame->length,g.wallHeight},{0,g.wallHeight}},
+                    {{{middle-half,threshold},{middle+half,threshold},{middle+half,threshold+2.15},{middle-half,threshold+2.15}}}};
+                for(auto triangle:clip::triangles(facade)) {
+                    auto a=frame->point(triangle[0].x,triangle[0].y),c=frame->point(triangle[1].x,triangle[1].y),d=frame->point(triangle[2].x,triangle[2].y);
+                    auto n=faceNormal(a,c,d);if(n.x*frame->nx+n.z*frame->nz<0)std::swap(triangle[1],triangle[2]);
+                    UV uv[3];P3 point[3];for(int i=0;i<3;++i){point[i]=frame->point(triangle[i].x,triangle[i].y);uv[i]={triangle[i].x*scale.first,-triangle[i].y*scale.second};}
+                    wallMesh.addTriangle(point[0],point[1],point[2],uv);
+                }
                 continue;
             }
             if (!raised && !unifiedBase)

@@ -1886,6 +1886,71 @@ it waits for the tiles in front of and inside the door to stream in.
 photographs the store instead (`anchor`: from behind a mall's checkouts toward
 its supermarket) and ends the run.
 
+### Building interiors (generator v24)
+
+The shared interior contract now covers ordinary ground floors. `interior_uses.cpp`
+classifies homes, police/gendarmerie stations, schools, offices, garages, clinics,
+prisons, worship, restaurants and storage; observed building tags win over
+inference, tenant nodes complete anonymous buildings and mapped campuses provide
+an explicitly inferred association. Ordinary private entrances are usable in
+the simulation. Retail retains its public-entrance selection and shopfronts.
+
+Homes receive living/kitchen/bedroom/bathroom rooms where the footprint fits them;
+partitions leave a 1.8 m central corridor and 1.2 m side doorways. Sofa cushions,
+tables and chairs, kitchen cabinets/hob/basin, beds, showers, lavabos and toilet
+bowls have separate fittings. Schools have classrooms and bookshelves; police
+stations have reception, waiting, offices, filing and interview tables; offices
+have workstations and meeting rooms. Worship seating uses pews; mosques receive
+walkable prayer mats. Garage cars instance the existing vehicle
+fleet beside workbenches and tool cabinets. Up to two exterior cars occupy
+synthesized clear forecourt bays, excluded from all building outlines and roads,
+mapped water/forest/parks and ground varying by more than 0.4 m across the bay.
+Exterior vehicles stream with the interior and have collision.
+
+`interior_furniture.cpp` generates shared prototypes, including revolved ceramics
+and round chair legs. The OSM identity and regional key seed their variants.
+Layouts fit complete rooms and fittings against the concave footprint, reject
+overlap and cap ordinary-room fittings (including partitions) at 128. The plan
+records the recipe, region, usage provenance and synthesized vehicle positions;
+`storeysFurnished: 1` makes the ground-floor scope explicit.
+
+Ordinary portals cut only the doorway in the existing regional facade. Two
+opaque leaves swing inward; stores keep their sliding leaves. Floors are level
+above sampled ground and do not move the ordinary building's measured roof.
+Streaming retains the 65/85 m hysteresis, two-room limit and 24,000-vertex ceiling.
+Per-frame selection and ground queries transform positions once per tile and
+test a bounding box before a polygon. Capacity refusals are logged and retried after leaving.
+Each doorway facade is triangulated with a hole and eight welded corners rather
+than overlapping strips, keeping the existing tile LODs, regional textures,
+silhouettes and every portal and interior plan. The arena and the 120,000-vertex
+tile ceiling stay unchanged.
+
+Overpass question 10 adds civic amenities, office and craft observations, also
+delivered to older caches through version 3 of `.retail.json`. Older layers
+remain readable while enrichment is unavailable. `interiorStreaming` records
+missing observations and unavailable buildings (raised volume, insufficient
+headroom or no exposed door edge). Small or irregular floor plates may fit only
+some furniture. Upper floors, stairs/elevators and interiors of replaced landmark
+assets are still outstanding.
+
+Validation: 210 C++ tests and 116 Python authoring checks passed. The dense Vannes
+tile at -2.761, 47.656 has 708 interior plans and 119,945 static vertices, within
+the unchanged 120,000 ceiling. Room streaming retains its separate arena check.
+`generated/tools/r1test.exe Interior` covers recipe selection,
+domestic functions in small houses and offset entrances, concave containment,
+collision, deterministic serialization/prototypes, budgets, observed use and
+preservation of doors/heights across the dense facade LOD, and garage forecourt
+exclusion of roads and parks. The existing Retail,
+Fuel, Airports and building checks continue to run.
+
+For the in-game entry/exit/closing/eviction/regeneration driver, set
+`R1WORLD_INTERIOR_SMOKE=home|school|office|police|garage` and run `--smoke --spawn`
+near an appropriate doorway (one recipe per run). The driver uses the actual
+aisle length, up to 12 m. `R1WORLD_RETAIL_SHOT=<absolute PNG path>` with
+`R1WORLD_RETAIL_SHOT_AT=room` photographs a furnished room from inside; existing
+`outside|inside|anchor` views still work. Screenshots were inspected at Vannes,
+Theix and Paris for homes, classrooms, offices, gendarmerie reception and a garage.
+
 ### Fuel stations
 
 A station (`amenity=fuel`, often also tagged `shop=gas` or `shop=convenience`)

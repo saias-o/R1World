@@ -28,9 +28,9 @@ public:
 
 // The Overpass question, as a number: an answer to an older one is used only
 // when the network cannot give the current one, and the manifest says so.
-constexpr int kOsmQueryVersion = 9;  // 8: shops, entrances, surface parking. 9: fuel stations. Old caches remain usable.
-// The layer that brings an older answer up to 9 (.retail.json): 2 added fuel stations.
-constexpr int kRetailLayerVersion = 2;
+constexpr int kOsmQueryVersion = 10; // 10: civic uses, office and craft tenants. Old caches remain usable.
+// .retail.json: 2 added fuel stations, 3 adds civic/office/craft uses.
+constexpr int kRetailLayerVersion = 3;
 // The question that brought the aero layer: an answer to it or a later one
 // needs no layer of its own.
 constexpr int kOsmAeroVersion = 6;

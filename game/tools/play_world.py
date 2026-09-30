@@ -15,13 +15,15 @@ GAME = Path(__file__).resolve().parents[1]
 
 
 def main():
+    # Windows environment names are case-insensitive. A caller can nevertheless
+    # pass both Path and PATH; PowerShell's Start-Process then refuses the build.
+    env = {key.upper(): value for key, value in os.environ.items()}
+    env["PATH"] = "C:/msys64/ucrt64/bin" + os.pathsep + env.get("PATH", "")
     subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
-                    "-File", str(GAME / "Play.ps1"), "-BuildOnly"], check=True)
+                    "-File", str(GAME / "Play.ps1"), "-BuildOnly"], check=True, env=env)
     exe = GAME / "generated" / "world-windows" / "R1World.exe"
     session = GAME / "cache" / "sessions" / uuid.uuid4().hex
     session.mkdir(parents=True)
-    env = os.environ.copy()
-    env["PATH"] = "C:/msys64/ucrt64/bin" + os.pathsep + env.get("PATH", "")
     with (session / "game.log").open("w", encoding="utf-8") as log:
         result = subprocess.run([str(exe), "--project", str(GAME), *sys.argv[1:]],
                                 cwd=GAME, env=env, stdout=log, stderr=log)

@@ -138,7 +138,7 @@ CookedTile cookTile(const Observations& in) {
     // extruded, and their model stands in its place.
     LandmarkPlacement landmarks = placeLandmarks(bounds, ground, buildings);
     buildings = landmarks.kept;
-    auto retailWays=retailBuildings(buildings,osm,ground);
+    auto retailWays=interiorBuildings(retailBuildings(buildings,osm,ground),osm,ground);
     buildings.clear();for(auto& w:retailWays)buildings.push_back(&w);
     // Fuel stations: each canopy marked, or inferred where none is mapped.
     nlohmann::json fuelManifest=nlohmann::json::array();
@@ -161,10 +161,44 @@ CookedTile cookTile(const Observations& in) {
     };
     BuildingLod buildingLod = BuildingLod::Full;
     BuildingOutput built = buildAtLod(buildingLod);
+    const Landcover interiorCover(osm.landcover);
+    clip::Paths64 forecourtExclusions;
+    if(std::any_of(built.interiors.begin(),built.interiors.end(),[](const auto& p){return p.recipe=="garage";})) {
+        for(const auto& w:osm.buildings) {
+            Ring ring;for(auto q:w.points){auto x=anchor.toEngine(q.x,q.y,0);ring.push_back({x.x,x.z});}
+            auto paths=clip::bufferRing(ring,.4);forecourtExclusions.insert(forecourtExclusions.end(),paths.begin(),paths.end());
+        }
+        for(const auto& road:osm.roads) {
+            Ring line;for(auto q:road.points){auto x=anchor.toEngine(q.x,q.y,0);line.push_back({x.x,x.z});}
+            auto paths=clip::bufferLine(line,roadWidth(road.tags)/2+.4);forecourtExclusions.insert(forecourtExclusions.end(),paths.begin(),paths.end());
+        }
+        for(const auto& w:osm.landcover)if(tagOr(w.tags,"natural")=="water"||has(w.tags,"water")||
+            tagOr(w.tags,"leisure")=="park"||tagOr(w.tags,"landuse")=="forest"||tagOr(w.tags,"natural")=="wood") {
+            Ring ring;for(auto q:w.points){auto x=anchor.toEngine(q.x,q.y,0);ring.push_back({x.x,x.z});}
+            forecourtExclusions.push_back(clip::kMetres.path(ring));
+        }
+        forecourtExclusions=clip::unite(forecourtExclusions);
+    }
     auto approaches=[&] {
         for(auto& p:built.interiors) {
             const auto a=p.point(0,-4);const auto geo=anchor.toGeodetic(a.x,0,a.y);
             p.approach=ground(geo.x,geo.y).y+.09;
+            p.exteriorVehicles.clear();
+            if(p.recipe=="garage")for(double u:{-3.5,3.5}) {
+                Ring bay{p.point(u-1.15,-8),p.point(u+1.15,-8),p.point(u+1.15,-3),p.point(u-1.15,-3)};
+                clip::Paths64 shape{clip::kMetres.path(bay)};
+                bool clear=clip::area(clip::intersect(shape,forecourtExclusions))<.001;
+                double lowest=1e9,highest=-1e9;
+                for(auto at:bay) {
+                    const auto g=anchor.toGeodetic(at.x,0,at.y);const auto cover=interiorCover.at(g.x,g.y);
+                    if(cover&&(*cover=="water"||*cover=="forest"||*cover=="park"))clear=false;
+                    auto y=ground(g.x,g.y).y;lowest=std::min(lowest,y);highest=std::max(highest,y);
+                }
+                if(clear&&highest-lowest<.4) {
+                    const auto at=p.point(u,-5.5);const auto g=anchor.toGeodetic(at.x,0,at.y);
+                    p.exteriorVehicles.push_back(ground(g.x,g.y));
+                }
+            }
         }
     };
     approaches();
@@ -222,7 +256,9 @@ CookedTile cookTile(const Observations& in) {
     }
     const std::vector<OsmWay> roads = clipRoads(grades.roads, bounds);
     StreetOutput streets = buildStreets(roads, osm.features, elevations, anchor, footprints);
-    const ParkingOutput parking=buildRetailParking(osm,built.interiors,footprints,elevations,anchor);
+    std::vector<InteriorPlan> stores;
+    for(const auto& p:built.interiors)if(retailInterior(p.recipe))stores.push_back(p);
+    const ParkingOutput parking=buildRetailParking(osm,stores,footprints,elevations,anchor);
     Mesh inlandMesh(UvMode::Planar);
     clip::Paths64 visibleInland = inland;
     if (sea) visibleInland = clip::subtract(visibleInland, projectWater(sea->region, anchor));
@@ -445,7 +481,9 @@ CookedTile cookTile(const Observations& in) {
         {"generator", "C++"}};
     out.manifest["interiors"]=nlohmann::json::array();
     for(const auto& p:built.interiors)out.manifest["interiors"].push_back(p.json());
-    out.manifest["retail"]={{"revision",1},{"stores",built.interiors.size()},
+    out.manifest["interiorStreaming"]={{"revision",1},{"observationsQueried",osm.interiorUsesQueried},
+        {"loadRadius",65},{"releaseRadius",85},{"maxActive",2},{"maxVertices",24000},{"unavailable",built.interiorUnavailable}};
+    out.manifest["retail"]={{"revision",1},{"stores",stores.size()},
         {"parking",parking.manifest},{"observationsQueried",osm.retailQueried}};
     const std::string fuelWord=fuelTitle(fuelCountry);
     out.manifest["fuel"]={{"revision",1},{"stations",fuelManifest},{"canopies",fuelCanopiesJson},
