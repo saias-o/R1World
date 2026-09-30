@@ -15,6 +15,9 @@ const std::set<std::string> kFoot = {"pedestrian", "footway", "path", "steps"};
 // Buildings where people come and go all day.
 const std::set<std::string> kBusyBuilding = {"retail", "commercial", "kiosk", "supermarket", "office",
                                              "train_station", "transportation", "public", "civic"};
+const std::set<std::string> kNonResidentialBuilding = {"garage", "garages", "shed", "barn", "farm_auxiliary",
+    "industrial", "warehouse", "retail", "commercial", "kiosk", "supermarket", "office", "train_station",
+    "transportation", "public", "civic", "church", "school", "hospital", "roof", "construction"};
 constexpr double kSampleStep = 5.0;       // metres between samples of a walked line
 constexpr double kWeld = 0.75;      // two samples closer than this are one node
 constexpr double kReach = 14.0;     // longest corner or crossing joined at a loose end
@@ -268,21 +271,75 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
         }
     }
 
-    // How many people this much street asks for.
-    int busy = 0, allBuildings = int(buildings.size());
-    for (const OsmWay* b : buildings)
-        busy += kBusyBuilding.count(tagOr(b->tags, "building")) || has(b->tags, "shop") || has(b->tags, "amenity") ||
-                has(b->tags, "office");
+    // Demand is local to each walked segment. A long pavement through open
+    // country contributes nothing; a block with many homes attracts walkers.
+    struct ActivitySource { P2 p; double weight; bool busy, home, served = false; };
+    std::vector<ActivitySource> activity;
+    for (const OsmWay* b : buildings) {
+        if (b->points.empty()) continue;
+        const std::string kind = tagOr(b->tags, "building");
+        const bool busy = kBusyBuilding.count(kind) || has(b->tags, "shop") || has(b->tags, "amenity") || has(b->tags, "office");
+        const bool home = !busy && !kind.empty() && !kNonResidentialBuilding.count(kind) && kind != "no";
+        if (!busy && !home) continue;
+        P2 centre{0, 0};
+        const size_t count = b->closed() ? b->points.size() - 1 : b->points.size();
+        for (size_t i = 0; i < count; ++i) { const P2 p = engine(b->points[i]); centre.x += p.x; centre.y += p.y; }
+        centre.x /= count; centre.y /= count;
+        double weight = 1.0;
+        if (home) {
+            const double levels = std::clamp(lengthTag(tag(b->tags, "building:levels"), 1.0), 1.0, 12.0);
+            const double flats = std::clamp(lengthTag(tag(b->tags, "building:flats"), 0.0), 0.0, 30.0);
+            // A tagged apartment block represents several households; a
+            // house or an untyped OSM building starts at one household.
+            weight = kind == "apartments" ? 2.0 + 0.65 * (levels - 1.0) : 1.0 + 0.3 * (levels - 1.0);
+            if (flats > 0) weight = std::max(weight, flats * 0.55);
+            weight = std::min(weight, 8.0);
+        } else {
+            weight = 1.8;
+        }
+        activity.push_back({centre, weight, busy, home});
+    }
+    // Close homes reinforce one another: the same number of dwellings in a
+    // compact block supports more foot traffic than isolated farmhouses.
+    for (auto& source : activity) {
+        if (!source.home) continue;
+        int neighbours = 0;
+        for (const auto& other : activity)
+            if (&other != &source && other.home &&
+                std::abs(other.p.x - source.p.x) < 50.0 && std::abs(other.p.y - source.p.y) < 50.0 &&
+                dist(other.p, source.p) < 50.0) ++neighbours;
+        source.weight *= 1.0 + std::min(0.75, neighbours * 0.12);
+    }
+    constexpr double kActivityRadius = 80.0;
+    int activeLinks = 0;
+    for (auto& entry : links) {
+        const P3& a = nodes[entry[0].get<int>()], &b = nodes[entry[1].get<int>()];
+        const P2 midpoint{(a.x + b.x) * 0.5, (a.z + b.z) * 0.5};
+        double demand = 0;
+        for (auto& source : activity) {
+            if (std::abs(source.p.x - midpoint.x) > kActivityRadius ||
+                std::abs(source.p.y - midpoint.y) > kActivityRadius) continue;
+            const double distance = segmentDistance(source.p, {a.x, a.z}, {b.x, b.z});
+            if (distance >= kActivityRadius) continue;
+            demand += source.weight * (1.0 - distance / kActivityRadius);
+            source.served = true;
+        }
+        entry.push_back(pyround(demand, 3));
+        activeLinks += demand > 0 && entry[2].get<int>() == 0;
+    }
+    int busy = 0, homes = 0;
+    double homeMass = 0, busyMass = 0;
+    for (const auto& source : activity) if (source.served) {
+        busy += source.busy; homes += source.home;
+        if (source.home) homeMass += source.weight; else busyMass += source.weight;
+    }
     int stops = 0, lights = 0;
     for (const OsmNode& f : features) {
         const std::string h = tagOr(f.tags, "highway");
         stops += h == "bus_stop";
         lights += h == "traffic_signals" || h == "crossing";
     }
-    const double walked = sidewalkMetres + footMetres;
-    const double asked = walked < 50 ? 0.0
-                         : walked / 1000.0 * 4.0 + footMetres / 1000.0 * 4.0 + busy * 0.6 + stops * 2.0 + lights * 0.3 +
-                               allBuildings / 40.0;
+    const double asked = activeLinks == 0 ? 0.0 : homeMass * 0.7 + busyMass * 0.7;
     const int people = int(std::min<double>(kCrowdTileCeiling, pyround(asked)));
 
     nlohmann::json nodeList = nlohmann::json::array();
@@ -290,9 +347,11 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
     return {{"revision", kCrowdRevision}, {"nodes", nodeList}, {"links", links}, {"seats", seats},
             {"people", people},
             {"inputs", {{"sidewalkMetres", pyround(sidewalkMetres, 1)}, {"footwayMetres", pyround(footMetres, 1)},
-                        {"busyBuildings", busy}, {"buildings", allBuildings}, {"busStops", stops},
+                        {"busyBuildings", busy}, {"homesNearPaths", homes}, {"residentialDemand", pyround(homeMass, 2)},
+                        {"buildings", buildings.size()},
+                        {"activeLinks", activeLinks}, {"busStops", stops},
                         {"crossingsAndSignals", lights}, {"crossingsJoined", crossings}}},
-            {"inferred", "density from the tile's content, before the hour; paths from OSM sidewalks and footways"}};
+            {"inferred", "density from nearby homes, their levels and local building concentration, before the hour; paths from OSM sidewalks and footways"}};
 }
 
 // ── run time ────────────────────────────────────────────────────────────────
@@ -303,7 +362,8 @@ WalkGraph WalkGraph::from(const nlohmann::json& crowd) {
     for (const auto& n : crowd.value("nodes", nlohmann::json::array()))
         g.nodes.push_back({n[0].get<double>(), n[1].get<double>(), n[2].get<double>(), {}});
     for (const auto& l : crowd.value("links", nlohmann::json::array())) {
-        Link link{l[0].get<int>(), l[1].get<int>(), l[2].get<int>() != 0, 0.0};
+        Link link{l[0].get<int>(), l[1].get<int>(), l[2].get<int>() != 0, 0.0,
+                  l.size() > 3 ? l[3].get<double>() : 1.0};
         if (link.a < 0 || link.b < 0 || link.a >= int(g.nodes.size()) || link.b >= int(g.nodes.size())) continue;
         const Node &a = g.nodes[link.a], &b = g.nodes[link.b];
         link.length = std::hypot(b.x - a.x, b.z - a.z);
@@ -342,6 +402,14 @@ void Crowd::reset(const WalkGraph* graph, uint32_t seed, std::vector<CrowdPace> 
     pace_ = pace.empty() ? std::vector<CrowdPace>{CrowdPace{}} : std::move(pace);
     walkers_.clear();
     seatTaken_.assign(graph ? graph->seats.size() : 0, -1);
+    spawnChoices_.clear();
+    spawnDemand_ = 0;
+    if (graph) for (size_t i = 0; i < graph->links.size(); ++i) {
+        const auto& link = graph->links[i];
+        if (link.crossing || link.demand <= 0) continue;
+        spawnDemand_ += link.demand;
+        spawnChoices_.push_back({spawnDemand_, int(i)});
+    }
     state_ = (uint64_t(seed) << 1) | 1;
     wanted_ = 0;
 }
@@ -395,12 +463,19 @@ void Crowd::arrive(size_t slot, int node) {
     const auto& options = g.nodes[node].links;
     const int came = w.link;
     double total = 0;
-    for (int l : options) if (l != came || options.size() == 1) total += g.links[l].crossing ? 0.35 : 1.0;
+    for (int l : options) if ((l != came || options.size() == 1) && g.links[l].demand > 0)
+        total += (g.links[l].crossing ? 0.35 : 1.0) * g.links[l].demand;
+    // At the end of the inhabited walk, turn back instead of drifting out
+    // along a path with no homes or activity nearby.
+    if (total <= 0 && came >= 0 && g.links[came].demand > 0) {
+        w.link = came; w.forward = g.links[came].a == node; w.along = 0;
+        return;
+    }
     double pick = random() * total;
-    int next = options.empty() ? -1 : options.front();
+    int next = -1;
     for (int l : options) {
-        if (l == came && options.size() > 1) continue;
-        pick -= g.links[l].crossing ? 0.35 : 1.0;
+        if ((l == came && options.size() > 1) || g.links[l].demand <= 0) continue;
+        pick -= (g.links[l].crossing ? 0.35 : 1.0) * g.links[l].demand;
         next = l;
         if (pick <= 0) break;
     }
@@ -422,10 +497,18 @@ bool Crowd::spawn(size_t slot, const Scene& scene) {
         const double ahead = (dx * scene.faceX + dz * scene.faceZ) / std::max(1e-6, d);
         return d > 70.0 || ahead < 0.2;
     };
-    // On a bench, now and then.
+    auto activeSeat = [&](const WalkGraph::Seat& seat) {
+        for (const auto& link : g.links) {
+            if (link.crossing || link.demand <= 0) continue;
+            const auto& a = g.nodes[link.a], &b = g.nodes[link.b];
+            if (segmentDistance({seat.x, seat.z}, {a.x, a.z}, {b.x, b.z}) < 20.0) return true;
+        }
+        return false;
+    };
+    // On a bench near the inhabited walks, now and then.
     if (!g.seats.empty() && random() < 0.12) {
         const int s = int(random() * g.seats.size()) % int(g.seats.size());
-        if (seatTaken_[s] < 0 && acceptable(g.seats[s].x, g.seats[s].z)) {
+        if (seatTaken_[s] < 0 && activeSeat(g.seats[s]) && acceptable(g.seats[s].x, g.seats[s].z)) {
             w = Walker{};
             w.alive = true; w.activity = Activity::Sit; w.seat = s; w.timer = 25.0 + 60.0 * random();
             seatTaken_[s] = int(slot);
@@ -433,8 +516,12 @@ bool Crowd::spawn(size_t slot, const Scene& scene) {
             return true;
         }
     }
-    for (int attempt = 0; attempt < 10; ++attempt) {
-        const int l = int(random() * g.links.size()) % int(g.links.size());
+    if (spawnDemand_ <= 0) return false;
+    for (int attempt = 0; attempt < 20; ++attempt) {
+        const double pick = random() * spawnDemand_;
+        const auto chosen = std::lower_bound(spawnChoices_.begin(), spawnChoices_.end(), pick,
+            [](const std::pair<double, int>& entry, double value) { return entry.first < value; });
+        const int l = (chosen == spawnChoices_.end() ? spawnChoices_.back() : *chosen).second;
         const auto& link = g.links[l];
         if (link.crossing) continue;
         const double t = random();

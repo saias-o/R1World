@@ -28,7 +28,9 @@ public:
 
 // The Overpass question, as a number: an answer to an older one is used only
 // when the network cannot give the current one, and the manifest says so.
-constexpr int kOsmQueryVersion = 7;  // 6: aeroways and military areas; 7: country, humps, signs
+constexpr int kOsmQueryVersion = 9;  // 8: shops, entrances, surface parking. 9: fuel stations. Old caches remain usable.
+// The layer that brings an older answer up to 9 (.retail.json): 2 added fuel stations.
+constexpr int kRetailLayerVersion = 2;
 // The question that brought the aero layer: an answer to it or a later one
 // needs no layer of its own.
 constexpr int kOsmAeroVersion = 6;
@@ -89,6 +91,10 @@ public:
     // Where this tile's neighbourhood's aero layer is fetched to, and its box.
     Shared aeroTarget(const Tile& tile, const std::optional<Shared>& shared) const;
     nlohmann::json fetchAero(const Bounds& bounds, const std::string& path) const;
+    std::optional<std::string> retailPath(const Tile& tile,const std::optional<Shared>& shared,
+                                         const std::string& mainPath) const;
+    Shared retailTarget(const Tile& tile,const std::optional<Shared>& shared) const;
+    nlohmann::json fetchRetail(const Bounds& bounds,const std::string& path) const;
     // The sea ice read around (lon, lat) (gen/seaice.hpp): from disk, or
     // nullopt; from the network, written to disk before it returns.
     std::optional<nlohmann::json> seaIce(double lon, double lat) const;
@@ -96,6 +102,8 @@ public:
     static std::string aeroSibling(const std::string& mainPath);
     // The question an answer on disk replied to (1 when it does not say).
     static int queryVersion(const std::string& path);
+    // A retail layer that already carries the fuel stations.
+    static bool retailCurrent(const std::string& layer);
 
     std::string tileFolder(const Tile& tile) const;  // where new observations go
     const std::string& root() const { return root_; }
@@ -106,8 +114,13 @@ private:
     std::optional<std::string> find(const Tile& tile, const char* name) const;
     // Every answer on disk that covers this tile: its own, and every
     // neighbourhood query whatever position the player asked it from.
+    // With a `sibling` suffix (".retail.json"), the layers beside every
+    // query covering the tile instead, whether or not that query's own answer
+    // is on disk: a layer is written beside the player's group even when an
+    // older answer already covers its tiles.
     std::vector<std::string> candidates(const Tile& tile, const std::optional<Shared>& shared,
-                                        std::map<std::string, Bounds>* regions = nullptr) const;
+                                        std::map<std::string, Bounds>* regions = nullptr,
+                                        const std::string& sibling = {}) const;
 };
 
 std::string sha256Hex(const std::string& data);

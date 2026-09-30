@@ -425,7 +425,8 @@ std::optional<clip::Paths64> tidalWater(const std::vector<OsmWay>& landcover, co
 }
 
 Cells::Cells(const Bounds& bounds, int size, const Sea* sea, const Landcover& landcover,
-             const std::function<double(double, double)>& elevationAt, const clip::Paths64* tidal)
+             const std::function<double(double, double)>& elevationAt, const clip::Paths64* tidal,
+             const std::function<bool(double, double)>& inlandAt)
     : bounds_(bounds), size_(size), sea_(sea) {
     for (int row = 0; row < size; ++row) {
         const double lat = bounds.south + (bounds.north - bounds.south) * (row + 0.5) / size;
@@ -435,7 +436,7 @@ Cells::Cells(const Bounds& bounds, int size, const Sea* sea, const Landcover& la
             if (sea && sea->contains(lon, lat)) line.push_back(2);
             else {
                 const std::string* cls = landcover.at(lon, lat);
-                if (cls && *cls == "water") {
+                if ((cls && *cls == "water") || (inlandAt && inlandAt(lon, lat))) {
                     const double level = elevationAt(lon, lat);
                     const bool tide = tidal && clip::contains(*tidal, P2{lon, lat}, clip::kDegrees);
                     line.push_back(tide || (sea && level <= kSeaLevelWaterMax) ? 2 : 1);

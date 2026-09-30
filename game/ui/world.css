@@ -7,8 +7,19 @@ h1 { position: absolute; top: 74px; left: 48px; margin: 0; font-size: 40px; font
 #intro { position: absolute; top: 128px; left: 48px; margin: 0; color: #a4b8bf; }
 #map { position: absolute; left: 48px; top: 176px; width: 1344px; height: 560px; overflow: hidden; background-color: #0e2330; }
 #earth { position: absolute; left: 0; top: 0; width: 1344px; height: 560px; }
+#map-tiles { position: absolute; left: 0; top: 0; width: 1344px; height: 560px; overflow: hidden; }
+.map-tile { position: absolute; width: 256px; height: 256px; }
+#map-detail-status { display: none; position: absolute; left: 12px; bottom: 10px; background-color: #102834; color: #e4eee9; font-size: 13px; padding: 4px 7px; }
+#map-attribution { position: absolute; right: 8px; bottom: 8px; background-color: #102834; color: #e4eee9; font-size: 12px; padding: 3px 6px; }
 #pin { position: absolute; left: 680px; top: 124px; width: 26px; height: 26px; margin-left: -13px; margin-top: -13px; background-color: #d5f5a4; color: #162326; font-size: 24px; text-align: center; border-radius: 13px; }
 #map-tools { position: absolute; top: 188px; right: 60px; }
+#city-lookup { position: absolute; top: 186px; left: 66px; width: 490px; padding: 10px 12px; background-color: #102834; }
+#city-lookup label { display: block; margin-bottom: 4px; }
+#city-query { width: 452px; margin: 0; }
+#city-results { display: none; position: absolute; top: 273px; left: 66px; width: 490px; padding: 5px 12px; background-color: #102834; }
+#city-feedback { display: none; padding: 9px 7px; color: #a9c5c6; font-size: 15px; }
+#city-results button { display: none; width: 100%; padding: 9px 8px; margin: 0; background-color: #102834; text-align: left; font-size: 16px; }
+#city-results button:hover { background-color: #315565; }
 button { display: inline-block; background-color: #243c47; color: #e4eee9; border-width: 0; padding: 10px 18px; margin-right: 6px; font-size: 16px; }
 button:hover { background-color: #3c5962; }
 button:focus { border: 1px #d5f5a4; }

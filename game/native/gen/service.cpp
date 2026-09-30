@@ -69,6 +69,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     Slots overpass{2};
     Slots quickGroundSlots{4};
     Slots detailedGroundSlots{2};
+    Slots canopySlots{1};
     // Overpass queries in flight, by the file they will write: one download
     // serves every tile that reads that file, and nobody asks for it twice.
     std::set<std::string> downloads;
@@ -94,12 +95,14 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
 
     // The first worker to want a file parses it; the others wait for that
     // parse rather than starting their own, and other files go on meanwhile.
-    std::shared_ptr<const OsmData> source(const std::string& path, const std::optional<std::string>& layer) {
+    std::shared_ptr<const OsmData> source(const std::string& path, const std::optional<std::string>& layer,
+                                        const std::optional<std::string>& retail) {
         std::error_code ec;
         auto stamp = std::filesystem::last_write_time(path, ec);
         // The same answer with and without its aero layer are two sources.
-        const std::string key = layer ? path + "|" + *layer : path;
+        const std::string key = path+(layer?"|"+*layer:"")+(retail?"|"+*retail:"");
         if (layer) stamp = std::max(stamp, std::filesystem::last_write_time(*layer, ec));
+        if (retail) stamp = std::max(stamp, std::filesystem::last_write_time(*retail, ec));
         std::promise<std::shared_ptr<const OsmData>> promise;
         Parsed parsed;
         bool mine = false;
@@ -117,12 +120,9 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         if (mine) {
             try {
                 const nlohmann::json main = readJson(path);
-                if (layer) {
-                    const nlohmann::json aero = readJson(*layer);
-                    promise.set_value(std::make_shared<const OsmData>(normalizeOsm(main, &aero)));
-                } else {
-                    promise.set_value(std::make_shared<const OsmData>(normalizeOsm(main)));
-                }
+                const auto aero=layer?readJson(*layer):nlohmann::json();
+                const auto shops=retail?readJson(*retail):nlohmann::json();
+                promise.set_value(std::make_shared<const OsmData>(normalizeOsm(main,layer?&aero:nullptr,retail?&shops:nullptr)));
             } catch (...) {
                 promise.set_exception(std::current_exception());
                 std::lock_guard<std::mutex> guard(parsing);
@@ -250,12 +250,12 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
 
     // An Overpass query for `region`, written to `path`, on its own thread.
     // `aero` asks for the aero layer instead of the whole neighbourhood.
-    bool download(const Bounds& region, const std::string& path, bool aero = false) {
+    bool download(const Bounds& region, const std::string& path, bool aero = false,bool retail=false) {
         std::lock_guard<std::mutex> guard(downloading);
         if (downloads.count(path)) return true;
         if (sourceFailedUntil[path] > Clock::now()) return false;
         downloads.insert(path);
-        std::thread([self = shared_from_this(), region, path, aero] {
+        std::thread([self = shared_from_this(), region, path, aero, retail] {
             Counter c(self->fetching);
             self->overpass.acquire();
             const auto asked = Clock::now();
@@ -265,7 +265,9 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                 if (!self->requested(path)) {
                     self->say("OSM-SKIPPED " + std::filesystem::path(path).filename().string());
                 } else {
-                    if (aero) {
+                    if (retail) {
+                        self->store.fetchRetail(region,path);
+                    } else if (aero) {
                         self->store.fetchAero(region, path);
                     } else {
                         if (self->options.fetchOsm) self->options.fetchOsm(region, path);
@@ -275,11 +277,11 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                         std::lock_guard<std::mutex> guard(self->lock);
                         self->landed.insert(path);
                     }
-                    self->say(std::string(aero ? "AERO-LAYER " : "OSM ") + std::filesystem::path(path).filename().string() + " in " +
+                    self->say(std::string(retail ? "RETAIL-LAYER " : aero ? "AERO-LAYER " : "OSM ") + std::filesystem::path(path).filename().string() + " in " +
                               std::to_string(int(std::chrono::duration<double>(Clock::now() - asked).count())) + " s");
                 }
             } catch (const std::exception& e) {
-                self->say(std::string(aero ? "AERO-LAYER-FAILED " : "OSM-QUERY-FAILED ") +
+                self->say(std::string(retail ? "RETAIL-LAYER-FAILED " : aero ? "AERO-LAYER-FAILED " : "OSM-QUERY-FAILED ") +
                           std::filesystem::path(path).filename().string() + " " + e.what());
                 self->failedDownload(path);
             }
@@ -287,6 +289,57 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             {
                 std::lock_guard<std::mutex> g(self->downloading);
                 self->downloads.erase(path);
+            }
+            self->wake.notify_all();
+        }).detach();
+        return true;
+    }
+
+    // What a tile waits on for its canopy; a band converts many at once.
+    static std::string canopyKey(const Tile& tile) { return "canopy:" + tile.key(); }
+
+    // One band of the canopy source, converted into every tile it covers
+    // (gen/canopy): the tiles along the same row that were waiting cook again.
+    bool downloadCanopy(const Tile& tile) {
+        const std::string key = canopyKey(tile);
+        const std::string band = "canopy-band:" + std::to_string(tile.row) + ":" +
+                                 std::to_string(int(std::floor((tile.center().x + 180.0) / (360.0 / 512))));
+        std::lock_guard<std::mutex> guard(downloading);
+        if (downloads.count(band)) return true;
+        if (sourceFailedUntil[band] > Clock::now()) return false;
+        downloads.insert(band);
+        std::thread([self = shared_from_this(), tile, key, band] {
+            Counter c(self->fetching);
+            self->canopySlots.acquire();
+            if (self->requested(key)) {
+                const auto asked = Clock::now();
+                try {
+                    const auto converted = fetchCanopyBand(tile);
+                    size_t trees = 0;
+                    for (const auto& [t, canopy] : converted) {
+                        storeCanopy(self->store.root(), t, canopy);
+                        trees += size_t(canopy.count(Canopy::Tree));
+                    }
+                    {
+                        std::lock_guard<std::mutex> g(self->lock);
+                        for (const auto& [t, canopy] : converted) self->landed.insert(canopyKey(t));
+                    }
+                    self->say("CANOPY row " + std::to_string(tile.row) + ": " + std::to_string(converted.size()) +
+                              " tiles, " + std::to_string(trees) + " tree cells in " +
+                              std::to_string(int(std::chrono::duration<double>(Clock::now() - asked).count())) + " s");
+                } catch (const std::exception& e) {
+                    self->say("CANOPY-FAILED " + tile.key() + " " + e.what());
+                    {
+                        std::lock_guard<std::mutex> g(self->downloading);
+                        self->sourceFailedUntil[band] = Clock::now() + kOfflinePause;
+                    }
+                    self->failedDownload(key);
+                }
+            }
+            self->canopySlots.release();
+            {
+                std::lock_guard<std::mutex> g(self->downloading);
+                self->downloads.erase(band);
             }
             self->wake.notify_all();
         }).detach();
@@ -469,7 +522,12 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                 watch(tile, target.path);
                 if (!download(target.region, target.path, true)) unwatch(tile, target.path, true);
             }
-            in.osm = source(*document, layer);
+            const auto retail=store.retailPath(tile,shared,*document);
+            if(options.enrichRetail&&store.queryVersion(*document)<9&&(!retail||!store.retailCurrent(*retail))) {
+                const auto target=store.retailTarget(tile,shared);watch(tile,target.path);
+                if(!download(target.region,target.path,false,true))unwatch(tile,target.path,true);
+            }
+            in.osm = source(*document, layer, retail);
             in.osmExtent = store.regionOf(tile, shared, *document);
         } else {
             in.osm = std::make_shared<const OsmData>();
@@ -485,6 +543,16 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         }
         in.around = store.groundAround(tile);
         in.seaIce = seaIceFor(tile, in.elevations, firstVisit);
+        try {
+            in.canopy = storedCanopy(store.root(), tile);
+        } catch (const std::exception& e) {
+            say("CANOPY-UNREADABLE " + tile.key() + " " + e.what());
+        }
+        if (!in.canopy && options.fetchCanopy) {
+            in.canopyPending = true;
+            watch(tile, canopyKey(tile));
+            if (!downloadCanopy(tile)) unwatch(tile, canopyKey(tile), true);
+        }
         return in;
     }
 
@@ -514,6 +582,8 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             return a != t.manifest.end() && a->value("relevant", false);
         };
         if (upgrade && previous != cooked.end() && previous->second->cooked.manifest.value("airportsPending", false) &&
+            served->cooked.manifest.at("retail")==previous->second->cooked.manifest.at("retail") &&
+            served->cooked.manifest.at("interiors")==previous->second->cooked.manifest.at("interiors") &&
             !relevant(served->cooked) && !relevant(previous->second->cooked))
             return;
         served->serial = ++serial;

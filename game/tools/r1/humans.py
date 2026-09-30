@@ -48,14 +48,28 @@ LICENSE = "assets/licenses/Microsoft-Rocketbox-MIT.txt"
 SCALE = 0.8
 
 PLAYER = "Male_Adult_08"
-# Everyday clothes only: no uniforms, no costumes, nobody who reads as a
-# profession the street has no reason to hold. Six men and six women.
+# Keep the original everyday scans and add darker ones that were previously
+# absent. Pilot_Female_02 is the library's only other dark-skinned adult woman
+# compatible with this rig; her pilot uniform is the tradeoff for that mix.
 CROWD = [
     ("Male_Adult_01", "m"), ("Male_Adult_03", "m"), ("Male_Adult_05", "m"),
     ("Male_Adult_06", "m"), ("Male_Adult_13", "m"), ("Business_Male_02", "m"),
     ("Female_Adult_01", "f"), ("Female_Adult_02", "f"), ("Female_Adult_05", "f"),
     ("Female_Adult_08", "f"), ("Female_Adult_14", "f"), ("Business_Female_03", "f"),
+    ("Male_Adult_04", "m"), ("Male_Adult_07", "m"),
+    ("Male_Adult_12", "m"), ("Male_Adult_18", "m"),
+    ("Female_Adult_11", "f"),
+    ("Business_Female_01", "f"), ("Pilot_Female_02", "f"),
 ]
+
+# Visual tone of the supplied scans, reviewed from their original colour maps.
+# This describes an asset's appearance, not a person's ethnicity or identity.
+SKIN_TONES = {
+    "Male_Adult_04": "dark", "Male_Adult_07": "medium",
+    "Male_Adult_12": "dark", "Male_Adult_18": "dark",
+    "Female_Adult_11": "medium",
+    "Business_Female_01": "dark", "Pilot_Female_02": "dark",
+}
 
 STATIC = "Assets/Animations/all_animations_max_motextr_static/"
 TRAVEL = "Assets/Animations/all_animations_max_motextr_xy/"
@@ -90,9 +104,9 @@ CLIP_SECONDS = {"shrug": 4.0, "angry": 6.0, "dust": 6.0}
 # was 1.5-3 k triangles; the player keeps the whole scan (7.4 k).
 CROWD_LODS = [{"name": "Near", "triangles": 2400}, {"name": "Far", "triangles": 500}]
 PLAYER_LODS = [{"name": "Body"}]
-# Texture sides in pixels: body, head, and the hair/eyelash cards.
+# Texture sides in pixels: body, head, hair/eyelash cards, and optional hat.
 PLAYER_TEXTURES = (1024, 512, 512)
-CROWD_TEXTURES = (512, 256, 256)
+CROWD_TEXTURES = (512, 256, 256, 256)
 # Rule 2 (CLAUDE.md): what enters the game is an albedo. Skin, cloth and hair
 # average well under this; a map above it was painted, not measured.
 MAX_MEAN_ALBEDO = 0.35
@@ -127,7 +141,7 @@ def _avatar_files(tree: list[dict], name: str) -> dict:
         p = t["path"]
         if not p.startswith(folder + "/Textures/"):
             continue
-        for kind in ("body", "head", "opacity"):
+        for kind in ("body", "head", "opacity", "hat"):
             if p.endswith(f"_{kind}_color.tga"):
                 files[kind] = p
     # Hair and eyelash cards, where the avatar has any (a shaved head has none).
@@ -147,7 +161,7 @@ def _mean_albedo(image) -> float:
 def _textures(name: str, files: dict, sides, work: Path) -> tuple[dict, dict]:
     from PIL import Image
     out, albedo = {}, {}
-    for kind, side in zip(("body", "head", "opacity"), sides):
+    for kind, side in zip(("body", "head", "opacity", "hat"), sides):
         if kind not in files:
             continue
         image = Image.open(_fetch(files[kind]))
@@ -199,7 +213,8 @@ def _bake(name: str, sex: str, player: bool, work: Path, tree: list[dict]) -> di
     counts = glb_vertices(model)
     for lod in report["lods"]:
         lod["exportedVertices"] = counts.get(lod["name"], 0)
-    entry = {"name": name, "sex": sex, "model": model.relative_to(GAME).as_posix(),
+    entry = {"name": name, "sex": sex, "skinTone": SKIN_TONES.get(name, "light"),
+             "model": model.relative_to(GAME).as_posix(),
              "source": files["fbx"], "albedo": albedo, **report}
     print(f"{name:20s} {model.stat().st_size / 1e6:5.2f} MB  "
           + "  ".join(f"{l['name']} {l['triangles']} tri / {l['exportedVertices']} v" for l in report["lods"]))
@@ -221,8 +236,19 @@ def main() -> int:
         sources |= set(_avatar_files(tree, name).values())
     with concurrent.futures.ThreadPoolExecutor(8) as pool:
         list(pool.map(_fetch, sorted(sources)))
+    previous = {}
+    if MANIFEST.exists():
+        old = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        previous = {e["name"]: e for e in [old["player"], *old["crowd"]]}
+    def bake_or_reuse(job):
+        name, _, player = job
+        old = previous.get(name)
+        target = OUT / ("player.glb" if player else f"{name.lower()}.glb")
+        if old and target.exists() and old.get("model") == target.relative_to(GAME).as_posix():
+            return {**old, "skinTone": SKIN_TONES.get(name, "light")}
+        return _bake(*job, work, tree)
     with concurrent.futures.ThreadPoolExecutor(4) as pool:
-        entries = list(pool.map(lambda j: _bake(*j, work, tree), jobs))
+        entries = list(pool.map(bake_or_reuse, jobs))
     player, crowd = entries[0], entries[1:]
     shared = sum(l["exportedVertices"] for e in entries for l in e["lods"])
     manifest = {

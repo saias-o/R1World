@@ -2,6 +2,25 @@
   "schema": 1,
   "assets": [
     {
+      "name": "Natural Earth 50m shaded relief menu map",
+      "author": "Natural Earth",
+      "source": "https://www.naturalearthdata.com/downloads/50m-raster-data/50m-natural-earth-1/",
+      "license": "Public domain",
+      "modified": "Resized to 4096 × 2048 and color graded for the menu",
+      "files": [
+        "ui/earth.png"
+      ]
+    },
+    {
+      "name": "Natural Earth countries for crowd appearance",
+      "author": "Natural Earth",
+      "source": "https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson",
+      "license": "Public domain",
+      "files": [
+        "assets/world/countries.geojson"
+      ]
+    },
+    {
       "name": "Poly Haven Trees (Pine Sapling & Fir Sapling)",
       "source": "https://polyhaven.com/models",
       "license": "CC0 1.0",
@@ -487,9 +506,10 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/painted_plaster_wall",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo; facade bay sheets (r1/surfaces.py); native 1K mineral finish with subdued variation for shop floors and cladding (r1/retail_materials.py)",
       "files": [
         "assets/textures/facades/render_albedo.jpg",
+        "assets/textures/interiors/mineral_albedo.jpg",
         "assets/textures/facades/render_mr.jpg",
         "assets/textures/facades/render_normal.jpg"
       ]
@@ -723,19 +743,26 @@
       "generatedBy": "game/tools/r1/humans.py",
       "modifications": "retargeted motion-capture clips, face rig folded into the head but for the eyes, decimated levels of detail, colour maps reduced; normal and specular maps not used",
       "files": [
+        "assets/models/humans/business_female_01.glb",
         "assets/models/humans/business_female_03.glb",
         "assets/models/humans/business_male_02.glb",
         "assets/models/humans/female_adult_01.glb",
         "assets/models/humans/female_adult_02.glb",
         "assets/models/humans/female_adult_05.glb",
         "assets/models/humans/female_adult_08.glb",
+        "assets/models/humans/female_adult_11.glb",
         "assets/models/humans/female_adult_14.glb",
         "assets/models/humans/humans.json",
         "assets/models/humans/male_adult_01.glb",
         "assets/models/humans/male_adult_03.glb",
+        "assets/models/humans/male_adult_04.glb",
         "assets/models/humans/male_adult_05.glb",
         "assets/models/humans/male_adult_06.glb",
+        "assets/models/humans/male_adult_07.glb",
+        "assets/models/humans/male_adult_12.glb",
         "assets/models/humans/male_adult_13.glb",
+        "assets/models/humans/male_adult_18.glb",
+        "assets/models/humans/pilot_female_02.glb",
         "assets/models/humans/player.glb"
       ]
     }

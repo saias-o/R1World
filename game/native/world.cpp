@@ -15,6 +15,7 @@
 #include "graphics/Material.hpp"
 #include "nodes/CameraNode.hpp"
 #include "nodes/MeshNode.hpp"
+#include "nodes/LightNode.hpp"
 #include "nodes/ParticleSystemNode.hpp"
 #include "behaviours/LODGroupBehaviour.hpp"
 #include "physics/CharacterBodyNode.hpp"
@@ -32,8 +33,14 @@
 #include <nlohmann/json.hpp>
 #include "saida/traffic/Traffic.hpp"
 #include "gen/crowd.hpp"
+#include "gen/appearance.hpp"
 #include "gen/landmarks.hpp"
 #include "gen/palette.hpp"
+#include "gen/places.hpp"
+#include "gen/map_tiles.hpp"
+#include "gen/interiors.hpp"
+#include "gen/predict.hpp"
+#include "gen/net.hpp"
 #include "gen/sea.hpp"
 #include "gen/service.hpp"
 #include "minimap.hpp"
@@ -49,6 +56,7 @@
 #include <chrono>
 #include <cstring>
 #include <functional>
+#include <future>
 #include <optional>
 
 namespace fs = std::filesystem;
@@ -246,7 +254,17 @@ struct Footprint {
     std::vector<glm::dvec2> points;
     glm::dvec2 low{1e30},high{-1e30};
     double top=1e30;  // the highest point over it, in its tile's frame: what an aircraft clears
+    int interior=-1;
 };
+struct LiveInterior {
+    r1::InteriorPlan plan;
+    r1::InteriorLayout layout;
+    saida::Node* node=nullptr;
+    saida::Node* leaves[2]{nullptr,nullptr};
+    double opening=0,hold=0;
+    bool refused=false;
+};
+struct StoreParking { std::string name;std::vector<r1::Ring> rings; };
 // A walkable deck over the water -- a pier -- in its tile's frame.
 struct Deck {
     std::vector<glm::dvec2> points;
@@ -340,6 +358,7 @@ struct Person {
     const char* clip=""; float poseRate=-1.f;
     uint32_t bumps=0;            // the walker's bumps already staggered
     double yaw=0; bool shown=false;  // the heading drawn, eased toward the walker's
+    size_t kind=0;
 };
 
 struct Loaded {
@@ -354,6 +373,12 @@ struct Loaded {
         :node(n),served(std::move(s)),data(served->cooked.manifest),
          frame(data.at("lon").get<double>(),data.at("lat").get<double>()),props(served->cooked.props){}
     std::vector<Footprint> footprints; std::vector<Plant> vegetation;
+    // Every tree trunk of the tile, read at mount from its cooked props: what
+    // a car or a walker bumps does not wait for the tree to be drawn, or a
+    // car parked a moment earlier would have a trunk grow through it.
+    std::vector<glm::dvec2> trunks;
+    std::vector<LiveInterior> interiors;
+    std::vector<StoreParking> parking;
     // This tile's road network and the cars on it. The graph must not move
     // once the flow points at it, which is why both live here rather than in
     // a side table: std::map never relocates a node it has already made.
@@ -368,6 +393,7 @@ struct Loaded {
     // traffic, for the same reason -- the crowd points at the graph.
     r1::WalkGraph walks; r1::Crowd crowd;
     std::vector<Person> people;           // keyed by walker slot, pooled
+    std::vector<size_t> humanKinds;       // stable avatar per slot in this country
     // The manifest unpacked once at mount, because a frame cannot afford to
     // read JSON. See World::unpack.
     double west=0,east=0,south=0,north=0;
@@ -383,6 +409,72 @@ struct Loaded {
     // parts wear it, and what each wore before.
     bool snowed=false; size_t snowSeen=0;
     std::vector<std::pair<saida::MeshNode*,saida::Material*>> bare;
+};
+
+// Interactive map tiles are requested only when their pixels are on screen.
+// A completed PNG is cached indefinitely, satisfying the tile server's
+// minimum seven-day cache rule without conditional re-downloads.
+class MenuTileCache {
+    struct Result { bool ready=false; std::string error; };
+    fs::path root;
+    std::vector<r1::MapTile> visibleTiles;
+    std::future<Result> flight;
+    std::chrono::steady_clock::time_point retryAfter{};
+    std::string lastError;
+public:
+    explicit MenuTileCache(fs::path project):root(std::move(project)/"cache/map-tiles/osm"){}
+    fs::path path(const r1::MapTile& tile) const {
+        return root/std::to_string(tile.z)/std::to_string(tile.x)/(std::to_string(tile.y)+".png");
+    }
+    bool ready(const r1::MapTile& tile) const {
+        std::error_code ec;
+        const auto p=path(tile);
+        return fs::is_regular_file(p,ec)&&fs::file_size(p,ec)>8;
+    }
+    void setVisible(std::vector<r1::MapTile> tiles){visibleTiles=std::move(tiles);}
+    size_t missing() const {
+        return size_t(std::count_if(visibleTiles.begin(),visibleTiles.end(),[&](const auto& tile){return !ready(tile);}));
+    }
+    bool unavailable() const {return !lastError.empty()&&std::chrono::steady_clock::now()<retryAfter;}
+    bool pump() {
+        const auto now=std::chrono::steady_clock::now();
+        bool changed=false;
+        if(flight.valid()) {
+            if(flight.wait_for(std::chrono::seconds(0))!=std::future_status::ready)return false;
+            const Result result=flight.get();
+            if(result.ready){lastError.clear();changed=true;}
+            else {
+                lastError=result.error;
+                retryAfter=now+std::chrono::seconds(30);
+                saida::Log::info("[World map] detailed tiles unavailable: ",lastError);
+                changed=true;
+            }
+        }
+        if(now<retryAfter)return changed;
+        for(const auto& tile:visibleTiles) {
+            if(ready(tile))continue;
+            const fs::path target=path(tile);
+            flight=std::async(std::launch::async,[tile,target]() -> Result {
+                try {
+                    const std::string url="https://tile.openstreetmap.org/"+std::to_string(tile.z)+"/"+
+                                          std::to_string(tile.x)+"/"+std::to_string(tile.y)+".png";
+                    const auto response=r1::net::request("GET",url,{}, {},10.);
+                    constexpr char png[]="\x89PNG\r\n\x1a\n";
+                    if(response.status!=200||response.body.size()<8||std::memcmp(response.body.data(),png,8)!=0)
+                        return {false,"HTTP "+std::to_string(response.status)+" or invalid PNG"};
+                    fs::create_directories(target.parent_path());
+                    const fs::path temporary=target.string()+".part";
+                    {std::ofstream output(temporary,std::ios::binary);
+                     output.write(response.body.data(),std::streamsize(response.body.size()));
+                     if(!output)throw std::runtime_error("cannot cache map tile");}
+                    fs::rename(temporary,target);
+                    return {true,{}};
+                } catch(const std::exception& e) {return {false,e.what()};}
+            });
+            break;
+        }
+        return changed;
+    }
 };
 
 class World : public Rml::EventListener {
@@ -490,7 +582,7 @@ class World : public Rml::EventListener {
     // crowd, Rocketbox scans with their clips retargeted onto them. A crowd
     // avatar is imported once into the shared prototypes; each person is a
     // node of its own with its own animator over the avatar's shared meshes,
-    // rig and clips, so twelve avatars cost twelve uploads however many walk.
+    // rig and clips, so each avatar costs one upload however many walk.
     json humans;
     double humanScale=.8,playerHeight=1.46;
     struct HumanKind {
@@ -503,7 +595,8 @@ class World : public Rml::EventListener {
         bool ready=false;
     };
     std::vector<HumanKind> crowdKinds;
-    std::vector<r1::CrowdPace> crowdPace;
+    std::vector<r1::CrowdAppearance> crowdAppearances;
+    r1::CountryCrowd countryCrowd;
     void loadHumans() {
         std::ifstream input(game/"assets/models/humans/humans.json");
         if(!input)throw std::runtime_error("Missing assets/models/humans/humans.json (python -m r1.humans)");
@@ -513,6 +606,8 @@ class World : public Rml::EventListener {
         for(const auto& entry:humans.at("crowd")) {
             HumanKind kind;
             kind.name=entry.at("name");kind.model=entry.at("model");
+            crowdAppearances.push_back({entry.at("sex").get<std::string>()[0],
+                                        entry.value("skinTone",std::string("light"))});
             const auto& clips=entry.at("clips");
             for(const char* clip:{"idle","walk","wait","phone","talk","sit","run"})
                 if(!clips.contains(clip))throw std::runtime_error("Crowd avatar "+kind.name+" has no clip "+clip);
@@ -523,11 +618,14 @@ class World : public Rml::EventListener {
             // A seated pelvis sits about 14 cm above the seat it was captured
             // on (a 45 cm chair under a 59 cm pelvis), at the avatar's scale.
             kind.seatDrop=(entry.at("seat").at("pelvisHeight").get<double>()-.14)*humanScale;
-            crowdPace.push_back(kind.pace);
             warmList.push_back(kind.model);
             crowdKinds.push_back(std::move(kind));
         }
         if(crowdKinds.empty())throw std::runtime_error("humans.json lists no crowd");
+        std::ifstream countries(game/"assets/world/countries.geojson");
+        if(!countries)throw std::runtime_error("Missing assets/world/countries.geojson");
+        json boundaries;countries>>boundaries;
+        countryCrowd.load(boundaries);
         saida::Log::info("[World crowd] ",crowdKinds.size()," avatars, player ",playerHeight,
                          " m, shared vertices=",humans.value("sharedVertices",0));
     }
@@ -592,8 +690,10 @@ class World : public Rml::EventListener {
     // said once each (CLAUDE.md rule 3), and a failed smoke.
     size_t bodiesRefused=0;
     bool makePerson(Loaded& tile,size_t slot,Person& person) {
-        HumanKind* kind=humanKind(slot);
+        const size_t selected=tile.humanKinds[slot%tile.humanKinds.size()];
+        HumanKind* kind=humanKind(selected);
         if(!kind)return false;
+        person.kind=selected;
         auto root=std::make_unique<saida::Node>("person-"+kind->name);
         auto* animator=root->addBehaviour<saida::Animator>();
         animator->setRig(kind->rig);
@@ -637,7 +737,16 @@ class World : public Rml::EventListener {
     }
     void readCrowd(Loaded& tile) {
         tile.walks=r1::WalkGraph::from(tile.data.value("crowd",json()));
-        tile.crowd.reset(&tile.walks,uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u,crowdPace);
+        const uint32_t seed=uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u;
+        const r1::Country country=countryCrowd.at(tile.data.at("lon").get<double>(),tile.data.at("lat").get<double>());
+        tile.humanKinds.clear();
+        std::vector<r1::CrowdPace> paces;
+        for(size_t slot=0;slot<kCrowdPeople;++slot) {
+            const size_t selected=countryCrowd.choose(country,crowdAppearances,seed,slot);
+            tile.humanKinds.push_back(selected);
+            paces.push_back(crowdKinds[selected].pace);
+        }
+        tile.crowd.reset(&tile.walks,seed,std::move(paces));
     }
     // The hour where the player stands, by the Sun: 12 when it is highest.
     double localSolarHour() {
@@ -771,7 +880,7 @@ class World : public Rml::EventListener {
             if(!p.node->enabled())p.node->setEnabled(true);
             const r1::Walker& w=walkers[i];
             double y=w.y;
-            if(w.activity==r1::Activity::Sit)y-=crowdKinds[i%crowdKinds.size()].seatDrop;
+            if(w.activity==r1::Activity::Sit)y-=crowdKinds[p.kind].seatDrop;
             p.node->transform().position=glm::vec3(float(w.x),float(y),float(w.z));
             // A body turns rather than snaps: round a corner, or round to
             // face the player it is telling off. Someone new stands as placed.
@@ -824,7 +933,8 @@ class World : public Rml::EventListener {
     // again with the buildings its first, provisional cook did not have.
     bool checkStanding=false;
     Frame origin; double lon=2.3522,lat=48.8566,alt=0,yaw=0,pitch=-12;
-    double pickLon=2.3522,pickLat=48.8566,zoom=1,mapX=0,mapY=0;
+    double pickLon=2.3522,pickLat=48.8566,zoom=1,mapCenterLon=2.3522,mapCenterLat=48.8566;
+    MenuTileCache menuTiles;
     bool menu=true,playing=false,pending=false,warming=false,wasMenuKey=false;
     std::chrono::steady_clock::time_point goStarted;
     double lastMountMs=0;
@@ -860,6 +970,11 @@ class World : public Rml::EventListener {
     // click arriving just after its own press must not run the action twice --
     // 'zoom-in' would double the zoom twice for one press.
     double clock=0,pressedAt=-1; std::string pressedId;
+    std::string cityInput,citySubmitted,cityInFlight;
+    double cityChangedAt=0,cityLastRequestAt=-100;
+    std::future<std::vector<r1::PlaceChoice>> cityFuture;
+    std::vector<r1::PlaceChoice> cityChoices;
+    std::map<std::string,std::vector<r1::PlaceChoice>> cityCache;
     // The driver used to test one cold spawn and stop. Teleporting from a
     // place you are already standing in is a different path -- tiles are
     // evicted, the resource arena is trimmed and the origin moves half a
@@ -932,12 +1047,58 @@ class World : public Rml::EventListener {
     }
     // Compared with what the field shows, not with what was last written: the
     // player may have typed in it since.
-    void field(const std::string& id,double x) {
-        const std::string value=number(x);
+    void field(const std::string& id,const std::string& value) {
         auto* e=dynamic_cast<Rml::ElementFormControl*>(ui->findElementById(id));
         if(!e||e->GetValue()==value)return;
         e->SetValue(value);
         ui->notifyJsMutation();
+    }
+    void field(const std::string& id,double x) {field(id,number(x));}
+    void showCityChoices(const std::vector<r1::PlaceChoice>& choices,const std::string& feedback={}) {
+        cityChoices=choices;
+        style("city-results","display",choices.empty()&&feedback.empty()?"none":"block");
+        style("city-feedback","display",feedback.empty()?"none":"block");
+        if(!feedback.empty())text("city-feedback",feedback);
+        for(size_t i=0;i<5;++i) {
+            const std::string id="city-choice-"+std::to_string(i);
+            style(id,"display",i<choices.size()?"block":"none");
+            if(i<choices.size())text(id,choices[i].label);
+        }
+    }
+    void updateCityLookup() {
+        if(menu) {
+            std::string query=value("city-query");
+            const auto first=query.find_first_not_of(" \t\r\n");
+            query=first==std::string::npos?"":query.substr(first,query.find_last_not_of(" \t\r\n")-first+1);
+            if(query!=cityInput) {
+                cityInput=query;cityChangedAt=clock;
+                showCityChoices({},query.size()<2?"":"Recherche…");
+            }
+        }
+        if(cityFuture.valid()&&cityFuture.wait_for(std::chrono::seconds(0))==std::future_status::ready) {
+            const std::string completed=cityInFlight;
+            cityInFlight.clear();
+            try {
+                auto choices=cityFuture.get();
+                if(cityCache.size()>=64)cityCache.clear();
+                cityCache[completed]=choices;
+                if(cityInput==completed)showCityChoices(choices,choices.empty()?"Aucune ville trouvée.":"");
+            } catch(const std::exception& e) {
+                saida::Log::info("[World places] search unavailable: ",e.what());
+                if(cityInput==completed)showCityChoices({},"Recherche indisponible. Saisissez les coordonnées.");
+            }
+        }
+        if(!menu)return;
+        const std::string& query=cityInput;
+        if(query.size()<2||query==citySubmitted||cityFuture.valid()||clock-cityChangedAt<.45||
+           clock-cityLastRequestAt<1.0)return;
+        citySubmitted=query;
+        if(const auto cached=cityCache.find(query);cached!=cityCache.end()) {
+            showCityChoices(cached->second,cached->second.empty()?"Aucune ville trouvée.":"");
+            return;
+        }
+        cityInFlight=query;cityLastRequestAt=clock;
+        cityFuture=std::async(std::launch::async,[query]{return r1::searchPlaceChoices(query);});
     }
     // release=false is what a real click actually delivers: the engine consumes
     // the mouse while a ui-hit element is hovered, so the Up frame never reaches
@@ -954,7 +1115,9 @@ class World : public Rml::EventListener {
     void select(double x,double y) {
         pickLon=wrap(x);pickLat=std::clamp(y,-90.,90.);
         field("latitude",pickLat);field("longitude",pickLon);
-        double px=(pickLon+180)/360*1344*zoom-mapX,py=(90-pickLat)/180*560*zoom-mapY;
+        const r1::MapPixel pixel=zoom>1?r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).screen(pickLon,pickLat)
+                                        :r1::MapPixel{(pickLon+180)/360*1344,(90-pickLat)/180*560};
+        double px=pixel.x,py=pixel.y;
         style("pin","left",number(px,2)+"px");style("pin","top",number(py,2)+"px");
     }
     void showMap(bool show) {
@@ -963,12 +1126,34 @@ class World : public Rml::EventListener {
         style("resume","display",playing?"inline-block":"none");
         engine.window().setCursorCaptured(!show);
     }
+    int mapZoomLevel() const {return std::clamp(int(std::lround(std::log2(zoom)))+2,3,19);}
+    void renderMapTiles() {
+        std::ostringstream markup;
+        if(zoom>1) {
+            const auto tiles=r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).visible();
+            menuTiles.setVisible(tiles);
+            for(const auto& tile:tiles) {
+                if(!menuTiles.ready(tile))continue;
+                markup<<"<img class='map-tile' src='../cache/map-tiles/osm/"<<tile.z<<"/"<<tile.x<<"/"<<tile.y
+                      <<".png' style='left:"<<number(tile.left,1)<<"px;top:"<<number(tile.top,1)<<"px;'/>";
+            }
+            const size_t missing=menuTiles.missing();
+            style("map-detail-status","display",missing?"block":"none");
+            if(missing)text("map-detail-status",menuTiles.unavailable()?"Carte détaillée indisponible hors ligne":"Chargement de la carte détaillée…");
+        } else {
+            menuTiles.setVisible({});
+            style("map-detail-status","display","none");
+        }
+        auto& previous=written["map:tiles"];
+        const std::string html=markup.str();
+        if(previous!=html&&ui->setElementRml("map-tiles",html))previous=html;
+    }
     void zoomMap(double z) {
-        zoom=std::clamp(z,1.,128.);
-        mapX=std::clamp((pickLon+180)/360*1344*zoom-672.,0.,1344*(zoom-1));
-        mapY=std::clamp((90-pickLat)/180*560*zoom-280.,0.,560*(zoom-1));
-        style("earth","width",number(1344*zoom,1)+"px");style("earth","height",number(560*zoom,1)+"px");
-        style("earth","left",number(-mapX,1)+"px");style("earth","top",number(-mapY,1)+"px");select(pickLon,pickLat);
+        zoom=std::clamp(z,1.,131072.);
+        mapCenterLon=pickLon;mapCenterLat=pickLat;
+        style("earth","display",zoom>1?"none":"block");
+        renderMapTiles();
+        select(pickLon,pickLat);
     }
     double streamPriority(Tile t,double x,double y,double heading) const {
         const double tileLat=-90.+(t.r+.5)*.005;
@@ -1140,6 +1325,22 @@ class World : public Rml::EventListener {
     // different answer to any question: it is the same data, read the way a
     // frame can afford to read it.
     static void unpack(Loaded& tile) {
+        if(auto rooms=tile.data.find("interiors");rooms!=tile.data.end())for(const auto& entry:*rooms) {
+            LiveInterior room;room.plan=r1::InteriorPlan::read(entry);
+            if(room.plan.footprint<tile.footprints.size())tile.footprints[room.plan.footprint].interior=int(tile.interiors.size());
+            tile.interiors.push_back(std::move(room));
+        }
+        for(const auto& doc:tile.props) {
+            auto groups=doc.find("groups");
+            if(groups==doc.end()||std::find(groups->begin(),groups->end(),"tree")==groups->end())continue;
+            const auto& at=doc.at("transform").at("position");
+            tile.trunks.push_back({at[0].get<double>(),at[2].get<double>()});
+        }
+        if(auto retail=tile.data.find("retail");retail!=tile.data.end())for(const auto& area:retail->at("parking")) {
+            StoreParking lot;lot.name=area.at("storeName");
+            for(const auto& path:area.at("rings")){r1::Ring r;for(const auto& p:path)r.push_back({p[0],p[1]});lot.rings.push_back(std::move(r));}
+            tile.parking.push_back(std::move(lot));
+        }
         const auto& bounds=tile.data.at("bounds");
         tile.west=bounds.at("west");tile.east=bounds.at("east");
         tile.south=bounds.at("south");tile.north=bounds.at("north");
@@ -1265,6 +1466,18 @@ class World : public Rml::EventListener {
         const double ground=terrainHeight(*t,x,y);
         const bool any=std::isnan(standing);
         double best=ground;
+        for(const auto& [key,other]:loaded)for(const auto& room:other.interiors) {
+            const auto& p=room.plan;
+            const auto local=other.frame.local(ecef(x,y,ground));
+            const r1::P2 q{local.x,local.z},door=p.local(q);
+            double level=0;
+            if(r1::pointInPolygon(q,p.ring))level=p.floor;
+            else if(std::abs(door.x)<p.width/2+.4&&door.y>=-4&&door.y<=0)
+                level=p.floor+(p.approach-p.floor)*(-door.y/4);
+            else continue;
+            // Store floors replace the terrain inside, even on a slope.
+            return level-other.frame.local(ecef(x,y,0.)).y;
+        }
         // A piece belongs to the tile its middle is in: near a tile's edge,
         // the deck under a foot may be its neighbour's.
         for(const auto& [key,other]:loaded)
@@ -1340,18 +1553,24 @@ class World : public Rml::EventListener {
             // A point can only be inside a building or a tree of a tile it is
             // in. Two metres of margin covers a footprint digitised a hair over
             // its own tile edge; the other eight tiles cost one comparison.
-            if(!inside(t,x,y,2e-5))continue;
+            if(t.interiors.empty()&&!inside(t,x,y,2e-5))continue;
             glm::dvec3 p=t.frame.local(ecef(x,y,height(x,y)));
             const glm::dvec2 q(p.x,p.z);
-            for(const Plant& plant:t.vegetation)
-                if(plant.tree&&std::hypot(q.x-plant.node->transform().position.x,
-                                          q.y-plant.node->transform().position.z)<.55)return true;
+            for(const auto& trunk:t.trunks)
+                if(std::abs(q.x-trunk.x)<.55&&std::abs(q.y-trunk.y)<.55&&std::hypot(q.x-trunk.x,q.y-trunk.y)<.55)return true;
             for(const auto& shape:t.footprints) {
                 // The rings are already parsed and already carry their box
                 // (see Footprint). Testing the box first is what turns five
                 // hundred polygon walks into a handful.
                 if(q.x<shape.low.x-.32||q.x>shape.high.x+.32||
                    q.y<shape.low.y-.32||q.y>shape.high.y+.32)continue;
+                if(shape.interior>=0&&!driving&&!sailing&&!piloting&&!parkingCar) {
+                    const auto& room=t.interiors[size_t(shape.interior)];
+                    if(room.node) {
+                        if(r1::interiorBlocked(room.plan,room.layout,{q.x,q.y},room.opening))return true;
+                        continue;
+                    }
+                }
                 const auto& poly=shape.points;
                 bool in=false;const size_t n=poly.size();
                 for(size_t i=0,j=n-1;i<n;j=i++) {
@@ -1473,6 +1692,20 @@ class World : public Rml::EventListener {
         }
         return clear;
     }
+    // A building owned by a neighbouring tile can stream in over the spot the
+    // car was parked on before that tile mounted: move the car out, and say so.
+    void reparkIfCovered(const std::string& key) {
+        if(!carParked||driving||!car)return;
+        parkingCar=true;
+        const bool covered=blocked(carLon,carLat,carAlt);
+        double x=carLon,y=carLat;
+        const bool found=covered&&freeSpot(carLon,carLat,20.,x,y,carAlt);
+        parkingCar=false;
+        if(!covered)return;
+        if(!found){saida::Log::warn("[World car] ",key," covered the parked car and no free spot is within 20 m");return;}
+        saida::Log::info("[World car] ",key," streamed in over the parked car; moved to ",x,", ",y);
+        carLon=x;carLat=y;carAlt=groundAt(x,y,carAlt);placeCar();
+    }
     // Park the car beside a dry spawn. A swimmer cannot arrive with a car.
     void parkCar() {
         carParked=false;carSinking=false;carSinkDepth=0;
@@ -1491,7 +1724,12 @@ class World : public Rml::EventListener {
         // would be, and a spiral out from there when that spot is a wall.
         auto beside=onward(lon,lat,cos(yaw*rad)*3.,-sin(yaw*rad)*3.);
         double x,y;
-        if(!freeSpot(beside.x,beside.y,14.,x,y,alt)) {
+        // A car's spot is judged as a car: a shop a walker may enter is a
+        // wall to it, or the car would be parked inside the store.
+        parkingCar=true;
+        const bool found=freeSpot(beside.x,beside.y,14.,x,y,alt);
+        parkingCar=false;
+        if(!found) {
             // Loud, and said to the player too. A car that silently is not
             // there looks exactly like a car that failed to load, which is the
             // shape of failure this file has already been bitten by three
@@ -1606,6 +1844,7 @@ class World : public Rml::EventListener {
 
     // Why the car last stopped against something, for whoever reads the log.
     std::string carStop="nothing";
+    bool parkingCar=false;
     double carDistance() const {
         return glm::length(ecef(lon,lat,alt)-ecef(carLon,carLat,carAlt));
     }
@@ -2021,6 +2260,37 @@ class World : public Rml::EventListener {
     }
     // The tile's parked aircraft, as scene nodes in its frame. Children of the
     // tile, so evicting the tile clears them with it.
+    // Lettering (gen/predict facadeLettering): the sign font's glyphs, inked
+    // with its coverage so no baked plate shows, in `colour`, facing +Z.
+    std::unique_ptr<saida::Node> lettering(const std::string& text,double width,double height,glm::vec3 colour) {
+        auto letters=r1::facadeLettering(text,width,height);if(!letters)return nullptr;
+        auto sign=saida::SceneSerializer::nodeFromJson(letters->dump(),engine.resources());if(!sign)return nullptr;
+        saida::MaterialDesc desc;
+        desc.baseColor={colour.x,colour.y,colour.z,1.f};
+        desc.roughness=.55f;desc.alphaCutoff=.35f;
+        desc.albedoId=texture("assets/textures/interiors/fascia_letters.png",true);
+        auto* ink=engine.resources().getMaterial(desc);
+        std::function<void(saida::Node&)> paint=[&](saida::Node& node) {
+            if(auto* mesh=dynamic_cast<saida::MeshNode*>(&node)){mesh->setMaterial(ink);mesh->castShadows()=false;}
+            for(auto& child:node.children())paint(*child);
+        };
+        paint(*sign);
+        return sign;
+    }
+    // A tile's own lettering: fuel canopies and totems (gen/fuel).
+    void mountLettering(Loaded& t) {
+        auto list=t.data.find("lettering");if(list==t.data.end())return;
+        for(const auto& entry:*list) {
+            const std::string text=entry.at("text");
+            const auto& c=entry.at("colour");
+            auto sign=lettering(text,entry.at("width"),entry.at("height"),{float(c[0]),float(c[1]),float(c[2])});
+            if(!sign){saida::Log::warn("[World lettering] font cannot spell: ",text);continue;}
+            const auto& at=entry.at("at");const auto& n=entry.at("normal");
+            sign->transform().position={float(at[0]),float(at[1]),float(at[2])};
+            sign->transform().rotation=glm::angleAxis(float(std::atan2(n[0].get<double>(),n[1].get<double>())),glm::vec3(0,1,0));
+            t.node->addChild(std::move(sign));
+        }
+    }
     void mountAircraft(Loaded& t) {
         for(auto& spot:t.aircraft) {
             auto found=aircraftPrototypes.find(spot.type);
@@ -3010,6 +3280,233 @@ class World : public Rml::EventListener {
         engine.sceneTree().applyDeferred();
         engine.resources().trimUnused(engine.sceneTree().world().resourceUsage());
     }
+    // Only two nearby interiors occupy the shared arena. A room containing
+    // the player is pinned until they leave; hysteresis prevents door thrashing.
+    void updateInteriors(double dt) {
+        struct Candidate { Loaded* tile; LiveInterior* room; double distance; };
+        std::vector<Candidate> candidates;bool released=false;size_t active=0;
+        for(auto& [key,t]:loaded)for(auto& room:t.interiors) {
+            const auto q=t.frame.local(ecef(lon,lat,alt));const r1::P2 at{q.x,q.z};
+            const double distance=r1::pointInPolygon(at,room.plan.ring)?0:r1::dist(at,room.plan.door);
+            if(room.node&&distance>85) {
+                room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
+                room.layout={};room.opening=0;released=true;
+            }
+            if(room.node)++active;
+            if(!room.node&&!room.refused&&distance<65)candidates.push_back({&t,&room,distance});
+            if(room.node) {
+                auto p=room.plan.local(at);
+                // Sensor on both sides, with a hold time and a wide safety zone.
+                const bool sensor=!driving&&!sailing&&!piloting&&std::abs(p.x)<room.plan.width/2+1.5&&std::abs(p.y)<3.5;
+                room.hold=sensor?1.5:std::max(0.,room.hold-dt);
+                room.opening=r1::slideDoor(room.opening,room.hold>0,dt);
+                for(int side=0;side<2;++side) {
+                    double u=(side?1:-1)*room.plan.width*(.25+.5*room.opening);
+                    auto at=room.plan.point(u,-.025);
+                    room.leaves[side]->transform().position={float(at.x),float(room.plan.floor),float(at.y)};
+                }
+            }
+        }
+        if(released)trim();
+        std::sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a.distance<b.distance;});
+        if(active>=2&&!candidates.empty()) {
+            LiveInterior* farthest=nullptr;double farDistance=candidates.front().distance+5;
+            for(auto& [key,t]:loaded)for(auto& room:t.interiors)if(room.node) {
+                auto q=t.frame.local(ecef(lon,lat,alt));r1::P2 at{q.x,q.z};
+                if(r1::pointInPolygon(at,room.plan.ring))continue;
+                const double d=r1::dist(at,room.plan.door);
+                if(d>farDistance){farDistance=d;farthest=&room;}
+            }
+            if(farthest) {
+                farthest->node->queueFree();farthest->node=nullptr;farthest->leaves[0]=farthest->leaves[1]=nullptr;
+                farthest->layout={};farthest->opening=0;--active;trim();
+            }
+        }
+        if(active>=2||candidates.empty())return;
+        auto& room=*candidates.front().room;auto& t=*candidates.front().tile;const auto& p=room.plan;
+        room.layout=r1::layoutInterior(p);auto parts=r1::buildInteriorShell(p);auto door=r1::buildDoorLeaf(p.width);
+        std::map<std::string,std::vector<r1::MeshPart>> furnishings;
+        for(const auto& fixture:room.layout.fixtures) {
+            const auto key=r1::interiorFixtureKey(fixture);
+            if(!furnishings.count(key))furnishings.emplace(key,r1::buildInteriorFixture(fixture));
+        }
+        size_t vertices=0,indices=0;for(auto& part:parts){vertices+=part.mesh.vertexCount();indices+=part.mesh.indices.size();}
+        for(const auto& [key,prototype]:furnishings)for(const auto& part:prototype){vertices+=part.mesh.vertexCount();indices+=part.mesh.indices.size();}
+        for(auto& part:door){vertices+=2*part.mesh.vertexCount();indices+=2*part.mesh.indices.size();}
+        const auto used=engine.resources().geometryUsage();const auto cap=engine.resources().geometryCapacity();
+        if(vertices>24000||used.vertices+vertices+4096>cap.vertices||used.indices+indices+12000>cap.indices) {
+            room.refused=true;saida::Log::warn("[World interiors] arena refused ",p.name," vertices=",vertices);
+            text("stream-status","Intérieur indisponible : budget de géométrie atteint.");return;
+        }
+        auto root=std::make_unique<saida::Node>("Interior "+std::to_string(p.id));
+        auto upload=[&](saida::Node& parent,const std::vector<r1::MeshPart>& list) {
+            for(size_t i=0;i<list.size();++i)if(!list[i].mesh.empty()) {
+                auto up=uploadOf(list[i],i);auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(up.vertices,up.indices));
+                if(!mesh)throw std::runtime_error("interior mesh allocation refused");
+                auto node=std::make_unique<saida::MeshNode>(up.name,mesh,material(list[i].material));
+                // The existing opaque roof and exterior walls cast the room's
+                // sun shadow. Thin linings and ceiling rails must not cast a
+                // second, nearly coincident shadow onto that same surface.
+                node->castShadows()=up.name.find("Sliding door")!=std::string::npos;
+                parent.addChild(std::move(node));
+            }
+        };
+        try {
+            upload(*root,parts);
+            const double yaw=-std::atan2(p.along.y,p.along.x);
+            // Stable resource keys let the engine share each prototype across
+            // every instance and both active rooms. No furniture mesh is baked
+            // repeatedly into a tile or regenerated for every shelf.
+            struct SharedPart { saida::Mesh* mesh; saida::Material* paint; bool shadow; };
+            std::map<std::string,std::vector<SharedPart>> prototypes;
+            for(const auto& [key,prototype]:furnishings)for(size_t i=0;i<prototype.size();++i) {
+                if(prototype[i].mesh.empty())continue;
+                const auto up=uploadOf(prototype[i],i);
+                auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(
+                    "generated/interior-prototypes/v23/"+key+"/"+std::to_string(i),up.vertices,up.indices));
+                if(!mesh)throw std::runtime_error("furniture prototype allocation refused");
+                prototypes[key].push_back({mesh,material(prototype[i].material),i==0||i==2});
+            }
+            for(const auto& fixture:room.layout.fixtures) {
+                for(const auto& [mesh,paint,shadow]:prototypes.at(r1::interiorFixtureKey(fixture))) {
+                    auto instance=std::make_unique<saida::MeshNode>(fixture.kind,mesh,paint);
+                    instance->castShadows()=shadow;
+                    auto at=p.point(fixture.at.x,fixture.at.y);
+                    instance->transform().position={float(at.x),float(p.floor),float(at.y)};
+                    instance->transform().rotation=glm::angleAxis(float(yaw),glm::vec3(0,1,0));
+                    root->addChild(std::move(instance));
+                }
+            }
+            for(int side=0;side<2;++side) {
+                auto leaf=std::make_unique<saida::Node>("Automatic sliding leaf");upload(*leaf,door);
+                auto at=p.point((side?1:-1)*p.width*.25,-.025);
+                leaf->transform().position={float(at.x),float(p.floor),float(at.y)};
+                leaf->transform().rotation=glm::angleAxis(float(yaw),glm::vec3(0,1,0));
+                room.leaves[side]=root->addChild(std::move(leaf));
+            }
+            auto a=p.ring[p.edge],b=p.ring[(p.edge+1)%p.ring.size()];
+            const double fasciaHeight=std::clamp(p.ceiling-p.floor-2.8,.3,1.1);
+            const double letterHeight=std::min(.75,fasciaHeight-.12);
+            if(auto sign=lettering(p.name,r1::dist(a,b)-.8,letterHeight,{.65f,.65f,.61f})) {
+                sign->transform().position={float((a.x+b.x)/2-p.inward.x*.29),
+                    float(p.floor+2.8+(fasciaHeight-letterHeight)/2),float((a.y+b.y)/2-p.inward.y*.29)};
+                // Glyphs face +Z, the shop's exterior is -inward. Reverse
+                // their baseline relative to the polygon's CCW edge.
+                sign->transform().rotation=glm::angleAxis(float(yaw+r1::kPi),glm::vec3(0,1,0));
+                root->addChild(std::move(sign));
+            } else saida::Log::warn("[World interiors] font cannot spell store name: ",p.name);
+            // A few ceiling lights, scoped to this streamed room.
+            // A mall's supermarket is lit where it is, not only at the door:
+            // over its checkouts and around its mapped position.
+            std::vector<r1::P2> lit;
+            for(double v:{3.,11.,20.})lit.push_back(p.point(0,v));
+            if(p.anchor) {
+                const r1::P2 a=*p.anchor,d=p.door;const double l=r1::dist(a,d);
+                const r1::P2 toward{(a.x-d.x)/l,(a.y-d.y)/l},across{-toward.y,toward.x};
+                for(double s:{l/2+4,l/2+16})for(double w:{-9.,9.})
+                    lit.push_back({d.x+toward.x*s+across.x*w,d.y+toward.y*s+across.y*w});
+                lit.push_back(a);
+            }
+            for(const auto at:lit) {
+                if(!r1::pointInPolygon(at,p.ring))continue;
+                auto light=std::make_unique<saida::LightNode>("Retail ceiling light",saida::LightType::Point);
+                light->transform().position={float(at.x),float(p.ceiling-.25),float(at.y)};
+                light->color={1.f,.93f,.82f};light->intensity=3.f;light->range=12.f;light->castShadows=false;
+                root->addChild(std::move(light));
+            }
+            room.node=t.node->addChild(std::move(root));
+            saida::Log::info("[World interiors] loaded ",p.name," recipe=",p.recipe," vertices=",vertices,
+                " furniture_instances=",room.layout.fixtures.size()," prototypes=",furnishings.size());
+        } catch(const std::exception& e) {
+            root.reset();trim();
+            room.refused=true;room.leaves[0]=room.leaves[1]=nullptr;
+            saida::Log::error("[World interiors] ",p.name,": ",e.what());
+            text("stream-status","Impossible de charger cet intérieur.");
+        }
+    }
+    int retailTestPhase=0;int64_t retailTestId=0;double retailTestTime=0,retailTestV=-3;const char* retailTestWait="";
+    bool retailTest() const { return smoke&&std::getenv("R1WORLD_RETAIL_SMOKE"); }
+    // R1WORLD_RETAIL_SHOT=<png> with R1WORLD_RETAIL_SHOT_AT=outside|inside|
+    // anchor photographs the store the traversal chose, facing into it (or,
+    // for "anchor", from behind a mall's checkouts toward its supermarket),
+    // then ends the run: the test says the door opens, only a picture says
+    // it looks like a shop (rule 1 of CLAUDE.md).
+    bool retailShot(const char* moment,const r1::InteriorPlan& plan,r1::P2 facing={0,0}) {
+        const char* path=std::getenv("R1WORLD_RETAIL_SHOT");
+        const char* at=std::getenv("R1WORLD_RETAIL_SHOT_AT");
+        if(!path||!at||std::string(at)!=moment)return false;
+        if(facing.x==0&&facing.y==0)facing=plan.inward;
+        yaw=std::atan2(facing.x,-facing.y)/rad;
+        if(captureQueued)return true;
+        saida::CaptureRequest shot;
+        shot.pngPath=path;shot.frame=30;shot.fixedStep=1.f/60.f;shot.settleTimeoutFrames=900;
+        captureQueued=true;
+        saida::Log::info("[World retail E2E] photographing ",plan.name," ",moment," to ",path);
+        engine.captureFrameThenExit(shot);
+        return true;
+    }
+    void runRetailTest(double dt) {
+        smokeStarted=false;retailTestTime+=dt;
+        auto fail=[&](const char* why){saida::Log::error("[World retail E2E] FAIL ",why);testFailed=true;engine.sceneTree().quit();};
+        if(retailTestTime>45){saida::Log::error("[World retail E2E] phase=",retailTestPhase," v=",retailTestV," waiting=",retailTestWait);fail("interior traversal timed out");return;}
+        Loaded* owner=nullptr;LiveInterior* found=nullptr;
+        for(auto& [key,t]:loaded)for(auto& r:t.interiors)
+            if((retailTestId&&r.plan.id==retailTestId)||(!retailTestId&&r.node)) {owner=&t;found=&r;break;}
+        if(!found)return;
+        auto& r=*found;retailTestId=r.plan.id;
+        auto position=[&](double u,double v){auto p=r.plan.point(u,v);return r1::Anchor::at(owner->data.at("lon"),owner->data.at("lat"),0).toGeodetic(p.x,r.plan.floor,p.y);};
+        // A shop near a tile edge has its forecourt in the neighbour, which
+        // may still be streaming: wait for it rather than walk off the world.
+        auto resident=[&](double v){auto p=position(0,v);retailTestWait="a tile at the shop to stream in";return tile(p.x,p.y)!=nullptr;};
+        auto move=[&](double v,bool check){auto p=position(0,v);if(check&&blocked(p.x,p.y,alt))return false;
+            lon=p.x;lat=p.y;alt=height(lon,lat,alt);return true;};
+        if(retailTestPhase==0) {if(!r.node||!resident(-18)||!resident(12))return;
+            const std::string shotAt=std::getenv("R1WORLD_RETAIL_SHOT_AT")?std::getenv("R1WORLD_RETAIL_SHOT_AT"):"";
+            if(shotAt=="outside"){move(-18,false);retailShot("outside",r.plan);return;}
+            if(shotAt=="anchor") {
+                if(!r.plan.anchor){fail("no supermarket mapped inside this store");return;}
+                const r1::P2 a=*r.plan.anchor,d=r.plan.door;const double l=r1::dist(a,d);
+                const r1::P2 toward{(a.x-d.x)/l,(a.y-d.y)/l};
+                // Just behind the checkout line, on the store's side.
+                const auto spot=r1::Anchor::at(owner->data.at("lon"),owner->data.at("lat"),0)
+                    .toGeodetic(d.x+toward.x*(l/2+6),r.plan.floor,d.y+toward.y*(l/2+6));
+                lon=spot.x;lat=spot.y;alt=height(lon,lat,alt);
+                retailShot("anchor",r.plan,toward);return;
+            }
+            move(-3,false);retailTestPhase=1;return;}
+        if(retailTestPhase==1) {
+            if(retailTestV<2&&r.opening<.99)return;
+            retailTestV=std::min(12.,retailTestV+std::min(dt,.1)*5.);
+            if(!move(retailTestV,true)){fail("open doorway or central aisle blocked");return;}
+            if(retailTestV>=12){saida::Log::info("[World retail E2E] entered ",r.plan.name," and walked 12 m inside");
+                if(retailShot("inside",r.plan)){retailTestV=12;return;}
+                retailTestPhase=2;}
+            return;
+        }
+        if(retailTestPhase==2) {
+            retailTestV=std::max(-6.,retailTestV-std::min(dt,.1)*5.);
+            if(retailTestV<3&&r.opening<.99)return;
+            if(!move(retailTestV,true)){fail("return through automatic door blocked");return;}
+            if(retailTestV<=-6)retailTestPhase=3;
+            return;
+        }
+        if(retailTestPhase==3) {
+            if(r.opening>.001)return;
+            auto door=position(0,0),wall=position(-r.plan.width/2-.5,0);
+            if(!blocked(door.x,door.y,alt)){fail("closed door not solid");return;}
+            if(!blocked(wall.x,wall.y,alt)){fail("facade not solid");return;}
+            if(!resident(-95))return;
+            move(-95,false);retailTestPhase=4;return;
+        }
+        if(retailTestPhase==4) {
+            if(r.node){fail("interior not released outside radius");return;}
+            move(-3,false);retailTestPhase=5;return;
+        }
+        if(retailTestPhase==5&&r.node&&r.opening>.99) {
+            saida::Log::info("[World retail E2E] PASS entry, aisle, exit, closing, wall collision, eviction and regeneration");
+            engine.sceneTree().quit();
+        }
+    }
     std::unique_ptr<saida::Node> clonePlant(saida::Node& source) {
         std::unique_ptr<saida::Node> out;
         if(source.mesh())out=std::make_unique<saida::MeshNode>(source.name(),source.mesh(),source.material());
@@ -3351,7 +3848,9 @@ class World : public Rml::EventListener {
                 readGraph(entry->second);
                 readCrowd(entry->second);
                 mountAircraft(entry->second);
+                mountLettering(entry->second);
                 placeTiles();
+                reparkIfCovered(t.key());
                 lastMountMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-mountStarted).count();
                 const auto arena=engine.resources().geometryUsage();
                 saida::Log::info("[World streaming] mounted ",t.key()," mount_ms=",lastMountMs,
@@ -3449,7 +3948,7 @@ class World : public Rml::EventListener {
         }
     }
 public:
-    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
+    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),menuTiles(g),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
         residentIndexBudget=size_t(double(e.resources().geometryCapacity().indices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
@@ -3521,6 +4020,8 @@ public:
         // Nine tiles can be resident together. Leave 5% of their share for
         // landmarks that remain visible across a tile boundary.
         options.tileVertexTarget=std::min(r1::kTileVertexBudget,residentVertexBudget*95/900);
+        options.enrichRetail=true;
+        options.fetchCanopy=true;
         options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);};
         options.log=[](const std::string& line){saida::Log::info("[World service] ",line);};
         service=std::make_unique<r1::WorldService>(std::move(options));
@@ -3556,15 +4057,32 @@ public:
         if(id=="map") {
             auto* map=ui->findElementById("map");auto o=map->GetAbsoluteOffset();
             double x=event.GetParameter<float>("mouse_x",0)-o.x,y=event.GetParameter<float>("mouse_y",0)-o.y;
-            select((x+mapX)/(1344*zoom)*360-180,90-(y+mapY)/(560*zoom)*180);
+            const r1::MapPoint clicked=zoom>1?r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).pointAt(x,y)
+                                                :r1::MapPoint{x/1344.*360.-180.,90.-y/560.*180.};
+            select(clicked.lon,clicked.lat);
+            field("city-query",std::string());showCityChoices({});
             warming=true;if(!smoke)request(pickLon,pickLat);
         } else if(id=="go")go();
         else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
         else if(id=="zoom-in")zoomMap(zoom*2);
         else if(id=="zoom-out")zoomMap(zoom/2);
+        else if(id=="street-map")zoomMap(std::max(zoom,32768.));
         else if(id=="reset-map")zoomMap(1);
+        else if(id.rfind("city-choice-",0)==0) {
+            const int choice=id.back()-'0';
+            if(choice>=0&&choice<int(cityChoices.size())) {
+                const auto selected=cityChoices[size_t(choice)];
+                select(selected.lon,selected.lat);zoomMap(std::max(zoom,2048.));
+                field("city-query",selected.label);
+                cityInput=citySubmitted=selected.label;
+                showCityChoices({});
+                warming=true;if(!smoke)request(pickLon,pickLat);
+            }
+        }
         else {std::map<std::string,glm::dvec2> places{{"paris",{2.3522,48.8566}},{"tokyo",{139.7671,35.6812}},{"newyork",{-73.9855,40.758}},{"lawrence",{-95.2436,38.9585}},{"cape",{18.4241,-33.9249}},{"sydney",{151.2093,-33.8688}},{"pole",{0.,90.}}};
-            if(places.count(id)){auto p=places.at(id);select(p.x,p.y);zoomMap(zoom);warming=true;request(pickLon,pickLat);}}
+            if(places.count(id)){auto p=places.at(id);select(p.x,p.y);zoomMap(zoom);
+                field("city-query",std::string());showCityChoices({});
+                warming=true;request(pickLon,pickLat);}}
     }
     // The driver's own two phases, kept out of update() so the flow reads:
     // walk, drive, then either teleport or finish.
@@ -4151,7 +4669,8 @@ public:
         cost=FrameCost{};
         if(generation!=ui->documentGeneration()||listeners.empty()) {
             generation=ui->documentGeneration();listeners.clear();
-            for(auto id:{"map","go","resume","zoom-in","zoom-out","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole"})
+            for(auto id:{"map","go","resume","zoom-in","zoom-out","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
+                         "city-choice-0","city-choice-1","city-choice-2","city-choice-3","city-choice-4"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
             if(!listeners.empty()) {
@@ -4163,7 +4682,26 @@ public:
                     if(std::abs(pickLon-expectedLon)>1e-5||std::abs(pickLat-expectedLat)>1e-5){
                         saida::Log::error("[World E2E] FAIL map click coordinate conversion");testFailed=true;engine.sceneTree().quit();return;
                     }
-                    select(sx,sy);
+                    select(sx,sy);zoomMap(2);
+                    const r1::MapPoint zoomClick=r1::MapView(sx,sy,mapZoomLevel()).pointAt(10,10);
+                    testClick("map");
+                    if(std::abs(pickLon-zoomClick.lon)>1e-5||std::abs(pickLat-zoomClick.lat)>1e-5){
+                        saida::Log::error("[World E2E] FAIL detailed map click coordinate conversion");
+                        testFailed=true;engine.sceneTree().quit();return;
+                    }
+                    select(sx,sy);testClick("street-map",false);
+                    if(mapZoomLevel()!=17){
+                        saida::Log::error("[World E2E] FAIL street map zoom level");testFailed=true;engine.sceneTree().quit();return;
+                    }
+                    zoomMap(1);
+                    showCityChoices({{"Paris","Paris · France",2.3522,48.8566}});
+                    testClick("city-choice-0",false);
+                    if(std::abs(pickLon-2.3522)>1e-5||std::abs(pickLat-48.8566)>1e-5||
+                       value("longitude")!=number(2.3522)||value("latitude")!=number(48.8566)) {
+                        saida::Log::error("[World E2E] FAIL city suggestion did not fill destination");
+                        testFailed=true;engine.sceneTree().quit();return;
+                    }
+                    field("city-query",std::string());select(sx,sy);
                     // The press alone must start the journey.
                     goCount=0;testClick("go",false);
                     if(!pending||goCount!=1){saida::Log::error("[World E2E] FAIL Go press, pending=",pending," calls=",goCount);testFailed=true;engine.sceneTree().quit();return;}
@@ -4175,6 +4713,8 @@ public:
             }
         }
         clock+=delta;
+        updateCityLookup();
+        if(menu&&zoom>1&&menuTiles.pump())renderMapTiles();
         if(smoke && pending && refused==tileAt(pickLon,pickLat).key()) {
             saida::Log::error("[World E2E] FAIL ",refused," did not fit the resident vertex budget");
             testFailed=true;engine.sceneTree().quit();return;
@@ -4209,6 +4749,7 @@ public:
         cost.parts=timed([&]{uploadParts();});
         if(!playing)cost.warm=timed([&]{warm();});
         if(!playing||menu)return;
+        updateInteriors(delta);
         const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail)
                         ||(piloting&&std::abs(plane.speed)>kFastDetail);
         seaTime+=delta;
@@ -4253,6 +4794,7 @@ public:
         double f=(w.keyDown(GLFW_KEY_W)||w.keyDown(GLFW_KEY_Z)?1.:0.)-(w.keyDown(GLFW_KEY_S)?1.:0.);
         double r=(w.keyDown(GLFW_KEY_D)?1.:0.)-(w.keyDown(GLFW_KEY_A)||w.keyDown(GLFW_KEY_Q)?1.:0.);
         if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
+        if(retailTest())f=r=0;
         if(smokeApproach) {
             auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
             yaw=std::atan2(to.x,-to.z)/rad;f=1;r=0;
@@ -4388,6 +4930,13 @@ public:
                     }
                     jumpOffset=0;jumpVelocity=0;
                 }
+                for(auto& [key,t]:loaded)for(auto& room:t.interiors) {
+                    const auto p=t.frame.local(ecef(lon,lat,alt));
+                    if(r1::pointInPolygon({p.x,p.z},room.plan.ring)) {
+                        const double limit=std::max(0.,room.plan.ceiling-room.plan.floor-playerHeight-.12);
+                        if(jumpOffset>limit){jumpOffset=limit;jumpVelocity=std::min(0.,jumpVelocity);}
+                    }
+                }
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
                 const bool sprint=moving&&w.keyDown(GLFW_KEY_LEFT_SHIFT);
                 for(auto* a:animators)a->play(jumpOffset>0?"jump":sprint?"sprint":moving?"run":"idle");
@@ -4437,11 +4986,21 @@ public:
                     auto edge=q-p;double den=cross(v,edge);
                     if(std::abs(den)<1e-9)continue;
                     double along=cross(p-a,edge)/den,side=cross(p-a,v)/den;
+                    if(shape.interior>=0) {
+                        const auto& room=t.interiors[size_t(shape.interior)];
+                        const auto hit=a+v*along;const auto door=room.plan.local({hit.x,hit.y});
+                        if(j==room.plan.edge&&std::abs(door.x)<room.plan.width*.5*room.opening&&eyeY<room.plan.floor+2.5)continue;
+                    }
                     if(along>=0&&along<=1&&side>=0&&side<=1)clear=std::min(clear,std::max(.15,along*maxFollow-.3));
                 }
             }
         }
         // Keep the camera above terrain and inside loaded tiles as well.
+        for(auto& [key,t]:loaded)for(auto& room:t.interiors) {
+            auto p=t.frame.local(ecef(lon,lat,alt));
+            if(r1::pointInPolygon({p.x,p.z},room.plan.ring)&&backward.y>.01)
+                clear=std::min(clear,std::max(.15,(room.plan.ceiling-p.y-eye-.2)/backward.y));
+        }
         for(double d=.25;d<=clear;d+=.25){
             auto q=onward(lon,lat,backward.x*d,-backward.z*d);
             if(!tile(q.x,q.y)&&piloting)continue;  // in the air, unstreamed ground ahead is no wall
@@ -4501,6 +5060,15 @@ public:
                 mode+=" · Rues et bâtiments en route (OpenStreetMap)";
             if(currentTile&&currentTile->data.value("groundPending",false))
                 mode+=" · Relief provisoire : altitude en cours de chargement";
+            std::string retailPlace;
+            for(const auto& [key,t]:loaded) {
+                auto p=t.frame.local(ecef(lon,lat,alt));const r1::P2 q{p.x,p.z};
+                for(const auto& room:t.interiors)if(r1::pointInPolygon(q,room.plan.ring))retailPlace=room.plan.place(q);
+                if(!retailPlace.empty())break;
+                for(const auto& lot:t.parking){bool in=false;for(const auto& ring:lot.rings)in^=r1::pointInPolygon(q,ring);
+                    if(in){retailPlace="Parking de "+lot.name;break;}}
+            }
+            if(!retailPlace.empty())mode=" · "+retailPlace+mode;
             text("stream-status",std::to_string(loaded.size())+" tuiles actives"+mode
                  +(fast?" · détail réduit à cette vitesse":""));
         }
@@ -4512,6 +5080,7 @@ public:
                              "m, body depth=",rootBelow,"m, car parked=",carParked);
             engine.sceneTree().quit();return;
         }
+        if(retailTest()){runRetailTest(delta);return;}
         if(smokeFlyWait||smokeFlyPhase){runSmokeFly(delta);return;}
         if(smokeSailWait||smokeSailing){runSmokeSail(delta);return;}
         if(smokeSwimming){runSmokeSwim(delta);return;}

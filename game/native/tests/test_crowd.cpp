@@ -17,7 +17,7 @@ struct Street {
     ElevationGrid grid{{-0.001, -0.001, 0.001, 0.001}, 2, {0.0, 0.0, 0.0, 0.0}};
     std::vector<OsmWay> roads = {way(1, {{-0.0009, 0.0}, {0.0009, 0.0}}, {{"highway", "residential"}, {"width", "6"}})};
     std::vector<OsmNode> features;
-    std::vector<OsmWay> buildingWays;
+    std::vector<OsmWay> buildingWays = {way(9, {{0.0, 0.0001}}, {{"building", "house"}})};
     std::vector<Ring> footprints;
     nlohmann::json props = nlohmann::json::array();
     nlohmann::json cook() {
@@ -79,6 +79,44 @@ TEST(Crowd, the_open_country_holds_nobody) {
     const auto doc = s.cook();
     CHECK(doc["people"].get<int>() == 0);
     CHECK(doc["nodes"].empty());
+}
+TEST(Crowd, an_empty_rural_road_has_no_crowd_even_with_a_sidewalk) {
+    Street s;
+    s.buildingWays.clear();
+    const auto doc = s.cook();
+    CHECK(!doc["links"].empty());
+    CHECK(doc["people"] == 0);
+    for (const auto& link : doc["links"]) CHECK(link[3].get<double>() == 0);
+}
+TEST(Crowd, compact_housing_and_apartments_raise_local_demand) {
+    Street sparse, compact, flats;
+    sparse.buildingWays.clear(); compact.buildingWays.clear(); flats.buildingWays.clear();
+    for (int i = 0; i < 4; ++i) {
+        sparse.buildingWays.push_back(way(100 + i, {{-0.0008 + i * 0.0005, 0.00015}}, {{"building", "house"}}));
+        compact.buildingWays.push_back(way(100 + i, {{0.00003 * i, 0.00015}}, {{"building", "house"}}));
+    }
+    flats.buildingWays.push_back(way(200, {{0.0, 0.00015}}, {{"building", "apartments"}, {"building:levels", "6"}}));
+    const auto a = sparse.cook(), b = compact.cook(), c = flats.cook();
+    CHECK(b["people"].get<int>() > a["people"].get<int>());
+    CHECK(c["people"].get<int>() > a["people"].get<int>());
+    const WalkGraph graph = WalkGraph::from(b);
+    double near = 0, far = 0;
+    for (const auto& link : graph.links) {
+        const auto& n = graph.nodes[link.a];
+        if (std::abs(n.x) < 30) near = std::max(near, link.demand);
+        if (std::abs(n.x) > 85) far = std::max(far, link.demand);
+    }
+    CHECK(near > far);
+    CHECK(far < near * 0.5);
+    Crowd crowd;
+    crowd.reset(&graph, 31, {{1.0, 2.4}});
+    crowd.setPopulation(8);
+    Crowd::Scene scene;
+    scene.eyeZ = 100;
+    for (int frame = 0; frame < 120; ++frame) crowd.update(1.0 / 30, scene);
+    CHECK(crowd.live() > 0);
+    for (const auto& walker : crowd.walkers())
+        if (walker.alive && walker.link >= 0) CHECK(graph.links[walker.link].demand > 0);
 }
 TEST(Crowd, shops_and_stops_bring_people_up_to_a_ceiling) {
     Street quiet, busy;
@@ -279,9 +317,10 @@ TEST(Crowd, a_walker_closes_on_whoever_is_ahead_of_them) {
     NEAR(crowd.speedAlong(size_t(i), -hz, hx), 0.0, 1e-9);
 }
 TEST(Crowd, someone_walking_at_a_player_who_stands_there_steps_round_him) {
-    Street s;
-    const WalkGraph g = WalkGraph::from(s.cook());
-    Crowd crowd = settled(g, 13, 30);
+    WalkGraph g;
+    g.nodes = {{-100, 0, 0, {0}}, {100, 0, 0, {0}}};
+    g.links = {{0, 1, false, 200, 1}};
+    Crowd crowd = settled(g, 13, 1);
     const int i = alone(crowd, true);
     CHECK(i >= 0);
     const Walker& w = crowd.walkers()[i];
@@ -306,8 +345,8 @@ TEST(Crowd, people_look_up_at_the_player_passing_in_front_not_behind) {
     int looked = 0, behind = 0, tried = 0;
     std::set<int> done;
     for (int attempt = 0; attempt < 12; ++attempt) {
-        int i = alone(crowd, false, done, 1.5);
-        if (i < 0) i = alone(crowd, true, done, 1.5);
+        int i = alone(crowd, true, done, 1.5);
+        if (i < 0) i = alone(crowd, false, done, 1.5);
         if (i < 0) break;
         done.insert(i);
         ++tried;

@@ -66,7 +66,7 @@ travail créatif commence au rang 5 et il est porté par l'Atlas
 (`assets/world/atlas.json`).
 
 **On ne reproduit pas :** les intérieurs réels (ils sont générés, §8), les
-personnes réelles et les plaques, les enseignes de marques, la
+personnes réelles et les plaques, les logos exacts des marques, la
 photogrammétrie (elle ne se corrige pas), ni l'exactitude au-delà de la donnée
 disponible.
 
@@ -120,6 +120,7 @@ tuile dit lequel a répondu.
 | Banquise (glace de mer, son âge) | NOAA CoastWatch/PolarWatch, ASCAT Metop-C | libre, sans garantie |
 | Trait de côte hors ligne | Natural Earth | domaine public |
 | Trafic maritime moyen | Global Shipping Traffic Density (Banque mondiale) | CC BY 4.0 |
+| Canopée (arbres, haies, hauteur) | High Resolution Canopy Height Maps (Meta & WRI), 1 m, images 2009-2020 | CC BY 4.0 |
 
 Les données dérivées d'OSM sont soumises à l'ODbL, avec attribution visible en
 jeu. Aucune source `CC BY-NC`. Les assets sont **CC0** (Poly Haven, ambientCG,
@@ -262,16 +263,97 @@ machine de référence (I4).
 - **Optimisé** : instances partagées et animations simples, avec un budget par
   tuile et rien au-delà du rayon proche.
 
-### Market update
+### Mall / magasins — générateur v23
 - **Des magasins qui ressemblent à des magasins** : les bâtiments tagués
   `shop=*` (ou dont le rez-de-chaussée porte un commerce) reçoivent une
-  devanture (vitrine, auvent, enseigne générique) au lieu de la façade
-  générique. Jamais de marque réelle.
-- **On peut entrer** : une porte praticable, et un intérieur stylé, propre au
-  type de commerce (boulangerie, supérette, vêtements, café...).
+  devanture, une marquise, des vitrines encadrées et le **nom OSM de
+  l'enseigne** (`name`, puis `brand`). Un nom générique reste le secours
+  lorsque la donnée manque. Décision du 30 septembre 2026 : les noms réels
+  sont désormais permis ; les logos et l'architecture exacte ne sont pas inventés.
+- **On peut entrer** : double porte coulissante automatique, ouverte des deux
+  côtés, seuil raccordé au terrain, plancher horizontal, collisions des murs
+  et des meubles. Le rez-de-chaussée occupe l'emprise entière ; les étages
+  supplémentaires, escaliers et ascenseurs restent à développer.
+- **Des aménagements par usage** : rayonnages et caisses, présentoirs de
+  boulangerie, portants de vêtements, kiosques de galerie. Une circulation
+  centrale reste dégagée. L'emprise est observée, l'aménagement synthétisé.
+- **Trois tailles de supermarché** : la supérette (Carrefour City, Vannes), la
+  moyenne surface (Carrefour Market, Theix) et l'hypermarché dans sa galerie
+  (Carrefour dans Le Fourchêne, Vannes). Un nœud `shop=supermarket` cartographié
+  dans une galerie en devient l'ancre : sa position est mesurée, la surface de
+  vente autour d'elle reçoit des gondoles de 7,5 m (trois instances du même
+  rayon) et une ligne de caisses face à la galerie.
+- **La porte s'ouvre sur une vraie entrée** : les entrées publiques
+  cartographiées seulement (pas `access=private`, ni secours ni sortie) ; parmi
+  elles, celle dont l'allée est la plus profonde. Sinon la porte est inférée
+  vers le parking, sur une allée d'au moins 6 m.
+- **Le parking appartient au magasin** : emprises `amenity=parking`, asphalte,
+  places et cheminement piéton. Rattachement au commerce voisin indiqué comme
+  inféré. À défaut, un parvis peut être inféré dans une parcelle commerciale
+  adaptée ; une simple surface de béton ne suffit pas. Routes, eau et
+  bâtiments sont exclus ; les tracés suivent le terrain et traversent les tuiles.
 - **Généré seulement quand on s'approche** : l'intérieur n'existe qu'à portée
-  de la porte, il est construit à ce moment-là et libéré en s'éloignant, sans
-  rien coûter au reste du monde.
+  de la porte (65 m), il est libéré au-delà de 85 m ; deux intérieurs au plus,
+  avec contrôle de l'arène et priorité à celui où se trouve le joueur.
+  Les meubles sont des instances de prototypes partagés (128 présentoirs et
+  deux caisses au plus ; un hypermarché ancré a des gondoles de trois modules
+  et douze caisses), les petits emballages ne projettent pas d'ombres.
+- **Socle des prochains intérieurs** : `native/gen/interiors.*` expose un plan
+  sérialisable (emprise, sol, plafond, portail, recette), puis l'aménagement et
+  la géométrie. La donnée OSM et les parkings restent dans `retail.*`. Les
+  futures prisons, gendarmeries et églises ajouteront leurs recettes et leurs
+  règles d'accès sans recopier la logique des portes ou du streaming.
+- **Observations anciennes** : une couche `.retail.json` complète les anciens
+  caches sans remplacer l'OSM existant ni bloquer l'arrivée. Une fois présente,
+  elle n'est jamais revalidée ; son absence est indiquée dans le manifeste.
+
+### Végétation update
+- **La végétation est mesurée, pas seulement inférée** : la carte mondiale de
+  hauteur de canopée de Meta et WRI (1 m) dit où sont les arbres et les haies,
+  y compris ceux qu'OSM n'a jamais tracés (rangées le long d'un parking,
+  arbres isolés, bocage). C'est une couche d'observation générique
+  (`native/gen/canopy.*`), que tout système peut interroger : végétation,
+  animaux, ombre…
+- **Compacte, pour tenir le monde entier hors ligne** : la carte brute (des
+  dizaines de téraoctets) n'est jamais gardée. Chaque tuile devient une grille
+  de 48 × 48 cellules (~12 m) : arbre (≥ 3 m), végétation basse (1-3 m) ou
+  rien, plus la hauteur médiane par bloc de ~100 m, codée par un modèle de
+  contexte (comme JBIG). Mesuré : ~200 octets par tuile en bocage breton,
+  2 octets en mer ; ~7 Go estimés pour toutes les terres. Un fichier par degré
+  carré, jamais un fichier par tuile.
+- **Téléchargée une fois, par bandes** : une bande de la carte source couvre
+  78 km ; la convertir remplit une centaine de tuiles d'un coup. Le jeu la lit
+  ensuite hors ligne.
+- **Le mesuré gagne** : un arbre inféré (bord de route, remplissage d'un parc
+  ou d'une forêt) ne reste que là où la canopée voit un arbre ; chaque cellule
+  arborée vide reçoit un arbre photoscanné à la hauteur mesurée, chaque cellule
+  basse un arbuste. Les arbres et rangées cartographiés dans OSM restent à leur
+  place. Budget : 640 arbres par tuile mesurée (320 sinon).
+
+### Station-service update
+- **Une station n'est jamais un magasin** : `amenity=fuel` (souvent tagué
+  `shop=gas`) et un toit sans murs (`building=roof`) n'ont ni rayons ni portes
+  coulissantes.
+- **L'auvent est un auvent** : l'emprise cartographiée (`building=roof`, ou le
+  `wall=no` du cadastre quand une station s'y trouve) devient une dalle sur
+  colonnes, 4,7 m de dégagement et 0,9 m de bandeau, qu'on traverse à pied ou en
+  voiture. Un `building=roof` quelconque devient un toit sur poteaux. Les autres
+  constructions légères du cadastre (`wall=no`) gardent leurs murs.
+- **Sous l'auvent** : îlots, pompes, écrans, bornes et colonnes, synthétisés
+  sur le rectangle de l'auvent (rien dans OSM ne dit où sont les pompes). Les
+  îlots et le totem sont des obstacles ; l'auvent n'en est pas un.
+- **Le bandeau dit « station-service » dans la langue du pays** (STATION-SERVICE,
+  TANKSTELLE, ESTACIÓN DE SERVICIO, PETROL STATION…), sur la couleur de
+  l'enseigne. Le pays vient de la réponse OSM, sinon des frontières embarquées.
+  Quand la police ne sait pas écrire la langue (autre alphabet), le bandeau
+  porte la marque, et le manifeste le dit. Le totem, au bord de la route, porte
+  la marque et aucun prix : un prix n'est pas observé.
+- **Sans auvent cartographié**, un auvent est inféré (18 × 9 m sur un nœud,
+  dans l'emprise d'une zone), le long de la route et à l'écart des bâtiments et
+  des chaussées ; s'il ne tient pas, le manifeste en donne la raison.
+- **Observations** : la requête 9 demande les stations ; la couche
+  `.retail.json` passe en version 2 pour les apporter aux anciens caches.
+  L'ancienne couche reste lue hors ligne en attendant.
 
 ### Beach update
 - Sur les plages OSM (`natural=beach`) quand l'heure, la saison et la météo s'y

@@ -4,10 +4,9 @@
 // Where they walk is surveyed: the sidewalks the streets are drawn with
 // (tagged or inferred exactly as `streets.cpp` infers them), OSM's footways,
 // pedestrian streets and paths, and the benches the props put down. How many
-// is inferred and says so (PLAN §3 I5): it follows what the tile holds --
-// shops and offices, bus stops, crossings, buildings, pavement -- and, at
-// run time, the local hour and the rain. A commercial avenue at noon is
-// busy, a village is quiet, the open country at night is empty.
+// is inferred and says so (PLAN §3 I5): it follows the homes and active
+// buildings near each path, the number of floors and how closely homes stand
+// together. At run time, the local hour and rain scale that population.
 //
 // The simulation needs no engine: the game draws what it decides, and the
 // tests run it headless. Among what it decides is how people meet the player:
@@ -25,7 +24,7 @@
 
 namespace r1 {
 
-constexpr int kCrowdRevision = 1;
+constexpr int kCrowdRevision = 2;
 // Most people a tile's content can ask for, before the hour is applied.
 constexpr int kCrowdTileCeiling = 40;
 // bench.glb's seat, as a fraction of its height (0.237 of 0.526, measured
@@ -46,7 +45,7 @@ double crowdHourFactor(double hour);
 
 struct WalkGraph {
     struct Node { double x = 0, y = 0, z = 0; std::vector<int> links; };
-    struct Link { int a = 0, b = 0; bool crossing = false; double length = 0; };
+    struct Link { int a = 0, b = 0; bool crossing = false; double length = 0, demand = 1; };
     struct Seat { double x = 0, y = 0, z = 0, yaw = 0; };  // y: the seat's top
     std::vector<Node> nodes;
     std::vector<Link> links;
@@ -138,6 +137,8 @@ private:
     std::vector<CrowdPace> pace_;
     std::vector<Walker> walkers_;
     std::vector<int> seatTaken_;
+    std::vector<std::pair<double, int>> spawnChoices_;
+    double spawnDemand_ = 0;
     uint64_t state_ = 1;
     int wanted_ = 0;
 };

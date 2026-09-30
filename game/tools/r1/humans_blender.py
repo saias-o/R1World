@@ -144,7 +144,7 @@ leg_length = leg(arm)
 # Materials: the scan's own colour maps, reduced; no specular or normal maps,
 # which is what a character at this distance can spare.
 for slot in body.material_slots:
-    kind = next(k for k in ("opacity", "head", "body") if slot.material.name.endswith(k))
+    kind = next(k for k in ("opacity", "head", "body", "hat") if slot.material.name.endswith(k))
     if kind not in job["textures"]:
         raise SystemExit(f"{job['name']}: material {slot.material.name} has no texture")
     mat = bpy.data.materials.new(f"{job['name']}_{kind}")

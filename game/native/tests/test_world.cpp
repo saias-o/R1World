@@ -2,6 +2,7 @@
 #include "check.hpp"
 
 #include "gen/buildings.hpp"
+#include "gen/clip.hpp"
 #include "gen/cook.hpp"
 #include "gen/harbours.hpp"
 #include "gen/landmarks.hpp"
@@ -11,6 +12,7 @@
 #include "gen/sources.hpp"
 #include "gen/streets.hpp"
 #include "gen/terrain.hpp"
+#include "gen/waterways.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -46,6 +48,16 @@ double area(const Mesh& m) {
         total += std::abs((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x)) / 2;
     }
     return total;
+}
+bool covers(const Mesh& mesh, P2 p) {
+    auto cross = [](P2 a, P2 b, P2 q) { return (b.x - a.x) * (q.y - a.y) - (b.y - a.y) * (q.x - a.x); };
+    for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
+        const P3 a = mesh.positions[mesh.indices[i]], b = mesh.positions[mesh.indices[i + 1]], c = mesh.positions[mesh.indices[i + 2]];
+        const P2 aa{a.x, a.z}, bb{b.x, b.z}, cc{c.x, c.z};
+        const double ab = cross(aa, bb, p), bc = cross(bb, cc, p), ca = cross(cc, aa, p);
+        if ((ab >= -1e-7 && bc >= -1e-7 && ca >= -1e-7) || (ab <= 1e-7 && bc <= 1e-7 && ca <= 1e-7)) return true;
+    }
+    return false;
 }
 }  // namespace
 
@@ -155,6 +167,31 @@ TEST(Streets, the_carriageway_covers_its_width_and_nothing_more) {
     NEAR(area(part(out.parts, "Carriageway")->mesh), out.stats["carriagewayAreaM2"].get<double>(), 1.0);
     NEAR(out.stats["carriagewayAreaM2"].get<double>(), 111.3 * 6, 5.0);
 }
+TEST(Streets, sharp_bend_has_continuous_carriageway_and_sidewalk_edges) {
+    Slope s;
+    for (const auto& axis : {std::vector<P2>{{-25, 0}, {0, 0}, {0, 25}},
+                             std::vector<P2>{{-25, 0}, {0, 0}, {-18, 12}}}) {
+        std::vector<P2> geographic;
+        for (P2 p : axis) {
+            const P3 g = s.anchor.toGeodetic(p.x, 0, p.y);
+            geographic.push_back({g.x, g.y});
+        }
+        const auto out = s.streets({way(2, geographic, {{"highway", "residential"}, {"width", "6"},
+                                                           {"sidewalk", "both"}, {"sidewalk:width", "2"}})});
+        const MeshPart* road = part(out.parts, "Carriageway");
+        const MeshPart* walk = part(out.parts, "Sidewalks");
+        CHECK(road && walk);
+        // Sample the outside arc of both a right-angle bend and a near hairpin.
+        for (double angle : {-1.3, -0.9, -0.45, 0.0, 0.4}) {
+            const P2 onRoad{2.5 * std::cos(angle), 2.5 * std::sin(angle)};
+            const P2 onWalk{4.0 * std::cos(angle), 4.0 * std::sin(angle)};
+            CHECK_MSG(covers(road->mesh, onRoad), "road at " << angle);
+            CHECK_MSG(covers(walk->mesh, onWalk), "walk at " << angle);
+        }
+        NEAR(area(road->mesh), out.stats["carriagewayAreaM2"].get<double>(), 0.15);
+        NEAR(area(walk->mesh), out.stats["sidewalkAreaM2"].get<double>(), 0.15);
+    }
+}
 TEST(Streets, a_zebra_needs_a_surveyed_marking) {
     Slope s;
     for (const auto& [marking, expected] : std::vector<std::pair<std::string, int>>{{"zebra", 1}, {"no", 0}, {"yes", 0}}) {
@@ -170,6 +207,18 @@ TEST(Streets, pavement_is_cut_out_of_building_footprints) {
     const auto with = buildStreets({s.road}, {}, s.grid, s.anchor, {footprint});
     const auto without = s.streets({s.road});
     CHECK(with.stats["sidewalkAreaM2"].get<double>() < without.stats["sidewalkAreaM2"].get<double>() - 10);
+}
+
+TEST(Water, a_mapped_river_line_has_a_visible_width_without_mapped_banks) {
+    const Anchor anchor = Anchor::at(2.35, 48.85);
+    const P3 a = anchor.toGeodetic(-60, 0, 0), b = anchor.toGeodetic(60, 0, 0);
+    const auto region = inlandWaterRegion({way(1, {{a.x, a.y}, {b.x, b.y}}, {{"waterway", "river"}})}, anchor);
+    CHECK(clip::contains(region, P2{0, 10}));
+    CHECK(!clip::contains(region, P2{0, 19}));
+    const auto measured = inlandWaterRegion({way(2, {{a.x, a.y}, {b.x, b.y}},
+                                                 {{"waterway", "river"}, {"width", "80 m"}})}, anchor);
+    CHECK(clip::contains(measured, P2{0, 35}));
+    CHECK(!clip::contains(measured, P2{0, 45}));
 }
 
 // ── the sea ─────────────────────────────────────────────────────────────────
@@ -272,6 +321,28 @@ TEST(Props, a_bench_faces_the_street) {
     const double yaw = 2 * std::atan2(out.nodes[0]["transform"]["rotation"][1].get<double>(), out.nodes[0]["transform"]["rotation"][3].get<double>());
     NEAR(std::abs(std::sin(yaw)), 1.0, 1e-9);  // along the street, which runs east-west
 }
+TEST(Nature, rural_roads_gain_trees_beyond_the_shoulder) {
+    const Tile tile = tileAt(2.3522, 48.8566);
+    const P2 centre = tile.center();
+    const Anchor anchor = Anchor::at(centre.x, centre.y);
+    OsmData osm;
+    osm.country = "FR";
+    osm.roads.push_back(way(99, {{centre.x - 0.001, centre.y}, {centre.x + 0.001, centre.y}},
+                            {{"highway", "tertiary"}, {"width", "6"}}));
+    const auto ground = [&](double lon, double lat) { return anchor.toEngine(lon, lat, 0); };
+    const auto open = planNature(osm, tile, anchor, ground);
+    CHECK(open.stats["bySource"]["inferred-rural-roadside"].get<int>() > 4);
+    for (const auto& tree : open.nodes) {
+        const auto& p = tree["transform"]["position"];
+        CHECK(std::abs(p[2].get<double>()) > 3.7);  // beyond the 3 m half carriageway
+    }
+    osm.buildings.push_back(way(100, {{centre.x - 0.001, centre.y + 0.00017},
+                                        {centre.x + 0.001, centre.y + 0.00017},
+                                        {centre.x + 0.001, centre.y + 0.00022},
+                                        {centre.x - 0.001, centre.y + 0.00022}}, {{"building", "yes"}}));
+    const auto settled = planNature(osm, tile, anchor, ground);
+    CHECK(settled.stats["trees"].get<int>() < open.stats["trees"].get<int>());
+}
 
 TEST(Traffic, a_street_is_two_lanes_and_a_one_way_is_one) {
     auto ground = [](double lon, double lat) { return P3{lon * 111320, 0, -lat * 111320}; };
@@ -356,6 +427,21 @@ TEST(Cook, a_dense_paris_tile_fits_its_budget_and_says_what_it_inferred) {
     CHECK(t.manifest["inference"]["heightMeasured"].get<int>() + t.manifest["inference"]["heightInferred"].get<int>() ==
           t.manifest["inference"]["count"].get<int>());
     CHECK(t.manifest["region"] == "Paris intra-muros");
+}
+TEST(Cook, the_seine_has_visible_inland_water_and_swimmable_cells) {
+    const CookedTile t = cookTile(paris(Tile{27770, 23997}));
+    CHECK(!part(t.parts, "Inland water"));
+    bool waterNode = false;
+    for (const auto& p : t.props)
+        if (p.value("type", std::string()) == "Water" && p.value("name", std::string()) == "Inland water") {
+            CHECK(p.at("surface").is_string() && !p.at("surface").get<std::string>().empty());
+            waterNode = true;
+        }
+    CHECK(waterNode);
+    bool riverCell = false;
+    for (const auto& row : t.manifest["water"])
+        riverCell |= row.get<std::string>().find('1') != std::string::npos;
+    CHECK(riverCell);
 }
 TEST(Cook, the_heart_of_paris_is_busy_and_its_people_have_somewhere_to_walk) {
     const CookedTile t = cookTile(paris(tileAt(2.3522, 48.8566)));

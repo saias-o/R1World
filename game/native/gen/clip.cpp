@@ -79,6 +79,13 @@ Paths64 bufferLine(const std::vector<P2>& line, double half, const Grid& grid) {
     return InflatePaths({path}, half * grid.scale, JoinType::Miter, EndType::Butt, 5.0);
 }
 
+Paths64 bufferLineRoundJoins(const std::vector<P2>& line, double half, const Grid& grid) {
+    Path64 path = grid.path(line);
+    if (path.size() < 2) return {};
+    const double tolerance = half * grid.scale * (1.0 - std::cos(kPi / 16.0));
+    return InflatePaths({path}, half * grid.scale, JoinType::Round, EndType::Butt, 2.0, tolerance);
+}
+
 Paths64 bufferRound(const std::vector<P2>& line, double distance, const Grid& grid) {
     Path64 path = grid.path(line);
     if (path.empty()) return {};
@@ -102,34 +109,42 @@ Paths64 singleSided(const std::vector<P2>& line, double distance, const Grid& gr
     std::vector<P2> pts;
     for (const P2& p : line) if (pts.empty() || dist(pts.back(), p) > 1e-9) pts.push_back(p);
     if (pts.size() < 2) return {};
-    // The offset polyline, mitred at each joint (limit 5, as shapely).
-    std::vector<P2> offset;
-    const size_t n = pts.size();
-    for (size_t i = 0; i < n; ++i) {
-        auto normal = [&](size_t a, size_t b) {
-            const double dx = pts[b].x - pts[a].x, dy = pts[b].y - pts[a].y, l = std::hypot(dx, dy);
-            return P2{-dy / l, dx / l};
-        };
-        P2 nrm;
-        if (i == 0) nrm = normal(0, 1);
-        else if (i == n - 1) nrm = normal(n - 2, n - 1);
-        else {
-            const P2 a = normal(i - 1, i), b = normal(i, i + 1);
-            P2 m{a.x + b.x, a.y + b.y};
-            const double l = std::hypot(m.x, m.y);
-            if (l < 1e-9) nrm = a;
-            else {
-                m = {m.x / l, m.y / l};
-                const double cosHalf = m.x * a.x + m.y * a.y;
-                const double k = 1.0 / std::max(cosHalf, 1.0 / 5.0);
-                nrm = {m.x * k, m.y * k};
-            }
-        }
-        offset.push_back({pts[i].x + nrm.x * distance, pts[i].y + nrm.y * distance});
+    // Union the segment bands first. At a bend the outer side needs a join;
+    // joining the two offset endpoints with a circular sector avoids the
+    // spikes and self-intersections of a long mitre on a hairpin.
+    Paths64 pieces;
+    auto addPiece = [&](const std::vector<P2>& outline) {
+        Path64 p = grid.path(outline);
+        if (Area(p) < 0) std::reverse(p.begin(), p.end());
+        if (p.size() >= 3) pieces.push_back(std::move(p));
+    };
+    const double radius = std::abs(distance);
+    const double sign = distance > 0 ? 1.0 : -1.0;
+    std::vector<P2> normals;
+    for (size_t i = 0; i + 1 < pts.size(); ++i) {
+        const double dx = pts[i + 1].x - pts[i].x, dy = pts[i + 1].y - pts[i].y;
+        const double len = std::hypot(dx, dy);
+        const P2 n{-dy / len * sign, dx / len * sign};
+        normals.push_back(n);
+        addPiece({pts[i], pts[i + 1],
+                  {pts[i + 1].x + n.x * radius, pts[i + 1].y + n.y * radius},
+                  {pts[i].x + n.x * radius, pts[i].y + n.y * radius}});
     }
-    std::vector<P2> band(pts.begin(), pts.end());
-    band.insert(band.end(), offset.rbegin(), offset.rend());
-    return Union({grid.path(band)}, FillRule::NonZero);
+    for (size_t i = 1; i + 1 < pts.size(); ++i) {
+        const P2 a = normals[i - 1], b = normals[i];
+        const double cross = a.x * b.y - a.y * b.x;
+        if (cross * sign >= -1e-12) continue;  // the inner bands overlap
+        const double sweep = std::atan2(cross, a.x * b.x + a.y * b.y);
+        const int steps = std::max(1, int(std::ceil(std::abs(sweep) / (kPi / 16.0))));
+        const double angle = std::atan2(a.y, a.x);
+        std::vector<P2> sector{pts[i]};
+        for (int j = 0; j <= steps; ++j) {
+            const double t = angle + sweep * j / steps;
+            sector.push_back({pts[i].x + radius * std::cos(t), pts[i].y + radius * std::sin(t)});
+        }
+        addPiece(sector);
+    }
+    return Union(pieces, FillRule::NonZero);
 }
 
 std::vector<std::array<P2, 3>> triangles(const Polygon& polygon) {

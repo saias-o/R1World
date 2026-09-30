@@ -85,7 +85,19 @@ int main(int argc, char** argv) {
             r1::Observations in;
             in.tile = tile;
             const auto parseStart = std::chrono::steady_clock::now();
-            in.osm = std::make_shared<const r1::OsmData>(r1::normalizeOsm(*document, aero ? &*aero : nullptr));
+            std::optional<nlohmann::json> retail;
+            if(const auto path=store.osmPath(tile,shared)) {
+                auto layer=store.retailPath(tile,shared,*path);
+                if((!layer||!store.retailCurrent(*layer))&&fetch&&store.queryVersion(*path)<9) {
+                    auto target=store.retailTarget(tile,shared);retail=store.fetchRetail(target.region,target.path);
+                } else if(layer)retail=r1::readJson(*layer);
+            }
+            in.osm = std::make_shared<const r1::OsmData>(r1::normalizeOsm(*document, aero ? &*aero : nullptr,retail?&*retail:nullptr));
+            in.canopy = r1::storedCanopy(game, tile);
+            if (!in.canopy && fetch) {
+                for (const auto& [t, c] : r1::fetchCanopyBand(tile)) r1::storeCanopy(game, t, c);
+                in.canopy = r1::storedCanopy(game, tile);
+            }
             in.airportsPending = line.value("airportsPending", false);
             line["parseMs"] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - parseStart).count();
             in.elevations = ground->first;
@@ -111,7 +123,8 @@ int main(int argc, char** argv) {
             line["parts"] = parts;
             line["props"] = cooked.props.size();
             for (const char* k : {"streets", "inference", "props", "nature", "harbour", "ground", "water", "landmarks",
-                                  "landmarkReplacedWays", "boats", "decks", "airports", "aircraft", "osmQueryVersion"})
+                                  "landmarkReplacedWays", "boats", "decks", "airports", "aircraft", "osmQueryVersion", "retail", "interiors",
+                                  "fuel", "lettering", "nature"})
                 line["manifest"][k] = cooked.manifest[k];
             line["manifest"]["traffic"] = {{"nodes", cooked.manifest["traffic"]["nodes"].size()},
                                            {"lanes", cooked.manifest["traffic"]["lanes"].size()},

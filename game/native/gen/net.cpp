@@ -137,7 +137,7 @@ std::string urlEncode(const std::string& text) {
 }
 
 Response request(const std::string& method, const std::string& url, const std::string& body,
-                 const std::string& contentType, double timeoutSeconds) {
+                 const std::string& contentType, double timeoutSeconds, const std::vector<std::string>& extra) {
 #ifdef _WIN32
     Handle session(openSession(timeoutSeconds));
     const Target target = crack(url);
@@ -156,6 +156,7 @@ Response request(const std::string& method, const std::string& url, const std::s
     // whole query, twenty seconds of every first visit, before the mirror.
     std::wstring headers = L"Accept: application/json, */*;q=0.8\r\n";
     if (!contentType.empty()) headers += L"Content-Type: " + widen(contentType) + L"\r\n";
+    for (const auto& line : extra) headers += widen(line) + L"\r\n";
     if (!WinHttpSendRequest(req.h, headers.c_str(), DWORD(-1L), body.empty() ? nullptr : (void*)body.data(),
                             DWORD(body.size()), DWORD(body.size()), 0))
         fail("sending the request");
@@ -177,7 +178,7 @@ Response request(const std::string& method, const std::string& url, const std::s
     }
     return out;
 #else
-    (void)method; (void)url; (void)body; (void)contentType; (void)timeoutSeconds;
+    (void)method; (void)url; (void)body; (void)contentType; (void)timeoutSeconds; (void)extra;
     throw Unreachable("no HTTP client in this build", true);
 #endif
 }

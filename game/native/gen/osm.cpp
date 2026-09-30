@@ -26,14 +26,16 @@ bool in(const std::string* value, std::initializer_list<const char*> set) {
 }
 }  // namespace
 
-OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer) {
+OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer,const nlohmann::json* retail) {
     OsmData out;
     out.queryVersion = document.value("r1QueryVersion", 1);
+    out.retailQueried=out.queryVersion>=8 || retail;
+    out.fuelQueried=out.queryVersion>=9 || (retail && retail->value("r1RetailVersion",1)>=2);
     std::unordered_map<int64_t, P2> nodes;
     std::vector<const nlohmann::json*> rawWays;
     std::set<P2> trees;
     std::unordered_set<int64_t> featureIds, wayIds;
-    for (const nlohmann::json* doc : {&document, layer}) {
+    for (const nlohmann::json* doc : {&document, layer, retail}) {
         if (!doc) continue;
         auto elements = doc->find("elements");
         if (elements == doc->end() || !elements->is_array()) continue;

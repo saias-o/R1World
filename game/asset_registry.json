@@ -5,6 +5,11 @@
             "path": "assets/world/landmarks/brandenburg_gate-r3-lod2.glb",
             "type": "Mesh"
         },
+        "10010063076584490247": {
+            "hash": 8545913652154076289,
+            "path": "assets/world/countries.geojson",
+            "type": "Unknown"
+        },
         "10013366607930000696": {
             "hash": 7073655531894829955,
             "path": "assets/textures/facades/brick_red_albedo.jpg",
@@ -535,6 +540,11 @@
             "path": "assets/world/landmarks/big_ben-r3-lod2.glb",
             "type": "Mesh"
         },
+        "12385525861479726670": {
+            "hash": 4038239543039788738,
+            "path": "assets/models/humans/male_adult_18.glb",
+            "type": "Mesh"
+        },
         "12461648921615326159": {
             "hash": 13251805563787844752,
             "path": "assets/world/land.geojson",
@@ -793,6 +803,11 @@
         "13364844173682816487": {
             "hash": 14380532268296838643,
             "path": "assets/models/signs/fr_ab3a-urban-r1.glb",
+            "type": "Mesh"
+        },
+        "13367253993292805644": {
+            "hash": 985349241762809945,
+            "path": "assets/models/humans/male_adult_04.glb",
             "type": "Mesh"
         },
         "1340907221348222990": {
@@ -1101,7 +1116,7 @@
             "type": "Texture"
         },
         "14927369103000231322": {
-            "hash": 8410532606302981505,
+            "hash": 8672801407294185267,
             "path": "assets/models/humans/humans.json",
             "type": "Unknown"
         },
@@ -1153,6 +1168,11 @@
         "15230685323533265631": {
             "hash": 10180550142249699681,
             "path": "assets/models/external/kenney_boats/boat_speed_c.glb",
+            "type": "Mesh"
+        },
+        "15247092769261668782": {
+            "hash": 6043226018940022389,
+            "path": "assets/models/humans/business_female_01.glb",
             "type": "Mesh"
         },
         "152887799373816789": {
@@ -1299,6 +1319,11 @@
             "hash": 7713755728187426623,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_01_1k.gltf",
             "type": "Mesh"
+        },
+        "15881761677752857747": {
+            "hash": 3433396264526452506,
+            "path": "assets/textures/interiors/fascia_letters.png",
+            "type": "Texture"
         },
         "15974402442436961515": {
             "hash": 4374929012918634023,
@@ -2365,6 +2390,11 @@
             "path": "assets/models/aircraft/helicopter.glb",
             "type": "Mesh"
         },
+        "4896343495331187592": {
+            "hash": 6283017925745937887,
+            "path": "assets/models/humans/male_adult_07.glb",
+            "type": "Mesh"
+        },
         "4925740750151711135": {
             "hash": 5686412886186456060,
             "path": "assets/world/landmarks/pyramid_of_khafre-r3-lod1.glb",
@@ -2835,6 +2865,11 @@
             "path": "assets/models/external/nature_cards/fir_sapling.png",
             "type": "Texture"
         },
+        "734759255514477107": {
+            "hash": 567403949208219665,
+            "path": "assets/models/humans/male_adult_12.glb",
+            "type": "Mesh"
+        },
         "7354099867524448850": {
             "hash": 6658882727818342631,
             "path": "assets/models/signs/street/glyph_00ca-r1.glb",
@@ -2883,6 +2918,11 @@
         "7510321396640266857": {
             "hash": 15473776865347200900,
             "path": "assets/world/landmarks/big_ben-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "752658616283445923": {
+            "hash": 1755770235125931955,
+            "path": "assets/models/humans/pilot_female_02.glb",
             "type": "Mesh"
         },
         "7537605783923696026": {
@@ -2976,7 +3016,7 @@
             "type": "Texture"
         },
         "8048464438721485733": {
-            "hash": 9299411426929405241,
+            "hash": 6303935963115393764,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -3199,6 +3239,16 @@
             "hash": 4922853095590361822,
             "path": "assets/textures/surfaces/mud_normal.jpg",
             "type": "Texture"
+        },
+        "9459580185804515766": {
+            "hash": 16117557981898286773,
+            "path": "assets/textures/interiors/mineral_albedo.jpg",
+            "type": "Texture"
+        },
+        "9531899325394617047": {
+            "hash": 9138481336586677878,
+            "path": "assets/models/humans/female_adult_11.glb",
+            "type": "Mesh"
         },
         "9559921789908334708": {
             "hash": 8048768953048098509,

@@ -163,4 +163,8 @@ struct PredictOutput {
 PredictOutput predictDetails(const OsmData& osm, const Tile& tile, const Anchor& anchor, const GroundAt& ground,
                              const std::optional<Bounds>& extent = std::nullopt);
 
+// Shared font meshes already shipped for street signs, fitted to a fascia.
+// Null when this font cannot spell the observed name; never silently respell it.
+std::optional<nlohmann::json> facadeLettering(const std::string& name, double width, double height);
+
 }  // namespace r1

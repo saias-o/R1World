@@ -1,4 +1,5 @@
 #include "buildings.hpp"
+#include "fuel.hpp"
 
 #include <algorithm>
 #include <regex>
@@ -214,6 +215,8 @@ std::string aviationKind(const Tags& tags) {
 }
 // Albedos: tinted glass over dark mullions, galvanised cladding, a steel roof.
 const Swatch kTerminalWall{"Terminal glazing", {0.085, 0.10, 0.11}, 0.25, 1.0};
+const Swatch kRetailWall{"Retail corrugated cladding", {0.19, 0.20, 0.205}, 0.8, 1.0};
+const Swatch kRetailRoof{"Retail metal roof", {0.12, 0.13, 0.14}, 0.8, 1.0};
 const Swatch kHangarWall{"Hangar cladding, corrugated steel", {0.21, 0.215, 0.22}, 0.55, 1.0};
 const Swatch kAviationRoof{"Aviation roof, metal seam", {0.18, 0.185, 0.19}, 0.5, 1.0};
 
@@ -565,6 +568,7 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
     BuildingStats& stats = out.stats;
     std::vector<Planned> planned;
     PartyWallIndex party;
+    CanopyBook canopies;
     for (const OsmWay* way : ways) {
         std::vector<P2> raw(way->points.begin(), way->points.end() - 1);
         std::vector<P3> placed;
@@ -592,6 +596,14 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const double rectangularity = box.area() > 1e-6 ? std::abs(polygonArea(*ring)) / box.area() : 0.0;
         const bool commercial = profile.isCommercial(way->tags);
         Gabarit gabarit = planGabarit(way->tags, way->id, profile, box, rectangularity, commercial);
+        const bool retail = retailUse(way->tags);
+        if (retail && (tagOr(way->tags,"building")=="retail" || tagOr(way->tags,"building")=="supermarket" || tagOr(way->tags,"building")=="mall")) {
+            if (gabarit.heightSource=="atlas") { gabarit.wallHeight=retailRecipe(way->tags)=="mall"?7.5:5.2;gabarit.storeys=1; }
+            if (gabarit.roofSource!="tag:shape") {
+                if(gabarit.heightSource=="tag:height")gabarit.wallHeight+=gabarit.roofHeight;
+                gabarit.roofShape="flat";gabarit.roofHeight=0;gabarit.roofSource="atlas:retail";
+            }
+        }
         if (const std::string kind = aviationKind(way->tags); !kind.empty()) {
             if (gabarit.heightSource == "atlas") {
                 gabarit.wallHeight = kind == "terminal" ? 15.0 : 12.0;
@@ -611,10 +623,13 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         for (const P2& p : *ring) { cx += p.x; cz += p.y; }
         cx /= ring->size(); cz /= ring->size();
         const double distance = std::hypot(cx - detailCenter.x, cz - detailCenter.y);
-        planned.push_back({way->id, &way->tags, std::move(*ring), ground, foundation, box, gabarit, commercial,
+        const double floor=retail?*std::max_element(samples.begin(),samples.end())+.08:ground;
+        planned.push_back({way->id, &way->tags, std::move(*ring), floor, foundation, box, gabarit, commercial,
                            distance <= detailRadius});
     }
     for (size_t owner = 0; owner < planned.size(); ++owner) {
+        // A roof on posts shares no wall with anyone.
+        if (openRoof(*planned[owner].tags)) continue;
         const Ring& r = planned[owner].ring;
         for (size_t e = 0; e < r.size(); ++e) party.add(int(owner), r[e], r[(e + 1) % r.size()]);
     }
@@ -625,6 +640,14 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
     for (size_t owner = 0; owner < planned.size(); ++owner) {
         const Planned& b = planned[owner];
         const Gabarit& g = b.gabarit;
+        // An open roof is no footprint: people and cars pass under it. What
+        // stands under a fuel canopy is added as obstacles below. It is
+        // counted apart from the buildings (the manifest's fuel.openRoofs).
+        if (openRoof(*b.tags)) {
+            buildOpenRoof(b.ring, b.box, b.ground, g.wallHeight, *b.tags, b.id, canopies);
+            ++out.openRoofs;
+            continue;
+        }
         ++stats.total;
         out.footprints.push_back(b.ring);
         ++stats.shapes[g.roofShape];
@@ -638,8 +661,9 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const Swatch& regionalWall = profile.wallSwatch(wallRng);
         const Swatch& regionalRoof = profile.roofSwatch(roofRng);
         const std::string aviation = aviationKind(*b.tags);
-        const Swatch& wallSwatch = aviation == "terminal" ? kTerminalWall : aviation == "hangar" ? kHangarWall : regionalWall;
-        const Swatch& roofSwatch = aviation.empty() ? regionalRoof : kAviationRoof;
+        const bool retailCladding=retailUse(*b.tags)&&tagOr(*b.tags,"building")=="retail"&&g.storeys<=2;
+        const Swatch& wallSwatch = aviation == "terminal" ? kTerminalWall : aviation == "hangar" ? kHangarWall : retailCladding?kRetailWall:regionalWall;
+        const Swatch& roofSwatch = aviation.empty() ? (retailCladding&&g.roofShape=="flat"?kRetailRoof:regionalRoof) : kAviationRoof;
         Mesh& wallMesh = walls.mesh(wallSwatch);
         Mesh& roofMesh = roofs.mesh(roofSwatch);
         const double yEave = b.ground + g.wallHeight;
@@ -650,6 +674,28 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const auto levels = floorLevels(g.wallHeight, g.storeys, profile, b.commercial);
         const bool raised = truthy(taggedLength(tagOr(*b.tags, "min_height"))) ||
                             truthy(taggedLength(tagOr(*b.tags, "building:min_level")));
+        std::optional<InteriorPlan> interior;
+        if (retailUse(*b.tags) && !raised && g.wallHeight>=3.1) {
+            InteriorPlan p;p.id=b.id;p.ring=b.ring;p.floor=b.ground;p.footprint=out.footprints.size()-1;
+            p.ceiling=p.floor+std::min(4.2,g.wallHeight-.15);p.recipe=retailRecipe(*b.tags);p.name=retailName(*b.tags);
+            p.nameSource=has(*b.tags,"name")?"measured:name":has(*b.tags,"brand")?"measured:brand":"synthesized";
+            p.entranceSource=tagOr(*b.tags,"r1:entranceSource","inferred");
+            if(const auto at=retailPoints(tagOr(*b.tags,"r1:anchor"));!at.empty()) {
+                p.anchor=at.front();p.anchorName=tagOr(*b.tags,"r1:anchorName");
+            }
+            auto targets=retailFronts(*b.tags);
+            if(targets.empty())targets.push_back({b.box.cx,b.box.cz});
+            double offset=0;
+            if(chooseRetailPortal(p,targets,[&](size_t e){return !party.isParty(int(owner),b.ring[e],b.ring[(e+1)%b.ring.size()]);},&offset)) {
+                // A mapped entrance that faced a wall gave way to a clearer
+                // door elsewhere: the manifest must not call that one measured.
+                if(offset>1.5)p.entranceSource="inferred";
+                // The approach meets the sampled terrain four metres outside.
+                p.approach=p.floor-.08;
+                interior=p;out.interiors.push_back(p);
+                for(auto& part:buildShopfront(p))out.parts.push_back(std::move(part));
+            }
+        }
         const size_t count = b.ring.size();
         for (size_t e = 0; e < count; ++e) {
             const P2 p0 = b.ring[e], p1 = b.ring[(e + 1) % count];
@@ -657,6 +703,12 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             if (!frame) continue;
             const bool unifiedBase = lod != BuildingLod::Full && !b.detailed;
             const double base = !raised && unifiedBase ? b.foundation - b.ground : 0.0;
+            if(interior) {
+                face(foundations.mesh(wallSwatch), *frame, 0.0, b.foundation-b.ground, frame->length, 0.0);
+                const double low=interior->ceiling-b.ground;
+                if(g.wallHeight>low)face(wallMesh,*frame,0.,low,frame->length,g.wallHeight);
+                continue;
+            }
             if (!raised && !unifiedBase)
                 face(foundations.mesh(wallSwatch), *frame, 0.0, b.foundation - b.ground, frame->length, 0.0);
             const bool shared = party.isParty(int(owner), p0, p1);
@@ -709,6 +761,11 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         m.color = {profile.glass.color[0], profile.glass.color[1], profile.glass.color[2], 1.0};
         out.parts.push_back({"Openings \xE2\x80\x94 glazing", std::move(glass), m});
     }
+    for (auto& part : canopies.parts()) out.parts.push_back(std::move(part));
+    out.footprints.insert(out.footprints.end(), canopies.obstacles.begin(), canopies.obstacles.end());
+    out.tops.insert(out.tops.end(), canopies.obstacleTops.begin(), canopies.obstacleTops.end());
+    out.fuelStations = std::move(canopies.stations);
+    out.lettering = std::move(canopies.lettering);
     return out;
 }
 

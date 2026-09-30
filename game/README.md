@@ -10,8 +10,16 @@ pick any point on Earth and walk there?
 powershell -File game\Play.ps1
 ```
 
-A map of the Earth opens. Click a place, or type coordinates, or take one of the
-five shortcuts, then press **Go**. The starting tile is downloaded, cooked and
+A map of the Earth opens. Search for a city or commune, choose one of the ranked
+suggestions to fill its coordinates, then press **Go**. Search uses Photon while
+online, is debounced, and keeps the coordinate fields usable when unavailable.
+The whole-Earth image is a 4096 × 2048 Natural Earth overview; zooming switches
+to OpenStreetMap map tiles at their native resolution instead of enlarging an
+image. **Vue rue**
+jumps near street level, and the + button reaches zoom level 19 for precise
+placement. Only tiles in the visible menu viewport are requested, then kept
+in `cache/map-tiles/osm/` for offline reuse. New detail needs a connection.
+You can also click the map, type coordinates, or use a shortcut. The starting tile is downloaded, cooked and
 mounted first; you land as soon as it is safe, while surrounding tiles and
 decorative objects continue streaming during play:
 During play, a north-up minimap sits at the bottom left. It covers about 900 m,
@@ -1397,9 +1405,9 @@ shows most on an even grey sky.
 ## The people
 
 The player and everyone in the street are people now, not a kit figure: the
-Kenney block character is gone, and in its place are thirteen scanned and
-rigged avatars from Microsoft's **Rocketbox** library (MIT), everyday clothes
-only, six men and six women in the crowd and one for the player.
+Kenney block character is gone, and in its place are twenty scanned and
+rigged avatars from Microsoft's **Rocketbox** library (MIT): nineteen in the
+crowd and one for the player.
 
 ```powershell
 python -m r1.humans        # from game/tools, with Blender 4.2 installed
@@ -1430,9 +1438,9 @@ lasts.
 | Passer-by, near | 2 400 | 1 571–2 010 | 512 / 256 px |
 | Passer-by, far | 500 | 432–617 | same |
 
-A street pedestrian of the PS2's last years was 1.5–3 k triangles. The thirteen
-together are 33 181 shared vertices, which `test_humans.py` holds under
-40 000, the share of the arena that the trees, props, boats and fleets leave.
+A street pedestrian of the PS2's last years was 1.5–3 k triangles. The twenty
+together are 49 530 shared vertices, which `test_humans.py` holds under
+55 000, the share of the arena that the trees, props, boats and fleets leave.
 The colour maps are the scans' own, reduced. Their mean albedos (skin and cloth
 0.05–0.28) are measured, and the bake refuses a map above 0.35 (rule 2).
 
@@ -1447,6 +1455,16 @@ drawn at 0.8 covers ground at 0.8 of its captured speed. The player's run and
 sprint are retimed in the bake, so 2.8 m/s and 7 m/s (Shift) keep the feet on
 the ground. Passers-by walk at exactly their clip's pace, 0.81 m/s for the men
 and 0.97 m/s for the women.
+
+### Appearance by location
+
+`assets/world/countries.geojson` supplies country borders and subregions
+offline. Each tile uses its country to weight the crowd's supplied light,
+medium and dark skinned scans. Sub-Saharan African tiles, including Burkina
+Faso, target 97% darker avatars; European tiles use a different mix. The
+selection is stable per tile and walker slot, balances men and women, and
+keeps visual variety everywhere. These broad weights are gameplay defaults,
+not measured population statistics or a claim about anyone's ethnicity.
 
 ### Where they walk is surveyed
 
@@ -1782,3 +1800,159 @@ grid, summits are shaved (Corcovado reads 565 m instead of about 700 m), and
 the Christ stands on the terrain the game draws, not on the real summit.
 Bridges (Golden Gate, Tower Bridge) are not on the list: roads are draped on
 the ground and a deck would not carry the car.
+
+### Shops and interiors (generator v23)
+
+Retail buildings and buildings containing an OSM shop node receive a hollow
+shopfront, framed display windows, a canopy and their observed `name` / `brand`.
+The existing shared Latin sign font supplies the lettering; unsupported names
+are reported in the log. No exact logo or unobserved architecture is claimed.
+Double sliding doors use a sensor on both sides, a hold interval and the same
+opening fraction for geometry and passage collision. The complete ground-floor
+footprint is walkable, with level flooring, a terrain-connected threshold,
+ceiling clearance and collidable furniture. Upper floors are not yet furnished
+or connected by stairs. Glazing is represented by frames and reflection/safety
+strips; the renderer currently has no sorted transparent glass pass. A funeral
+home (`shop=funeral_directors`) is no walk-in store and keeps its building.
+
+The door opens on a mapped public entrance when the outline has one; staff,
+emergency and exit-only doors (`access=private`, `entrance=emergency|exit`)
+do not count. Every public entrance is a candidate and the one whose central
+aisle runs deepest into the room (up to 12 m) wins, so a vestibule facing a
+wall loses to a clear entrance. Without one, the door is inferred toward the
+nearest parking (else road), at the nearest point of the outline that opens on
+a 6 m aisle, and the manifest says `inferred`.
+
+`gen/interiors.hpp` is the reusable contract: `InteriorPlan` stores identity,
+footprint, portal, floor, ceiling, recipe and provenance; `layoutInterior`
+reserves circulation and places fittings; `buildInteriorShell` creates the room
+and `buildInteriorFixture` supplies shared furniture prototypes. Up to 128
+fittings plus two checkouts cover the floor; four seeded merchandise variants
+reuse the same meshes across instances and active rooms. Market, bakery, fashion
+and mall recipes share the contract.
+
+A supermarket node mapped inside a mall (Carrefour inside Le Fourchêne, Vannes)
+anchors that store: its measured position is kept in the plan (`anchor`,
+`anchorSource: measured:tenant-node`), and the floor nearer to it than to the
+door becomes its sales floor, the rest staying the gallery with its kiosks.
+The sales floor has 7.5 m gondolas, each three instances of the ordinary
+2.5 m shelf prototype, so the arena holds no extra vertex (Le Fourchêne:
+76 gondolas, 52 kiosks, 12 checkouts, 22 792 vertices, 60 frames a second).
+Up to twelve checkouts line the boundary with the gallery, and the store is
+lit over its checkouts and around its mapped position. The HUD reads
+"Carrefour · Le Fourchêne" there. The anchor's exact floor plan is not mapped:
+the split is synthesized, the position observed. The three sizes to compare
+are Carrefour City (near the lycée Lesage, Vannes, small), Carrefour Market (Theix,
+medium) and this hypermarket. Future civic/religious/prison recipes must
+supply their own spatial rules through this contract, not through retail tags.
+The runtime loads at 65 m, releases beyond 85 m and retains at most two rooms,
+prioritizing the player's room. Each room is limited to 24,000 vertices and is
+checked against actual remaining geometry capacity. Allocation failure is
+reported and keeps the building closed. This is a capacity contract, not a
+measured frame-rate guarantee on the reference GPU.
+
+`python -m r1.retail_materials` from `game/tools` rebuilds the dedicated mineral
+finish from the existing CC0 plaster scan, preserving its 1K resolution and
+normalizing linear albedo. It also extracts letter coverage from the existing
+sign atlas so fascia lettering has no baked green rectangles. The runtime
+performs no image processing. Neither floors nor cladding reuse facade sheets
+with baked windows.
+
+`gen/retail.*` attaches mapped tenant nodes and entrances to buildings and
+associates surface parking with nearby shops. Parking has its own asphalt,
+2.6 × 5 m synthesized bays, circulation gaps and a painted pedestrian spine.
+Building footprints, road corridors and mapped water/parks are subtracted;
+surfaces and paint are draped on the terrain. Both sides of a tile boundary
+can identify the shop owning a lot. The HUD identifies the store or its parking.
+The manifest records observed parking boundaries separately from inferred
+store ownership and synthesized markings. Inferred forecourts require a mapped
+retail parcel (or an asphalt commercial parcel); bare concrete alone is not
+classified as parking. Underground/multistorey/private lots are excluded.
+
+Overpass query 8 requests shops, entrances and parking. The game supplements
+older answers asynchronously with a `.retail.json` observation layer; once
+cached, that layer is reused offline. An unavailable supplement does not prevent
+playing and `retail.observationsQueried` reports the missing observations.
+`r1cook --fetch` can explicitly populate this layer; without `--fetch` it reads
+only disk. A layer is found beside any neighbourhood query covering the tile,
+even one whose own answer was never fetched because an older answer already
+covered it (the aero layer is found the same way).
+`r1test --game game Retail` exercises portal collision, deterministic
+concave layouts, tenant/entrance association, lettering and parking exclusions.
+`R1WORLD_RETAIL_SMOKE=1` with `--smoke --spawn <lon> <lat>` near a shop exercises
+entry, an interior aisle, exit, closing, eviction and regeneration in the game;
+it waits for the tiles in front of and inside the door to stream in.
+`R1WORLD_RETAIL_SHOT=<png>` with `R1WORLD_RETAIL_SHOT_AT=outside|inside|anchor`
+photographs the store instead (`anchor`: from behind a mall's checkouts toward
+its supermarket) and ends the run.
+
+### Fuel stations
+
+A station (`amenity=fuel`, often also tagged `shop=gas` or `shop=convenience`)
+and a roof with no walls (`building=roof`) are never stores. `gen/fuel.*` finds
+each station's canopy: the station way itself when it is mapped on the canopy,
+else the open roof or cadastre light construction (`wall=no`) the station node
+stands in, the one inside the station's area, or the nearest within 30 m. A
+canopy is drawn as a slab on columns (4.7 m clearance, 0.9 m fascia) that cars
+and walkers pass under; it is not a footprint. Any other `building=roof` is a
+roof on posts. The cadastre's other `wall=no` buildings keep their walls: it
+marks every shed that way.
+
+Under the canopy, pump islands follow its long axis (rows 8 m apart, islands
+9 m apart, 4.6 × 1.2 m), each with a column, two dispensers with screens and
+holsters, and yellow bollards. The islands are footprints (cars and walkers
+bump them). The fascia is in the brand's livery (a table of albedos, whole-word
+matches, neutral for an unknown brand) between white trims, and reads the word
+for a fuel station in the country's language: STATION-SERVICE, TANKSTELLE,
+ESTACIÓN DE SERVICIO, STAZIONE DI SERVIZIO, PETROL STATION, GAS STATION, STACJA
+PALIW and so on (`fuelTitle`). The country is the Overpass answer's, else the
+bundled borders' (`assets/world/countries.geojson`). The sign font spells Latin
+capitals and writes an accent it lacks as its plain letter (Č as C, as town
+signs do); a script it cannot spell leaves the brand on the fascia, and
+`fuel.title` says why. A totem stands 2 m off the nearest public road within
+45 m, clear of every footprint, with the brand and no price (a price is not
+observed). A station with no canopy mapped gets an inferred one (18 × 9 m along
+the nearest road, or inside its area), clear of buildings and roadways, or the
+manifest's reason why none fitted.
+
+The lettering is glyphs of the sign font, built by the game at mount
+(`lettering` in the manifest). Each glyph is a textured cell spanning 0.36 cap
+below the baseline to 1.36 above, so the whole cell is fitted inside the fascia.
+Overpass query 9 asks for `amenity=fuel`; the `.retail.json` layer, version 2,
+brings the stations to older answers, and a version 1 layer keeps being read
+offline until the new one lands. `r1test --game game Fuel` covers the canopy,
+islands, clearance, titles by country, inferred canopies and totems.
+
+### Measured canopy
+
+`gen/canopy.*` is a world layer: for each tile, a 48 x 48 grid (about 12 m a
+cell) saying where trees (3 m or taller over at least 5 % of the cell) and low
+vegetation (1-3 m over a quarter of it: hedges, shrubs) stand, and the median
+tree height of each 8 x 8 block. Any system may ask it (`storedCanopy`,
+`Canopy::classAt`, `Canopy::heightAt`); vegetation is the first.
+
+The source is Meta and WRI's High Resolution Canopy Height Maps (1 m, global,
+CC BY 4.0, from imagery of 2009-2020): zoom-9 Web Mercator BigTIFFs on AWS, one
+deflated row per strip. `fetchCanopyBand` reads the header, the offsets of the
+rows of one tile row and those rows (a few MB), and converts every tile of that
+band the rows cover, about a hundred. The raw map is never written to disk. The
+grid is coded by an adaptive binary range coder with a JBIG-like 10-cell
+context (tree plane, then the low plane where there is no tree, then the block
+heights): a Breton bocage tile is about 200 bytes, sea 2 bytes; about 7 GB for
+all the land of the planet. Records are appended to one file per square degree
+(`cache/world/canopy/<lat>_<lon>.r1c`), never one file per tile. The game fetches
+a missing band in the background and cooks the tiles again when it lands;
+`r1cook --fetch` does the same headless.
+
+With the canopy, `planNature` keeps an inferred tree (roadside, park, forest
+fill) only in a tree cell, gives every empty tree cell a tree at the measured
+height (trunk clear of roads and roofs, the crown may overhang them) and every
+low cell a shrub; surveyed OSM trees and rows keep their place. The tile's tree
+budget is then 640 (measured on the Theix periurban tile: the frame stays at
+60 fps, scene update +0.8 ms). The manifest's `nature.canopy` counts the cells,
+the trees placed and the inferred trees removed, and names the source.
+
+Collision reads every trunk of a tile when it mounts, not when each tree is
+drawn: a car parked a moment earlier no longer has a trunk grow through it. A
+building owned by a tile that streams in over the parked car moves the car to
+the nearest free spot, and the log says so.

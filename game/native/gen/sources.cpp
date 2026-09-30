@@ -120,10 +120,12 @@ std::optional<ObservationStore::Shared> ObservationStore::shared(const std::vect
 }
 
 std::vector<std::string> ObservationStore::candidates(const Tile& tile, const std::optional<Shared>& current,
-                                                     std::map<std::string, Bounds>* regions) const {
+                                                     std::map<std::string, Bounds>* regions,
+                                                     const std::string& sibling) const {
     std::vector<std::string> out;
     std::error_code ec;
-    auto add = [&](const std::string& path, const Bounds& region) {
+    auto add = [&](std::string path, const Bounds& region) {
+        if (!sibling.empty()) path = path.substr(0, path.size() - 5) + sibling;
         if (fs::exists(path, ec) && std::find(out.begin(), out.end(), path) == out.end()) {
             out.push_back(path);
             if (regions) (*regions)[path] = region;
@@ -178,21 +180,23 @@ namespace {
 // The question an answer on disk replied to, read from its last bytes: the
 // Python worker wrote its keys sorted, so `r1QueryVersion` is near the end,
 // and parsing ten megabytes to learn one number is what this avoids.
-int queryVersionOf(const std::string& path) {
+int versionOf(const std::string& path, const char* key) {
     std::ifstream f(path, std::ios::binary | std::ios::ate);
     const std::streamoff size = f.tellg();
     const std::streamoff take = std::min<std::streamoff>(size, 4096);
     f.seekg(size - take);
     std::string tail(size_t(take), ' ');
     f.read(tail.data(), take);
-    const auto at = tail.rfind("\"r1QueryVersion\"");
+    const auto at = tail.rfind("\"" + std::string(key) + "\"");
     if (at == std::string::npos) return 1;
     const auto colon = tail.find(':', at);
     return colon == std::string::npos ? 1 : std::atoi(tail.c_str() + colon + 1);
 }
+int queryVersionOf(const std::string& path) { return versionOf(path, "r1QueryVersion"); }
 }  // namespace
 
 int ObservationStore::queryVersion(const std::string& path) { return queryVersionOf(path); }
+bool ObservationStore::retailCurrent(const std::string& layer) { return versionOf(layer, "r1RetailVersion") >= kRetailLayerVersion; }
 
 bool ObservationStore::cached(const Tile& tile, const std::optional<Shared>& shared) const {
     return !candidates(tile, shared).empty() && (find(tile, "ground-elevation.json") || find(tile, "elevation.json"));
@@ -288,6 +292,12 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
   way[waterway]{B};
   way[water]{B};
   way[amenity=grave_yard]{B};
+  way[amenity=parking]{B};
+  way[shop]{B};
+  node[shop]{B};
+  way[amenity=fuel]{B};
+  node[amenity=fuel]{B};
+  node[entrance]{B};
   way[man_made~"^(pier|breakwater|groyne|quay)$"]{B};
   way[leisure=marina]{B};
   way[harbour]{B};
@@ -363,11 +373,8 @@ std::optional<std::string> ObservationStore::aeroPath(const Tile& tile, const st
                                                       const std::string& mainPath, bool& needed) const {
     needed = queryVersionOf(mainPath) < kOsmAeroVersion;
     if (!needed) return std::nullopt;
-    std::error_code ec;
-    for (const auto& candidate : candidates(tile, shared)) {
-        const std::string layer = aeroSibling(candidate);
-        if (fs::exists(layer, ec)) return layer;
-    }
+    const auto layers = candidates(tile, shared, nullptr, ".aero.json");
+    if (!layers.empty()) return layers.front();
     return std::nullopt;
 }
 
@@ -411,6 +418,35 @@ std::optional<nlohmann::json> ObservationStore::seaIce(double lon, double lat) c
     std::error_code ec;
     if (!fs::exists(path, ec)) return std::nullopt;
     return readJson(path);
+}
+
+std::optional<std::string> ObservationStore::retailPath(const Tile& tile,const std::optional<Shared>& shared,
+                                                       const std::string& mainPath) const {
+    if(queryVersionOf(mainPath)>=9)return std::nullopt;
+    // A layer of the current version first; an older one is still read
+    // while the current one is fetched (it has the shops, not the stations).
+    const auto layers=candidates(tile,shared,nullptr,".retail.json");
+    for(const auto& layer:layers)if(retailCurrent(layer))return layer;
+    if(!layers.empty())return layers.front();
+    return std::nullopt;
+}
+ObservationStore::Shared ObservationStore::retailTarget(const Tile& tile,const std::optional<Shared>& shared) const {
+    if(shared)return {shared->region,shared->path.substr(0,shared->path.size()-5)+".retail.json"};
+    return {tile.bounds(),tileFolder(tile)+"/osm.retail.json"};
+}
+nlohmann::json ObservationStore::fetchRetail(const Bounds& b,const std::string& path) const {
+    std::error_code ec;if(fs::exists(path,ec)&&retailCurrent(path))return readJson(path);
+    char bbox[160];std::snprintf(bbox,sizeof bbox,"(%.8f,%.8f,%.8f,%.8f)",b.south,b.west,b.north,b.east);
+    const std::string box=bbox;
+    const std::string query="[out:json][timeout:45];(way[amenity=parking]"+box+";way[shop]"+box+
+        ";node[shop]"+box+";node[entrance]"+box+";way[amenity=fuel]"+box+";node[amenity=fuel]"+box+
+        ";);out body;>;out skel qt;";
+    std::string failures;
+    for(int i:endpointOrder())try {
+        auto doc=nlohmann::json::parse(net::requestJson(kOverpass[i],"data="+net::urlEncode(query),"application/x-www-form-urlencoded"));
+        doc["r1RetailVersion"]=kRetailLayerVersion;writeJson(path,doc);return doc;
+    } catch(const std::exception& e){markDown(i);failures+=std::string(failures.empty()?"":" | ")+kOverpass[i]+": "+e.what();}
+    throw SourceUnavailable("retail observations unavailable: "+failures);
 }
 
 nlohmann::json ObservationStore::fetchSeaIce(double lon, double lat) const {

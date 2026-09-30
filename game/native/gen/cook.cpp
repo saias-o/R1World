@@ -11,11 +11,22 @@
 #include "seaice.hpp"
 #include "streets.hpp"
 #include "terrain.hpp"
+#include "waterways.hpp"
+#include "retail.hpp"
+#include "fuel.hpp"
 
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 
 namespace r1 {
+namespace {
+// Trees a tile may carry when the canopy is measured (a periurban tile has
+// about 500 tree cells, a forest tile 2 304: past this the densest keep a spread).
+constexpr int kMeasuredNatureBudget = 640;
+}  // namespace
+
 
 namespace {
 // Buildings are the full chain with its most expensive stage off: a negative
@@ -27,6 +38,20 @@ constexpr double kWorldDetailRadius = -1.0;
 constexpr double kWorldRoofThickness = 0.0;
 // One water cell per terrain quad, so the bitmap and the picture agree.
 constexpr int kWaterGrid = kTerrainMeshSize - 1;
+
+clip::Paths64 projectWater(const clip::Paths64& region, const Anchor& anchor) {
+    clip::Paths64 out;
+    for (const auto& path : region) {
+        std::vector<P2> points;
+        for (const auto& p : path) {
+            const P2 geo = clip::kDegrees.back(p);
+            const P3 at = anchor.toEngine(geo.x, geo.y, 0.0);
+            points.push_back({at.x, at.z});
+        }
+        out.push_back(clip::kMetres.path(points));
+    }
+    return out;
+}
 
 // Complete Overpass ways cut to the tile before elevation sampling, one
 // two-point way per surviving segment (Liang–Barsky).
@@ -113,6 +138,14 @@ CookedTile cookTile(const Observations& in) {
     // extruded, and their model stands in its place.
     LandmarkPlacement landmarks = placeLandmarks(bounds, ground, buildings);
     buildings = landmarks.kept;
+    auto retailWays=retailBuildings(buildings,osm,ground);
+    buildings.clear();for(auto& w:retailWays)buildings.push_back(&w);
+    // Fuel stations: each canopy marked, or inferred where none is mapped.
+    nlohmann::json fuelManifest=nlohmann::json::array();
+    // The country the answer names, else the bundled borders'.
+    const std::string fuelCountry=!osm.country.empty()?osm.country:countryAt(center.x,center.y);
+    auto fuelWays=fuelCanopies(buildings,osm,tile,fuelCountry,fuelManifest);
+    buildings.clear();for(auto& w:fuelWays)buildings.push_back(&w);
 
     const RegionProfile& profile = profileFor(center.x, center.y);
     const std::string climate = climateAt(profile.climate, center.y);
@@ -128,10 +161,26 @@ CookedTile cookTile(const Observations& in) {
     };
     BuildingLod buildingLod = BuildingLod::Full;
     BuildingOutput built = buildAtLod(buildingLod);
+    auto approaches=[&] {
+        for(auto& p:built.interiors) {
+            const auto a=p.point(0,-4);const auto geo=anchor.toGeodetic(a.x,0,a.y);
+            p.approach=ground(geo.x,geo.y).y+.09;
+        }
+    };
+    approaches();
     std::vector<Ring> footprints = built.footprints;
     footprints.insert(footprints.end(), landmarks.solids.begin(), landmarks.solids.end());
     std::vector<double> tops = built.tops;
     tops.insert(tops.end(), landmarks.solidTops.begin(), landmarks.solidTops.end());
+    // A totem by the road for each station, clear of what already stands.
+    CanopyBook totems;totems.stations=built.fuelStations;
+    placeFuelTotems(osm.roads,anchor,ground,footprints,totems);
+    footprints.insert(footprints.end(),totems.obstacles.begin(),totems.obstacles.end());
+    tops.insert(tops.end(),totems.obstacleTops.begin(),totems.obstacleTops.end());
+    const nlohmann::json totemLettering=totems.lettering;
+    nlohmann::json fuelCanopiesJson=totems.stations;
+    for(auto& c:fuelCanopiesJson){c.erase("ring");c.erase("centre");c.erase("ground");}
+    std::vector<MeshPart> totemParts=totems.parts();
 
     // Rank 9: the terrain partitioned by what OSM says the ground is.
     const Landcover landcover(osm.landcover);
@@ -144,11 +193,17 @@ CookedTile cookTile(const Observations& in) {
         sea = seaGeometry(osm.coastlines, bounds, elevationAt, harbour.coastline);
     }
     const auto tidal = tidalWater(osm.landcover, osm.maritime);
-    const Cells cells(bounds, kWaterGrid, sea ? &*sea : nullptr, landcover, elevationAt, tidal ? &*tidal : nullptr);
+    const clip::Paths64 inland = inlandWaterRegion(osm.waterways, anchor);
+    const auto inlandAt = [&](double lon, double lat) {
+        const P3 p = anchor.toEngine(lon, lat, 0.0);
+        return clip::contains(inland, P2{p.x, p.z});
+    };
+    const Cells cells(bounds, kWaterGrid, sea ? &*sea : nullptr, landcover, elevationAt,
+                      tidal ? &*tidal : nullptr, inlandAt);
     harbour.seaCells = cells.seaCells();
 
     auto classify = [&](double x, double y) -> std::string {
-        if (cells.seaAt(x, y)) return "water";
+        if (cells.at(x, y) > 0) return "water";
         const std::string* found = landcover.at(x, y);
         const std::string name = found ? *found : kInferred;
         if (name == "water") return name;
@@ -167,6 +222,12 @@ CookedTile cookTile(const Observations& in) {
     }
     const std::vector<OsmWay> roads = clipRoads(grades.roads, bounds);
     StreetOutput streets = buildStreets(roads, osm.features, elevations, anchor, footprints);
+    const ParkingOutput parking=buildRetailParking(osm,built.interiors,footprints,elevations,anchor);
+    Mesh inlandMesh(UvMode::Planar);
+    clip::Paths64 visibleInland = inland;
+    if (sea) visibleInland = clip::subtract(visibleInland, projectWater(sea->region, anchor));
+    if (tidal) visibleInland = clip::subtract(visibleInland, projectWater(*tidal, anchor));
+    if (!visibleInland.empty()) Drape(elevations, anchor).lay(visibleInland, 0.12, inlandMesh);
     BridgeOutput bridges = buildBridges(grades, bounds, elevations, anchor);
     // Road centre lines in engine metres, so a bench faces its street.
     std::vector<Segment2> roadSegments;
@@ -201,6 +262,8 @@ CookedTile cookTile(const Observations& in) {
         for (auto* list : {&terrainParts, &streets.parts, &bridges.parts, &harbourParts, &built.parts})
             for (MeshPart& p : *list) parts.push_back(p);
         for (const MeshPart& p : airports.parts) parts.push_back(p);
+        for (const MeshPart& p : parking.parts) parts.push_back(p);
+        for (const MeshPart& p : totemParts) parts.push_back(p);
         return parts;
     };
     std::vector<MeshPart> parts = assemble(works.parts);
@@ -212,6 +275,7 @@ CookedTile cookTile(const Observations& in) {
         if (vertexCount(parts) + landmarks.vertices <= target) break;
         buildingLod = lod;
         built = buildAtLod(lod);
+        approaches();
         parts = assemble(works.parts);
     }
     if (vertexCount(parts) + landmarks.vertices > kTileVertexBudget && harbour.piers) {
@@ -268,22 +332,43 @@ CookedTile cookTile(const Observations& in) {
             out.props.push_back(leads);
         }
         props.stats = {{"placed", 0}, {"droppedForBudget", 0}, {"byKind", nlohmann::json::object()}};
-        nature.stats = {{"revision", 2}, {"placed", 0}};
+        nature.stats = {{"revision", 3}, {"placed", 0}};
     } else if (ocean) {
         out.ocean = seaNode(bounds, anchor, "Ocean");
         out.ocean["amplitude"] = 0.05;
         out.ocean["wavelength"] = 12.0;
         props.stats = {{"placed", 0}, {"droppedForBudget", 0}, {"byKind", nlohmann::json::object()}};
-        nature.stats = {{"revision", 2}, {"placed", 0}};
+        nature.stats = {{"revision", 3}, {"placed", 0}};
     } else {
         out.parts = std::move(parts);
+        if (!inlandMesh.empty()) {
+            auto water = seaNode(bounds, anchor, "Inland water");
+            water["amplitude"] = 0.045;
+            water["wavelength"] = 5.0;
+            water["choppiness"] = 0.08;
+            water["foamIntensity"] = 0.01;
+            water["shoreFoam"] = 0.0;
+            std::ostringstream surface;
+            surface << std::fixed << std::setprecision(3);
+            for (uint32_t index : inlandMesh.indices) {
+                const P3 p = inlandMesh.positions[index];
+                surface << p.x << ' ' << p.y << ' ' << p.z << ' ';
+            }
+            water["surface"] = surface.str();
+            out.props.push_back(std::move(water));
+        }
         std::vector<const OsmNode*> inTile;
         for (const OsmNode& f : osm.features)
             if (bounds.west <= f.lon && f.lon <= bounds.east && bounds.south <= f.lat && f.lat <= bounds.north)
                 inTile.push_back(&f);
         props = planProps(inTile, ground, profile, roadSegments);
-        crowd = buildWalkGraph(roads, osm.features, buildings, footprints, elevations, anchor, props.nodes);
-        nature = planNature(osm, tile, anchor, ground);
+        std::vector<const OsmWay*> nearbyBuildings;
+        for (const OsmWay& b : osm.buildings) nearbyBuildings.push_back(&b);
+        crowd = buildWalkGraph(roads, osm.features, nearbyBuildings, footprints, elevations, anchor, props.nodes);
+        // Measured canopy places real trees; the budget must hold a tile's
+        // trees, not a sample of them (see kMeasuredNatureBudget).
+        nature = planNature(osm, tile, anchor, ground, in.canopy ? kMeasuredNatureBudget : 320,
+                            in.canopy ? &*in.canopy : nullptr);
         // The signs were placed on the surveyed ground: they stand on the dug
         // one, or on the embankment beside them.
         for (auto& n : predicted.nodes) {
@@ -358,6 +443,19 @@ CookedTile cookTile(const Observations& in) {
         {"seaIce", pack ? pack->stats : in.seaIce ? nlohmann::json({{"source", in.seaIce->source}, {"frozen", false}})
                                                : nlohmann::json()},
         {"generator", "C++"}};
+    out.manifest["interiors"]=nlohmann::json::array();
+    for(const auto& p:built.interiors)out.manifest["interiors"].push_back(p.json());
+    out.manifest["retail"]={{"revision",1},{"stores",built.interiors.size()},
+        {"parking",parking.manifest},{"observationsQueried",osm.retailQueried}};
+    const std::string fuelWord=fuelTitle(fuelCountry);
+    out.manifest["fuel"]={{"revision",1},{"stations",fuelManifest},{"canopies",fuelCanopiesJson},
+        {"country",fuelCountry},{"countrySource",osm.country.empty()?"bundled borders":"OSM boundary (ISO3166-1)"},
+        {"title",fuelWord.empty()?"brand (no word listed for this country)":
+            facadeLettering(fuelWord,14.0,0.4)?fuelWord:"brand (the sign font cannot spell "+fuelWord+")"},
+        {"openRoofs",built.openRoofs},{"observationsQueried",osm.fuelQueried}};
+    nlohmann::json lettering=built.lettering;
+    for(const auto& l:totemLettering)lettering.push_back(l);
+    out.manifest["lettering"]=lettering;
     out.cookMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
     return out;
 }

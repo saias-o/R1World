@@ -8,6 +8,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace r1::net {
 
@@ -26,8 +27,11 @@ public:
 };
 
 // Throws Unreachable; any HTTP status, success or not, is a Response.
+// `headers` are extra request header lines ("Range: bytes=0-15"), each
+// without its line break.
 Response request(const std::string& method, const std::string& url, const std::string& body = {},
-                 const std::string& contentType = {}, double timeoutSeconds = 120.0);
+                 const std::string& contentType = {}, double timeoutSeconds = 120.0,
+                 const std::vector<std::string>& headers = {});
 
 // A JSON request retried while the failure is "not now" (429, 503...) rather
 // than "no". Throws Unreachable, or

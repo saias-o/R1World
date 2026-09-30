@@ -5,6 +5,7 @@
 
 #include "palette.hpp"
 #include "polygons.hpp"
+#include "interiors.hpp"
 
 #include <functional>
 
@@ -28,7 +29,12 @@ struct BuildingOutput {
     // The highest point over each footprint, engine y: what an aircraft
     // clears or stops against, and what a helicopter lands on.
     std::vector<double> tops;
+    std::vector<InteriorPlan> interiors;
     BuildingStats stats;
+    // Open roofs (gen/fuel): their fuel canopies, and the canopy lettering.
+    nlohmann::json fuelStations = nlohmann::json::array();
+    nlohmann::json lettering = nlohmann::json::array();
+    int openRoofs = 0;
 };
 
 // `groundOf(lon, lat)` is the engine point on the terrain. A negative

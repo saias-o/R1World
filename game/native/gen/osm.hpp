@@ -33,11 +33,14 @@ struct OsmData {
     // OSM's own boundaries say; empty in an answer older than question 7.
     std::string country;
     int queryVersion = 1;
+    bool retailQueried = false;
+    bool fuelQueried = false;
 };
 
 // `layer`, when given, is a second answer read into the same data (the aero
 // layer, sources.hpp); an element both answers carry is read once.
-OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer = nullptr);
+OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer = nullptr,
+                     const nlohmann::json* retail = nullptr);
 
 struct ElevationGrid {
     Bounds bounds;

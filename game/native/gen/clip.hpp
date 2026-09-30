@@ -45,6 +45,8 @@ bool contains(const Paths64& region, Point64 point);
 
 // shapely's line.buffer(half, cap_style=flat, join_style=mitre).
 Paths64 bufferLine(const std::vector<P2>& line, double half, const Grid& grid = kMetres);
+// Flat ends and round joins, so tight road bends keep a continuous edge.
+Paths64 bufferLineRoundJoins(const std::vector<P2>& line, double half, const Grid& grid = kMetres);
 // A line's one-sided band out to `distance`: left of the direction of travel
 // in the numeric (x, y) plane when positive, right when negative.
 Paths64 singleSided(const std::vector<P2>& line, double distance, const Grid& grid = kMetres);

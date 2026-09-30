@@ -29,7 +29,8 @@ std::optional<clip::Paths64> tidalWater(const std::vector<OsmWay>& landcover, co
 class Cells {
 public:
     Cells(const Bounds& bounds, int size, const Sea* sea, const class Landcover& landcover,
-          const std::function<double(double, double)>& elevationAt, const clip::Paths64* tidal);
+          const std::function<double(double, double)>& elevationAt, const clip::Paths64* tidal,
+          const std::function<bool(double, double)>& inlandAt = {});
     bool seaAt(double lon, double lat) const { return sea_ && sea_->contains(lon, lat); }
     int at(double lon, double lat) const;
     double adjust(int row, int col, double height) const;

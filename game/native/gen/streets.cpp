@@ -136,18 +136,26 @@ double Drape::heightAt(P2 q) const {
 void Drape::lay(const clip::Paths64& region, double lift, Mesh& mesh) const {
     if (region.empty()) return;
     auto g = [&](int row, int col) { return grid_[size_t(row * (size_ + 1) + col)]; };
-    auto box = [](std::initializer_list<P3> pts) {
-        double x0 = 1e300, x1 = -1e300, z0 = 1e300, z1 = -1e300;
-        for (const P3& p : pts) { x0 = std::min(x0, p.x); x1 = std::max(x1, p.x); z0 = std::min(z0, p.z); z1 = std::max(z1, p.z); }
-        return clip::Path64{clip::kMetres.at({x0 - 0.01, z0 - 0.01}), clip::kMetres.at({x1 + 0.01, z0 - 0.01}),
-                            clip::kMetres.at({x1 + 0.01, z1 + 0.01}), clip::kMetres.at({x0 - 0.01, z1 + 0.01})};
+    auto footprint = [](std::initializer_list<P3> pts) {
+        clip::Path64 path;
+        for (const P3& p : pts) path.push_back(clip::kMetres.at({p.x, p.z}));
+        return path;
     };
     for (int row = 0; row < size_; ++row) {
-        const clip::Paths64 strip = clip::intersect(region, {box({g(row, 0), g(row, size_), g(row + 1, 0), g(row + 1, size_)})});
+        // Broad phase only: include every projected grid point, since a row
+        // on the curved Earth need not lie between its two end points.
+        double x0 = 1e300, x1 = -1e300, z0 = 1e300, z1 = -1e300;
+        for (int col = 0; col <= size_; ++col)
+            for (int r : {row, row + 1}) {
+                const P3 p = g(r, col);
+                x0 = std::min(x0, p.x); x1 = std::max(x1, p.x);
+                z0 = std::min(z0, p.z); z1 = std::max(z1, p.z);
+            }
+        const clip::Paths64 strip = clip::intersect(region, {clip::kMetres.path({{x0, z0}, {x1, z0}, {x1, z1}, {x0, z1}})});
         if (strip.empty()) continue;
         for (int col = 0; col < size_; ++col) {
             const P3 sw = g(row, col), se = g(row, col + 1), ne = g(row + 1, col + 1), nw = g(row + 1, col);
-            const clip::Paths64 cell = clip::intersect(strip, {box({sw, se, ne, nw})});
+            const clip::Paths64 cell = clip::intersect(strip, {footprint({sw, se, ne, nw})});
             if (cell.empty()) continue;
             for (const auto& tri : {std::array<P3, 3>{sw, se, ne}, std::array<P3, 3>{sw, ne, nw}}) {
                 const P3 a = tri[0], b = tri[1], c = tri[2];
@@ -180,7 +188,7 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         for (const P2& p : road.points) { const P3 e = anchor.toEngine(p.x, p.y, 0.0); line.push_back({e.x, e.z}); }
         if (clip::length(line) < 0.1) continue;
         const double half = roadWidth(tags) * 0.5;
-        const Paths64 strip = clip::bufferLine(line, half);
+        const Paths64 strip = clip::bufferLineRoundJoins(line, half);
         ++(has(tags, "width") ? widthsTagged : widthsInferred);
         if (!kMotor.count(tagOr(tags, "highway"))) {
             walkPolys.insert(walkPolys.end(), strip.begin(), strip.end());

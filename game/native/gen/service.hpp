@@ -35,6 +35,12 @@ public:
         std::function<void(const std::string&)> log;
         size_t keep = 36;  // cooked tiles kept in memory
         size_t tileVertexTarget = kTileVertexBudget;
+        // Explicit feature migration: supplement old observations without
+        // re-downloading them. Cached retail layers never revalidate.
+        bool enrichRetail = false;
+        // Fetch and convert the measured canopy (gen/canopy) of tiles that
+        // have none stored. Off in tests; the store is read either way.
+        bool fetchCanopy = false;
         // Optional source overrides for deterministic streaming tests.
         std::function<void(const Bounds&, const std::string&)> fetchOsm;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> quickGround;

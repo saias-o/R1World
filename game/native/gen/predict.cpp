@@ -448,6 +448,13 @@ uint32_t upper(uint32_t c) {
     if (c >= 0xE0 && c <= 0xFE && c != 0xF7) return c - 0x20;
     if (c == 0xFF) return 0x178;
     if (c == 0x153) return 0x152;
+    // Latin Extended-A pairs its capitals and small letters as even and odd
+    // code points (0x100-0x137, 0x14A-0x177), then odd and even (0x139-0x148,
+    // 0x179-0x17E); the Romanian comma letters are 0x218-0x21B.
+    if ((c >= 0x100 && c <= 0x137) || (c >= 0x14A && c <= 0x177)) return c & ~1u;
+    if ((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E)) return (c & 1u) ? c : c - 1;
+    if (c >= 0x218 && c <= 0x21B) return c & ~1u;
+    if (c == 0x131) return 'I';
     return c;
 }
 // What the atlas does not draw, written as French signs write it.
@@ -462,6 +469,26 @@ std::string plainly(uint32_t c) {
         case 0xC6: return "AE";
         case 0x152: return "OE";
         case 0xDF: return "SS";
+        case 0xD0: case 0x110: case 0x10E: return "D";
+        case 0xDE: return "TH";
+        case 0x100: case 0x102: case 0x104: return "A";
+        case 0x106: case 0x108: case 0x10A: case 0x10C: return "C";
+        case 0x112: case 0x114: case 0x116: case 0x118: case 0x11A: return "E";
+        case 0x11C: case 0x11E: case 0x120: case 0x122: return "G";
+        case 0x124: case 0x126: return "H";
+        case 0x128: case 0x12A: case 0x12C: case 0x12E: case 0x130: return "I";
+        case 0x134: return "J";
+        case 0x136: return "K";
+        case 0x139: case 0x13B: case 0x13D: case 0x13F: case 0x141: return "L";
+        case 0x143: case 0x145: case 0x147: return "N";
+        case 0x14C: case 0x14E: case 0x150: return "O";
+        case 0x154: case 0x156: case 0x158: return "R";
+        case 0x15A: case 0x15C: case 0x15E: case 0x160: case 0x218: return "S";
+        case 0x162: case 0x164: case 0x166: case 0x21A: return "T";
+        case 0x168: case 0x16A: case 0x16C: case 0x16E: case 0x170: case 0x172: return "U";
+        case 0x174: return "W";
+        case 0x176: return "Y";
+        case 0x179: case 0x17B: case 0x17D: return "Z";
         case 0x2019: case 0x2018: return "'";
         case 0x2010: case 0x2011: case 0x2013: return "-";
         default: return "";
@@ -603,6 +630,22 @@ std::optional<nlohmann::json> townSign(const TownSignKit& kit, const std::string
 
 nlohmann::json yaw(double y) { return {0.0, std::sin(y * 0.5), 0.0, std::cos(y * 0.5)}; }
 }  // namespace
+
+std::optional<nlohmann::json> facadeLettering(const std::string& name,double width,double height) {
+    const auto found=palette().streetSigns.find("US");
+    if(found==palette().streetSigns.end())return std::nullopt;
+    const auto& kit=found->second;const auto chars=spell(kit,name);if(!chars)return std::nullopt;
+    double total=0;for(auto& ch:*chars)total+=ch==" "?.45*kit.cap:kit.glyphs.at(ch).second;
+    if(total<=0)return std::nullopt;
+    double scale=std::min(width/total,height/kit.cap),x=-total*scale/2;
+    nlohmann::json children=nlohmann::json::array();
+    for(auto& ch:*chars) {
+        if(ch!=" ")children.push_back({{"type","Node"},{"name","Fascia letter"},{"importedFrom",kit.glyphs.at(ch).first},
+            {"transform",{{"position",{x,0.,0.}},{"scale",{scale,scale,1.}}}}});
+        x+=(ch==" "?.45*kit.cap:kit.glyphs.at(ch).second)*scale;
+    }
+    return nlohmann::json{{"type","Node"},{"name","Store name: "+name},{"children",children}};
+}
 
 PredictOutput predictDetails(const OsmData& osm, const Tile& tile, const Anchor& anchor, const GroundAt& ground,
                              const std::optional<Bounds>& extent) {

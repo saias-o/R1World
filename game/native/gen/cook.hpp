@@ -4,6 +4,7 @@
 // input always gives the same tile (PLAN §3 I3).
 #pragma once
 
+#include "canopy.hpp"
 #include "mesh.hpp"
 #include "osm.hpp"
 #include "seaice.hpp"
@@ -40,6 +41,9 @@ struct Observations {
     bool provisional = false;
     // The sea ice around a polar tile with sea-level ground; null elsewhere.
     std::shared_ptr<const SeaIce> seaIce;
+    // The measured canopy (gen/canopy), when converted; on its way otherwise.
+    std::optional<Canopy> canopy;
+    bool canopyPending = false;
 };
 
 struct CookedTile {
