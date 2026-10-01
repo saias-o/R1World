@@ -178,6 +178,34 @@ double metresBetween(double lon1,double lat1,double lon2,double lat2) {
 constexpr int kPolarColumns=200;
 constexpr double kPolarReach=650.;
 constexpr size_t kPolarTiles=12;
+
+// ── physics bodies ──────────────────────────────────────────────────────────
+//
+// The physics world reserves its body table once, when it is built
+// (saida::PhysicsCapacity), like the geometry arena (§5): its capacity is the
+// sum of what the world can hold at once, not a number picked, and a body past
+// it is refused out loud (World::checkPhysics). A compound is one body however
+// many shapes it holds, which is why a tile's trunks are one body.
+//
+// A tile's static bodies: one per uploaded mesh part, one per landmark, one
+// for all its trunks, and the doors of the unloaded interiors near the player.
+// The densest tile measured, by the Hôtel de Ville (v25_27771_23995,
+// 2026-10-01), holds 835; World::sayBodies logs the densest tile against this
+// budget. The nine tiles round it hold 5 626 trunks, which used to be a body
+// each.
+constexpr uint32_t kTileStaticBodies=1536;
+// Its moving ones: a traffic slot keeps its car's box once used, a crowd slot
+// its person's capsule, each at most the whole neighbourhood's share.
+constexpr uint32_t kTileMovingBodies=uint32_t(kTrafficCars+kCrowdPeople);
+// The ring near a pole, plus the tile kept under the player through a teleport.
+constexpr uint32_t kResidentTiles=uint32_t(kPolarTiles)+1;
+// Two open interiors of at most 128 fixtures each (gen/interior_uses.cpp) with
+// their walls, door leaves, tills and forecourt cars.
+constexpr uint32_t kInteriorBodies=2*192;
+// The player's feet and car, and the cars left standing (boats and aircraft
+// carry no collider).
+constexpr uint32_t kPlayerBodies=2+uint32_t(kAbandonedCars);
+constexpr uint32_t kPhysicsBodies=kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies;
 std::vector<Tile> polarNearby(double lon,double lat) {
     const Tile center=tileAt(lon,lat);
     std::vector<std::pair<double,Tile>> found;
@@ -553,6 +581,10 @@ class World : public Rml::EventListener {
     // engine's physics, his body's stagger, the speed he means on foot
     // (east, north, m/s), and what is left of a broken stride.
     saida::CharacterBodyNode* feet=nullptr; int feetUnbuilt=0; bool feetRefused=false;
+    // Bodies the physics world refused for capacity (CLAUDE.md rule 3): the
+    // engine logs the first of each run, the game names the budget, the
+    // player is told and the smoke fails.
+    uint64_t physicsRefused=0;
     std::vector<saida::ImpactModifier*> playerImpacts;
     double footEast=0,footNorth=0,stagger=0; size_t playerBumps=0;
     double jumpOffset=0,jumpVelocity=0,followDistance=kOnFootFollow;
@@ -1338,12 +1370,22 @@ class World : public Rml::EventListener {
             std::map<std::string,size_t> reasons;for(const auto& p:streaming->at("unavailable"))++reasons[p.at("reason").get<std::string>()];
             for(const auto& [reason,count]:reasons)saida::Log::info("[World interiors] ",count," buildings unavailable: ",reason);
         }
+        // Every trunk of the tile is one static body, a compound of one box
+        // per tree: a body per trunk spent up to 640 of the world's bodies on
+        // one tile of measured canopy, and nine Paris tiles ran it out.
+        saida::StaticBodyNode* trunks=nullptr;
         for(const auto& doc:tile.props) {
             auto groups=doc.find("groups");
             if(groups==doc.end()||std::find(groups->begin(),groups->end(),"tree")==groups->end())continue;
             const auto& at=doc.at("transform").at("position");
-            auto* trunk=boxCollider(*tile.node,"Tree trunk",{.46f,4.f,.46f},{0,2.f,0});
-            trunk->transform().position={at[0].get<float>(),at[1].get<float>(),at[2].get<float>()};
+            if(!trunks) {
+                auto body=std::make_unique<saida::StaticBodyNode>();body->setName("Tree trunks");
+                trunks=static_cast<saida::StaticBodyNode*>(tile.node->addChild(std::move(body)));
+            }
+            auto shape=std::make_unique<saida::CollisionShapeNode>();
+            shape->shapeType=saida::CollisionShapeType::Box;shape->halfExtents={.23f,2.f,.23f};
+            shape->offset={at[0].get<float>(),at[1].get<float>()+2.f,at[2].get<float>()};
+            trunks->addChild(std::move(shape));
         }
         if(auto retail=tile.data.find("retail");retail!=tile.data.end())for(const auto& area:retail->at("parking")) {
             StoreParking lot;lot.name=area.at("storeName");
@@ -1567,6 +1609,14 @@ class World : public Rml::EventListener {
         auto* physics=engine.sceneTree().world().physics();if(!physics)return true;
         const glm::vec3 at(origin.local(ecef(x,y,level)));
         return !physics->overlapSphere(at,radius,obstacleFilter()).empty();
+    }
+    // What `blocked` met there, by its node and that node's parent, for the log.
+    std::string obstacleName(double x,double y,double ground) const {
+        auto* physics=engine.sceneTree().world().physics();if(!physics)return "no physics";
+        for(double above:{.6,1.3})for(auto id:physics->overlapSphere(glm::vec3(origin.local(ecef(x,y,ground+above))),.32f,obstacleFilter()))
+            if(auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(id)))
+                return node->name()+(node->parent()?" in "+node->parent()->name():"");
+        return "water or a roof";
     }
     // Spawn/exit/parking occupancy uses the engine's scene queries. Movement
     // itself uses the character solver, without a second footprint test.
@@ -1968,7 +2018,7 @@ class World : public Rml::EventListener {
         for(int i=1;i<=steps;++i) {const double d=length*i/steps;
             const auto q=onward(lon,lat,sin(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1),
                                             cos(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1));
-            if(blocked(q.x,q.y,alt)) {carStop="an obstacle";carSpeed=0;
+            if(blocked(q.x,q.y,alt)) {carStop="an obstacle ("+obstacleName(q.x,q.y,alt)+")";carSpeed=0;
                 text("stream-status","Obstacle — la voiture s'arrête.");return;}
         }
         lon=next.x;lat=next.y;alt=groundAt(lon,lat,alt);
@@ -4734,6 +4784,60 @@ public:
         }
         showMap(true);testResume=true;
     }
+    void sayBodies() {
+        auto* physics=engine.sceneTree().world().physics();
+        if(!physics)return;
+        // The densest tile's static bodies, what kTileStaticBodies answers for.
+        size_t trunks=0,densest=0;std::string densestKey;
+        for(const auto& [key,t]:loaded) {
+            if(auto* body=t.node->findByPath("Tree trunks"))trunks+=body->children().size();
+            size_t statics=0;
+            std::function<void(const saida::Node&)> count=[&](const saida::Node& n) {
+                // A car's box is a traffic slot's body, counted in kTileMovingBodies.
+                if(auto* body=dynamic_cast<const saida::StaticBodyNode*>(&n);
+                   body&&!body->bodyId().IsInvalid()&&body->name()!="Vehicle collider")++statics;
+                for(const auto& c:n.children())count(*c);
+            };
+            count(*t.node);
+            if(statics>densest){densest=statics;densestKey=key;}
+        }
+        saida::Log::info("[World physics] ",physics->bodyCount()," bodies of ",physics->capacity().bodies,
+                         " (kPhysicsBodies) across ",loaded.size()," tiles, ",trunks," tree trunks among them; densest tile ",
+                         densestKey," holds ",densest," static bodies of ",kTileStaticBodies," (kTileStaticBodies)");
+    }
+    // A tile's trunks are one compound body: the query the car stops on and
+    // the feet's solver meet every tile's first trunk, a metre off the ground.
+    bool trunksSolid() {
+        auto* physics=engine.sceneTree().world().physics();
+        size_t checked=0;
+        for(const auto& [key,t]:loaded) {
+            auto* body=dynamic_cast<saida::StaticBodyNode*>(t.node->findByPath("Tree trunks"));
+            if(!body||body->children().empty())continue;
+            auto* shape=dynamic_cast<saida::CollisionShapeNode*>(body->children().front().get());
+            const glm::vec3 at(body->worldTransform()*glm::vec4(shape->offset-glm::vec3(0,1.f,0),1.f));
+            bool met=false;
+            if(physics)for(auto id:physics->overlapSphere(at,.32f,obstacleFilter()))met=met||id==body->bodyId();
+            if(!met) {
+                saida::Log::error("[World E2E] FAIL trunks: ",key,"'s first trunk is not solid (",
+                                  body->children().size()," trunks, body ",body->bodyRefused()?"refused":body->bodyId().IsInvalid()?"unbuilt":"built",")");
+                return false;
+            }
+            ++checked;
+        }
+        saida::Log::info("[World E2E] trunks solid in ",checked," tiles");
+        return true;
+    }
+    // True when the smoke has just failed on a refused body.
+    bool checkPhysics() {
+        auto* physics=engine.sceneTree().world().physics();
+        if(!physics||physics->refusedBodies()==physicsRefused)return false;
+        physicsRefused=physics->refusedBodies();
+        saida::Log::error("[World physics] ",physicsRefused," bodies refused: ",physics->bodyCount()," of ",
+                          physics->capacity().bodies," in use (kPhysicsBodies) across ",loaded.size()," tiles");
+        if(!smoke)return false;
+        saida::Log::error("[World E2E] FAIL physics: the world refused ",physicsRefused," bodies");
+        testFailed=true;engine.sceneTree().quit();return true;
+    }
     void update(float delta) {
         const auto now=std::chrono::steady_clock::now();
         if(!arrivalSaid&&lastFrame.time_since_epoch().count()) {
@@ -4748,11 +4852,13 @@ public:
             if(std::chrono::duration<double>(now-goStarted).count()>10.) {
                 saida::Log::info("[World streaming] arrival: ",arrivalHitches," of ",arrivalFrames,
                                  " frames over 33 ms, worst ",arrivalWorst," ms");
+                sayBodies();
                 arrivalSaid=true;
             }
         }
         lastFrame=now;
         cost=FrameCost{};
+        if(checkPhysics())return;
         if(generation!=ui->documentGeneration()||listeners.empty()) {
             generation=ui->documentGeneration();listeners.clear();
             for(auto id:{"map","go","resume","zoom-in","zoom-out","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
@@ -5132,7 +5238,8 @@ public:
             }
             if(!retailPlace.empty())mode=" · "+retailPlace+mode;
             text("stream-status",std::to_string(loaded.size())+" tuiles actives"+mode
-                 +(fast?" · détail réduit à cette vitesse":""));
+                 +(fast?" · détail réduit à cette vitesse":"")
+                 +(physicsRefused?" · collisions incomplètes : le monde physique est plein":""));
         }
         if(smokeWaterSpawn&&smokeWalk>1.5) {
             const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
@@ -5152,6 +5259,8 @@ public:
                 saida::Log::error("[World E2E] FAIL player animation/jump/follow");testFailed=true;engine.sceneTree().quit();return;
             }
             saida::Log::info("[World E2E] player run/jump/landing/follow passed, distance=",followDistance);
+            sayBodies();
+            if(!trunksSolid()){testFailed=true;engine.sceneTree().quit();return;}
             // A neighbourhood that asked for people and shows none is the
             // failure; a moor at night that asked for none is not one.
             if(bodiesRefused>0||feetRefused) {
@@ -5284,7 +5393,8 @@ int main(int argc,char** argv) {
         if(!std::isfinite(startLon)||!std::isfinite(startLat)||std::abs(startLat)>90||std::abs(startLon)>180)throw std::runtime_error("Invalid --spawn coordinate");
         // This development executable uses the existing engine's baked paths
         // for shaders/fonts, and the project's root for content.
-        saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),false);
+        saida::PhysicsCapacity physics;physics.bodies=kPhysicsBodies;
+        saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),false,{},physics);
         if(!saida::SceneSerializer::loadIntoScene(engine.scene(),engine.resources(),(game/"scenes/earth.scene").string()))throw std::runtime_error("Cannot load Earth scene");
         engine.mountWorld();saida::Time::setScale(1);
         saida::CaptureRequest capture;saida::runtime::CaptureViewpoint view;std::string error;
