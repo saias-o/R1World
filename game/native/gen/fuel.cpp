@@ -23,10 +23,10 @@ std::string lower(std::string s) {
 }
 // Metres east and north of `o`, for the few tens of metres a station spans.
 P2 metres(P2 o, P2 p) {
-    return {wrap(p.x - o.x) * 111320.0 * std::cos(radians(o.y)), (p.y - o.y) * 111132.0};
+    return {wrap(p.x - o.x) * kMetresPerDegree * std::cos(radians(o.y)), (p.y - o.y) * 111132.0};
 }
 P2 degrees(P2 o, P2 m) {
-    return {o.x + m.x / (111320.0 * std::cos(radians(o.y))), o.y + m.y / 111132.0};
+    return {o.x + m.x / (kMetresPerDegree * std::cos(radians(o.y))), o.y + m.y / 111132.0};
 }
 Ring metricRing(P2 o, const std::vector<P2>& points) {
     Ring r;

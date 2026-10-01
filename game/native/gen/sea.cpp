@@ -250,7 +250,7 @@ int poisson(double lam, PyRandom& rng) {
 }
 
 P2 offset(double lon, double lat, double east, double north) {
-    return {lon + east / (111320.0 * std::max(0.05, std::cos(radians(lat)))), lat + north / 111320.0};
+    return {lon + east / (kMetresPerDegree * std::max(0.05, std::cos(radians(lat)))), lat + north / kMetresPerDegree};
 }
 
 uint64_t mix(uint64_t x) {
@@ -299,8 +299,8 @@ struct SeaService::State {
         learned.weather(lon, lat, day, hs, wind, weatherSource);
         const int64_t slot = int64_t(std::floor(realUnix / kSlot));
         const double since = realUnix - slot * kSlot;
-        const double spanLat = kRadius / 111320.0 + prior->cell;
-        const double spanLon = kRadius / (111320.0 * std::max(0.05, std::cos(radians(lat)))) + prior->cell;
+        const double spanLat = kRadius / kMetresPerDegree + prior->cell;
+        const double spanLon = kRadius / (kMetresPerDegree * std::max(0.05, std::cos(radians(lat)))) + prior->cell;
         nlohmann::json source = {{"weather", weatherSource}, {"hs", hs ? nlohmann::json(*hs) : nlohmann::json()},
                                  {"wind", wind ? nlohmann::json(*wind) : nlohmann::json()}, {"live", 0}};
         int r0, c0;
@@ -386,7 +386,7 @@ struct SeaService::State {
         std::vector<Out> out;
         for (const Ship& ship : ships) {
             const double k = std::cos(radians((lat + ship.lat) / 2));
-            const double east = (ship.lon - lon) * 111320.0 * k, north = (ship.lat - lat) * 111320.0;
+            const double east = (ship.lon - lon) * kMetresPerDegree * k, north = (ship.lat - lat) * kMetresPerDegree;
             const double distance = std::hypot(east, north);
             if (distance > kRadius) continue;
             PyRandom s((__int128)(ship.seed ^ 0x5eaull));
@@ -422,9 +422,7 @@ struct SeaService::State {
             const BoatKind* kind = nullptr;
             for (const BoatKind& b : palette().boats) if (b.name == name) kind = &b;
             if (!kind) continue;
-            const ModelBounds& m = modelBounds("assets/models/external/kenney_boats/" + kind->model + ".glb");
-            const double beam = kind->lengthRatio > 0 ? kind->length / kind->lengthRatio
-                                                      : (m.high.x - m.low.x) * kind->length / std::max(1e-3, m.high.z - m.low.z);
+            const double beam = beamOf(*kind);
             auto [nodes, manifest] = boatNodes({Berth{kind, 0.0, 0.0, {0.0, -1.0}, beam}}, anchor);
             nlohmann::json node = nodes[0];
             node["name"] = "Ship " + name;

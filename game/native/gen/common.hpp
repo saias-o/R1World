@@ -204,6 +204,9 @@ constexpr double kB = kA * (1.0 - kF);
 constexpr double kE2 = kF * (2.0 - kF);
 constexpr double kEP2 = kE2 / (1.0 - kE2);
 constexpr double kRMean = 6371008.8;
+// Metres in a degree of the equator (2 pi kA / 360, rounded): the spherical
+// shortcut every local metric estimate here takes.
+constexpr double kMetresPerDegree = 111320.0;
 
 inline P3 geodeticToEcef(double lonDeg, double latDeg, double alt = 0.0) {
     const double lon = radians(lonDeg), lat = radians(latDeg);

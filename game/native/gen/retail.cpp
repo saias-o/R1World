@@ -73,7 +73,7 @@ std::vector<OsmWay> retailBuildings(const std::vector<const OsmWay*>& ways,const
             best=1e30;
             // Ranking nearby observations needs no elevation sampling or ECEF
             // conversion for every vertex of every road in the neighbourhood.
-            const double longitudeScale=111320.*std::cos(radians(center.y));
+            const double longitudeScale=kMetresPerDegree*std::cos(radians(center.y));
             auto consider=[&](P2 q){double d=std::hypot(wrap(q.x-center.x)*longitudeScale,(q.y-center.y)*111132.);
                 if(d<best){best=d;target=q;}};
             for(auto& p:osm.landcover)if(tagOr(p.tags,"amenity")=="parking"&&tagOr(p.tags,"parking")!="underground")consider(centroid(p.points));

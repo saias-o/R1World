@@ -4,326 +4,380 @@ This directory is the playable SaidaEngine project. Its one scene,
 `scenes/earth.scene` (the project's `mainScene`), answers one question: can you
 pick any point on Earth and walk there?
 
-## The world
+`docs/PLAN.md` holds the thesis, the invariants and the next updates;
+`CLAUDE.md` holds the working rules. This file describes what exists today,
+how it works and what was measured.
+
+## Playing
 
 ```powershell
 powershell -File game\Play.ps1
 ```
 
-A map of the Earth opens. Search for a city or commune, choose one of the ranked
-suggestions to fill its coordinates, then press **Go**. Search uses Photon while
-online, is debounced, and keeps the coordinate fields usable when unavailable.
-The whole-Earth image is a 4096 × 2048 Natural Earth overview; zooming switches
-to OpenStreetMap map tiles at their native resolution instead of enlarging an
-image. **Vue rue**
-jumps near street level, and the + button reaches zoom level 19 for precise
-placement. Only tiles in the visible menu viewport are requested, then kept
-in `cache/map-tiles/osm/` for offline reuse. New detail needs a connection.
-You can also click the map, type coordinates, or use a shortcut. The starting tile is downloaded, cooked and
-mounted first; you land as soon as it is safe, while surrounding tiles and
-decorative objects continue streaming during play:
-During play, a north-up minimap sits at the bottom left. It covers about 900 m,
-follows the player on foot and in vehicles, and draws a few named streets from
-the same cached OSM observations as the world. Above it are the destination's
-local time, city and country. City names come from OSM address tags in resident
-tiles; the country uses those tags or the weather time zone and the bundled
-public-domain IANA time-zone table. Missing place data is labelled as such.
-The player, a scanned and rigged Rocketbox avatar, is controlled in third person, among a crowd drawn from the same library (see [The people](#the-people)).
-**ZQSD / WASD** to walk, **Maj** to run, **Space** to jump, the mouse to orbit, **M** or **Échap**
-for the map again, **Reprendre** to return where you were. A car is parked
-beside you at every arrival and the streets have traffic on them: **F** gets in
-and out of *any* car within reach, the same keys drive it and **Space** is the
-handbrake — see [The car](#the-car) and [The traffic](#the-traffic). Airports
-have their aircraft parked and military bases a helicopter: **F** takes those
-too — see [Airports, aircraft and the bases](#airports-aircraft-and-the-bases).
+A map of the Earth opens. Search for a city or commune (Photon, while online),
+pick a suggestion, click the map or type coordinates, then press **Go**. The
+whole-Earth image is a 4096 × 2048 Natural Earth overview; zooming switches to
+OpenStreetMap tiles at their native resolution, up to level 19 (**Vue rue**).
+Map tiles are cached in `cache/map-tiles/osm/`.
 
-The globe uses a geodetic controller over streamed elevation and footprint data;
-it drives the character's idle/run/jump animations and an orbiting camera.
-Camera obstruction tests use cached footprint bounds, and tile eviction retains
-the live character's skeleton and clips. `--smoke --spawn2 2.356 48.858` exercises
-walking, jumping, landing and map resume before/after a teleport. This is not a
-Jolt controller: the streamed world does not yet supply solid colliders for
-street furniture or precise sidewalk steps.
+| Key | On foot | In a car | In an aircraft |
+|---|---|---|---|
+| ZQSD / WASD | walk | drive | see [Flying](#flying) |
+| Maj | run | | push down / descend |
+| Space | jump | handbrake | pull up / climb |
+| F | take the nearest car, boat or aircraft | get out (below 7 km/h) | get out, at any moment |
+| Mouse | orbit the camera | turn the head | |
+| M / Échap | the map; **Reprendre** returns | | |
 
-### Street and terrain revision v10 (10 September 2026)
+A north-up minimap (about 900 m) sits at the bottom left, with a few named
+streets from the cached OSM observations. Above it: the destination's local
+time, city and country. City names come from OSM address tags; the country
+from those tags or the weather time zone and the bundled IANA table. Missing
+place data is labelled as such.
 
-The v10 generator fixes the mean-elevation gap under buildings with a solid,
-untextured foundation below the sampled perimeter, keeping floors and roofs
-horizontal. Ground-connected buildings receive it; tagged elevated structures
-are excluded. Perimeter samples are spaced at most four metres apart.
-
-For eligible mainland France/Corse tiles, the game requests an IGN RGE
-ALTI bare-earth grid at the terrain's 41×41 resolution. At the Rue de Lobau
-inspection point, the old Copernicus grid gave approximately 49.3 m and the IGN
-service returned 34.63 m: conforming streets to the old grid alone could not
-repair that difference. Invalid or uncovered IGN samples fall back as a whole
-tile to Copernicus; `ground-elevation.json` persists both successes and fallbacks
-and `elevationSource` records the answer. Cached elevation never revalidates.
-The eligibility box is not a coverage assertion. Global high-resolution ground
-coverage and vertical-datum harmonisation remain future work.
-
-Streets use polygon unions and differences to connect intersections, remove
-overlapping sidewalks and cut out buildings. Their top surfaces are clipped to
-the **same terrain triangles** as the ground. Sidewalks rise 15 cm above the
-carriageway; widths and sides follow OSM where tagged. Defaults for urban road
-classes are labelled as inferred in each tile's `streets` manifest. Separately
-mapped sidewalks are respected. Explicit zebra markings are read from OSM
-crossing nodes and drawn on the intersected carriageway; unmarked crossings do
-not become invented zebras. Query revision 4 now requests those nodes.
-
-Continuous surface normals share vertices, while a quantised normal weld key
-removes floating-point duplicates without moving geometry. Original decorative
-models and progressive entry are retained. The previous nine-tile Paris measurement
-used **875,014 / 900,000 resident vertices**, maximum **119,649 / 120,000** per
-tile. This is measured geometry capacity, not a 60 FPS guarantee.
+## Building and testing
 
 ### What `Play.ps1` needs
 
 The executable, and nothing else: the world is generated inside it
-(`native/gen`), so playing starts no Python and no worker. `Play.ps1` also
-builds it, with the engine's own flags read from `engine/build-rel/build.ninja`,
-through GCC response files so that no path with a space goes through
-PowerShell's quoting. It needs MSYS2's UCRT64 `g++` and `cmake` and puts them
-first on `PATH` (otherwise the link fails with a bare `ld returned 116`).
+(`native/gen`), so playing starts no Python and no worker. `Play.ps1` builds it
+with the engine's own flags read from `engine/build-rel/build.ninja`, through
+GCC response files so that no path with a space goes through PowerShell's
+quoting. It needs MSYS2's UCRT64 `g++` and `cmake` and puts
+`C:\msys64\ucrt64\bin` first on `PATH` (otherwise the link fails with a bare
+`ld returned 116`).
 
-The engine is built with the game. `engine/build-rel` is an optimized Saida
-build (RelWithDebInfo, `-O2 -g`). `Play.ps1` configures it when it is missing
-and runs Ninja on it before every game build: that does nothing when the engine
-has not changed and rebuilds only what an engine change touched. The engine's
-own `engine/build` is its Debug tree, and the game no longer links against it.
-It used to, and a Paris frame cost 35 ms of CPU where it now costs 4.5
-(below).
+- **The engine is built with the game.** `engine/build-rel` is RelWithDebInfo
+  (`-O2 -g`); `Play.ps1` configures it when missing and runs Ninja on it before
+  every game build. The game never links the Debug tree `engine/build`: a Paris
+  frame cost 35 ms of CPU there against 4.5 ms optimized.
+- **It rebuilds by itself** whenever a source, a generator header or the engine
+  library is newer than the executable, recompiling only what is stale.
+  `world.cpp`, the one unit that includes the engine's headers, is recompiled
+  whenever the engine library changes. `-Rebuild` recompiles everything,
+  `-BuildOnly` stops after building. Output: `generated/world-windows`.
+- **The log** (stderr included) goes to `cache/sessions/<id>/game.log` in UTF-8.
+  When the game exits with an error, its `[error]` and `FAIL` lines are repeated
+  in the console.
+- Extra arguments are forwarded to the game. `--profile <trace.json>` profiles
+  the whole run (`Engine::profileTo`): the trace opens in `chrome://tracing` or
+  Perfetto, and the log ends with the most expensive scopes per frame.
 
-It rebuilds **by itself** whenever a source, a generator header or the engine
-library is newer than the executable, recompiling only what is stale (all 23
-units take about 35 s, nothing to do takes 0.2 s): an executable older than its
-sources is a game without the change you just made. `world.cpp`, the one unit
-that includes the engine's headers, is recompiled whenever the engine library
-changes, so that the two cannot disagree about a class's layout. `-Rebuild` recompiles
-everything, `-BuildOnly` stops after building — which is how
-`tools/play_world.py` makes sure a test never runs an old binary. There is one
-build and one output folder, `generated/world-windows`.
+### Tests
 
-The game's output, stderr included, goes to `cache/sessions/<id>/game.log` in
-UTF-8. That line is the one that had broken: the engine writes its warnings to
-stderr, Windows PowerShell turns each stderr line of a native program into an
-error record, and under `$ErrorActionPreference = 'Stop'` the first one
-(*validation layers requested but not available*) ended the script in 0.2 s,
-before the game had drawn a frame, with an empty log. When the game exits with
-an error, its `[error]` and `FAIL` lines are repeated in the console.
+From `game/`:
 
-The generator's C++ tests (`native/tests`) cover foundations, intersecting
-streets, building cut-outs, terrain conformance, observed markings, geometry
-sharing, IGN cache reuse and no-data fallback. Visual QA exposed defects that these tests did not: successive
-captures are under `generated/paris-*.png`. Capture mode now waits for all nine
-tiles and their props, honours the engine's camera flags, and fixes the sun to
-the scene epoch so load duration does not change the lighting. `Play.ps1` forwards
-extra arguments to the game. Example, from `game/`:
+```powershell
+sh native/build_tools.sh; generated\tools\r1test.exe        # the generator (C++)
+python -m unittest discover -s tools\r1\tests -t tools      # the authoring tools (Python)
+```
 
-`--profile <trace.json>` profiles the whole run (the engine's
-`Engine::profileTo`): the trace opens in `chrome://tracing` or Perfetto, and the
-log ends with the most expensive scopes, per frame.
+Neither needs the engine or a network. `r1test <Filter>` runs one group
+(`Interior`, `Retail`, `Fuel`, `SeaIce`, `Airports`…). The C++ tests hold the
+world: props and their budgets, ground classes and albedos, the Atlas seams,
+buildings, streets, bridges, harbours, traffic, airports, interiors and the
+cache. `Service.a_visited_place_never_touches_the_network` points every source
+at a closed port and asks for a cached tile anyway. The Python tests hold the
+assets the project authors (skies, Sun, landmarks, fleets, people, signage) and
+that every prop and tree points at an asset on disk. `build_tools.sh` also
+builds `r1cook`, which cooks tiles headless from the cache (`--fetch` lets it
+download).
+
+### Smoke tests
+
+Every in-game check runs with the window hidden:
+
+```powershell
+$env:SAIDA_WINDOW_HIDDEN = "1"
+python tools\play_world.py --smoke --spawn 2.3522 48.8566
+```
+
+`play_world.py` rebuilds the executable (`Play.ps1 -BuildOnly`) then runs it,
+so a test never runs an old binary. The driver clicks the map, presses Go,
+waits for the tiles, walks, jumps, walks back to the car, drives, is refused
+the door at speed, brakes, steps out, takes over a passing traffic car, and
+reopens the map with **Reprendre**. Exit code 0 is a pass; the failing line is
+in the log whose path is printed at the end.
+
+| Option | Adds |
+|---|---|
+| `--spawn2 <lon> <lat>` | a second leg: walk, reopen the map, type the destination, Go again — tiles evicted, arena trimmed, origin moved |
+| `--sail` | board a boat and sail (e.g. Vieux-Port `5.3698 43.2951`) |
+| `--fly` | take off in a jet, stop against a building, land; then a helicopter, hover, jump out (Roissy `2.5700 49.0060`, Villacoublay `2.1900 48.7725`) |
+| `--screenshot <png>` | capture the frame after the spawn; with `--camera-pos`, `--camera-look`, `--after-frames` |
+| `R1WORLD_RETAIL_SMOKE=1` | enter a shop, walk an aisle, leave, close, evict, regenerate |
+| `R1WORLD_INTERIOR_SMOKE=home\|school\|office\|police\|garage` | the same for one ordinary-building recipe |
+| `R1WORLD_RETAIL_SHOT=<png>`, `R1WORLD_RETAIL_SHOT_AT=outside\|inside\|anchor\|room` | photograph a store or a room and end the run |
+| `R1WORLD_FLY_SHOT=<png>`, `R1WORLD_FLY_SHOT_AT=stand\|climb\|stop\|heli-stand\|heli\|jump` | photograph that moment of `--fly` |
+
+Capture mode waits for all nine tiles and their props, honours the engine's
+camera flags — in metres from where the player stands when the picture is taken
+(x east, y up, z south) — and holds the Sun at the instant the run started, so
+load time does not change the lighting:
 
 ```powershell
 ./Play.ps1 --smoke --spawn 2.3522 48.8566 --screenshot generated/paris-final.png --camera-pos '70.448,1.745,83.405' --camera-look '45,2,50' --after-frames 12
 ```
 
-Known limits: twenty landmarks have their own models (see *The landmarks*), every other
-building uses generic procedural façades; municipal Paris
-road polygons are not yet integrated; inferred sidewalk widths need not match
-the survey; crossing ramps/islands and proper grade-separated bridges/tunnels
-remain unsupported. Such bridge/tunnel ways are counted in the manifest rather
-than painted on the ground. Detail outside the measured Paris sample has not
-received the same visual verification. The v10 cache key keeps earlier visual
-iterations from being silently reused.
+`--at <unix seconds>` makes a capture an inspection picture: lit at that
+instant, under a clear sky (fetched weather is ignored), without the HUD or the
+minimap. A capture waits for OSM on tiles still provisional, up to two minutes,
+then says so in the log. The picture's size is the window's: the hidden window
+is 640 × 360 unless `SAIDA_WINDOW_SIZE=1600x900` (an engine variable) says
+otherwise.
 
-Sources: [OpenStreetMap crossing tags](https://wiki.openstreetmap.org/wiki/Tag:highway%3Dcrossing),
-[IGN elevation service](https://cartes.gouv.fr/aide/fr/guides-utilisateur/utiliser-les-services-de-la-geoplateforme/calcul-altimetrique/),
-[Paris surveyed crossings](https://opendata.paris.fr/explore/dataset/plan-de-voirie-passages-pietons/table/),
-[Paris sidewalk boundaries](https://opendata.paris.fr/explore/dataset/plan-de-voirie-trottoirs/api/).
+### The reference gallery
 
-### Progressive entry
+A visual regression is the one no test sees (`CLAUDE.md` §1). `tools/gallery.py`
+takes the same six pictures every time — same place, same camera, 10:30 local
+solar time on 21 September, clear sky, 1600 × 900:
 
-Go does not wait for all nine tiles. The current tile has first priority;
-neighbours follow by distance, including across the date line. Selecting a
-destination on the map already prefetches it. If the selected point is
-blocked and no safe point is found on the available terrain, the search waits
-for neighbours before refusing the spawn. Walking into missing terrain remains
-blocked until it is mounted.
-
-The world service (`native/gen/service.cpp`) runs inside the game, on its own
-threads: downloads and cooking never block the frame, and destination changes
-replace pending work between tiles (an in-flight download is not cancelled).
-OSM and relief improve a tile independently. Streets, buildings and minimap
-labels appear as soon as OSM arrives, even if the ground is still temporary;
-quick elevation and the surveyed elevation each replace that temporary ground
-when available. A failure from one source does not pause the others. The HUD
-names the missing observation instead of claiming the whole world is offline.
-Terrain, buildings and collision data are mounted first; trees and street
-objects follow on the main thread with a **soft 2 ms per-frame budget**. No
-assets are downgraded. Logs contain `[World streaming] go_to_play_ms` and
-`mount_ms` for repeatable diagnosis.
-
-While driving or sailing, the request queue covers the surrounding nine
-tiles plus a corridor projected up to 45 seconds ahead (at most 25 tiles in
-total). The imminent road tiles are prepared first; all immediate neighbors
-remain in the queue. Each projected neighborhood gets its own bounded OSM
-query so prefetch never mistakes observations from another area for local data.
-The game mounts the next prefetched tile as the vehicle reaches its edge. The
-resident geometry remains limited to the nearby ring, independent of the
-larger prefetch queue. New areas can first appear as explicitly marked
-simplified terrain when their detailed observations are unavailable.
-
-Full-tile imports can still exceed a 16.7 ms frame. CPU asset decoding jobs
-and incremental GPU uploads remain necessary for consistently smooth 60 FPS.
-
-Nothing contacts a data service except the world service, and only for tiles
-you actually asked for.
-
-| Piece | Job |
+| View | Where |
 |---|---|
-| `ui/world.html` | the selectable map, drawn over a Natural Earth basemap baked offline by `r1/prepare_world.py` |
-| `native/world.cpp` | the game: map input, floating origin, streaming, engine physics integration, the walk, the vehicles |
-| `native/gen/` | the generator: `sources` fetches and caches OSM and elevation, `service` schedules, `cook` turns one tile's observations into meshes and a manifest |
-| `native/gen/common.hpp` | the grid: metre-sized latitude rings, global, with no Mercator polar cutoff |
+| `paris` | Paris, the rue de Rivoli by Châtelet at eye height |
+| `liberty` | the Statue of Liberty from Battery Park, 2.7 km away, at eye height |
+| `sousse` | the médina of Sousse from 320 m up (Tunis's has few buildings in OSM) |
+| `kyoto` | Higashiyama, Kyoto, towards the hills |
+| `vannes` | the port of Vannes from the place Gambetta |
+| `theix` | Theix: the fuel station, the car park and the Carrefour Market |
 
-### A place you have been is yours
+```powershell
+python tools\gallery.py                 # every view
+python tools\gallery.py kyoto theix     # some of them
+python tools\gallery.py --offline       # proxies closed: the cache only
+```
 
-Everything downloaded stays on disk under `cache/world/`: each tile's own
-observations (`osm.json`, `ground-elevation.json`) in `v<N>_<row>_<col>/`, and
-the Overpass answers a neighbourhood shares in `sources/`. The key is the tile
-and the version — no session id, no spawn point, no clock. Geometry is never
-stored: the game cooks it again on every visit, so a generator change reaches
-every place already visited. Quit the game, come back, return somewhere
-already visited, and **nothing touches the network**.
+Each run is a folder of `generated/gallery/` (date and commit);
+`generated/gallery/index.html` shows each view, the latest run beside the one
+before. Run it after every update and look at it before calling the update
+done.
 
-If no observations exist and the network is unavailable, Go still opens a
-playable, simplified tile. Its land/sea outline comes from the bundled Natural
-Earth map; elevation is flat and local streets and buildings are absent. The
-HUD says **Hors ligne : terrain simplifié** and the manifest records
-`offlineApproximation: true`. When the network answers again, the tile is
-cooked from real observations and replaces it.
+Three assertions of `--spawn2` exist because of bugs that shipped:
 
-Measured on the real cache: about **1 MB per tile**, nine tiles per spawn, so a
-visited place costs roughly 10 MB and is free forever after.
+- **The press, not the click.** Hovering a `ui-hit` element makes the engine
+  consume the mouse, so RmlUi never receives the `Up` that makes a `click`. The
+  menu acts on `mousedown` too (as `engine/VerticalSlice/ui/main_menu.js`
+  does), deduplicated; the driver fires a press without a release, and
+  separately requires a full press-and-release to act exactly once.
+- **The Sun took the observer.** The spawn fails if `setObserver` was refused;
+  otherwise the scene quietly lights the wrong hemisphere.
+- **The second Go** must reach a complete spawn, not a stalled counter.
 
-The cached path and the simplified path can both be exercised with closed
-proxies:
+### Offline
 
 ```powershell
 $env:HTTP_PROXY = "http://127.0.0.1:9"; $env:HTTPS_PROXY = "http://127.0.0.1:9"
-python tools\play_world.py --smoke --spawn 2.3522 48.8566    # visited: saved terrain
-python tools\play_world.py --smoke --spawn -58.3816 -34.6037 # new: simplified terrain
+python tools\play_world.py --smoke --spawn 2.3522 48.8566                       # visited: saved terrain
+python tools\play_world.py --smoke --spawn -58.3816 -34.6037                    # new: simplified terrain
+python tools\play_world.py --smoke --spawn 4.8900 52.3730 --spawn2 10.1815 36.8065  # Amsterdam, then Tunis
 ```
 
-`Service.a_visited_place_never_touches_the_network` in
-`native/tests/test_world.cpp` holds the same guarantee where it does not need a
-GPU: it points every source at a closed port and asks for a cached tile anyway.
-Any future edit that re-validates a cached tile against a server fails there.
+A smoke test that passes with closed proxies on a visited place is what proves
+the cache's promise (`CLAUDE.md` §7).
 
-Folders from earlier generator versions are kept rather than deleted — their
-raw observations are read by any later version instead of being downloaded
-again. Deleting one costs only a re-download.
+## Streaming, cache and network
+
+### The tile grid and the floating origin
+
+Tiles are metric latitude rings with no polar cutoff (`native/gen/common.hpp`):
+36 000 rows of 0.005° and `72 000 · cos(lat)` columns per row, so a tile is
+about 556 m on a side everywhere, keyed `v<version>_<row>_<col>`. The
+generator version is `kVersion` (25 today). Within 18 km of a pole the
+neighbourhood is the tiles nearest in metres, twelve at the pole.
+
+The player's position is WGS84; each tile owns its tangent frame, and the
+renderer only sees metres relative to an origin rebased every 350 m
+(`native/world.cpp`, PLAN §3 I1). Crossing a tile edge, the date line or a pole
+is not a special case. Headings are angles in the origin's frame, turned into
+local east/north at each step, and `advance` rotates a unit vector rather than
+calling `asin`, so a player can walk over the pole and step off it.
+
+### Progressive entry
+
+Go does not wait for all nine tiles. The tile under the player comes first,
+neighbours follow by distance (across the date line too), and choosing a
+destination on the map already prefetches it.
+
+The world service (`native/gen/service.cpp`) runs inside the game on its own
+threads; downloads and cooking never block the frame. OSM and relief improve a
+tile independently:
+
+- **With no OSM answer on disk**, the first cook does not wait for Overpass.
+  The tile is cooked from `quickGround` (Copernicus through Open-Meteo, one
+  request, four seconds at most) with Natural Earth's coast and nothing built
+  on it. The manifest says `provisional`, the HUD says streets and buildings
+  are on their way, and the tile is cooked again when the answer lands — with
+  IGN's finer ground in France. A building that lands on the player moves them
+  to the nearest free ground. First visits to Nice, Porto and Oslo: playable
+  0.36 s after Go.
+- **A failure from one source does not pause the others**; the HUD names the
+  missing observation. With no observation and no network, Go opens a
+  simplified tile (Natural Earth land/sea, flat, no streets), labelled
+  **Hors ligne : terrain simplifié** and `offlineApproximation: true`.
+- **Mounting**: terrain, buildings and collision first; trees and street
+  objects follow on the main thread within a soft 2 ms per-frame budget. Logs
+  carry `[World streaming] go_to_play_ms` and `mount_ms`; each `mounted` line
+  gives the arena's use and largest free ranges.
+- **In a vehicle** the queue covers the nine tiles plus a corridor projected
+  45 s ahead (25 tiles at most); each projected neighbourhood gets its own
+  bounded OSM query. Resident geometry stays limited to the nearby ring.
+
+### A place you have been is yours
+
+Everything downloaded stays under `cache/world/`: each tile's observations
+(`osm.json`, `ground-elevation.json`) in `v<N>_<row>_<col>/`, and the Overpass
+answers a neighbourhood shares in `sources/`. Geometry is never stored: the
+game cooks it on every visit, so a generator change reaches every place already
+visited. A visited place costs about 10 MB (about 1 MB a tile) and never
+touches the network again. Folders from older generator versions are kept:
+their raw observations are read by later versions.
+
+The Overpass question has grown (version 10 today), and a cached answer
+records which question produced it. Answers from `kOsmBaseVersion` on are
+cooked at once; what later questions added arrives as separate, small layers
+fetched in the background and never revalidated once on disk:
+
+| Layer | Brings | Tile flag while missing |
+|---|---|---|
+| `<answer>.aero.json` | aeroways, military areas, a 5 km runway box | `airportsPending` |
+| `<answer>.retail.json` (v3) | shops, entrances, parking, fuel stations, civic amenities, offices, crafts | `retail.observationsQueried`, `interiorStreaming` |
+
+A layer is found beside any neighbourhood query covering the tile. A tile is
+cooked again when its layer lands only if the layer holds something for it.
 
 ### When the data services say no
 
-The tiles come from two free, shared services while the player waits, and both
-answer 429, 502 or 503 under load and recover within seconds. One such answer
-used to become a bare `HTTP Error 503` in front of the player, with a
-60-second cooldown behind it on every other tile — a hiccup read as an outage.
-
-`net::requestJson` (`native/gen/net.cpp`) separates a server saying *not now*
-from one saying *no*: 408, 425, 429 and 5xx are retried with a doubling backoff
-that honours `Retry-After` up to 20 s, and anything else (400, 403, 404) is
-raised at once so the fetch moves to the next mirror instead of waiting on a
-refusal. A mirror that fails is asked last for the next five minutes, and a
-server that has not accepted the connection in ten seconds counts as failed.
-
-The mirror list is ordered by measurement, not preference, and it is short on
-purpose:
+`net::requestJson` (`native/gen/net.cpp`) separates *not now* from *no*: 408,
+425, 429 and 5xx are retried with a doubling backoff honouring `Retry-After` up
+to 20 s; anything else is raised at once so the fetch moves to the next mirror.
+A failed mirror is asked last for five minutes, and a server that has not
+accepted the connection in ten seconds counts as failed. Requests accept any
+JSON (Overpass answers `application/osm3s+json`) and gzip only (Open-Meteo's
+`deflate` aborts WinHTTP). Longitudes past ±180 are never sent (Overpass
+answers 400). Overpass allows two concurrent queries per client and the
+service stays inside that. A failed query logs `OSM-QUERY-FAILED` and its tiles
+are asked again later.
 
 | Endpoint | Measured |
 |---|---|
 | `overpass-api.de` | 0.4 s, correct |
 | `maps.mail.ru/osm/tools/overpass` | 8.4 s, correct |
-| ~~`overpass.private.coffee`~~ | removed — times out at 25 s |
-| ~~`overpass.kumi.systems`~~ | not listed — times out at 25 s |
+| ~~`overpass.private.coffee`~~, ~~`overpass.kumi.systems`~~ | not listed — time out at 25 s |
 | ~~`overpass.osm.ch`~~ | **never list it** — 200 with zero elements outside Switzerland |
 
-That last row is the one that matters. A mirror that fails is harmless; a
-mirror that answers `200` with an empty element list is not, because `cook`
-would store it as a valid, building-less tile and the cache cannot tell that
-apart from genuinely empty countryside. The city would be gone until someone
-deleted the cache by hand.
+A mirror that fails is harmless; one that answers `200` with no elements is not,
+because the cache cannot tell it from genuinely empty countryside.
 
-Overpass allows two concurrent queries per client, and the world service stays
-inside that. `https://overpass-api.de/api/status` reports the slots you have
-left.
+### Geometry budget
 
-**Go never waits for Overpass.** On 24 September 2026 a first visit took 53 to
-94 s before the player could move, and the cook took 2 ms of it. Two reasons,
-both fixed:
+Saida's `GeometryRegistry` arena is 1 048 576 vertices and 3 145 728 indices by
+default (configurable at engine startup). Tiles get 85% of
+`ResourceManager::geometryCapacity()` (`kTileGeometryShare`); the rest is for
+shared models. A single tile is bounded by `kTileVertexBudget` (120 000,
+`native/gen/cook.hpp`). A tile past either limit is **refused, not truncated**:
+one log line names the tile and the arithmetic, the smoke test fails on that
+reason, and in play the spawn is cancelled with a sentence.
 
-- The game asked for `Accept: application/json`. Overpass answers
-  `application/osm3s+json`, so its main server ran the whole query and then
-  refused it with a 406. That was twenty seconds of every first visit, before
-  the mirror was even asked. It now accepts any JSON.
-- The player waited for the answer. A first cook no longer waits for it at
-  all. With no answer on disk, the tile is cooked from the ground alone
-  (`quickGround`: Copernicus through Open-Meteo, one request, four seconds at
-  most, a fifth of a second in practice), with Natural Earth's coast and
-  nothing built on it. The manifest says `provisional`, the HUD says the streets
-  and buildings are on their way, and the tile waits in `awaiting` for its
-  query, then is cooked again the moment the answer lands. That second cook
-  also brings IGN's finer ground in France, and the player is set back on it.
-  A building that lands on the player moves him to the nearest free ground.
-  First visits to Nice, Porto and Oslo: playable 0.36 s after Go.
-  Tromsø's 481 buildings came 87 s later, with Overpass under load. With
-  Open-Meteo's minutely quota spent (HTTP 429), the tile is flat until the
-  network answers again, still playable in 0.36 s.
+During a teleport the tile under the player is retained and is not counted
+against the destination's budget. When an upload fits in total but not in one
+piece, the engine packs resident geometry (`GeometryRegistry::compact`, SPEC
+§4) and logs it. Tile trimming uses `Scene::resourceUsage()`. Static prototypes
+belong to a disabled branch of the world and are flattened where their
+transforms are uniform-scale TRS.
 
-The urgent tile no longer sends its own query beside its neighbourhood's.
-Nobody waits for it any more, and the two only slowed each other down on the
-same server (86 s for the one tile, 75 s for all nine). A query that fails
-says so in the log (`OSM-QUERY-FAILED`), since nobody may be waiting on it,
-and its tiles are asked for again once the network is.
+| Neighbourhood (9 tiles) | Buildings | Worst tile | Resident vertices |
+|---|---|---|---|
+| Amsterdam, canal belt | 8 368 | 106 522 | 840 351 |
+| Paris, rue de Rivoli | 3 653 | 102 839 | 764 705 |
+| Tunis, médina | 567 | 22 439 | 165 905 |
+| Vannes, dense tile with 708 interior plans | | 118 486 | |
 
-**The origin floats.** Plan §3 I1 says no ECEF coordinate ever reaches the
-engine, and this is where that is enforced: the player's position is WGS84, each
-tile owns its own tangent frame, and the renderer only ever sees metres relative
-to an origin that is rebased every 350 m. Walking across a tile boundary, the
-date line or a pole is therefore not a special case.
+These are geometry capacities, not frame-rate measurements.
 
-**The world tiles are still a preview LOD, and the manifest says so.** No
-modelled openings, no waves on the water, no clutter beyond what OSM mapped as a
-point. What they are no longer is *styleless*, no longer one green, and no
-longer empty — see below. The detailed building generator, with modelled
-openings, would exhaust the engine's vertex arena on a single city tile, so the
-reduction stands; it is a scope reduction (§3 I0: reduce the scope, not the
-correctness), not an approximation dressed up as detail.
+## Ground and terrain
 
-## The region decides what the survey did not say
+### Elevation
 
-Until now an untagged building was three storeys, a flat grey roof and one
-masonry colour, from Chamonix to Tunis. Ranks 5, 6 and 7 of the fidelity
-hierarchy — heights and gabarits, facade materials, roof form — were answered
-with a constant, and a constant is not a cheap approximation of a region. It is
-the absence of one, and it is what made every city the same town with different
-terrain under it.
+The terrain mesh is 41 × 41 over a tile (`kTerrainMeshSize`). In mainland
+France and Corsica the game asks IGN RGE ALTI for a bare-earth grid; elsewhere,
+or when IGN fails or does not cover, the whole tile falls back to Copernicus
+GLO-90 through Open-Meteo (a 7 × 7 grid: its 90 m is all there is).
+`ground-elevation.json` keeps both successes and fallbacks and the manifest's
+`elevationSource` says which answered. At the rue de Lobau the Copernicus grid
+read about 49.3 m and IGN 34.63 m.
 
-The world's buildings now go through the Atlas (`assets/world/atlas.json`, read by
-`native/gen/palette.cpp`), which holds **twelve named regions and twenty-two
-continental bands**:
+Buildings stand on a solid foundation below their sampled perimeter (samples
+at most 4 m apart), so floors and roofs stay horizontal; tagged elevated
+structures are excluded.
 
-| Tier | What it claims | Written |
+### The ground is partitioned, not draped
+
+Each of the terrain's triangles is classified by where its centre falls
+(`native/gen/terrain.cpp`) and the mesh is split into one part per class, so
+the ground classes cost **zero vertices**. A class narrower than about 14 m does
+not exist at this resolution: an Amsterdam canal (25 m) does, a brook does not.
+Where OSM mapped nothing, the region says what the ground usually is, and the
+manifest's `ground.measuredFraction` says how much was surveyed:
+
+| Neighbourhood | Ground measured | The tile, by area |
 |---|---|---|
-| `region` | a place someone described: Paris's legislated cornice line, Tunis's whitewash and parapet, Amsterdam's narrow steep-gabled plots | 12 |
-| `band` | the smallest honest thing that can be said about a continent — a Nordic town is painted timber under a steep roof, a Saharan one is flat-roofed earth render | 22 |
-| `none` | nothing. Open ocean, the ice sheets, the seams between rectangles | the fallback |
+| Amsterdam, canal belt | 76% | 60% made ground, 15% water, 24% inferred |
+| Tunis, médina | 18% | 10% made ground, 6% grass, 82% inferred |
+| Paris, rue de Rivoli | 16% | 10% made ground, 5% grass, 84% inferred |
 
-Every tile's manifest records which tier answered and how many buildings owe
-it their height and their roof rather than owing them to a survey, because §3 I5
-requires the game to know what it is guessing:
+Colours are measured albedos (`CLAUDE.md` §2): water 0.03–0.06, asphalt and
+concrete 0.10–0.15, forest 0.08–0.15, grass 0.18–0.25, cropland and rock
+0.15–0.25, dry sand 0.30–0.40, fresh snow 0.80–0.90. Under the world's sunlight
+(peak intensity 4.6) anything above about 0.35 saturates. The `Albedo` tests
+hold every class in its range. The building palettes have not yet been
+re-derived the same way.
+
+Each tile also ships the grid it was classified on (40 rows of 40 characters:
+land, inland water, sea-level water). It is what decides water for walking:
+walking or spawning into water starts swimming, with the head above the
+surface.
+
+### Photographed surfaces
+
+`r1/surfaces.py` gives the ground, streets, walls and roofs seamless CC0
+materials (Poly Haven, ambientCG; 44 families from 43 scans):
+
+- **A texture brings structure, never albedo.** Each colour map is normalised
+  per channel and the colour factor is the palette's albedo divided by that
+  level, so the rendered mean is the measured albedo.
+- **Real size.** UVs are metres divided by each scan's published size (three
+  ambientCG sets publish none and are marked estimated).
+- **Which ground, where.** Each region has a climate, colder with latitude: a
+  park is lawn in Paris, withered grass in Rome, lush in Bangkok; bare ground
+  is cracked earth in the Maghreb, laterite in the savanna; snow above the
+  snowline (5 500 m in the tropics, about 2 750 m in the Alps, sea level near
+  72°).
+
+Streets are asphalt, sidewalks concrete slabs, `sett`/`cobblestone`/
+`paving_stones` cobbles. Roof UVs follow the slope; walls are baked sheets of
+one bay by one storey with a window. UVs cost no vertex. Textures cost about
+90 MB for a city neighbourhood; the GPU budget is 512 MB (`setGpuBudget` in
+`native/world.cpp`). Ground and street colour maps are 1024², the rest 512².
+Rebuild with `python -m r1.surfaces` from `game\tools`.
+
+## Buildings
+
+### The Atlas decides what the survey did not say
+
+Untagged heights, façade materials and roof forms come from the Atlas
+(`assets/world/atlas.json`, read by `native/gen/palette.cpp`): **twelve named
+regions and twenty-two continental bands**. Rectangles overlap and the table is
+written most-specific first: the first match wins, so a region goes above the
+band it refines.
+
+| Tier | What it claims |
+|---|---|
+| `region` | a place someone described: Paris's cornice line, Tunis's whitewash and parapet, Amsterdam's narrow steep-gabled plots |
+| `band` | the smallest honest thing about a continent: a Nordic town is painted timber under a steep roof, a Saharan one flat-roofed earth render |
+| `none` | open ocean, ice sheets, the seams between rectangles |
+
+A tagged `height`, `building:levels` or `roof:shape` always wins (`plan_gabarit`).
+Each manifest says which tier answered and how much was inferred:
 
 ```json
 "region": "Amsterdam — ceinture des canaux", "regionTier": "region",
@@ -332,887 +386,371 @@ requires the game to know what it is guessing:
               "roofShapes": {"flat": 429, "gabled": 777, "hipped": 156, ...}}
 ```
 
-**Nothing measured changed.** `plan_gabarit` puts a tagged `height`, a tagged
-`building:levels` and a tagged `roof:shape` ahead of anything a profile offers,
-and Amsterdam is the proof: the Netherlands' OSM import means 1 249 of those
-1 381 buildings never consult the Atlas for their height at all. It is the 132
-that do — and the roofs, which almost nobody tags anywhere — that the region is
-for.
+Roofs are drawn without fascia or soffit (six vertices where a slab costs
+twenty-four); the ridge, pitch, overhang and colour carry the silhouette.
+Facades are a preview LOD: no modelled openings except the doors of
+interiors.
 
-**Bands exist because the alternative is worse.** With named regions and a
-characterless fallback alone, ninety-nine per cent of the planet is the same
-grey box, and risk n°1 of §14 — *le monde est vaste et ennuyeux* — is met not by
-the Atlas but by the absence of one. A band is a modest claim, it is labelled as
-one, and §9.2's similarity propagation is what eventually replaces it with
-something said about a place.
+### Churches and mosques
 
-Rectangles overlap — Sicily sits inside any box drawn around North Africa, the
-Alps sit inside France and inside Italy at once — and **ordering is the only
-disambiguation**: the table is written most-specific first and the first match
-wins. Adding a region means putting it above the band it refines.
+A tower is generated from the OSM footprint at one end of the nave (as wide as
+the nave allows, capped at 7 m), in the region's materials: a **spire** for a
+church, a **minaret** where `religion=muslim` or `building=mosque`, a plain
+**tower** otherwise. The religion tag is read, never guessed. No downloaded
+model replaces the surveyed outline.
 
-### Geometry budgets (original default-capacity measurements)
+### Landmarks
 
-Giving the world its roofs cost geometry, and it found the real ceiling. Saida's
-`GeometryRegistry` default arena is 1 048 576 vertices; the capacity can now be
-configured at engine startup. The following measurements used that default. Amsterdam's canal
-belt — nine tiles, 8 368 buildings, the densest urban fabric the project has
-cooked — first came to **1 129 742 vertices**, and the failure it produced was
-the worst shape a failure can take: eight tiles mounted, the ninth threw
-`failed to allocate vertex space` inside the scene loader on every frame, the
-message went nowhere a player could see it, and the spawn sat at "8 / 9" until
-the three-minute smoke timeout blamed the network.
+Twenty places have their own models (`r1/landmarks.py`): the Eiffel Tower,
+Statue of Liberty, Big Ben, Colosseum, Taj Mahal, Giza pyramids, Christ the
+Redeemer, Sydney Opera House, Burj Khalifa, Empire State Building, Leaning
+Tower of Pisa, Arc de Triomphe, Notre-Dame, Sagrada Família, Brandenburg Gate,
+St Peter's, St Basil's, Parthenon, Tokyo Tower and Petronas Towers.
 
-Three changes, and the first is the one that bought the roofs:
+Each is a recipe of a few dozen lines in the vocabulary of `r1/sculpt.py`
+(lathe, lattice, arcaded wall), regenerated identically everywhere. Anchor and
+bearing are measured on the OSM element found by its `wikidata` tag, the height
+is official, the ground is the tile's; three bearings (Liberty, Christ,
+St Basil's) are inferred and the manifest says so. The OSM trace is not
+extruded; its neighbours are.
 
-1. **The preview LOD's roofs have no fascia and no soffit.** `_add_slab` with a
-   zero thickness emits the roof surface and nothing else — six vertices where a
-   slab costs twenty-four. On a dense gabled tile the slab edges were 46% of
-   every vertex in the file, more than the walls under them. What it gives up is
-   rank 12; the ridge, the pitch, the overhang and the colour all survive, and
-   they are what carries the silhouette. Amsterdam: 1 129 742 → **840 351**.
-2. **The resident budget is derived from the configured arena:** 85% for tiles,
-   with the rest left to shared models and other scene resources. The historical
-   measurements below used the previous 900 000 vertex budget.
-3. **A refused tile says so.** It logs one line naming the tile and the
-   arithmetic, it fails the smoke test immediately with that reason instead of a
-   data timeout, and in play it cancels the spawn with a sentence and hands the
-   map back rather than leaving a counter to sit there. Same lesson as the
-   frozen tile counter, learned in a different place: a stall that says so is a
-   different bug from one that does not.
-
-Measured after, on the three cities the smoke tests walk in:
-
-| Neighbourhood | Buildings | Worst tile | Resident | Of 900 000 |
-|---|---|---|---|---|
-| Amsterdam, canal belt | 8 368 | 106 522 | 840 351 | 93% |
-| Paris, rue de Rivoli | 3 653 | 102 839 | 764 705 | 85% |
-| Tunis, médina | 567 | 22 439 | 165 905 | 18% |
-
-Tunis is cheap for the reason that makes it Tunis: its roofs are flat. The
-region model pays for what a place actually has.
-
-The per-tile budget (`kTileVertexBudget` in `native/gen/cook.hpp`, 120 000) is the sanity bound
-underneath the runtime one — a single tile approaching a sixth of the planet's
-entire geometry budget is a generator that has gone wrong, not a city that is
-unusually dense. `Cook.a_dense_paris_tile_fits_its_budget_and_says_what_it_inferred`
-(`native/tests/test_world.cpp`) holds a dense tile under that bound.
-
-
-## The ground stops being one green
-
-Every square metre of the planet used to be `Material("Ground", (.30,.38,.24))`.
-The Sahara was that green. So was the Amazon, the tarmac of a Paris courtyard,
-and the ice on a Chamonix glacier — and Amsterdam's canal belt had no canals,
-because a tile only got water when it was *entirely* ocean.
-
-§2 puts *sols : revêtements* at rank 9 and marks it "OSM partiel → règles",
-which is the shape of the answer: `native/gen/terrain.cpp` classifies what OSM mapped, and
-where OSM mapped nothing the region says what the ground around here usually is.
-The Overpass query already had to widen to ask — see below — but the mesh did
-not, because **the terrain already has the vertices**.
-
-**Nothing is laid over the ground; the ground is partitioned.** Draping a
-landcover polygon on a 90 m elevation grid from its own outline would cut it
-through every slope it crosses, and it would cost geometry the arena does not
-have. Instead each of the terrain's 3 200 triangles is classified by where its
-centre falls and the mesh is split into one part per class. Splitting a mesh
-whose triangles already carry their own face normals duplicates nothing, so the
-whole of rank 9 costs **zero vertices** — the densest tile in each of the three
-cities weighs exactly what it weighed before.
-
-The resolution follows from that and is worth stating plainly: 41×41 over 555 m,
-so **a class narrower than about 14 m does not exist here**. An Amsterdam canal
-does, at 25 m. A brook does not, and it reads as the ground around it rather
-than as a thin blue line in the wrong place.
-
-| Neighbourhood | Ground measured | The tile, by area |
+| Level | Drawn | Budget (vertices) |
 |---|---|---|
-| Amsterdam, canal belt | **76%** | 60% made ground, 15% water, 24% inferred |
-| Tunis, médina | 18% | 10% made ground, 6% grass, 82% inferred |
-| Paris, rue de Rivoli | 16% | 10% made ground, 5% grass, 84% inferred |
+| 0 | by its own tile, while resident | 32 768 |
+| 1 | beyond the resident tiles, to 1.8 km | 12 288 |
+| 2 | to 5 km | 4 096 |
 
-Amsterdam is what a fully mapped city looks like; Paris is what most of the
-world looks like, and the 84% is the region talking. Every tile's manifest
-carries `ground.measuredFraction`, so how much of what you are standing on
-anybody actually looked at is a number and not a feeling (§3 I5).
+`python -m r1.landmarks` (from `game/tools`) bakes them into
+`assets/world/landmarks/`; `tools/landmark_preview.py` draws a contact sheet
+without the engine. Where the terrain is Copernicus, summits are shaved
+(Corcovado reads 565 m instead of about 700 m) and the Christ stands on the
+drawn terrain.
 
-### They are albedos, and the first version of them was not
+## Streets, signs and bridges
 
-The table was first written as *colours*, picked the way a painter picks them,
-and it gave asphalt 0.38 and dry sand 0.78. Under the world's own sunlight — a
-peak intensity of 4.6, a Sun 50° above Paris — a horizontal surface at 0.38
-renders at **230/255** and one at 0.78 renders at **242**, so the entire palette
-collapsed into a single white and the Sahara looked like a car park in the snow.
+### Streets
 
-The published figures are nothing like those numbers: water 0.03–0.06, asphalt
-and concrete 0.10–0.15, forest 0.08–0.15, grass 0.18–0.25, cropland and rock
-0.15–0.25, dry sand 0.30–0.40, fresh snow 0.80–0.90. The table carries those
-now, and each entry keeps only its *hue* from what a painter would have chosen.
-Paris's sunlit ground went from 223 to 196 and stopped being clipped; the
-`Albedo` tests hold every class inside its published range, and hold made ground
-at less than half the luminance of desert sand — the pair the table exists to
-keep apart.
+Streets are polygon unions and differences (Clipper2) that connect
+intersections, remove overlapping sidewalks and cut out buildings; their tops
+are clipped to the same terrain triangles as the ground. Sidewalks rise 15 cm;
+widths and sides follow OSM where tagged, and inferred defaults are labelled in
+the `streets` manifest. Separately mapped sidewalks are respected. Zebras are
+drawn only where OSM maps a marked crossing. Normals are shared, with a
+quantised weld key that removes floating-point duplicates without moving
+geometry.
 
-The building palettes have not been re-derived the same way. They are lit
-obliquely rather than face-on so they are nowhere near saturating, but the same
-question is open for them, and it belongs to the Atlas rather than to this pass.
+### What the maps do not say: the predictive model
 
-### You can no longer walk on a canal
+Regularities of a place are written as **rules** (`native/gen/predict.hpp`),
+in four stages:
 
-A canal you stroll across is a worse lie than a canal that is not there, and
-`blocked()` knew only about building footprints. Rather than ship the polygons a
-second time in another coordinate system — and let the collision and the picture
-disagree about where the bank is — each tile ships the **grid it was classified
-on**, as forty rows of forty characters. It is a kilobyte, it is exactly what
-the eye sees, and testing it is two divisions instead of a walk over every ring
-in the neighbourhood.
-
-Spawning in a canal or the open sea starts the player swimming at the chosen
-coordinate. A spawn inside a building still searches for nearby clear ground
-and reports a refusal if none exists.
-
-### The query widened, so the cache had to learn what it had asked
-
-A cached response is only as good as the question that produced it, and the
-cache key — a bounding box — does not carry the question. Asking for landcover
-meant asking a wider question (`way[landuse]`, `way[natural]` rather than a
-short list), and without a version every previously visited place would have
-gone on answering the new question with the old answer, forever, with a symptom
-indistinguishable from a city OSM has not mapped.
-
-`OSM_QUERY_VERSION` now travels inside the cached document. A cache answering
-the current question is used untouched — the offline guarantee is unchanged. A
-cache answering an older one is re-asked **once**, and if nobody replies the
-stale document is used rather than raised, with the tile recording
-`osmQueryVersion` so the manifest says which question built it. An older
-observation set is a worse answer than a fresh one and a far better answer than
-no world at all.
-
-### What this did not fix
-
-The fog. `prepare_world.py` writes `fogStart: 160, fogDensity: 0.0035` as
-literals — the only lighting numbers in the project that are not derived from an
-atmosphere — and that is a half-distance of 200 m, roughly a hundred times
-thicker than clear air. It is why everything beyond the first block washes to
-pale blue, and why the new ground materials read for one street and then stop.
-
-It has not been touched, and the reason is not oversight: with a 3×3
-neighbourhood the world *ends* at about 800 m, and the fog is what hides the
-edge. Thinning it without somewhere to see is trading a wrong atmosphere for a
-visible void. It is the same knob the horizon chantier will have to take, and it
-should be taken there.
-
-## The world gets its furniture
-
-OSM has been handing this generator a `natural=tree` node since its very first
-query, and not one of them was ever planted. §2 puts vegetation at rank 8 and *mobilier urbain régional* at rank
-10 — "forte signature culturelle" — and both were simply absent: a Paris street
-had buildings, a road surface and nothing standing on it.
-
-**Why this is affordable, and it is the whole design.** Saida's `MeshCache` keys
-meshes by `AssetID`, so six hundred nodes pointing at `bench.glb` upload that
-bench *once*. Measured on one alpine valley: sixty-four trees, one hundred and twenty-eight
-primitive loads, and twenty-one distinct mesh ids for the entire scene. The
-vertex arena — the thing that decides everything else here — therefore charges
-per prop *kind*, not per prop:
-
-> **9 390 vertices for the whole prop library. Once, for the planet.**
-
-That is 0.9% of the arena for eleven models, against 841 035 for one
-neighbourhood of Amsterdam. (The arena is the only thing instancing makes free:
-a model's *file* is re-parsed per node, which is what later ruled the
-photoreal trees out — see below.) Props are therefore scene nodes and are never
-baked into the tile's meshes; baking them would charge the arena six hundred
-times over and would not fit.
-
-What a prop does cost is a node, and nodes are drawn. §5 caps L5 detail on
-the reference machine, so the count is capped per tile — **260** — rather than
-left to OSM, which maps about twelve hundred placeable points per Paris tile and
-three per Tunis tile.
-
-**The budget is shared out, not raced for.** Filling it by priority would give a
-Paris tile six hundred trees and not one bench, because there are more trees.
-Each kind claims a share and whatever it does not use falls through, so a street
-keeps its lamps *and* its trees, and a village with forty mapped features keeps
-all forty:
-
-| Neighbourhood | Placed | Refused by budget | Steeples | What it is |
-|---|---|---|---|---|
-| Paris | 2 263 | 2 103 | 18 | 1 617 lamps, 298 benches, 154 bins, 86 bus stops |
-| Amsterdam | 1 486 | 316 | 19 | 1 028 lamps, 245 benches, 128 bins, 36 bus stops |
-| Tunis | 16 | 0 | 6 | 15 bus stops, 1 fountain |
-
-Tunis is the honest half of this. **Nothing here is invented** — every prop
-stands on a point somebody surveyed, there is no scattering and no "a village
-would have benches" — so where OSM is thin the world is thin, and the manifest
-says by how much. Tunis will look emptier than Amsterdam until somebody maps
-Tunis.
-
-### Vegetation is measured, decimated — and drawn as cards
-
-The project ships photoscanned Poly Haven trees. They are the best asset in the repository, and rule 1 of
-[CLAUDE.md](../CLAUDE.md) exists because this feature first reached for a
-low-poly kit instead of using them. It does not any more: there is no kit tree
-anywhere, and a test refuses one.
-
-What replaced that shortcut is `r1/decimate.py`, the §4 answer — the model
-enters the game *decimated*, never exchanged. It works, it is deterministic, it
-keeps whole needle clusters so no UV is ever averaged across an atlas, and it
-spends its budget by water-filling so a trunk is not cut to 0.46% alongside a
-canopy. And the measurement it produced is why a decimated scan alone is not
-enough:
-
-| | |
-|---|---|
-| `island_tree_01` as scanned | 1 303 928 vertices, 927 528 of them canopy |
-| streamable size | ~12 000 vertices, ~500 kB per species |
-| canopy that survives | **0.43%** — about a hundred leaf clusters out of 25 000 |
-
-A hundred clusters is not a canopy. The tree keeps its trunk, its bark and its
-proportions and loses the thing that made it read as a plant; a street of
-skeletons is not an improvement on a street of nothing.
-
-**Why the budget cannot simply be raised.** Saida deduplicates the *mesh* an
-instance points at, but the scene loader opens and parses the referenced file
-once per node — measured, 476 loads of one `broadleaf.glb` in a single
-neighbourhood. A canopy that survives needs about 185 000 vertices and a 6 MB
-file, which is 15% of the arena per species *and* thirty-six seconds a tile.
-
-So trees are planted as impostors: `tools/bake_nature.py` bakes each
-photoscanned species into layered cards (`assets/models/external/nature_cards/`)
-that keep its scanned albedo and alpha, and `native/gen/scatter.cpp` plants them
-where OSM surveyed a tree or a tree row, then fills mapped woods inside the
-budget — surveyed trees always first. A city tree also carries a near model
-(`nature_selected/urban_tree.glb`), switched by `LODGroupBehaviour`.
-
-### The church is built, not downloaded
-
-**No CC0 low-poly church exists.** Four Kenney kits were searched; the nearest
-thing on offer is a fantasy crypt. That turned out not to matter, because
-downloading one would have been the wrong answer anyway:
-
-- OSM gives a church its **real outline** — rank 3, measured, exact, "c'est la
-  forme des villes". Dropping a fixed model on top of it throws that away and
-  stands a generic shape where a surveyed one exists.
-- What makes a village read as a village at any distance is the **silhouette of
-  the spire above the roofline**, not the tracery. That is forty vertices
-  derived from the footprint the survey already drew.
-- A generated tower is drawn into the same meshes as the walls and the roof it
-  belongs to, so it **inherits the region**: a Paris church is limestone under
-  zinc and a Nordic one is painted timber under red tile, with no palette of its
-  own. A downloaded mesh would be Kenney-coloured on every continent.
-
-The tower goes at one end of the nave, as wide as the nave allows and capped at
-7 m, and its cap follows what the survey says the building is: a **spire** for a
-church, a **minaret** — slender, much taller, small cap — where `religion=muslim`
-or `building=mosque`, and a plain **tower** for a faith that does not build
-spires. The religion tag is only ever read, never guessed.
-
-### Two bugs the first render found
-
-**A street of magenta lamp posts.** Kenney's newer kits do not embed their
-texture: every model in a kit points at one shared `Textures/colormap.png`.
-Extracting the `.glb` alone extracts a dangling URI, and the engine draws
-missing-texture magenta with nothing in the log. The atlas is eleven kilobytes,
-so it is now **embedded into each prop's own binary chunk** rather than copied
-beside it — a prop is one file that cannot be half-installed.
-
-**A turquoise blob the size of a house.** Kenney paints foliage
-`(0.16, 0.79, 0.67)` — a turquoise at four times the albedo of a real leaf — and
-bark `(0.89, 0.51, 0.34)`, a salmon brighter than most snow. At this world's
-light level anything above roughly 0.35 saturates, so the first tree planted in
-Paris rendered as a pale cyan lollipop. This is the same lesson the ground table
-learned the same day, and §4 already had the answer: *un asset non conforme
-n'entre pas*. `normalize.repaint_kit_model` now repaints every prop into albedo
-on the way out of the archive, and **refuses any material name the palette does
-not know** — a kit that renames `leafsGreen` stops the build instead of shipping
-turquoise.
-
-### The tile you are leaving no longer competes with the ones you arrive on
-
-Adding props found a real bug in yesterday's budget, and the guard written
-yesterday is what found it: a Paris → Amsterdam teleport refused its own ninth
-tile. During a teleport the tile under the player is retained so they do not
-stand on nothing, and it was being counted against the *destination's* 900 000.
-It is leaving; the arena has the room for it (841 k for the densest
-neighbourhood, 107 k for the tile being left, 9 k for every prop model on the
-planet, inside 1 048 576). It is now excluded from the count, and the teleport
-passes.
-
-### Provenance
-
-Five CC0 kits — City Kit (Roads), Graveyard Kit, Fantasy Town Kit, Nature Kit
-and Car Kit — are pinned by SHA-256 in `external_assets.py` and live in
-`data/source-assets/` as authoring inputs. Kenney publishes zips and no
-per-model URL, so the archive is what gets pinned and twenty named models are
-mined out of it; the archives are never opened at run time. What ships is
-**556 kB** of extracted, texture-embedded, repainted GLB, recorded in
-`assets/THIRD_PARTY_ASSETS.json` with its licence.
-
-## What the maps do not say: the predictive model
-
-The world is built from what was surveyed; for the details, the maps are
-silent but the place is not. A départementale leaving a roundabout in the
-country is a priority road; a hump has its 30 just before it; a motorway that
-crosses a lane without a shared node passes over it. Those regularities are
-written as **rules** (`native/gen/predict.hpp`), and the model runs in four
-stages whose order is the contract:
-
-1. **Facts** — the neighbourhood's roads as a graph (`gen/roadnet.cpp`),
-   welded on OSM's shared nodes, with directions of travel. An intersection is
-   where a driver *chooses*: the merge of a split roundabout exit is not one,
-   which is the bug that first kept every priority diamond off the map.
-2. **Rules** propose, each with its confidence and the OSM element it reasoned
-   from. One **rulebook per country** (`gen/rules_fr.cpp` for France), plus the
-   rules that hold everywhere (`gen/rules_structure.cpp`). The country is
-   **measured**: Overpass question 7 asks OSM which admin boundary the
-   neighbourhood is in; an older answer falls back to a coarse outline and the
-   manifest says so. Adding a country is one rules file and one line in
+1. **Facts** — the neighbourhood's roads as a graph (`gen/roadnet.cpp`), welded
+   on OSM's shared nodes, with directions of travel. An intersection is where a
+   driver chooses: the merge of a split roundabout exit is not one.
+2. **Rules** propose, each with a confidence and the OSM element it reasoned
+   from: one rulebook per country plus `gen/rules_structure.cpp` for rules that
+   hold everywhere. The country is measured (Overpass question 7, admin
+   boundary); an older answer falls back to the bundled borders and the
+   manifest says so. Adding a country is one `rules_<cc>.cpp` and one line in
    `rulebooks()`.
-3. **Arbitration** — a sign OSM surveyed (`traffic_sign`, `highway=give_way`)
-   silences the guess within 30 m (§3 I5); two guesses of one sign for the same
-   traffic merge; each sign belongs to the tile it stands on; 160 per tile.
+3. **Arbitration** — a surveyed sign silences a guess within 30 m (PLAN §3 I5);
+   two guesses for the same traffic merge; 160 signs per tile.
 4. **Emission** — scene nodes on shared models, streamed before the furniture
-   and *while driving*: the signs are what a driver reads.
+   and while driving.
 
-The French rulebook today:
+France (`gen/rules_fr.cpp`, IISR):
 
 | Rule | Says | Confidence |
 |---|---|---|
 | `fr.roundabout.give_way` | AB3a at every roundabout entry (R415-10) | 0.97 |
 | `fr.roundabout.exit_priority` | AB6 60 m after an exit onto a départementale, in the country; no 80 | 0.80 |
-| `fr.speed.limit` | a signed limit is repeated after each junction and posted where it changes; the default (80 / 50) never is | 0.75 |
-| `fr.zone30.gate` | B30 where a zone 30 is entered from a road known to be faster | 0.85 |
-| `fr.hump.warning` | A2b over a B14 30 before a hump, both ways, unless the road is already at 30 | 0.80 |
-| `any.grade_separation` | an expressway crossing a road without a shared node crosses on a bridge; the more important on top | 0.90 |
+| `fr.speed.limit` | a signed limit repeated after each junction and posted where it changes; the default (80 / 50) never is | 0.75 |
+| `fr.zone30.gate` | B30 where a zone 30 is entered from a faster road | 0.85 |
+| `fr.hump.warning` | A2b over a B14 30 before a hump, both ways, unless already at 30 | 0.80 |
+| `fr.town.gates` | EB10 entering a town, EB20 leaving, named after the commune its buildings give as address | 0.85 |
+| `any.grade_separation` | an expressway crossing a road without a shared node crosses on a bridge, the more important on top | 0.90 |
 
-| `fr.town.gates` | EB10 driving into a town, EB20 driving out, named after the commune its buildings give as their address | 0.85 |
+A town is its buildings on a 40 m grid grown by 80 m, at least fifteen; its
+name comes from the `addr:city` its buildings carry, never guessed. A gate is
+only posted where the OSM answer reaches past it.
 
-A town is its buildings on a 40 m grid, grown by 80 m, of at least fifteen:
-where a road leaves it for open country, its name is posted, read from the
-`addr:city` the town's buildings and shops carry -- never guessed: a town
-whose addresses do not say gets no sign. The sign is assembled from shared
-parts (posts, the plate's ends, a middle stretched to the name, one model per
-letter from a single glyph atlas, the red bar on the way out). A gate is only
-posted where the OSM answer reaches past it: at the edge of the box Overpass
-was asked about, a town seems to end where only the data does.
-
-The United States rulebook (`gen/rules_us.cpp`), from the MUTCD:
+United States (`gen/rules_us.cpp`, MUTCD):
 
 | Rule | Says | Confidence |
 |---|---|---|
 | `us.roundabout.yield` | YIELD (R1-2) at every roundabout entry | 0.95 |
-| `us.one_way.do_not_enter` | DO NOT ENTER (R5-1) at a one-way street's exit end, facing the wrong way | 0.90 |
+| `us.one_way.do_not_enter` | DO NOT ENTER (R5-1) at a one-way street's exit end | 0.90 |
 | `us.stop.minor` | STOP (R1-1) on a minor road meeting a major one without lights; the stem of an equal T | 0.80 |
 | `us.speed.limit` | SPEED LIMIT (R2-1) where the limit changes, in mph | 0.75 |
-| `us.street.names` | two street-name blades (D3-1) crossed on a corner post, names from OSM, abbreviated as the Postal Service does; 16 per tile, the busiest crossings first | 0.60-0.84 |
+| `us.street.names` | two D3-1 blades crossed on a corner post, USPS abbreviations; 16 per tile, busiest crossings first | 0.60–0.84 |
 | `us.stop.all_way` | STOP with ALL WAY (R1-3P) where two equal residential streets cross without lights | 0.60 |
 
-No stop sign stands at a crossing with traffic lights. Measured on Lawrence,
-Kansas, where OSM surveys stop signs: 53 of the 70 two-way stops the rules
-proposed on one tile stand on a surveyed one.
+No stop sign stands at a crossing with traffic lights. On Lawrence, Kansas,
+53 of the 70 two-way stops proposed on one tile stand on a surveyed one.
 
-**What OSM surveyed is drawn**, not only obeyed: a `traffic_sign`, a
+**What OSM surveyed is drawn**, not only obeyed: a `traffic_sign`,
 `highway=stop` or `give_way` node whose sign the catalogue has stands where it
-was mapped, turned to the traffic driving towards the next junction (or as
-its `direction` says); beside the road, to the traffic that has it on its
-right. A stop mapped on the crossing node itself is every approach's when OSM
-says `stop=all`; otherwise it silences nothing, and the rules say whose it is.
+was mapped, facing the traffic heading to the next junction (or as its
+`direction` says). A stop on the crossing node itself is every approach's when
+`stop=all`. The manifest's `predicted` section says, rule by rule, what was
+proposed, silenced, merged and placed.
 
-The manifest's `predicted` section says, rule by rule, what was proposed,
-silenced by survey, merged, placed (and, for the survey, what could not be
-placed, and why).
+The signs are drawn by the project from the IISR and the MUTCD
+(`tools/r1/signage.py`): no third-party artwork, faces in RA1 sheeting
+luminance, lower edge at 1 m in the country and 2.30 m in town. Town names are
+assembled from shared parts (posts, plate ends, a stretched middle, one model
+per glyph). Prediction costs 5–15 ms for a tile that cooks in 60–400 ms.
 
 ### Bridges
 
-Bridges are built (`native/gen/bridges.cpp`), surveyed ones and predicted
-ones alike, and they change the landscape: the profile is solved on the
-neighbourhood's roads before anything else is cooked.
-
-- A deck clears what passes under it -- 4.75 m over a road, 2.6 m over a path
-  -- plus its structure, and spans straight between its abutments, never
-  sagging into a valley.
-- Roads climb to it on embankments at 5 % at most (8 % on foot), and every
-  road joined to an embankment climbs with it.
-- A predicted crossing or anything over an expressway may rise 7.5 m; a
-  surveyed bridge, drawn by OSM at the level of its streets, 2.5 m. What it
-  cannot rise to, the ground gives: the road beneath is dug under it, and the
-  tile's relief is refined to the terrain mesh's resolution to take the dig.
-- Decks mapped side by side (two carriageways and a footway) are one deck at
-  one level: the gap is decked over, parapets only on the outside.
-- Drawn: carriageway, pavements and kerbs on the deck, parapets and cornices,
-  the underside, piers where the deck stands high (never on the road below),
-  abutments closing each embankment, and the embankments' 2-in-3 grass slopes.
-  Concrete is its measured colour alone: the project's concrete photographs
-  are facades.
-- Walked and driven: the manifest's `raised` pieces are read by level. A
-  bridge carries whoever is on it and passes over whoever is under it; an
-  embankment is a wall from below and a slope from its side; a parapet stops
-  a walker and a car, before the river does. Traffic drives the bridges at
-  their solved level. Every tile carries the pieces over it, whichever tile
-  draws them.
-- The ground a bridge is solved on includes the neighbouring tiles' relief when
-  it is on disk, so both tiles a bridge crosses solve it alike.
-
-Measured on the cache: a tile still cooks in 280-380 ms; Paris along the Seine
-builds about 4 km of deck around a tile, the Vannes N165 interchange its
-overpass, ramps and embankments.
-
-The signs are drawn by the project from the IISR (`tools/r1/signage.py`): no
-third-party artwork, faces in the measured luminance factors of RA1 sheeting,
-two mounts (lower edge at 1 m in the country, 2.30 m in town, the normal and
-small ranges). Measured on the cache: 5–15 ms of prediction for a tile that
-cooks in 60–400 ms.
-
-## The car
-
-You arrive on foot and there is a car beside you. **F** gets in, the same
-ZQSD/WASD drive it, **Space** is the handbrake, **F** gets out again — and the
-door refuses to open above 7 km/h, out loud, which is the first thing the E2E
-driver hit.
-
-Water is not a road: entering it ejects the driver into a swim while the car
-sinks below the surface. Walking into water also starts swimming. The swimmer
-keeps only their head above water and can move back to a bank or board a boat.
-Choosing a point in the water on the map starts directly in this swimming state.
-
-At the wheel the mouse does not steer, so it turns the head instead: a free yaw
-around the car that eases back behind it once the mouse stops and the car is
-rolling. The first version locked the view to the heading and that was simply
-wrong — you could look up and down but never at the street you were turning
-into.
-
-### Geographic arcade driving
-
-The game keeps its arcade ground-following controller in geographic coordinates.
-Saida's `VehicleBehaviour` handles physical raycast vehicles; floating origins
-are now supported by `Scene::rebaseOrigin` / `rebaseSubtree`, including live body
-poses and velocities. R1World uses `rebaseSubtree` when placing streamed tiles.
-Its arcade controller still follows the elevation grid and does not simulate
-suspension or rolling bodies. Obstacles are queried against the streamed Jolt
-scene, including terrain/building meshes and vehicle bodies.
-
-### The handling is arcade, and the first version was not
-
-The numbers started as a real saloon's: 4.2 m/s² of pull, a 5 m turning circle,
-7.5 m/s² of tyre grip. The first person to drive it said it felt like
-manoeuvring a bus, and he was right — at 70 km/h a real grip limit allows about
-21° of heading a second, which is the truth about cars and is not the game.
-
-So they are arcade now and the comment in `world.cpp` says so rather than
-dressing them as physics: 7 m/s² of pull (0–100 in about 4 s), a 3.6 m circle,
-and 16 m/s² of lateral acceleration, which no tyre has. What the grip term still
-buys is the shape of the curve rather than a cap: about 90° a second at town
-speed, 27° at 130 km/h, so a hairpin at full speed is still not one key press.
-
-**The world stays measured; the car crossing it does not have to be.** Every
-number that describes the Earth here — albedos, heights, footprints, the Sun —
-is a measurement or it does not ship. A vehicle's feel is not a fact about the
-world, and treating it as one made the world less pleasant to be in without
-making it truer.
-
-### The car is the player's, not the tile's
-
-It is a member of `earth.scene` beside the player and the camera — never a prop
-of the tile it stands on. A prop is evicted with its neighbourhood, and a
-teleport would leave the car in the city you just left. It is disabled at load
-(a car enabled at the scene origin stands in the middle of the Atlantic) and
-every spawn parks it: three metres to the player's right, then a golden-angle
-spiral out to 14 m looking for ground that is loaded, dry and not inside a
-building — the spawn's own search, reused.
-
-**When there is no such spot, it says so.** Rule 3 of `CLAUDE.md` was earned
-three times in `native/world.cpp`, and every refusal here follows it: no kerb
-within 14 m, no room to step out, too fast to step out, the edge of the loaded
-world, an obstacle. Each writes a log line naming the reason and a line the
-player can read, and the E2E fails on the reason rather than on a timeout.
-
-### The detail follows the speed
-
-§5 puts a vehicle in the L0–L4 band and drops mobilier, clutter and facade
-detail above 15 km/h, and this is where the plan pays for itself rather than
-being quoted. Above 4.2 m/s the frame stops spending its 2 ms importing street
-furniture the player is about to leave behind, and the vegetation radii shrink
-to 55% — 550 m of trees becomes 300, 65 m of grass becomes 36. Slow down and
-both come straight back; standing still costs nothing.
-
-### Seven vehicles, drawn by the project
-
-`r1/vehicle_fleet.py` authors seven original, unbranded road vehicles in metres
-— city car, saloon, SUV, off-roader, sports car, lorry and bus — each with a
-near model and a far one without trim, switched by `LODGroupBehaviour`.
-`assets/models/vehicles/fleet.json` lists their dimensions and vertex counts
-(27 732 for the whole fleet) and the game reads it at start-up, drawing them
-and their dimensions at 0.8 (see [Smaller, on purpose](#smaller-on-purpose)). The player's
-car is the city car; traffic draws from the whole fleet, mostly cars, with
-lorries and buses only on faster through roads.
-
-This widens coverage rather than displacing anything (rule 1 of `CLAUDE.md`):
-the project had no vehicle better than a Kenney saloon, which stays on disk,
-unused. `test_vehicle.py` holds the provenance and keeps the tree species
-pointing at the decimated photoscans.
-
-### What the driver actually tests
-
-`--smoke` now walks, jumps, lands, **walks back to the car**, gets in, drives
-five seconds under full throttle, is refused the door at 76 km/h, brakes, gets
-out, and only then reopens the map. Measured on Paris, offline, from the cached
-tiles: 54 m covered, 21.2 m/s peak, exit at 1.9 m/s.
-
-Two of those steps exist because the test found them. The walk phase leaves the
-player eleven metres from where the car was parked, and the first run failed on
-`could not enter the car, 11.7m away` — which is the right failure: a door has a
-handle, not a radius, so the driver walks back to it the way a player does. The
-second run then failed on `could not step out of the car at 21.21 m/s`, which is
-the refusal working; the driver now brakes first, and the refusal itself is
-asserted rather than avoided.
-
-### Not there yet
-
-No parked cars along the kerb, no passengers, no fuel, no damage. OSM maps no
-individual vehicles and nothing here invents any beyond the traffic — the same
-bargain the props make (§3 I5).
-
-## The traffic
-
-Streets have cars on them, everywhere on the planet, and **F takes any of
-them** — the one parked beside you at the spawn, one you abandoned in a side
-street, or one that was driving past a second ago.
-
-### Two halves, and the seam is the point
-
-The simulation is not in this project. It is
-[`engine/plugins/traffic`](../engine/plugins/traffic/README.md), a header-only
-add-on that knows nothing about R1World: no geodesy, no tiles, no scene, no
-glm. It owns a lane graph, a population of agents on it, car following, give
-way at junctions, and spawning around an observer. It is compiled into this
-game's binary and never into the engine library, so rule 5 still holds — R1World
-links against the engine, it does not rebuild it.
-
-What lives here is everything only this project can do:
-
-| Here | There |
-| --- | --- |
-| `native/gen/scatter.cpp` (`buildLaneGraph`) turns the tile's OSM ways into a lane graph in engine metres | `Graph` drives on it |
-| The tile's density decides how many cars it deserves | `Flow::setPopulation` spends it |
-| Which side of the road this place drives on | `Rules::leftHand` mirrors the lane |
-| A scene node per agent, painted, on the terrain | `Flow::pose` says where |
-| The player's car, as an obstacle | agents queue behind it |
-
-The add-on has its own tests, which run without an engine build or a project:
-`g++ -std=c++20 -O2 -Wall -I../include test_traffic.cpp` in
-`plugins/traffic/tests`, then run it.
-
-### A graph per tile, cooked with the street
-
-The lane graph is built by the generator at the same moment as the street mesh
-it belongs to, from the same clipped ways, and it ships in the tile's manifest.
-That is why a car cannot drive where no road was drawn: bridges and tunnels are
-skipped by the street mesh, so they are skipped here too, and `service` ways —
-driveways, parking aisles, alleys — carry no traffic at all.
-
-Each tile gets its own graph and its own flow. A tile is evicted as a unit, so
-traffic that outlived its tile would be driving on roads that are no longer
-there; giving the flow the same lifetime as the roads makes that impossible by
-construction rather than by bookkeeping. A car that reaches the edge of its
-tile's roads retires there.
-
-Nothing is invented, in the sense the props mean it: every lane is a way
-somebody surveyed, every one-way street is tagged `oneway`, and a speed limit is
-the `maxspeed` tag where there is one — 328 of them against 32 estimates on the
-tile under the rue de Rivoli, and the tile says which is which (§3 I5).
-
-### How busy a street is
-
-Two terms, because either alone is wrong. Buildings are the density signal the
-player actually sees, so a tile gets a car per 28 of them; road length caps it,
-because sixty cars on one village street is not density, it is a car park. A
-Paris tile asks for its ceiling of 22, a village for two or three, an empty
-motorway tile for one or two.
-
-**Then the cars have to be on the street you are looking at.** The first version
-put them on the road network evenly and Paris still looked empty — the cars were
-all there, one street away, because a city has far more back streets than
-avenues and an even draw follows the count. Lanes now carry a weight from their
-road class, and the add-on spawns in proportion to weight × length, so a
-boulevard carries several times what an alley does. That one change is the
-difference between "there is traffic somewhere" and "there is traffic here".
-
-The neighbourhood shares a budget of eighty cars, spent nearest-tile-first. A
-car is five primitives, so that is four hundred draws beside the two thousand
-seven hundred a Paris neighbourhood already draws.
-
-### Ten paints
-
-The ten body colours are listed under `carPaints` in `assets/world/atlas.json`
-and read at startup — **not** written in the C++ that uses them, because rule 2 of
-`CLAUDE.md` applies to a colour whatever produced it, and a colour the tests
-cannot see is a rule that is not held. They are albedos: 0.05 for black through
-0.30 for silver, none above 0.35, which is where a sunlit surface goes white at
-this world's light level.
-
-Tinting is one `MaterialDesc` per colour through the engine's material cache, on
-a shared mesh. Ten materials for the whole planet's traffic.
-
-### Taking a car
-
-The car the player is in is a *pointer*, not the one node the scene shipped.
-Taking a traffic car hands over that very node — it leaves the flow
-(`Flow::retire`), leaves its tile, and joins the world — and the car he was
-using stays exactly where he stepped out of it. Copying a model into place would
-have been less code and would teleport the car he just parked to wherever he is
-standing, which is the one thing a player notices immediately.
-
-Six abandoned cars are kept; the oldest is cleared after that, and a teleport
-clears them all, because they are half a planet from where they were left.
-
-The E2E drives all of it: it walks, jumps, walks back to the car, drives, is
-refused the door at 100 km/h, brakes, steps out, then stands beside a live
-traffic car, takes it over, and checks that the flow no longer owns it and that
-the previous car is still standing where it was left.
-
-### What it is not
-
-No traffic lights, no lane changing, no pedestrians, no parked cars along the
-kerb, no collisions between traffic cars and the world beyond the lane they are
-on. Junction give-way is nearest-first: it keeps two cars off the same square of
-tarmac, which is all a player at street level can actually check, and it is not
-a priority system.
-
-## Streaming and engine ownership
-
-Saida maintains scene membership and resource ownership incrementally. Traffic
-slots use `setVisible` in place; there is no underground parking coordinate and
-no dependency on a global hierarchy version. The engine retains hidden resources.
-
-Street furniture imports use a 2 ms per-frame budget. Distance culling remains a
-gameplay choice (including the smaller detail radius at driving speed), while
-near/far vegetation selection uses the engine's `LODGroupBehaviour`, projected
-coverage and hysteresis. This supports trees whose near representation contains
-several meshes. Static prototype flattening still reduces transform and node
-costs and only composes uniform-scale TRS trees without shear.
-
-Shared imported prototypes belong to a disabled branch of the world. Tile
-trimming uses `Scene::resourceUsage()`, including LOD resources and player
-animation resources, without a second game-specific asset walker. Tile geometry
-reserves 85% of `ResourceManager::geometryCapacity().vertices`; the remaining
-capacity is available for shared assets. Engine capacity is configurable at
-startup, so this game no longer copies an internal allocator constant.
-
-Budgets count vertices and indices, but an upload needs them in one piece.
-After a teleport from Paris to the pole, the arena held 828 000 free indices
-and its largest free range was 141 234. The next tile's surface asked for
-153 570 and the game stopped on *failed to allocate index space*. The
-evicted city had left its free space in pieces between the shared models
-reloaded on arrival. The engine now packs resident geometry together when an
-upload fits in total but not in one piece (`GeometryRegistry::compact`, SPEC
-§4), and says so in the log. Each `mounted` line in the streaming log gives
-the arena's use and its largest free ranges (`arena=…v/…i (largest free …)`).
-
-The smoke log reports indexed nodes per frame, accumulated across simulation and
-render refreshes. It does not infer a full-scene traversal from a global counter.
-The explicit end-of-smoke traversal only reports scene composition; transform
-updates still traverse the hierarchy and this change is not a 60 FPS guarantee.
-
-Verified on 2026-09-23 against the rebuilt engine: offline Paris-to-Tunis smoke
-(walk, drive, take over traffic, teleport, resume) passed. A Paris capture with
-3,248 plants also completed. During the first smoke phase, the scene held 21,578
-nodes; the measured membership work averaged 56.8 indexed nodes/frame over the
-82-frame whole-run sample. This is a count of index updates, not an FPS benchmark.
-
-
-## What things are made of
-
-Every surface used to be a flat measured colour — right on average, wrong
-everywhere up close. `r1/surfaces.py` gives the ground, the streets, the walls
-and the roofs photographed, seamless CC0 materials (Poly Haven, ambientCG; 44
-families from 43 scans), and three rules keep them honest:
-
-- **A texture brings structure, never albedo.** Each colour map is normalised
-  per channel, and the glTF colour factor is the palette's albedo divided by
-  that level, so the rendered mean is the measured albedo the palette already
-  had (CLAUDE.md, rule 2) and the photograph only decides how it varies.
-- **Real size.** UVs are metres; each material divides them by its scan's
-  published size, so a brick, a slab or a tile is its own size. Three
-  ambientCG sets publish none, and the table says their size is estimated.
-- **Which ground, where.** Each region has a climate (`RegionProfile.climate`),
-  made colder by latitude. A park is lawn in Paris, withered grass in Rome,
-  lush in Bangkok; a forest floor is leaf litter, moss and needles in the taiga,
-  dark humus in the rainforest; bare ground is cracked earth in the Maghreb and
-  laterite in the savanna. Above the snowline (5 500 m in the tropics, ~2 750 m
-  in the Alps, sea level near 72°) it is snow, just below it frost, and polar
-  land is frosted.
-
-Streets are asphalt, sidewalks concrete slabs, and a way OSM tags `sett`,
-`cobblestone` or `paving_stones` is laid in cobbles. Roofs get UVs across and
-up their own slope, so rows of tiles follow the eave. Walls are baked sheets:
-one bay by one storey, the family's material tiled a whole number of times,
-with a window on top.
-
-None of it costs a vertex: UVs are functions of the position within a face, so
-the weld keeps every vertex it kept before (a Paris tile went from 119 645 to
-119 594). Texture memory does cost: about 90 MB for a city neighbourhood, so
-the game's GPU texture budget went from 256 to 512 MB (`native/world.cpp`),
-against the 4.5 GB the reference GTX 1060 allows. Ground and street colour
-maps are 1024², everything else 512².
-
-```powershell
-python -m r1.surfaces        # from game\tools: download (pinned), normalise, bake
-```
-
-## Harbours and the open sea
-
-Until now the sea was whatever OSM mapped as water inside a tile — which is
-nothing, because OSM does not map the sea: it maps the **coastline**, a line
-with the land on its left. `native/gen/harbours.cpp` rebuilds the sea from it, per tile:
-the tile's box is cut by every coastline way that crosses it, and each piece is
-sea or land by which side of the line it lies on. A tile with no coastline is land, or open ocean
-when the world map says so.
-
-- **Cells.** The 40 × 40 water grid now has three codes: land, inland water,
-  sea-level water. A mapped basin within 2.5 m of sea level joins the sea when
-  a coastline crosses the tile; a reservoir up the hill stays a lake. Estuaries
-  and docks are cut off from the coast by OSM itself, which closes the
-  coastline across a river mouth, and the elevation model reads Rotterdam's
-  basins at 5 m — so there the tags decide: `tidal=yes`, a harbour, dock or
-  lagoon water, or water inside a mapped port is the sea's. Under the sea
-  the terrain is sunk to −4 m beneath the animated surface; dry land beside it
-  is never drawn below it.
-- **Works, as OSM mapped them.** Piers are decks on piles at the water's
-  freeboard (floating pontoons sit low), breakwaters and groynes are rock
-  mounds, quays are walls, and a lighthouse is a tower banded in the
-  colours its `seamark:landmark:colour` tag gives, at its tagged height. One
-  OSM traced as a footprint (Cap Ferret) stands on it, at its surveyed
-  radius, instead of being extruded as a grey block. Every way is clipped to the
-  tile first. Decks are walkable (manifest → `decks`).
-- **Boats, inferred and labelled so.** Berths are laid along piers, quays and
-  the shores of a port's docks,
-  each hull checked to float and to clear every other. The fleet follows the
-  harbour — a cluster of piers is a marina (sail, motor, fishing), a port area
-  brings tugs, bulk carriers and container ships (the kit has none: its
-  bare-decked freighter is loaded with the yard's forty-foot boxes, as children
-  of the boat so they sail with it) beside stacked yards, a ferry
-  terminal a ferry — and the country: rowing boats in hot countries,
-  houseboats on Dutch canals. Kenney's Watercraft Kit (CC0; rule 1 read both
-  ways: nothing in the project covered a vessel).
-- **Budgets.** 70 boats, 4 ships and 60 containers per tile, all scene nodes.
-  Piles are the first geometry dropped if a tile would pass its vertex budget
+Bridges, surveyed and predicted, are built by `native/gen/bridges.cpp`, and the
+profile is solved on the neighbourhood's roads before anything else is cooked:
+
+- A deck clears what passes under it (4.75 m over a road, 2.6 m over a path)
+  plus its structure, and spans straight between its abutments.
+- Roads climb to it on embankments at 5 % at most (8 % on foot), and every road
+  joined to an embankment climbs with it.
+- A predicted crossing, or anything over an expressway, may rise 7.5 m; a
+  surveyed bridge 2.5 m. What it cannot rise to, the ground gives: the road
+  beneath is dug, and the tile's relief is refined to take the dig.
+- Decks mapped side by side are one deck at one level, parapets outside only.
+- Drawn: carriageway, pavements and kerbs, parapets and cornices, underside,
+  piers (never on the road below), abutments, 2-in-3 grass embankments.
+- Walked and driven, on and under, by level (the manifest's `raised` pieces).
+  Traffic drives bridges at their solved level. Each tile carries the pieces
+  over it, whichever tile draws them, and solves on its neighbours' relief when
+  it is on disk.
+
+A tile still cooks in 280–380 ms; Paris along the Seine builds about 4 km of
+deck around a tile.
+
+## Props and vegetation
+
+Props are **scene nodes**, never tile geometry: Saida's `MeshCache` keys meshes
+by asset, so six hundred nodes on one bench upload it once. The whole prop
+library is 9 390 vertices, once, for the planet. What a prop costs is a node,
+so placement is capped per tile (260 by default, `scatter.hpp`), shared out by
+kind so a street keeps its lamps *and* its trees. Every prop stands on a point
+somebody surveyed; where OSM is thin, the world is thin:
+
+| Neighbourhood | Placed | Refused by budget | Steeples |
+|---|---|---|---|
+| Paris | 2 263 | 2 103 | 18 |
+| Amsterdam | 1 486 | 316 | 19 |
+| Tunis | 16 | 0 | 6 |
+
+Lamps, benches, bins, bus stops and fountains come from Kenney kits, extracted
+from archives pinned by SHA-256 in `tools/r1/external_assets.py`, with the
+shared colour atlas embedded in each GLB (a dangling URI renders magenta).
+`normalize.repaint_kit_model` repaints every material into albedo and refuses
+any material name the palette does not know.
+
+### Trees
+
+Trees are the project's photoscanned Poly Haven species (`CLAUDE.md` §1; a
+test refuses any kit tree). A full scan does not fit (`island_tree_01` is
+1 303 928 vertices; at a streamable 12 000 only 0.43% of the canopy survives),
+and the scene loader parses a referenced file once per node. So trees are
+planted as impostors: `tools/bake_nature.py` bakes each species into layered
+cards (`assets/models/external/nature_cards/`) keeping its scanned albedo and
+alpha, and a city tree carries a near model (`nature_selected/urban_tree.glb`)
+switched by `LODGroupBehaviour`. Surveyed OSM trees and rows are planted first,
+then mapped woods are filled within the budget.
+
+### Measured canopy
+
+`gen/canopy.*` is a world layer any system may ask (`storedCanopy`,
+`Canopy::classAt`, `Canopy::heightAt`): per tile, a 48 × 48 grid (about 12 m a
+cell) of trees (3 m or taller over at least 5 % of the cell), low vegetation
+(1–3 m over a quarter: hedges, shrubs) or nothing, and the median tree height
+of each 8 × 8 block.
+
+The source is Meta and WRI's High Resolution Canopy Height Maps (1 m, global,
+CC BY 4.0, imagery 2009–2020): zoom-9 Web Mercator BigTIFFs on AWS.
+`fetchCanopyBand` reads the header, the row offsets of one tile row and those
+rows (a few MB), and converts the hundred-odd tiles that band covers. The raw
+map is never written. The grid is coded by an adaptive binary range coder with
+a JBIG-like 10-cell context: a Breton bocage tile is about 200 bytes, sea
+2 bytes, about **7 GB for all the land of the planet**, in one file per square
+degree (`cache/world/canopy/<lat>_<lon>.r1c`). The game fetches a missing band
+in the background and cooks again when it lands.
+
+With the canopy, an inferred tree survives only in a tree cell, every empty
+tree cell gets a tree at the measured height (trunk clear of roads and roofs),
+every low cell a shrub; OSM trees keep their place. The budget is then 640
+trees per tile (320 without canopy). On the Theix periurban tile the frame
+stays at 60 fps (+0.8 ms scene update). The manifest's `nature.canopy` counts
+cells, trees placed and inferred trees removed. Trunk colliders are created
+when the tile mounts.
+
+## Shops, interiors and fuel stations
+
+### Shops (generator v23)
+
+Retail buildings and buildings containing a shop node get a hollow shopfront,
+framed display windows, a canopy and their OSM `name` / `brand` in the shared
+Latin sign font (unsupported names are logged). No logo or unobserved
+architecture is invented. A funeral home keeps its building.
+
+- **The door** opens on a mapped public entrance (not `access=private`,
+  emergency or exit-only); among several, the one whose aisle runs deepest
+  (up to 12 m) wins. Without one, it is inferred toward the nearest parking
+  (else road) on a 6 m aisle, and the manifest says `inferred`. Sliding double
+  doors open from both sides, with colliders on the leaves.
+- **Layouts by use**: market, bakery, fashion and mall recipes; up to 128
+  fittings and two checkouts, four seeded merchandise variants on shared
+  meshes; a clear central aisle.
+- **The anchor**: a `shop=supermarket` node inside a mall keeps its measured
+  position (`anchorSource: measured:tenant-node`); the floor nearer to it than
+  to the door becomes its sales floor with 7.5 m gondolas (three instances of
+  the 2.5 m shelf) and up to twelve checkouts facing the gallery. Le Fourchêne,
+  Vannes: 76 gondolas, 52 kiosks, 12 checkouts, 22 792 vertices, 60 fps.
+  Reference sizes: Carrefour City (Vannes), Carrefour Market (Theix), Carrefour
+  in Le Fourchêne.
+- **Parking** (`gen/retail.*`): mapped `amenity=parking` gets asphalt,
+  synthesized 2.6 × 5 m bays, circulation and a painted pedestrian spine,
+  draped on the terrain; buildings, roads, water and parks are subtracted.
+  Ownership by a nearby shop is inferred and labelled. An inferred forecourt
+  needs a mapped retail (or asphalt commercial) parcel. Underground,
+  multistorey and private lots are excluded.
+
+Glazing is frames and reflection strips: the renderer has no sorted transparent
+pass. `python -m r1.retail_materials` rebuilds the dedicated plaster finish and
+the fascia letter coverage.
+
+### Interiors (generator v25)
+
+`gen/interiors.hpp` is the shared contract: an `InteriorPlan` (identity,
+footprint, portal, floor, ceiling, recipe, provenance) travels with the tile;
+`layoutInterior`, `buildInteriorShell` and `buildInteriorFixture` build the
+room when the player approaches. `interior_uses.cpp` classifies homes,
+police/gendarmerie, schools, offices, garages, clinics, prisons, worship,
+restaurants and storage: tags win, tenant nodes complete anonymous buildings,
+mapped campuses give an inferred association, and a home is the default
+inference.
+
+- **Homes**: open living/kitchen, separate bedrooms and bathrooms, 1.2 m
+  doorways on a 1.8 m corridor. Rounded sofas and cushions, beds with
+  headboards and pillows, wardrobes, bedside drawers and lamps, kitchen with
+  oven, hob, basin, extractor and fridge, shower, lavabo, toilet, rugs, floor
+  lamps, bookcases and plants where space permits.
+- **Others**: classrooms with desks and boards; police reception, waiting,
+  offices, archives and interview rooms; office workstations and meeting
+  rooms; pews and prayer mats; garages with workbenches, tool cabinets and
+  cars from the road fleet, plus up to two cars on synthesized forecourt bays
+  (clear of buildings, roads, water, parks and slopes over 0.4 m).
+- **Doors**: the doorway alone is cut in the regional façade (triangulated with
+  a hole and eight welded corners); two leaves swing inward, stores keep
+  sliding doors. A threshold joins floor and terrain; measured roofs and
+  heights are kept.
+- **Furniture** is shared prototypes (`interior_furniture.cpp`, including
+  revolved ceramics), seeded by OSM id and region, fitted against the concave
+  footprint without overlap, 128 fittings at most.
+- **Streaming**: built within 65 m of the door, released beyond 85 m, two rooms
+  at most with the player's first, 24 000 vertices each, checked against the
+  arena's actual free space. A refusal is logged and retried on a later visit;
+  an unloaded entrance has a closed-door collider.
+
+Only the ground floor is furnished (`storeysFurnished: 1`). Footprints too
+narrow for a door, raised volumes without access and buildings without
+headroom are reported unavailable in `interiorStreaming`. Overpass question 10
+and `.retail.json` v3 bring civic, office and craft observations.
+
+### Fuel stations
+
+A station (`amenity=fuel`, often also `shop=gas`) and a roof without walls
+(`building=roof`) are never stores. `gen/fuel.*` finds the canopy: the station
+way itself, the open roof or cadastre `wall=no` construction it stands in, the
+one inside its area, or the nearest within 30 m. It is a slab on columns (4.7 m
+clearance, 0.9 m fascia) that cars and walkers pass under. Other
+`building=roof` are roofs on posts; other `wall=no` keep their walls.
+
+Under it, synthesized pump islands (rows 8 m apart, islands 9 m apart,
+4.6 × 1.2 m) with a column, two dispensers and bollards; islands are obstacles.
+The fascia is in the brand's livery (an albedo table, neutral for an unknown
+brand) and reads the country's word: STATION-SERVICE, TANKSTELLE, ESTACIÓN DE
+SERVICIO, STAZIONE DI SERVIZIO, PETROL STATION, GAS STATION, STACJA PALIW…
+(`fuelTitle`). An accent the font lacks is written as its plain letter; a
+script it cannot spell leaves the brand, and `fuel.title` says why. A totem
+stands 2 m off the nearest public road within 45 m, with the brand and no
+price. Without a mapped canopy, an 18 × 9 m one is inferred along the road, or
+the manifest says why none fitted.
+
+## Harbours and the sea
+
+OSM maps the **coastline**, not the sea. `native/gen/harbours.cpp` cuts the
+tile by every coastline way crossing it, land on the left. A mapped basin
+within 2.5 m of sea level joins the sea when a coastline crosses the tile; a
+reservoir up the hill stays a lake; `tidal=yes`, harbour, dock or lagoon water
+and water inside a mapped port are the sea's. Under the sea the terrain sinks
+to −4 m below the animated surface.
+
+- **Works, as mapped**: piers on piles at freeboard (pontoons low),
+  breakwaters and groynes as rock mounds, quays as walls, lighthouses banded in
+  their `seamark:landmark:colour` at their tagged height. Decks are walkable.
+- **Boats, inferred and labelled**: berths along piers, quays and dock shores,
+  each hull checked to float and clear the others. A cluster of piers is a
+  marina; a port area brings tugs, bulk carriers and container ships with
+  stacked yards; a ferry terminal a ferry; hot countries get rowing boats,
+  Dutch canals houseboats (Kenney Watercraft Kit). 70 boats, 4 ships and 60
+  containers per tile; piles are dropped first if a tile would pass its budget
   (`harbour.pilesDropped`).
+- **Ships at sea**: up to 40 vessels from the shipped AIS density prior, the
+  date and the cached weather; they keep moving.
 
-**Taking the helm.** `F` boards the nearer of the closest car and the closest
-boat. A boat keeps its hull length's handling (manifest → `boats`): drag
-grows with the square of speed, the rudder needs way on, and the bow refuses
-land — a boat runs aground rather than climbing a beach. Below 1.5 m/s, `F`
-steps onto a bank or deck when one is alongside, or drops the player into the
-water. ZQSD/WASD swim toward shore; `F` boards the same boat again when its
-hull is within reach. A faster boat refuses the exit out loud. The sea is
-continuous across tiles, so a boat can leave its harbour for the open ocean.
+**F** boards the nearer of the closest car and boat. A boat handles by its hull
+length: drag grows with the square of speed, the rudder needs way on, and the
+bow refuses land. Below 1.5 m/s, **F** steps onto a bank or deck alongside, or
+into the water; a faster boat refuses the exit. Ships can be taken from the
+water or from a boat at matched speed. The sea is continuous across tiles.
 
-**Ships at sea.** The generator places up to 40 vessels from the shipped AIS prior,
-the game's date and cached weather; optional live AIS observations refine the
-prediction when available. They keep moving after appearing. A player can take
-the helm with `F` from the water, or transfer from a nearby boat when their
-speeds match. The same steering and throttle controls then drive that hull.
+## Airports and aircraft
 
-```powershell
-python tools\play_world.py --smoke --sail --spawn 5.3698 43.2951   # Vieux-Port
-```
+`gen/airports.cpp` lays what OSM traced on the terrain with the streets'
+`Drape`, 8 cm up so it does not shimmer from a cockpit:
 
-## Airports, aircraft and the bases
+- **Runways** at their tagged `width`, else 45 m from 2.4 km long, 30 m from
+  1.2 km, 18 m below (`airports.widthsTagged`). Grass, earth and gravel strips
+  stay ground.
+- **Taxiways** 18 m, **taxilanes** 12 m, **aprons** and **helipads** as traced,
+  in photographed concrete.
+- **Paint** (white 0.50, yellow 0.44/0.35/0.07): threshold bars, the
+  designator (the `ref` half within 20° of the landing bearing, else the
+  bearing), aiming points, centre and edge lines, taxi lines, stand lead-ins, a
+  helipad's H.
+- **The field** is the `airfield` ground class, last in the Atlas order.
+- **Terminals and hangars** are a glass hall and a steel shed, 15 m and 12 m
+  under a flat metal roof unless tagged (a tagged height stays the total).
 
-An airport used to be whatever OSM's `landuse` said about its ground: grass,
-with a terminal extruded on it in the stone of its region. It is now paved,
-painted and parked, and every aircraft on it can be flown — an airliner, a
-wide-body, a business jet or a helicopter, each handling as itself.
+Every footprint carries its top (`footprintTops`): what an aircraft clears,
+stops against or lands on.
 
-### What the airport is made of
-
-The Overpass question is now version 6: it asks for `aeroway` ways (aerodromes,
-runways, taxiways, taxilanes, aprons, helipads, stand lines), `military` areas,
-stand and helipad nodes, and — with a box of its own, five kilometres wide —
-the runways around the neighbourhood, because a terminal's stands are a mile
-or two from the runways that say what the airport can receive.
-
-A place visited before that is **not** re-asked. The first build did re-ask it,
-and every Go in Paris then waited on ten-megabyte Overpass downloads: 21.7 s to
-the first tile for 0.4 s of cooking, minutes for its neighbours. An answer from
-version 5 on is now cooked at once (`kOsmBaseVersion`), and what version 6 added
-comes as a separate *aero layer* (`<answer>.aero.json`, a few kilobytes) fetched
-in the background; the tile says `airportsPending` meanwhile, and is cooked again
-when the layer lands only if it holds an airport or a base, so no other tile
-flashes. Measured on Amsterdam's cache, online: Go to play in 0.97 s.
-
-Two network fixes came with it. A server that does not accept a connection in
-ten seconds is treated as down, instead of waiting the answer's two-minute
-timeout three times over; and an Overpass mirror that fails is asked last for
-five minutes. While `overpass-api.de` was unreachable, every query paid that
-wait again before reaching the mirror that answered.
-
-`gen/airports.cpp` lays what OSM traced on the terrain with the streets' own
-`Drape` — each triangle cut to the terrain triangle beneath it — eight
-centimetres up so that a surface seen from a cockpit does not shimmer into the
-ground:
-
-- **Runways** at their tagged `width`, otherwise 45 m from 2.4 km long, 30 m from
-  1.2 km, 18 m below (counted in `airports.widthsTagged`). Grass, earth and
-  gravel strips stay the ground they are.
-- **Taxiways** 18 m and **taxilanes** 12 m unless tagged, **aprons** and
-  **helipads** as traced, in photographed concrete; none of them under a
-  building, none of them on top of another.
-- **Paint**, the zebras' 0.50 white and a 0.44/0.35/0.07 yellow: threshold bars,
-  the designator (the `ref` tag's half within 20° of the landing bearing, since
-  runways are named magnetically, otherwise the bearing), aiming points 300 m
-  in, a dashed centre line, edge lines on wide runways, taxi centre lines, stand
-  lead-in lines and a helipad's H.
-- **The field** between them is a new ground class, `airfield` (mown grass),
-  last in the Atlas's order so anything mapped inside the fence still wins.
-- **Terminals and hangars** — `aeroway=terminal|hangar`, `building=terminal|hangar`
-  — are a glass hall and a steel shed wherever they stand, 15 m and 12 m high
-  under a flat metal roof unless their tags say otherwise. A tagged height stays
-  the total height (rule 4); a test holds it.
-
-Every footprint now also carries its top (`footprintTops`), which is what an
-aircraft clears, stops against, or — a helicopter — lands on.
-
-### What is parked there, and how it knows
-
-Nothing in OSM says which aircraft stands where, so every one is inferred and
-its manifest entry says so, with the element it was inferred from:
+Every parked aircraft is inferred, with the element it was inferred from:
 
 | What decides | How |
 |---|---|
 | What the airport receives | its longest runway within 4 km: from 2 800 m wide-bodies, from 1 500 m airliners, from 900 m business jets |
-| Where | stand lines (`aeroway=parking_position` ways), the nose at the end nearer a building; stand nodes, facing the nearest building; aprons nobody drew stands on, in rows across their long side |
-| What fits | the stand's room to its neighbour, clear of every building and every other aircraft, off the runways, out of the water; a business jet only on stands too small for an airliner |
-| How many | three stands in ten stay empty, twelve aircraft a tile at most — a draw-call budget, since an aircraft is ten materials |
+| Where | stand lines (nose at the end nearer a building), stand nodes (facing the nearest building), aprons without stands (rows across the long side) |
+| What fits | room to the neighbour, clear of buildings, aircraft, runways and water |
+| How many | three stands in ten empty, twelve aircraft per tile at most |
 
-Measured on Roissy's nine central tiles: 16 airliners, 8 business jets and 2
-wide-bodies; on Le Bourget's, business jets in rows.
-
-**Military bases get one helicopter each and nothing else**, wherever the base is
-(`landuse=military`, `military=base|barracks|airfield|naval_base`): on its
-helipad if it has one, on an apron if not, otherwise on the first clear ground
-from its middle. A barracks drawn inside a base is the same base; a range or a
-danger area is not one; a military airfield parks no airliner. Bases are to get
-an update of their own.
+Roissy's nine central tiles: 16 airliners, 8 business jets, 2 wide-bodies.
+**Military bases** (`landuse=military`, `military=base|barracks|airfield|naval_base`)
+get one helicopter each: on a helipad, else an apron, else the first clear
+ground from the middle. A barracks inside a base is the same base; ranges and
+danger areas are not bases.
 
 ### Flying
-
-**F** takes the nearest of a car, a boat and an aircraft, from its stand or
-wherever it was left. The HUD gives speed, height above the ground and, for a
-plane, the throttle.
 
 | | Plane (airliner, wide-body, business jet) | Helicopter |
 |---|---|---|
 | Z / W, S | throttle up, down; S at idle brakes, then pushes back | forward, back |
 | Q / A, D | nose wheel on the ground, bank in the air | turn on the spot |
-| Space / ↑ | pull up — above rotation speed it lifts off | climb |
+| Space / ↑ | pull up — lifts off above rotation speed | climb |
 | Maj / Ctrl / ↓ | push down | descend |
-| F | out, on the ground and nearly stopped | out, set down |
+| F | out, at any moment | out, at any moment |
 
-The handling is arcade and says so, as the car's is, with its numbers in
-`assets/models/aircraft/fleet.json`:
+The handling is arcade, with its numbers in `assets/models/aircraft/fleet.json`:
 
 | | top | rotate | stall | spool | roll | bank |
 |---|---|---|---|---|---|---|
@@ -1221,343 +759,234 @@ The handling is arcade and says so, as the car's is, with its numbers in
 | Business jet | 349 km/h | 42 m/s | 34 m/s | 0.80 | 95°/s | 70° |
 | Helicopter | 162 km/h | — | — | 3 s spin-up | 75°/s yaw | climbs 10 m/s |
 
-An airliner's engines take seconds to answer the lever and it needs half a
-kilometre to rotate; a business jet does everything at once and turns on a
-wingtip; a helicopter holds its height by itself when both climb keys are let
-go. Turns are coordinated and half again as quick as real ones; a climb costs
-half the speed gravity would take.
+**Nothing crashes.** A building stops an aircraft where it touches it, and the
+HUD and log say so; a plane stopped in the air loses lift and comes down; a
+hard landing is a stop; water takes a ditching. **F** leaves at any moment: on
+the ground beside the nose, in the air by jumping to open ground nearby (up to
+80 m off), falling at most 55 m/s, into water too. The aircraft left behind
+comes down without crashing. Streaming looks 45 s ahead; over unknown ground
+the aircraft flies over the last surface it saw and the HUD says *relief
+inconnu sous l'appareil*.
 
-**Nothing crashes.** A building stops an aircraft where its nose, tail or a tip
-touches it, and the HUD and the log say so; a plane stopped in the air loses its
-lift and comes down; a hard landing is a stop. Water takes a ditching and a
-helicopter sets down on it; a taxiing plane stops at the water's edge.
+The fleet is authored in metres by `tools/r1/aircraft_fleet.py`: a wide-body
+(64 m, 60 m span), an airliner (37.6 m), a T-tail business jet and a military
+utility helicopter, unbranded, near and far models (1 000–3 800 vertices),
+white livery at 0.34. The game animates the `gear` (hidden above 30 m) and
+`rotor-*` nodes. Measured offline with `--fly`: the jet lifted off at 43 m/s,
+258 m from its stand, and stopped 3.1 m up against a building; the helicopter
+climbed 20 m in 4.9 s, its pilot jumped from 21 m and landed 2.1 s later.
 
-**F leaves at any moment**, as in GTA. On the ground the pilot steps down beside
-the nose, however fast it rolls; in the air or on a roof he jumps, and falls
-from the aircraft's height to open ground beside it (up to 80 m off, over a city
-of roofs), no faster than a skydiver's 55 m/s, into the water too, where he
-swims.
-He cannot steer a fall of more than 3 m. The aircraft he left falls too, levels
-out and stops on the ground, a roof or the water under it, without crashing.
-The only refusal left is ground not loaded yet beside the aircraft, said out
-loud.
+## The North Pole, sea ice and weather
 
-Streaming follows the aircraft like the car: the queue looks 45 s ahead of it.
-At 350 km/h a jet crosses the ring of nine tiles in under twenty seconds, and
-an unvisited place waits on Overpass; in the air it flies on over the last
-surface it saw, and the HUD says *relief inconnu sous l'appareil* rather than
-invent a ground.
+The Pole is a place like any other (`--spawn 0 90`): on foot, on the pack.
 
-### Drawn, not downloaded
+- **Where the sea is frozen is measured.** `native/gen/seaice.cpp` reads NOAA
+  CoastWatch/PolarWatch's daily ASCAT ice classification (Metop-C, 4.28 km):
+  open water, first-year, mixed or multi-year ice. A 48 × 48-cell window
+  (205 km) is fetched once into `cache/world/seaice/`, only for polar tiles
+  (`|lat| ≥ 60`) with sea-level ground, on a thread of its own. The satellite's
+  polar hole and the land mask take the nearest class read
+  (`seaIce.cellsFilled`: 319 of 2 304 around the pole on 22 September 2026).
+  Without a reading, a climatology answers (ice north of 80°N, south of 70°S)
+  and says `inferred`.
+- **What the pack looks like is synthesised** (`seaIce.pack`) from one
+  deterministic function on a polar stereographic plane, seamless at the pole
+  and between tiles: floes as a warped Voronoi at 320 m, leads, pressure ridges
+  (0.9–3.8 m sails, heaped slabs), snow dunes, melt ponds. The season comes
+  from the reading's date. A frozen tile is a 161 × 161 grid (3.5 m), 42 700
+  vertices and 179 000 indices, cooked in 30 ms; leads are water to swim in.
+- **Surfaces** derive from the photographed snow already on disk
+  (`tools/r1/sea_ice_textures.py`). Albedos (`atlas.json` → `ground.seaIce`):
+  snow 0.83–0.89, bare ice 0.50–0.71, young grey ice 0.21–0.28, frozen ponds
+  0.36–0.53, melt ponds 0.10–0.33.
+- **To the horizon**: past the tiles, a 40 km disc of pack or water
+  (`buildFarPack`), curved with the Earth (PLAN §3 I2), sunk half a metre per
+  kilometre so the tiles win, rebuilt every 2 km. There, the fog is the
+  measured visibility (23 km at the pole the day it was written).
 
-Rule 1 was read before anything was made: the project had no aircraft of any
-grade, and Poly Haven publishes none. So the fleet is authored in metres by
-`tools/r1/aircraft_fleet.py` on the road fleet's writer: a wide-body (64 m, 60 m
-span), an airliner (37.6 m), a business jet with a T-tail and a military
-utility helicopter, unbranded, with a near and a far model each (1 000 to 3 800
-vertices). White livery is 0.34, the brightest a sunlit surface can be here
-without going white; `test_aircraft.py` holds every material to 0.35, the models
-to their manifest's dimensions, and the named `gear` and `rotor-*` nodes the
-game animates (the gear disappears above 30 m, the rotors spin up and down).
+**Weather you can see.** Open-Meteo's local conditions carry visibility,
+wind, cloud cover, precipitation, snowfall and snow depth. Snow falls around
+the camera with the measured wind, and drifts along the ground above 6 m/s.
+From 3 cm of measured snow, ground and roofs of resident tiles wear the
+photographed snow (streets stay clear). Cloud cover softens the Sun and blends
+in an overcast sky; precipitation thickens the haze. A forecast older than two
+hours is unavailable, and nothing waits for weather.
 
-### What the driver tests
+## The Sun and the sky
 
-```powershell
-python tools\play_world.py --smoke --fly --spawn 2.5700 49.0060   # Roissy: a jet
-python tools\play_world.py --smoke --fly --spawn 2.1900 48.7725   # Villacoublay: a helicopter
-```
+`native/world.cpp` calls `setObserver(lon, lat, altitude)` on
+`scripts/sun_cycle.js` at every spawn and every rebase: the C++ says *where*,
+never *which light*. The script is a port of `r1/solar.py` (NOAA/Meeus), held to
+it at 1e-9 by a parity test over a year and five latitudes; three more tests
+check that a new observer replaces the old one (Sydney and Cape Town invert
+the season, Tokyo catches an equation-of-time sign, Quito and Tromsø the
+extremes), and one that a non-finite coordinate is refused.
 
-`--fly` takes a business jet where there is one (an airliner otherwise), lines
-it up on its longest clear run once the tiles around it are resident, takes
-off, is flown low at the nearest tall building and must stop against it, comes
-down and steps out; then the nearest helicopter spins up, climbs, flies forward,
-comes to a hover and its pilot jumps: he must land outside any building, and the
-helicopter must come down after him. Measured offline: the jet lifted off at
-43 m/s, 258 m from its stand, and stopped 3.1 m up against a building; the
-helicopter climbed 20 m in 4.9 s and covered 56 m, its pilot jumped from 21 m
-and landed 2.1 s later.
-`R1WORLD_FLY_SHOT=<png>` with `R1WORLD_FLY_SHOT_AT=stand|climb|stop|heli-stand|heli|jump`
-photographs that moment from the chase camera.
+The clock is the real UTC clock: arriving at night in Tokyo is night in Tokyo.
+`useSystemClock: false` fixes an instant, `secondsPerSecond` accelerates time.
+The HUD shows the destination's civil time from Open-Meteo's time zone, or a
+labelled longitude estimate.
 
-### Not there yet
+**The sky** is eleven Qwantani pure-sky HDRIs (Poly Haven, CC0), one sky
+photographed from before dawn to after dusk (`r1/skies.py`):
 
-No air traffic, no taxi routing and no tower. Runways and aerodromes mapped as
-multipolygon relations are not read. The world is still nine tiles around the
-player and the fog that hides its edge (see *What this did not fix*): from a few
-hundred metres up the ground ends in haze, beyond which only the far landmarks
-stand.
+- each photograph is placed by the Sun's elevation at its instant (within 0.7°),
+  and the runtime crossfades the two the real Sun stands between;
+- each is turned so its Sun sits at the real Sun's azimuth;
+- brightness comes from the model: the 0–4° band of each is scaled to the
+  model's horizon colour, which is also the fog, so the dome meets the fog
+  without a seam;
+- each photograph's Sun is removed and the engine draws one disc where the
+  light comes from (`SceneSettings::skySunDirection`).
 
-## The North Pole, and the cold
+The engine features this needed are generic: a second sky and a crossfade
+(`skyboxBlendTexture`, `skyboxBlend`, `skyboxBlendRotation`), a Sun disc, and
+`scene.setSkybox(path[, blendPath])`. `scenes/earth.scene` holds no hand-written
+lighting value; `r1/prepare_world.py` writes them. Rebuild the skies with
+`python -m r1.skies`.
 
-The Pole is a place like any other: *Pôle Nord* on the map, or
-`--spawn 0 90`, and the player stands on the pack ice at 90°N, on foot (no road
-has ever reached it, so no car is parked there).
+The haze is a 5 km visibility (`fogDensity 0.00078`, Koschmieder's 3.912 / V)
+and the far plane stops at 5 km with it: beyond the nine resident tiles the
+world ends, and that edge is faint haze. Measured visibility may only thicken
+it, except over the far pack.
 
-### Where the sea is frozen is measured
+## The car and the traffic
 
-`native/gen/seaice.cpp` reads NOAA CoastWatch/PolarWatch's daily ASCAT ice
-classification (Metop-C, 4.28 km, open to reuse): open water, first-year,
-mixed or multi-year ice. A 48 × 48-cell window (205 km) around the 16-cell
-block holding the tile is fetched once and kept in
-`cache/world/seaice/ascat_<row>_<col>.json`, like every observation: a
-place already visited never asks again. Only polar tiles with sea-level ground
-ask at all (`|lat| ≥ 60`), and only on a first visit.
+### The car
 
-The satellite sees nothing within about 35 km of the pole. Those cells, and the
-land mask, take the class of the nearest cell read (a breadth-first flood, in
-index order), and the manifest counts them (`seaIce.cellsFilled`: 319 of the
-2 304 around the pole on 22 September 2026). With no reading, from the
-network or the disk, a static climatology answers (ice north of 80°N, south of
-70°S) and says `inferred`. The reading is fetched on a thread of its own: the
-tile is cooked from the climatology at once and cooked again when the reading
-lands, like the aero layer, so a slow server never holds up an arrival.
-PolarWatch answered in 3 s one hour and failed with 502s the next while this
-was written.
+A car is parked beside every arrival: three metres to the player's right, then
+a golden-angle spiral out to 14 m for ground that is loaded, dry and not inside
+a building. It belongs to `earth.scene`, not to a tile, so a teleport does not
+leave it behind. Each refusal (no kerb within 14 m, no room to step out, too
+fast, edge of the loaded world, an obstacle) writes a log line and a line the
+player can read.
 
-### What the pack looks like is synthesised
+The handling is arcade and says so (`native/world.cpp`): 100 km/h top speed,
+7 m/s² of pull (0–100 in about 4 s), a 3.6 m turning circle and 16 m/s² of
+lateral grip, about 90°/s of heading at town speed and 27°/s at speed. The
+mouse turns the head, which eases back behind the car once it rolls. Stepping
+out is refused above 2 m/s. Water ejects the driver into a swim and the car
+sinks. Obstacles are engine scene queries.
 
-Floes, leads, pressure ridges, snow dunes and melt ponds are one deterministic
-function of a position on a polar stereographic plane (`iceAt`): no seam at
-the pole, none between tiles (a test holds two neighbours equal along their
-edge, and the pole equal from both sides). Floes are the cells of a warped
-Voronoi at 320 m. The boundary between two floes is a lead, a ridge or a closed
-crack, drawn by the pair's hash. Leads are open in summer, a third open at
-freeze-up and mostly frozen over in winter. Ridge sails are 0.9–3.8 m high,
-rounder on multi-year ice, heaped with slabs as thick as the ice they broke
-from. Melt ponds are blue in summer, frozen and veiled by the first snow in
-autumn. Concentration thins the floes out towards the ice edge, and age
-decides freeboard, snow, hummocks and ridge height. The season comes from the
-reading's date, never from a clock (§3 I3). The manifest's `seaIce.pack` says
-that all of this is drawn, not observed.
+**The detail follows the speed.** Above 4.2 m/s (15 km/h) street furniture
+stops being imported and vegetation radii shrink to 55%; slow down and both
+come back.
 
-A frozen tile is a 161 × 161 grid (3.5 m: a lead is metres wide) drawn as
-one mesh with the clean snow. Each vertex is tinted to what its point is, so a
-pond's shore or a lead's edge is a gradient rather than a staircase of
-triangles. Only the floor of an open lead is its own mesh, under a calm water
-node. That grid is also what the player walks on (`elevations`), and the
-leads are water to swim in (`water`). A tile is 42 700 vertices and 179 000
-indices, cooked in 30 ms. Twelve stand around the pole (the three rows around
-a player no longer cover what he sees there, so `nearby` takes the tiles
-nearest in metres), which is 513 000 vertices and 2.1 million indices. The
-arena's index limit (3 145 728) is now counted beside its vertex limit, and a
-tile past either is refused out loud.
+### The fleet
 
-The surfaces are derived from the photographed snow already on disk
-(`tools/r1/sea_ice_textures.py`, rule 1). `snow_clean` is Snow014 without the
-meadow's grass tips and roughened to 0.85, because at 0.5 a clear sky's
-zenith mirrored off it and it read as water. `sea_ice` is the same scan at a
-third of its contrast, glazed. Albedos are measured (`atlas.json` →
-`ground.seaIce`): snow 0.83–0.89, bare ice 0.50–0.71, young grey ice 0.21–0.28,
-frozen ponds 0.36–0.53, melt ponds 0.10–0.33 (Perovich et al. 2002; Brandt et
-al. 2005).
+`r1/vehicle_fleet.py` authors seven unbranded vehicles in metres — city car,
+saloon, SUV, off-roader, sports car, lorry, bus — with near and far models
+(`assets/models/vehicles/fleet.json`, 27 732 vertices in all). People and road
+vehicles are drawn at **0.8** of their size (`kVehicleScale`), the player's
+call made looking at them; dimensions are scaled with them so doors, cameras
+and gaps agree.
 
-### To the horizon
+### The traffic
 
-Past the tiles the pack goes on: a 40 km disc (`buildFarPack`), snow or water
-as the reading says, curved with the Earth (I2). It sinks half a metre a
-kilometre below the floes, so the tiles always win where they are, and is
-rebuilt after 2 km. Over it the camera's far plane follows the horizon (4.7 km
-at eye height, 5 km everywhere else, as before), and the fog is the measured
-visibility (Open-Meteo, Koschmieder). That was 23 km at the pole on the day
-this was written. Elsewhere the visibility only ever thickens the 5 km haze:
-clearer air would only show where the streamed world ends.
+The simulation is [`engine/plugins/traffic`](../engine/plugins/traffic/README.md),
+a header-only add-on that knows nothing about R1World (lane graph, car
+following, give way, spawning around an observer), compiled into the game's
+binary. Its tests run alone:
+`g++ -std=c++20 -O2 -Wall -I../include test_traffic.cpp` in
+`plugins/traffic/tests`.
 
-### Weather you can see
+| Here | There |
+| --- | --- |
+| `native/gen/scatter.cpp` (`buildLaneGraph`) turns the tile's OSM ways into a lane graph | `Graph` drives on it |
+| The tile's density decides how many cars | `Flow::setPopulation` spends it |
+| Which side of the road this place drives on | `Rules::leftHand` mirrors the lane |
+| A scene node per agent, painted, on the terrain | `Flow::pose` says where |
+| The player's car, as an obstacle | agents queue behind it |
 
-The local conditions now carry visibility, wind, snowfall and snow depth. When
-it snows, flakes fall around the camera, carried by the measured wind. When
-the wind passes 6 m/s over snow, it drifts along the ground. Both are dimmed
-with the daylight, which the particles do not receive. When Open-Meteo says 3
-cm or more of snow lies, the ground and the roofs of every resident tile wear
-the photographed snow, and take their own surfaces back when it melts. Streets
-stay clear, and so do water, glacier, snow and ice.
-
-### Walking over the pole
-
-Headings are angles in the origin's frame, the frame the camera draws in, and
-each step is turned into the local east and north where it starts
-(`onward`). Far from a pole this changes nothing measurable. Near one, a
-heading kept against the local north walked in circles around the pole and
-turned back at it. When the origin moves every 350 m, every heading the player
-owns turns with it. `advance` is now a rotation of the unit vector rather
-than an `asin`: at the pole, `cos(d)` of a 5 cm step rounded to exactly 1 and
-the player could not step off it.
-
-Two bugs outside the ice turned up on the way. Open-Meteo answers `deflate`
-when allowed, in a form WinHTTP aborts on, which took the elevation and the
-weather offline everywhere outside France. `net.cpp` now accepts gzip only.
-Overpass refuses a longitude past ±180 (HTTP 400), which every tile at the
-antimeridian, and every tile at the pole, asked for in its wider runway box.
-
-```powershell
-python tools\play_world.py --smoke --spawn 0 90                              # the Pole, on foot
-python tools\play_world.py --smoke --spawn 2.3522 48.8566 --spawn2 0 90      # Paris, then the Pole
-generated\tools\r1test.exe SeaIce
-```
-
-### Not there yet
-
-Sea ice in the sea cells of a coastal tile (the fast ice of a winter fjord),
-the Antarctic's measured ice (the climatology answers there), and relief
-seen from afar on land. The sky shows a faint vertical seam where the
-equirectangular photograph wraps. It is the engine's, turns with the Sun, and
-shows most on an even grey sky.
+- **A graph per tile**, cooked with the street from the same ways, with the
+  tile's lifetime. Tunnels and `service` ways carry no traffic; bridges are
+  driven at their solved level. Speeds are `maxspeed` where tagged (328 against
+  32 estimates on the rue de Rivoli tile), and the tile says which.
+- **How busy**: a car per 28 buildings, capped by road length (22 for a Paris
+  tile, two or three for a village). Lanes are weighted by road class and
+  spawning follows weight × length, so the cars are on the avenue you are
+  looking at. Eighty cars per neighbourhood, nearest tile first.
+- **Ten paints**, listed as albedos under `carPaints` in `atlas.json` (0.05 to
+  0.30), one material each through the engine's cache.
+- **F takes any car.** The traffic node leaves the flow (`Flow::retire`) and
+  joins the world; the car you left stays where you left it. Six abandoned cars
+  are kept; a teleport clears them.
 
 ## The people
 
-The player and everyone in the street are people now, not a kit figure: the
-Kenney block character is gone, and in its place are twenty scanned and
-rigged avatars from Microsoft's **Rocketbox** library (MIT): nineteen in the
-crowd and one for the player.
-
-```powershell
-python -m r1.humans        # from game/tools, with Blender 4.2 installed
-```
-
-### One library for the player and the crowd
-
-Rocketbox is 115 characters on one 3ds Max biped and 400-odd motion-capture
-clips for that biped: walks, runs, waits, a telephone, a conversation, a
-chair. `r1/humans.py` fetches what it needs at one pinned commit into
-`cache/downloads/rocketbox/`. `r1/humans_blender.py` then does the rest in
-Blender: metres, feet on the ground, facing +Z. It folds 26 face bones into
-the head (nobody in a street is close enough to see a lip move) but keeps the
-two eyes, which a person's gaze turns (see [Meeting the player](#meeting-the-player)),
-and retargets
-every clip by copying each bone's world rotation. The pelvis position is scaled
-by the two skeletons' legs, measured as thigh plus shin, because a clip's first
-frame may already be sitting. `assets/models/humans/humans.json` says what came
-out.
-
-The library has no jump. The player's is the flight phase of the sprint (the
-frame where the lower foot is highest), held for the 0.74 s the game's jump
-lasts.
+The player and the crowd are scanned, rigged avatars from Microsoft's
+**Rocketbox** library (MIT): nineteen in the crowd and one for the player.
+`r1/humans.py` fetches what it needs at a pinned commit; `r1/humans_blender.py`
+converts in Blender 4.2 (metres, feet on the ground, 26 face bones folded into
+the head but the eyes kept) and retargets the motion-capture clips. The jump is
+the flight phase of the sprint, held 0.74 s.
 
 | | triangles | exported vertices | textures |
 |---|---:|---:|---|
-| Player | 7 364 (the whole scan) | 4 584 | 1024 / 512 px |
+| Player | 7 364 | 4 584 | 1024 / 512 px |
 | Passer-by, near | 2 400 | 1 571–2 010 | 512 / 256 px |
 | Passer-by, far | 500 | 432–617 | same |
 
-A street pedestrian of the PS2's last years was 1.5–3 k triangles. The twenty
-together are 49 530 shared vertices, which `test_humans.py` holds under
-55 000, the share of the arena that the trees, props, boats and fleets leave.
-The colour maps are the scans' own, reduced. Their mean albedos (skin and cloth
-0.05–0.28) are measured, and the bake refuses a map above 0.35 (rule 2).
+The twenty together are 49 530 shared vertices (`test_humans.py` holds them
+under 55 000). Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
+player stands 1.46 m at 0.8 scale; run and sprint are retimed (2.8 and 7 m/s)
+so the feet stay planted. Each tile weights the light, medium and dark scans by
+its country (`assets/world/countries.geojson`), stable per tile and slot,
+balanced between men and women: gameplay defaults, not population statistics.
 
-### Smaller, on purpose
+- **Where they walk is surveyed** (`native/gen/crowd.cpp`): the sidewalks the
+  streets are drawn with, OSM footways, pedestrian streets, paths and steps,
+  cut where they enter a building or a carriageway, loose ends joined across
+  the road (where people cross), and two seats per placed bench.
+- **How many is inferred** from pavement, shops, offices, bus stops, crossings
+  and buildings, capped at 40 per tile, then scaled by the local solar hour
+  (nearly nobody before dawn, peaks at rush hours and lunch) and halved by rain
+  or snow. 60 per neighbourhood, nearest tiles first.
+- **What they do**: walk on the right, choose a street at each junction,
+  stand, wait, phone, talk in pairs, sit on benches, step aside for the player
+  and run from a fast car. They appear out of sight (behind the camera or past
+  70 m) and leave beyond 150 m. `r1::Crowd` runs headless in `test_crowd.cpp`.
+- **Bodies**: everyone is a kinematic capsule in the engine's physics; the
+  player is a `CharacterBodyNode` moved by `moveAndSlide`. A contact closing
+  faster than 0.6 m/s is a bump: the person is carried off their line (20 cm
+  at a jog, 70 cm at a sprint), their spine springs back (`ImpactModifier`),
+  and they answer with a shrug, a telling-off or dusting themselves down.
+- **Gaze**: within 7 m, most look up as the player passes; eyes, head, neck and
+  spine follow him (`GazeModifier`) to 83° either side, then let go.
 
-People are drawn at 0.8 of their scanned size, and so are the road vehicles
-(`kVehicleScale` in `native/world.cpp`). The player now stands 1.46 m and the
-city car is 2.9 m long. This was the player's call, made looking at them in
-the streets. The fleet's dimensions are scaled with the models, so doors,
-cameras, parking and the traffic's gaps agree with what is drawn. A clip
-drawn at 0.8 covers ground at 0.8 of its captured speed. The player's run and
-sprint are retimed in the bake, so 2.8 m/s and 7 m/s (Shift) keep the feet on
-the ground. Passers-by walk at exactly their clip's pace, 0.81 m/s for the men
-and 0.97 m/s for the women.
+**Cost**: pooled nodes with their own animator over shared meshes and clips; a
+person who has left is disabled and leaves the physics. Near model above 3.5%
+of screen height (about 35 m). Within 12 m a pose every frame, further at 15, 8
+and 4 Hz, held in between (`Animator::setPoseRate(hz, PoseRateMode::Hold)`).
 
-### Appearance by location
+## Physics
 
-`assets/world/countries.geojson` supplies country borders and subregions
-offline. Each tile uses its country to weight the crowd's supplied light,
-medium and dark skinned scans. Sub-Saharan African tiles, including Burkina
-Faso, target 97% darker avatars; European tiles use a different mix. The
-selection is stable per tile and walker slot, balances men and women, and
-keeps visual variety everywhere. These broad weights are gameplay defaults,
-not measured population statistics or a claim about anyone's ethnicity.
+All runtime collision is the engine's (Jolt through Saida); the game has no
+obstacle tests of its own. Each uploaded tile mesh gets a `StaticBodyNode` with
+a `Mesh` `CollisionShapeNode`; interior shells and doors are mesh bodies;
+furniture and vehicles have box colliders; trunks are authored from the cooked
+tree positions. Interior bodies are destroyed with their room. Arrivals wait
+for the destination's first physics sync. Character motion, ceilings,
+spawn/exit occupancy and camera obstacles use the engine API. Water navigation,
+the unloaded-tile limit and the globe's height sampling remain game rules.
+Generation still uses polygons to place buildings, props, parking and
+circulation: those are content constraints, not physics.
 
-### Where they walk is surveyed
+Engine fixes this game found, each with its regression test in Saida:
 
-`native/gen/crowd.cpp` cooks a walking network into every tile (the manifest's
-`crowd`):
+- a disabled character kept its inner physics body, and reactivation left it
+  disconnected from the world (found on Paris → Tunis);
+- scene raycasts and sphere overlaps now detect both sides of triangle walls;
+- colliders are built in local space, so a wall first mounted millions of
+  metres from the origin stays on its mesh after a rebase;
+- `MaterialDesc::doubleSided` is honoured in scene draws, including mixed
+  GPU-driven batches (facades and interior fixtures are double-sided).
 
-- **Sidewalks.** It uses the ones the streets are drawn with, tagged or
-  inferred exactly as `streets.cpp` infers them, walked down their middle.
-- **Footways.** OSM's footways, pedestrian streets, paths and steps.
-- **Cuts.** Every stretch that enters a building or a carriageway is cut out.
-- **Joins.** Loose ends are joined to the nearest walk of another street:
-  round the corner, or across the road. That is where people cross, stepping
-  down the kerb.
-- **Benches.** The benches the props actually placed seat two each, at the
-  bench's own seat height.
+## Performance
 
-### How many is inferred, and says so
-
-The tile asks for a number from what it holds: pavement, shops and offices,
-bus stops, crossings and signals, and buildings. The number is capped at 40
-people per tile, and the manifest keeps the inputs and says that the number is
-inferred (I5). At run time it is multiplied by the local solar hour. There is
-nearly nobody before dawn; the morning rush, lunch and the evening peak are the
-busiest. Rain or falling snow halves it. The whole neighbourhood shares 60
-people, and the tiles nearest the player fill first, as the traffic does. A
-commercial avenue at noon is busy, a village is quiet, and the open country at
-night is empty.
-
-### What they do
-
-- **Walk.** People walk, keeping to the right so that two meeting pass each
-  other, and choose a street at every junction.
-- **Stand, phone, talk.** They stop to stand, wait or look at a telephone.
-  Some stand in pairs, facing each other, talking.
-- **Sit.** Some sit on the benches for half a minute to a minute and a half.
-- **Make way.** They step aside to pass the player where he stands, stop only
-  when the sidewalk leaves no room, and run for it when his car comes through
-  at speed.
-- **Appear out of sight.** Newcomers appear out of sight: behind the camera, or
-  further than 70 m. People leave beyond 150 m.
-
-The simulation (`r1::Crowd`) needs no engine and `test_crowd.cpp` runs it
-headless.
-
-### Meeting the player
-
-- **Bodies.** Everyone is a body in the engine's physics (Jolt): each person
-  a kinematic capsule 44 cm across that follows them, and the player's feet a
-  standing capsule the same size, the engine's character body, moved every
-  step by `CharacterBodyNode::moveAndSlide`. He stops at whoever is in his
-  way and slides round them, and someone walking into him moves him. The game tests no
-  collision of its own: streamed buildings, interiors, doors, furniture and
-  vehicles are engine bodies too. Water entry remains a geographic gameplay rule.
-- **Bumps.** What his feet touched comes back from the engine
-  (`CharacterBodyNode::contacts`). A contact closing faster than 0.6 m/s is
-  a bump (`r1::Crowd::bump`). The person is carried off their line, 20 cm by a
-  jog and 70 cm by a sprint, and their back bends along the blow and swings
-  upright (the engine's `ImpactModifier`, a spring on the spine). His does
-  too, the other way, and his stride is broken for a moment.
-- **Answers.** Then they answer, facing him: a shrug for a brush, a
-  telling-off or dusting themselves down for a shove or a second bump.
-  These are Rocketbox's own `gestic_shrug`, `idle_angry` and `idle_dust`
-  captures, cut to a few seconds. The library has no fall and no stagger, which
-  is why the stagger is a spring. Then they go back to what they were doing.
-- **Gaze.** When he passes in front of someone, within 7 m, most look up:
-  eight in ten, a third of those on the telephone, half of a conversation,
-  nearly everyone for a sprint. Their eyes, head, neck and a little of the
-  spine turn to his eyes (the engine's `GazeModifier`) and follow him. Once he
-  is past, the head follows him to its limit (83° either side), holds there a
-  moment, and lets him go. Nobody is walked into without looking round at who
-  did it.
-- **Turning.** A body turns rather than snaps, round a corner or round to face
-  him.
-
-### What they cost
-
-- **Shared parts.** Each person is a pooled node with its own animator over
-  its avatar's shared meshes, rig and clips. A person who has left is disabled,
-  not hidden: nothing animates them, and their capsule leaves the physics.
-- **Levels of detail.** The near model is drawn while a person stands taller
-  than 3.5% of the screen, about 35 m away, and the far one beyond.
-- **Animation.** Within 12 m a person is posed every frame. Further out the
-  pose is resampled at 15, 8 and 4 Hz and held in between. That is the
-  engine's `Animator::setPoseRate(hz, PoseRateMode::Hold)`, added for this and
-  for any game with a crowd. The engine's older reduced rate still blended
-  every bone on every frame, and so saved almost nothing.
-
-Measured on the Paris smoke with `--profile`, which any Saida executable now
-accepts: it writes a Chrome trace and a scope-by-scope summary to the log. A
-frame is 4.5 ms of CPU work plus 12.8 ms waiting for the frame cap. The 63
-animators cost 0.09 ms, and 4 frames out of 569 went over 33 ms on arrival.
-Two engine changes got there:
+Measured on the Paris smoke with `--profile` (25 September 2026): a frame is
+4.5 ms of CPU work plus 12.8 ms waiting for the frame cap; 63 animators cost
+0.09 ms; 4 frames of 569 went over 33 ms on arrival.
 
 | | before | after |
 |---|---|---|
@@ -1566,538 +995,46 @@ Two engine changes got there:
 | Animators (60 people and the player) | 2.97 ms | 0.09 ms |
 | Arrival frames over 33 ms | 216 of 278 | 4 of 569 |
 
-### Not there yet
+Later measurements: Le Fourchêne hypermarket at 60 fps; the canopy tile at
+60 fps (+0.8 ms scene update); a 600-frame Vannes home run at 0.750 ms/frame
+for `Physics/SceneStep`. These were taken on an RTX 4070 host, not on the
+reference i5 / GTX 1060. Full-tile imports can still exceed a 16.7 ms frame:
+CPU asset decoding jobs and incremental GPU uploads remain to be done.
 
-People do not yet look both ways: a traffic car does not stop for someone on a
-crossing. Nobody is a child, nobody dresses for the region, and nobody
-enters a building (the Interior update).
+## Known limits
 
-## The Sun follows the player
-
-A world you teleport across breaks an assumption every earlier phase held
-without saying it: the anchor. `scripts/sun_cycle.js` used to read its observer
-once at load, which is right for one place and wrong the moment you leave it —
-Sydney lit at Paris's hour, the beam on the wrong side of the sky, the season
-inverted.
-
-So the observer is state, and the game moves it:
-
-```
-native/world.cpp  ──setObserver(lon, lat, altitude)──▶  scripts/sun_cycle.js
-                     ScriptBehaviour::callExport
-```
-
-Called at every spawn and every origin rebase. The C++ says *where*, never
-*which light*: the model is not ported a third time, because the second port is
-already only kept honest by a test.
-
-`scenes/earth.scene` therefore contains no hand-written lighting value at all.
-Direction, colour, intensity, ambient, horizon and the sky come out of one
-instant and one air column, and `r1/prepare_world.py` writes them from
-`r1/solar.py` and `r1/skies.py`.
-
-```powershell
-$env:PYTHONPATH = (Resolve-Path game\tools).Path
-python -m unittest r1.tests.test_sun_cycle_parity -v
-```
-
-Nine tests hold this. Six were already there and pin the JS port to the Python
-at 1e-9 over a year of instants and five latitudes. Three are new and check the
-thing that only matters once the player moves: after `setObserver`, the script
-must compute the **destination's** sun and keep nothing of the anchor's. The
-five sites are chosen for what they break — Sydney and Cape Town invert the
-season, Tokyo sits half a revolution of longitude away where an equation-of-time
-sign error shows, Quito removes the seasonal swing, Tromsø keeps the polar
-branches in — and a fourth test requires a non-finite coordinate to be refused
-rather than propagated into the light's direction, where it would black the
-frame out with nothing on screen to explain why.
-
-**The default clock is the real UTC clock.** At each location the Sun is computed
-from that instant and the player's latitude and longitude; one real day takes
-one real day. `WORLD_EPOCH` in `r1/prepare_world.py` only lights the generated
-scene before the runtime script starts. The scene can opt into a fixed instant
-with `useSystemClock: false` and can deliberately accelerate time with
-`secondsPerSecond`.
-
-The HUD shows the destination's civil time when Open-Meteo supplies its time
-zone. Without a recent saved zone or a connection it labels a longitude-based
-time-zone estimate, rather than showing the computer's local time as if it
-belonged to the destination. The game also fetches a local current forecast
-in the background: cloud cover softens the Sun and blends in a CC0 overcast
-sky; precipitation increases haze. A forecast older than two hours is marked
-unavailable. Tile loading and offline exploration never wait for weather.
-
-## The sky follows the hour
-
-The sky used to be one photograph, a veiled afternoon with its own Sun baked
-in, turned down as the real Sun set — so a night was a daytime sky, dimmed.
-It is now a day of photographs: Poly Haven's **Qwantani series**, eleven
-"pure sky" HDRIs of one sky from one hilltop in South Africa, from before dawn
-to after dusk (CC0). `r1/skies.py` prepares them and `scripts/sun_cycle.js`
-drives them every frame; a parity test holds the two to 1e-9.
-
-- **Each sky is placed by measurement.** Every photograph carries the instant
-  and place it was taken, so `solar.py` gives the Sun's elevation in it; the
-  visible Sun agrees within 0.7° on every daytime frame. The runtime shows the
-  two photographs the real Sun stands between and crossfades them, morning
-  photographs on the way up and evening ones on the way down.
-- **Each sky faces the real Sun.** Every image is turned so its photographed
-  Sun sits at the real Sun's azimuth.
-- **Brightness comes from the model, not the files.** Poly Haven normalises
-  each photograph, so their night is as bright as their noon. The band from 0°
-  to 4° of each is measured and the sky is scaled so it equals the model's
-  horizon colour — which is also the fog — so the dome meets the fog without a
-  seam at every hour and keeps the photograph's gradient above it.
-- **One Sun.** Crossfading two photographs would show two Suns, neither where
-  the light comes from, so each photograph's disc, aureole and lens streaks are
-  removed and the engine draws one disc where the beam comes from
-  (`SceneSettings::skySunDirection`). Faint traces of the removed aureole remain
-  in the midday skies.
-
-The engine gained what this needs, as general features: a second sky and a
-crossfade (`skyboxBlendTexture`, `skyboxBlend`, `skyboxBlendRotation`), a Sun
-disc, and `scene.setSkybox(path[, blendPath])` for scripts. A sky path with no
-file behind it is refused with a logged reason rather than drawn magenta.
-
-```powershell
-python -m r1.skies        # from game\tools: rebuild the skies and the table
-```
-
-The downloads are pinned by md5 and kept in `data/source-assets/skies/`; what
-ships is the normalised sky in `assets/skies/` and `assets/skies/skies.json`.
-
-## Testing it without a window
-
-Every check below runs with the window hidden, so it does not steal the screen:
-
-```powershell
-$env:SAIDA_WINDOW_HIDDEN = "1"
-python tools\play_world.py --smoke --spawn 2.3522 48.8566
-```
-
-The driver clicks the map, presses Go, waits for the tiles, walks, jumps, walks
-back to the car, drives it, is refused the door at speed, brakes, steps out,
-takes over a passing traffic car, and reopens the map with **Reprendre**. Exit code 0 is a pass; the failing line is in the log
-whose path is printed at the end. Pass `--screenshot <png>` to also capture the
-frame after the spawn.
-
-`--spawn2 <lon> <lat>` adds a second leg: it walks, reopens the map, types the
-destination and presses Go again. Teleporting out of a place you are standing in
-is a different path from a cold spawn — tiles are evicted, the resource arena is
-trimmed, the origin moves half a planet — and it is the path a player takes
-every time after the first. It went untested until it broke:
-
-```powershell
-python tools\play_world.py --smoke --spawn 2.3522 48.8566 --spawn2 10.1815 36.8065
-```
-
-Three of its assertions exist because of bugs that shipped:
-
-- **The press, not the click.** Hovering a `ui-hit` element makes the engine
-  consume the mouse, which clears the button's previous state, so
-  `isMouseButtonReleased()` is never true over the menu and RmlUi never receives
-  the `Up` that makes a `click`. A menu bound to `click` alone does nothing at
-  all under a real mouse. VerticalSlice answers this by acting on `mousedown` as
-  well (`engine/VerticalSlice/ui/main_menu.js`), and so does this one, with the
-  pair deduplicated so one press cannot zoom twice. The driver therefore fires a
-  press *without* a release — the path a player actually takes — and separately
-  requires a full press-and-release to act exactly once.
-- **The Sun took the observer.** The spawn fails the run if `setObserver` was not
-  accepted, because the failure mode otherwise is a scene that quietly keeps
-  lighting the wrong hemisphere.
-- **The second Go.** A teleport must reach a complete spawn, not a stalled
-  counter.
-
-```powershell
-sh native/build_tools.sh; generated\tools\r1test.exe        # from game: the generator
-python -m unittest discover -s tools\r1\tests -t tools      # from game: the authoring tools
-```
-
-None of these needs the engine or a network. The C++ tests hold the world:
-props (a thousand lamps do not squeeze out five benches, no region plants a kit
-tree), ground (water beats everything it sits inside, every class is a
-plausible albedo, partitioning the terrain creates no vertices), the Atlas seam
-(a named region beats the band it sits in, outside every rectangle admits it),
-buildings, streets, harbours, traffic, airports and the cache. The Python tests hold the
-assets the project authors: skies, the Sun, landmarks, the road fleet and the
-aircraft, and that every prop and tree points at an asset on disk.
-
-The three cities above are each a smoke test, and all three run offline against
-the cache — including across the v3 → v4 generator bump, because a tile's raw
-observations are carried forward and the shared regional OSM source is keyed by
-bounding box rather than by version:
-
-```powershell
-$env:HTTP_PROXY = "http://127.0.0.1:9"; $env:HTTPS_PROXY = "http://127.0.0.1:9"
-python tools\play_world.py --smoke --spawn 4.8900 52.3730 --spawn2 10.1815 36.8065
-```
-
-Amsterdam to Tunis: the densest neighbourhood the project has cooked, then one
-of the sparsest, in one run.
+- **The world ends at about 800 m**, in a 5 km haze; from the air, only the far
+  landmarks stand beyond it. Summits on Copernicus ground are shaved.
+- **Buildings**: preview façades without modelled openings; only ground floors
+  are furnished (no upper floors, stairs or lifts); landmark interiors are not
+  generated; no sorted glass pass. The Atlas building palettes are not yet
+  re-derived as measured albedos.
+- **Streets**: municipal road polygons (e.g. Paris) are not integrated;
+  inferred sidewalk widths need not match the survey; crossing ramps and
+  islands are not modelled; tunnels are skipped. Outside the measured Paris
+  sample, detail has had less visual verification.
+- **Traffic**: no traffic lights, no lane changing, no parked cars along the
+  kerb, no collisions between traffic and the world beyond its lane; junction
+  give-way is nearest-first. Traffic does not stop for pedestrians.
+- **People**: no children, no regional clothing, passers-by never enter
+  buildings.
+- **Aircraft**: no air traffic, taxi routing or tower; runways and aerodromes
+  mapped as multipolygon relations are not read.
+- **Cold**: no fast ice in coastal sea cells, the Antarctic uses the
+  climatology. The sky shows a faint seam where the equirectangular photograph
+  wraps (the engine's).
+- **Elevation**: IGN is used only in France; vertical-datum harmonisation
+  between sources is not done.
 
 ## Attribution
 
-Map data is © OpenStreetMap contributors (ODbL). Elevation comes from the
-Copernicus DEM GLO-90 through Open-Meteo, the weather from Open-Meteo, and the
-sea ice from NOAA CoastWatch/PolarWatch (Metop-C ASCAT ice classification). The people are
-Microsoft Rocketbox avatars and motion capture (MIT, `assets/licenses/Microsoft-Rocketbox-MIT.txt`). The selection map is Natural Earth
-(public domain) and is used for selection only — never as terrain. Asset
-provenance and checksums are recorded in `assets/THIRD_PARTY_ASSETS.json`, and
-attribution is visible in-game.
-
-
-## The landmarks
-
-Everything in this world is generated from a description, and until this
-section that included the Eiffel Tower: OSM maps it as `building=tower`,
-`height=330`, and the building chain extruded a 125 m square 330 m into the
-sky. Twenty places now have their own models (`r1/landmarks.py`): the Eiffel
-Tower, the Statue of Liberty, Big Ben, the Colosseum, the Taj Mahal, the Giza
-pyramids, Christ the Redeemer, the Sydney Opera House, the Burj Khalifa, the
-Empire State Building, the Leaning Tower of Pisa, the Arc de Triomphe,
-Notre-Dame, the Sagrada Família, the Brandenburg Gate, St Peter's, St Basil's,
-the Parthenon, Tokyo Tower and the Petronas Towers.
-
-They are still descriptions. Each is a recipe of a few dozen lines in the
-vocabulary of `r1/sculpt.py` -- a lathe for a dome, a lattice for a tower, a
-wall with its arcade cut through -- regenerated identically on every machine
-(§3 I3). No downloaded model and no photogrammetry, so no licence to carry and
-no asset of a lower grade (CLAUDE.md rule 1). The anchor and bearing are
-measured on the OSM element found by its `wikidata` tag, the height is the
-official one, the ground under the anchor is read from the same terrain source
-the tile draws; three bearings OSM cannot give (Liberty, Christ, St Basil's) are
-inferred and the manifest says so. The OSM trace of the landmark is not
-extruded; its neighbours are.
-
-**Three levels of detail, one recipe.** A sculpture built inside
-`sculpt.detail(1)` or `detail(2)` asks each primitive for less: fewer sides,
-no opening or member thinner than a pixel at that distance, no texture (from a
-kilometre a photograph is its average, which the albedo already is). Only
-where a shape changes character does a recipe intervene: a lattice tower is a
-solid silhouette from afar, a stepped pyramid a smooth one.
-
-| Level | Drawn | Budget (vertices) |
-|---|---|---|
-| 0 | by its own tile, while that tile is resident | 32 768 |
-| 1 | beyond the resident tiles, to 1.8 km | 12 288 |
-| 2 | to 5 km | 4 096 |
-
-`python -m r1.landmarks` (from `game/tools`) bakes the three levels into
-`assets/world/landmarks/` with `landmarks.json`; `native/world.cpp` shows a far model exactly
-when the near one is not there, places it like a tile at every rebase, and
-counts it in the resident budget. `tools/landmark_preview.py` draws a contact
-sheet of any level without the engine.
-
-**The haze.** Nothing of this could be seen: the fog was a 1 km visibility
-(`fogDensity 0.0035`), chosen to hide the edge of the 3x3 neighbourhood (see
-*What this did not fix*). It is now a 5 km visibility (`0.00078`, Koschmieder's
-3.912 / V), an ordinary city day, and the camera's far plane stops at 5 km with
-it. The trade was taken knowingly: beyond the resident neighbourhood the world
-still ends, and that edge is now fainter haze rather than a wall of it. The
-horizon rings of §5 (L1/L2) are what will fill it.
-
-Known limits: where the terrain falls back to Copernicus GLO-90 through a 7x7
-grid, summits are shaved (Corcovado reads 565 m instead of about 700 m), and
-the Christ stands on the terrain the game draws, not on the real summit.
-Bridges (Golden Gate, Tower Bridge) are not on the list: roads are draped on
-the ground and a deck would not carry the car.
-
-### Shops and interiors (generator v23)
-
-Retail buildings and buildings containing an OSM shop node receive a hollow
-shopfront, framed display windows, a canopy and their observed `name` / `brand`.
-The existing shared Latin sign font supplies the lettering; unsupported names
-are reported in the log. No exact logo or unobserved architecture is claimed.
-Double sliding doors use a sensor on both sides, a hold interval and the same
-opening fraction for geometry and the engine colliders attached to the leaves. The complete ground-floor
-footprint is walkable, with level flooring, a terrain-connected threshold,
-ceiling clearance and collidable furniture. Upper floors are not yet furnished
-or connected by stairs. Glazing is represented by frames and reflection/safety
-strips; the renderer currently has no sorted transparent glass pass. A funeral
-home (`shop=funeral_directors`) is no walk-in store and keeps its building.
-
-The door opens on a mapped public entrance when the outline has one; staff,
-emergency and exit-only doors (`access=private`, `entrance=emergency|exit`)
-do not count. Every public entrance is a candidate and the one whose central
-aisle runs deepest into the room (up to 12 m) wins, so a vestibule facing a
-wall loses to a clear entrance. Without one, the door is inferred toward the
-nearest parking (else road), at the nearest point of the outline that opens on
-a 6 m aisle, and the manifest says `inferred`.
-
-`gen/interiors.hpp` is the reusable contract: `InteriorPlan` stores identity,
-footprint, portal, floor, ceiling, recipe and provenance; `layoutInterior`
-reserves circulation and places fittings; `buildInteriorShell` creates the room
-and `buildInteriorFixture` supplies shared furniture prototypes. Up to 128
-fittings plus two checkouts cover the floor; four seeded merchandise variants
-reuse the same meshes across instances and active rooms. Market, bakery, fashion
-and mall recipes share the contract.
-
-A supermarket node mapped inside a mall (Carrefour inside Le Fourchêne, Vannes)
-anchors that store: its measured position is kept in the plan (`anchor`,
-`anchorSource: measured:tenant-node`), and the floor nearer to it than to the
-door becomes its sales floor, the rest staying the gallery with its kiosks.
-The sales floor has 7.5 m gondolas, each three instances of the ordinary
-2.5 m shelf prototype, so the arena holds no extra vertex (Le Fourchêne:
-76 gondolas, 52 kiosks, 12 checkouts, 22 792 vertices, 60 frames a second).
-Up to twelve checkouts line the boundary with the gallery, and the store is
-lit over its checkouts and around its mapped position. The HUD reads
-"Carrefour · Le Fourchêne" there. The anchor's exact floor plan is not mapped:
-the split is synthesized, the position observed. The three sizes to compare
-are Carrefour City (near the lycée Lesage, Vannes, small), Carrefour Market (Theix,
-medium) and this hypermarket. Future civic/religious/prison recipes must
-supply their own spatial rules through this contract, not through retail tags.
-The runtime loads at 65 m, releases beyond 85 m and retains at most two rooms,
-prioritizing the player's room. Each room is limited to 24,000 vertices and is
-checked against actual remaining geometry capacity. Allocation failure is
-reported and keeps the building closed. This is a capacity contract, not a
-measured frame-rate guarantee on the reference GPU.
-
-`python -m r1.retail_materials` from `game/tools` rebuilds the dedicated mineral
-finish from the existing CC0 plaster scan, preserving its 1K resolution and
-normalizing linear albedo. It also extracts letter coverage from the existing
-sign atlas so fascia lettering has no baked green rectangles. The runtime
-performs no image processing. Neither floors nor cladding reuse facade sheets
-with baked windows.
-
-`gen/retail.*` attaches mapped tenant nodes and entrances to buildings and
-associates surface parking with nearby shops. Parking has its own asphalt,
-2.6 × 5 m synthesized bays, circulation gaps and a painted pedestrian spine.
-Building footprints, road corridors and mapped water/parks are subtracted;
-surfaces and paint are draped on the terrain. Both sides of a tile boundary
-can identify the shop owning a lot. The HUD identifies the store or its parking.
-The manifest records observed parking boundaries separately from inferred
-store ownership and synthesized markings. Inferred forecourts require a mapped
-retail parcel (or an asphalt commercial parcel); bare concrete alone is not
-classified as parking. Underground/multistorey/private lots are excluded.
-
-Overpass query 8 requests shops, entrances and parking. The game supplements
-older answers asynchronously with a `.retail.json` observation layer; once
-cached, that layer is reused offline. An unavailable supplement does not prevent
-playing and `retail.observationsQueried` reports the missing observations.
-`r1cook --fetch` can explicitly populate this layer; without `--fetch` it reads
-only disk. A layer is found beside any neighbourhood query covering the tile,
-even one whose own answer was never fetched because an older answer already
-covered it (the aero layer is found the same way).
-`r1test --game game Retail` exercises portal geometry and clear aisles, deterministic
-concave layouts, tenant/entrance association, lettering and parking exclusions.
-`R1WORLD_RETAIL_SMOKE=1` with `--smoke --spawn <lon> <lat>` near a shop exercises
-entry, an interior aisle, exit, closing, eviction and regeneration in the game;
-it waits for the tiles in front of and inside the door to stream in.
-`R1WORLD_RETAIL_SHOT=<png>` with `R1WORLD_RETAIL_SHOT_AT=outside|inside|anchor`
-photographs the store instead (`anchor`: from behind a mall's checkouts toward
-its supermarket) and ends the run.
-
-### Building interiors (generator v25)
-
-The shared interior contract now covers ordinary ground floors. `interior_uses.cpp`
-classifies homes, police/gendarmerie stations, schools, offices, garages, clinics,
-prisons, worship, restaurants and storage; observed building tags win over
-inference, tenant nodes complete anonymous buildings and mapped campuses provide
-an explicitly inferred association. Ordinary private entrances are usable in
-the simulation. Retail retains its public-entrance selection and shopfronts.
-
-Homes receive living/kitchen/bedroom/bathroom rooms where the footprint fits them.
-Living and kitchen frontages are open, while private rooms retain opaque walls
-and 1.2 m side doorways beside a 1.8 m clear circulation path. Sofa cushions,
-tables and chairs, kitchen cabinets/hob/basin, beds, showers, lavabos and toilet
-bowls have separate fittings. Schools have classrooms and bookshelves; police
-stations have reception, waiting, offices, filing and interview tables; offices
-have workstations and meeting rooms. Worship seating uses pews; mosques receive
-walkable prayer mats. Garage cars instance the existing vehicle
-fleet beside workbenches and tool cabinets. Up to two exterior cars occupy
-synthesized clear forecourt bays, excluded from all building outlines and roads,
-mapped water/forest/parks and ground varying by more than 0.4 m across the bay.
-Exterior vehicles stream with the interior and have collision.
-
-`interior_furniture.cpp` generates shared prototypes, including revolved ceramics
-and round chair legs. The OSM identity and regional key seed their variants.
-Layouts fit complete rooms and fittings against the concave footprint, reject
-overlap (except low decorative rugs beneath furniture) and cap ordinary-room fittings (including partitions) at 128. The plan
-records the recipe, region, usage provenance and synthesized vehicle positions;
-`storeysFurnished: 1` makes the ground-floor scope explicit.
-
-Ordinary portals cut only the doorway in the existing regional facade. Two
-opaque leaves swing inward; stores keep their sliding leaves. Floors are level
-above sampled ground and do not move the ordinary building's measured roof.
-Streaming retains the 65/85 m hysteresis, two-room limit and 24,000-vertex ceiling.
-Per-frame selection and ground queries transform positions once per tile and
-test a bounding box before a polygon. Capacity refusals are logged and retried after leaving.
-Each doorway facade is triangulated with a hole and eight welded corners rather
-than overlapping strips, keeping the existing tile LODs, regional textures,
-silhouettes and every portal and interior plan. The arena and the 120,000-vertex
-tile ceiling stay unchanged.
-
-Overpass question 10 adds civic amenities, office and craft observations, also
-delivered to older caches through version 3 of `.retail.json`. Older layers
-remain readable while enrichment is unavailable. `interiorStreaming` records
-missing observations and unavailable buildings (raised volume, insufficient
-headroom or no exposed door edge). Small or irregular floor plates may fit only
-some furniture. Upper floors, stairs/elevators and interiors of replaced landmark
-assets are still outstanding.
-
-Validation: 210 C++ tests and 116 Python authoring checks passed. The dense Vannes
-tile at -2.761, 47.656 has 708 interior plans and 119,945 static vertices, within
-the unchanged 120,000 ceiling. Room streaming retains its separate arena check.
-`generated/tools/r1test.exe Interior` covers recipe selection,
-domestic functions in small houses and offset entrances, concave containment,
-aisle clearance, deterministic serialization/prototypes, budgets, observed use and
-preservation of doors/heights across the dense facade LOD, and garage forecourt
-exclusion of roads and parks. The existing Retail,
-Fuel, Airports and building checks continue to run.
-
-For the in-game entry/exit/closing/eviction/regeneration driver, set
-`R1WORLD_INTERIOR_SMOKE=home|school|office|police|garage` and run `--smoke --spawn`
-near an appropriate doorway (one recipe per run). The driver uses the actual
-aisle length, up to 12 m. `R1WORLD_RETAIL_SHOT=<absolute PNG path>` with
-`R1WORLD_RETAIL_SHOT_AT=room` photographs a furnished room from inside; existing
-`outside|inside|anchor` views still work. Screenshots were inspected at Vannes,
-Theix and Paris for homes, classrooms, offices, gendarmerie reception and a garage.
-
-### Fuel stations
-
-A station (`amenity=fuel`, often also tagged `shop=gas` or `shop=convenience`)
-and a roof with no walls (`building=roof`) are never stores. `gen/fuel.*` finds
-each station's canopy: the station way itself when it is mapped on the canopy,
-else the open roof or cadastre light construction (`wall=no`) the station node
-stands in, the one inside the station's area, or the nearest within 30 m. A
-canopy is drawn as a slab on columns (4.7 m clearance, 0.9 m fascia) that cars
-and walkers pass under; it is not a footprint. Any other `building=roof` is a
-roof on posts. The cadastre's other `wall=no` buildings keep their walls: it
-marks every shed that way.
-
-Under the canopy, pump islands follow its long axis (rows 8 m apart, islands
-9 m apart, 4.6 × 1.2 m), each with a column, two dispensers with screens and
-holsters, and yellow bollards. The islands are footprints (cars and walkers
-bump them). The fascia is in the brand's livery (a table of albedos, whole-word
-matches, neutral for an unknown brand) between white trims, and reads the word
-for a fuel station in the country's language: STATION-SERVICE, TANKSTELLE,
-ESTACIÓN DE SERVICIO, STAZIONE DI SERVIZIO, PETROL STATION, GAS STATION, STACJA
-PALIW and so on (`fuelTitle`). The country is the Overpass answer's, else the
-bundled borders' (`assets/world/countries.geojson`). The sign font spells Latin
-capitals and writes an accent it lacks as its plain letter (Č as C, as town
-signs do); a script it cannot spell leaves the brand on the fascia, and
-`fuel.title` says why. A totem stands 2 m off the nearest public road within
-45 m, clear of every footprint, with the brand and no price (a price is not
-observed). A station with no canopy mapped gets an inferred one (18 × 9 m along
-the nearest road, or inside its area), clear of buildings and roadways, or the
-manifest's reason why none fitted.
-
-The lettering is glyphs of the sign font, built by the game at mount
-(`lettering` in the manifest). Each glyph is a textured cell spanning 0.36 cap
-below the baseline to 1.36 above, so the whole cell is fitted inside the fascia.
-Overpass query 9 asks for `amenity=fuel`; the `.retail.json` layer, version 2,
-brings the stations to older answers, and a version 1 layer keeps being read
-offline until the new one lands. `r1test --game game Fuel` covers the canopy,
-islands, clearance, titles by country, inferred canopies and totems.
-
-### Measured canopy
-
-`gen/canopy.*` is a world layer: for each tile, a 48 x 48 grid (about 12 m a
-cell) saying where trees (3 m or taller over at least 5 % of the cell) and low
-vegetation (1-3 m over a quarter of it: hedges, shrubs) stand, and the median
-tree height of each 8 x 8 block. Any system may ask it (`storedCanopy`,
-`Canopy::classAt`, `Canopy::heightAt`); vegetation is the first.
-
-The source is Meta and WRI's High Resolution Canopy Height Maps (1 m, global,
-CC BY 4.0, from imagery of 2009-2020): zoom-9 Web Mercator BigTIFFs on AWS, one
-deflated row per strip. `fetchCanopyBand` reads the header, the offsets of the
-rows of one tile row and those rows (a few MB), and converts every tile of that
-band the rows cover, about a hundred. The raw map is never written to disk. The
-grid is coded by an adaptive binary range coder with a JBIG-like 10-cell
-context (tree plane, then the low plane where there is no tree, then the block
-heights): a Breton bocage tile is about 200 bytes, sea 2 bytes; about 7 GB for
-all the land of the planet. Records are appended to one file per square degree
-(`cache/world/canopy/<lat>_<lon>.r1c`), never one file per tile. The game fetches
-a missing band in the background and cooks the tiles again when it lands;
-`r1cook --fetch` does the same headless.
-
-With the canopy, `planNature` keeps an inferred tree (roadside, park, forest
-fill) only in a tree cell, gives every empty tree cell a tree at the measured
-height (trunk clear of roads and roofs, the crown may overhang them) and every
-low cell a shrub; surveyed OSM trees and rows keep their place. The tile's tree
-budget is then 640 (measured on the Theix periurban tile: the frame stays at
-60 fps, scene update +0.8 ms). The manifest's `nature.canopy` counts the cells,
-the trees placed and the inferred trees removed, and names the source.
-
-Collision reads every trunk of a tile when it mounts, not when each tree is
-drawn: a car parked a moment earlier no longer has a trunk grow through it. A
-building owned by a tile that streams in over the parked car moves the car to
-the nearest free spot, and the log says so.
-
-### Engine collision ownership
-
-The October 1 collision audit found a second, game-side obstacle system:
-footprint/edge tests for walls, rectangle tests for furniture and traffic,
-circles for trunks and segment/edge tests for the camera. Those runtime tests
-have been removed. Generation still uses polygons to place buildings, props,
-parking and circulation space; those are content constraints, not a physics
-solver.
-
-Each uploaded tile mesh receives a Saida `StaticBodyNode` with a `Mesh`
-`CollisionShapeNode`. Interior shell and door meshes are also engine bodies;
-furniture and vehicles have authored box colliders. Trunk colliders are authored
-from the cooked tree positions. Interior bodies are destroyed with the streamed
-room; an unloaded nearby entrance has a closed-door collider. Arrivals wait for
-the destination geometry's first physics sync. Character movement calls
-`CharacterBodyNode::moveAndSlide` without a second game-side wall test; ceiling
-motion, spawn/exit occupancy and camera obstacles also use the engine physics
-API. Geographic water navigation, unloaded-tile limits and the globe's height
-sampling remain game rules. Vehicles retain arcade handling and use engine
-scene queries for obstacles.
-
-The interior E2E driver moves the actual character through the open door and
-back out, then queries closed doors, walls and every furniture collider before
-checking eviction and regeneration. Generator tests separately assert that
-furniture layouts leave their intended corridors clear.
-
-The Paris-to-Tunis walk/drive/traffic-takeover/teleport run exposed an engine
-character lifecycle bug: disabling a character kept its inner physics body,
-and reactivation left movement disconnected from the world. Saida now releases
-that body on detach and recreates it on reactivation. A regression reproduces
-the original failure; both it and the complete in-game route pass with the fix.
-Scene raycasts and sphere overlaps also detect both sides of triangle walls.
-The engine query regression covers front/back hits and the ignored-body filter;
-render sidedness remains a separate material setting.
-The garage facade check also reproduced loss of collider precision when geometry
-was first mounted in a distant world frame. Saida now composes local transforms
-when building mesh/hull/Auto shapes; its distant-frame GPU regression verifies
-that a rebased wall retains the exact drawn surface.
-
-### Residential furnishings and material sidedness (v25)
-
-Private rooms use rounded, smoothly shaded sofa seats, armrests, cushions,
-mattresses, headboards and pillows. Kitchens include cabinet doors, oven,
-hob, basin, faucet, extractor and a fridge where space permits. Bedrooms add
-bedside drawers and lamps, plus full-height two-door wardrobes. Living rooms
-add rugs, floor lamps, bookcases and potted plants. Domestic rooms have bounded
-widths and enclosing side walls when the building is larger. Joining partitions
-are allowed to meet at corners, keeping bedroom and bathroom dividers intact;
-plaster replaces
-shiny partition ceramics, and domestic ceilings omit the retail grid and long
-linear diffusers. Timber uses the existing window-free plank PBR maps rather
-than the facade atlas, which includes baked windows.
-
-The mesh audit found inward winding on all six generated box faces. Their
-winding and normals now point outward, as do revolved fittings. Saida now
-honors `MaterialDesc::doubleSided` in scene draws, including mixed GPU-driven
-draws without splitting their indirect batch. Building facade materials and
-interior fixtures are double-sided. The generator and prototype cache keys
-advance to v25 so old geometry is regenerated.
-
-Doorway plinths are split around the accessible threshold for the actual engine
-character to climb the approach. Pitched roofs omit the invisible eave-height
-membrane beneath their existing sloping panels; streamed rooms provide their
-own ceiling below the attic. This keeps the dense Vannes tile at 118,486
-vertices, below the unchanged 120,000 cap.
-
-Verification: 213 generator tests; 87 native engine tests; 69 GPU streaming
-checks; native runtime
-contract; native and Web shader compilation. The exported material-sidedness
-pixel check sees both colored panels from the front and only the double-sided
-panel from behind. In-game home, supermarket, school, police, garage and office
-traversals exercise real engine entry, exit, door/wall/furniture bodies, eviction
-and regeneration. An optimized
-600-frame Vannes home run measured 0.750 ms/frame for `Physics/SceneStep`, on
-an RTX 4070 host. Lavapipe is unavailable here, so the
-exact Witness golden-image gate is not qualified by these vendor-independent
-pixel checks or game captures.
+Map data is © OpenStreetMap contributors (ODbL). Elevation: IGN RGE ALTI
+(Licence Ouverte) and the Copernicus DEM GLO-90 through Open-Meteo; weather from
+Open-Meteo (CC BY 4.0); sea ice from NOAA CoastWatch/PolarWatch (Metop-C
+ASCAT); canopy from Meta and WRI's High Resolution Canopy Height Maps
+(CC BY 4.0); shipping density from the World Bank's Global Shipping Traffic
+Density (CC BY 4.0). The people are Microsoft Rocketbox avatars and motion
+capture (MIT, `assets/licenses/Microsoft-Rocketbox-MIT.txt`). The selection map
+and offline coastline are Natural Earth (public domain). Asset provenance and
+checksums are in `assets/THIRD_PARTY_ASSETS.json`, and attribution is visible
+in game.

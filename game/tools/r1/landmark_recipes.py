@@ -349,15 +349,6 @@ def _gable(s: Sculpt, finish: Finish, centre, along, width: float, y0: float,
          (centre[0], y0, centre[1]), (along[0], 0.0, along[1]), (0.0, 1.0, 0.0), thickness)
 
 
-def _pitched(s: Sculpt, finish: Finish, x0: float, x1: float, half: float, eave: float,
-             ridge: float, cz: float = 0.0, hips: bool = False) -> None:
-    """A roof along x over [x0, x1] x [cz - half, cz + half]."""
-    inset = (ridge - eave) if hips else 0.0
-    inset = min(inset, (x1 - x0) * 0.5 - 0.01) if hips else 0.0
-    loft(s, finish, [(rect(x1 - x0, 2 * half, (x0 + x1) * 0.5, cz), eave),
-                     (rect(x1 - x0 - 2 * inset, 0.02, (x0 + x1) * 0.5, cz), ridge)], top=False)
-
-
 def _plaque(s: Sculpt, finish: Finish, face: Face, s0: float, s1: float, t0: float, t1: float,
             out: float) -> None:
     """A flat rectangle standing `out` proud of a wall: an inlay, a relief

@@ -123,9 +123,13 @@ function setObserver(lon, lat, altitude) {
 
 let inspectionMode = false;
 let inspectionUnix = EPOCH_UNIX;
-function setInspectionMode(enabled) {
+// A capture holds the instant it started at, or the one it names (Unix
+// seconds), so two runs photograph the same place in the same light.
+function setInspectionMode(enabled, unixSeconds) {
     if (typeof enabled !== "boolean") return false;
-    if (enabled && !inspectionMode) inspectionUnix = gameTime();
+    if (unixSeconds !== undefined && !Number.isFinite(unixSeconds)) return false;
+    if (enabled && Number.isFinite(unixSeconds)) inspectionUnix = unixSeconds;
+    else if (enabled && !inspectionMode) inspectionUnix = gameTime();
     inspectionMode = enabled;
     return true;
 }

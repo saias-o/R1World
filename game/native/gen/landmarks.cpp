@@ -59,10 +59,10 @@ constexpr double kReach = 250.0;
 
 std::vector<const Landmark*> around(const Bounds& b) {
     const double lon = (b.west + b.east) * 0.5, lat = (b.south + b.north) * 0.5;
-    const double half = std::hypot((b.east - b.west) * 111320.0 * std::cos(radians(lat)), (b.north - b.south) * 110540.0) * 0.5;
+    const double half = std::hypot((b.east - b.west) * kMetresPerDegree * std::cos(radians(lat)), (b.north - b.south) * 110540.0) * 0.5;
     std::vector<const Landmark*> out;
     for (const Landmark& l : landmarks()) {
-        const double dx = (l.lon - lon) * 111320.0 * std::cos(radians(lat)), dy = (l.lat - lat) * 110540.0;
+        const double dx = (l.lon - lon) * kMetresPerDegree * std::cos(radians(lat)), dy = (l.lat - lat) * 110540.0;
         if (std::hypot(dx, dy) <= half + kReach) out.push_back(&l);
     }
     return out;

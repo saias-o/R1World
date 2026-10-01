@@ -130,11 +130,6 @@ def moved(ring: Sequence[Vec2], dx: float, dz: float) -> list[Vec2]:
     return [(x + dx, z + dz) for x, z in ring]
 
 
-def rotated(ring: Sequence[Vec2], angle: float) -> list[Vec2]:
-    c, s = math.cos(angle), math.sin(angle)
-    return [(x * c - z * s, x * s + z * c) for x, z in ring]
-
-
 # ── the sculpture ───────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
@@ -636,20 +631,6 @@ def sphere_profile(radius: float, y0: float, rings: int = 8, start: float = -90.
     for i in range(rings + 1):
         lat = math.radians(start + (end - start) * i / rings)
         out.append((max(0.0, radius * math.cos(lat)), y0 + radius * math.sin(lat)))
-    return out
-
-
-def onion_profile(radius: float, y0: float, height: float, neck: float = 0.55,
-                  rings: int = 10) -> list[tuple[float, float]]:
-    """A Russian onion: swelling past its drum, then drawn to a point."""
-    out = [(radius * neck, y0)]
-    for i in range(1, rings + 1):
-        t = i / rings
-        # A bulge that peaks at a third of the height and closes as a cusp.
-        r = radius * (math.sin(math.pi * min(1.0, t * 1.5)) ** 0.8 if t < 1 / 1.5 * 0.5
-                      else math.cos((t - 1 / 3) / (2 / 3) * math.pi / 2) ** 1.6)
-        out.append((max(0.0, max(r, radius * neck * (1 - t) if t < 0.2 else 0.0)), y0 + height * t))
-    out[-1] = (0.0, y0 + height)
     return out
 
 

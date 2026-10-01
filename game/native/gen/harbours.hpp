@@ -31,7 +31,6 @@ public:
     Cells(const Bounds& bounds, int size, const Sea* sea, const class Landcover& landcover,
           const std::function<double(double, double)>& elevationAt, const clip::Paths64* tidal,
           const std::function<bool(double, double)>& inlandAt = {});
-    bool seaAt(double lon, double lat) const { return sea_ && sea_->contains(lon, lat); }
     int at(double lon, double lat) const;
     double adjust(int row, int col, double height) const;
     std::vector<std::string> rows() const;
@@ -87,5 +86,7 @@ nlohmann::json seaNode(const Bounds& bounds, const Anchor& anchor, const std::st
 // A glTF model's position bounds (from its accessors, no vertex data read).
 struct ModelBounds { P3 low, high; };
 const ModelBounds& modelBounds(const std::string& projectPath);
+// A hull's beam: its kind's length ratio, or the model's own proportions.
+double beamOf(const BoatKind& kind);
 
 }  // namespace r1

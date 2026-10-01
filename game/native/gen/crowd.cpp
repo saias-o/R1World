@@ -263,7 +263,7 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
         const double s = t.at("scale")[0].get<double>();
         const double yaw = 2.0 * std::atan2(q[1].get<double>(), q[3].get<double>());
         // bench.glb: 0.81 wide, the seat's middle 0.05 in front of its origin.
-        const double seatTop = p[1].get<double>() + kBenchSeat * 0.526 * s;
+        const double seatTop = p[1].get<double>() + kBenchSeatHeight * s;
         for (double across : {-0.2, 0.2}) {
             const double x = p[0].get<double>() + (std::cos(yaw) * across + std::sin(yaw) * 0.05) * s;
             const double z = p[2].get<double>() + (-std::sin(yaw) * across + std::cos(yaw) * 0.05) * s;

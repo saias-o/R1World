@@ -121,10 +121,6 @@ class SunState:
     def is_up(self) -> bool:
         return self.elevation > SUNSET_ELEVATION
 
-    @property
-    def zenith_angle(self) -> float:
-        return 90.0 - self.elevation
-
 
 # ── ephemerides ─────────────────────────────────────────────────────────────
 

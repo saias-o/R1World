@@ -62,10 +62,19 @@
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
+double msSince(std::chrono::steady_clock::time_point start) {
+    return std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count();
+}
 constexpr double rad = 3.141592653589793 / 180.;
 constexpr double kTwoPi = 6.283185307179586;
 double wrap(double x) { return x - 360.*std::floor((x+180.)/360.); }
-int columns(int r) { return std::max(1, int(std::nearbyint(72000.*std::cos((-90.+(r+.5)*.005)*rad)))); }
+// The tile grid is the generator's (gen/common.hpp), never a copy of it: a
+// second copy rounded a row boundary differently and put the player on a
+// tile the generator had not cooked under him.
+using r1::columns;
+constexpr int kLastRow=r1::kRows-1;
+// Metres in a degree of the equator: the spherical shortcut local estimates use.
+constexpr double kMetresPerDegree=r1::kMetresPerDegree;
 // Keep room for shared models, UI and the player within the configured arena.
 constexpr double kTileGeometryShare = .85;
 
@@ -103,6 +112,11 @@ constexpr double kFastDetail=4.2;       // m/s
 // metre. A surface higher than this above him is a wall or a ceiling.
 constexpr double kStepUp=1.2;
 constexpr double kStreamAheadSeconds=45.; // prepare the road before the car reaches it
+// The floating origin follows the player (PLAN §3 I1).
+constexpr double kRebaseDistance=350.;
+// Soft per-frame budgets, in milliseconds: soft because one mesh upload or one
+// model import cannot be split.
+constexpr double kPartUploadMs=3.,kPropImportMs=2.,kMountTickMs=4.;
 constexpr size_t kStreamRequestLimit=25; // the world service's bounded priority list
 constexpr double kOnFootFollow=4.5,kDrivingFollow=8.5;
 // One message for the whole wait after Go: every change of the status line
@@ -150,6 +164,12 @@ constexpr size_t kCrowdPeople=60;
 // cleared. They cost a node each and nothing else -- the mesh is shared -- but
 // a city paved with the player's abandoned cars is its own kind of wrong.
 constexpr size_t kAbandonedCars=6;
+// Interiors (PLAN §8): built within kInteriorLoad metres of the door, released
+// beyond kInteriorRelease, kInteriorRooms at most, the player's first. An
+// entrance whose room is not built is a closed door within kClosedDoorNear,
+// cleared beyond kClosedDoorFar.
+constexpr double kInteriorLoad=65.,kInteriorRelease=85.,kClosedDoorNear=90.,kClosedDoorFar=95.;
+constexpr size_t kInteriorRooms=2;
 
 struct Tile {
     int r,c;
@@ -161,14 +181,14 @@ struct Tile {
     bool operator==(const Tile& b) const { return r==b.r&&c==b.c; }
 };
 Tile tileAt(double lon,double lat) {
-    int r=std::clamp(int(std::floor((lat+90.)*200.)),0,35999);
-    return {r,std::min(columns(r)-1,int(std::floor((wrap(lon)+180.)/360.*columns(r))))};
+    const r1::Tile t=r1::tileAt(lon,lat);
+    return {t.row,t.col};
 }
 // Metres along the sphere between two points.
 double metresBetween(double lon1,double lat1,double lon2,double lat2) {
     const double p1=lat1*rad,p2=lat2*rad,dp=p2-p1,dl=wrap(lon2-lon1)*rad;
     const double h=std::sin(dp/2)*std::sin(dp/2)+std::cos(p1)*std::cos(p2)*std::sin(dl/2)*std::sin(dl/2);
-    return 2*6371008.8*std::asin(std::min(1.,std::sqrt(h)));
+    return 2*r1::kRMean*std::asin(std::min(1.,std::sqrt(h)));
 }
 // Within some 18 km of a pole a ring is a few wedges, and the three rows
 // around the player no longer hold what he sees: standing on the pole, the
@@ -181,7 +201,7 @@ constexpr size_t kPolarTiles=12;
 std::vector<Tile> polarNearby(double lon,double lat) {
     const Tile center=tileAt(lon,lat);
     std::vector<std::pair<double,Tile>> found;
-    for(int r=std::max(0,center.r-2);r<=std::min(35999,center.r+2);++r) {
+    for(int r=std::max(0,center.r-2);r<=std::min(kLastRow,center.r+2);++r) {
         const int n=columns(r);
         for(int c=0;c<n;++c) {
             const Tile t{r,c};
@@ -203,7 +223,7 @@ std::vector<Tile> nearby(double lon,double lat) {
     if(columns(center.r)<kPolarColumns)return polarNearby(lon,lat);
     std::vector<Tile> out{center}; std::set<Tile> seen{center};
     for(int dr=-1;dr<=1;++dr) {
-        int r=std::clamp(center.r+dr,0,35999),n=columns(r);
+        int r=std::clamp(center.r+dr,0,kLastRow),n=columns(r);
         int c=int(std::floor((wrap(lon)+180.)/360.*n));
         for(int dc=-1;dc<=1;++dc) {
             Tile t{r,(c+dc+n)%n}; if(seen.insert(t).second)out.push_back(t);
@@ -212,16 +232,15 @@ std::vector<Tile> nearby(double lon,double lat) {
     // Center first, then the closest terrain: the next boundary matters more
     // than the arbitrary row/column iteration order. Wrap at the date line.
     auto distance=[&](Tile t) {
-        double p=-90.+(t.r+.5)*.005;
-        double l=-180.+(t.c+.5)*360./columns(t.r);
-        return std::hypot(wrap(l-lon)*std::cos(lat*rad),p-lat);
+        const r1::P2 middle=t.gen().center();
+        return std::hypot(wrap(middle.x-lon)*std::cos(lat*rad),middle.y-lat);
     };
     std::stable_sort(out.begin()+1,out.end(),[&](Tile a,Tile b){return distance(a)<distance(b);});
     return out;
 }
 glm::dvec3 ecef(double lon,double lat,double alt=0) {
-    double s=std::sin(lat*rad), c=std::cos(lat*rad), n=6378137./std::sqrt(1.-.0066943799901413165*s*s);
-    return {(n+alt)*c*std::cos(lon*rad),(n+alt)*c*std::sin(lon*rad),(n*(1.-.0066943799901413165)+alt)*s};
+    const r1::P3 p=r1::geodeticToEcef(lon,lat,alt);
+    return {p.x,p.y,p.z};
 }
 struct Frame {
     glm::dvec3 origin; glm::dmat3 basis;
@@ -238,7 +257,7 @@ struct Frame {
 // sees cos(d) round to exactly 1 for a step of a few centimetres, and the
 // player could never walk off it. atan2 keeps every step, there as anywhere.
 glm::dvec2 advance(double lon,double lat,double east,double north) {
-    const double length=std::hypot(east,north),d=length/6371008.8;
+    const double length=std::hypot(east,north),d=length/r1::kRMean;
     if(d==0)return {lon,lat};
     const double l=lon*rad,p=lat*rad;
     const glm::dvec3 here(std::cos(p)*std::cos(l),std::cos(p)*std::sin(l),std::sin(p));
@@ -948,7 +967,7 @@ class World : public Rml::EventListener {
     struct FrameCost { double stream=0,parts=0,warm=0,props=0,distant=0,world=0; } cost;
     template<class F> double timed(F&& f) {
         const auto t=std::chrono::steady_clock::now();f();
-        return std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-t).count();
+        return msSince(t);
     }
     double poll=0,hud=0,smokeWalk=0; std::string requested;
     // The nine tiles around the player, computed once a frame. `nearby` sorts
@@ -987,6 +1006,12 @@ class World : public Rml::EventListener {
     saida::CaptureRequest worldCapture;
     saida::runtime::CaptureViewpoint captureView;
     bool captureQueued=false;
+    // --at <unix seconds>: an inspection capture, lit at that instant under a
+    // clear sky and without the HUD, so two builds photograph the same place
+    // in the same light (tools/gallery.py). Without it a capture keeps the
+    // real instant it started at and today's weather.
+    std::optional<double> inspectAt;
+    double captureWait=0;
     std::string number(double n,int precision=6) {std::ostringstream s;s<<std::fixed<<std::setprecision(precision)<<n;return s.str();}
     // Every write re-lays and re-renders the whole interface -- the map is
     // 1.3 million pixels, some 240 ms -- so a write that changes nothing is
@@ -1118,7 +1143,7 @@ class World : public Rml::EventListener {
         pickLon=wrap(x);pickLat=std::clamp(y,-90.,90.);
         field("latitude",pickLat);field("longitude",pickLon);
         const r1::MapPixel pixel=zoom>1?r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).screen(pickLon,pickLat)
-                                        :r1::MapPixel{(pickLon+180)/360*1344,(90-pickLat)/180*560};
+                                        :r1::MapPixel{(pickLon+180)/360*r1::MapView::width,(90-pickLat)/180*r1::MapView::height};
         double px=pixel.x,py=pixel.y;
         style("pin","left",number(px,2)+"px");style("pin","top",number(py,2)+"px");
     }
@@ -1158,10 +1183,9 @@ class World : public Rml::EventListener {
         select(pickLon,pickLat);
     }
     double streamPriority(Tile t,double x,double y,double heading) const {
-        const double tileLat=-90.+(t.r+.5)*.005;
-        const double tileLon=-180.+(t.c+.5)*360./columns(t.r);
-        const double east=wrap(tileLon-x)*111320.*std::cos(y*rad);
-        const double north=(tileLat-y)*111320.;
+        const r1::P2 middle=t.gen().center();
+        const double east=wrap(middle.x-x)*kMetresPerDegree*std::cos(y*rad);
+        const double north=(middle.y-y)*kMetresPerDegree;
         const double ahead=east*std::sin(heading*rad)+north*std::cos(heading*rad);
         return std::hypot(east,north)-.8*std::max(0.,ahead);
     }
@@ -1256,7 +1280,7 @@ class World : public Rml::EventListener {
         }
         nlohmann::json result;
         if(!worldCapture.pngPath.empty()) {
-            if(sunScript->callExport("setInspectionMode",json::array({true}),result)
+            if(sunScript->callExport("setInspectionMode",inspectAt?json::array({true,*inspectAt}):json::array({true}),result)
                     !=saida::ScriptCallStatus::Succeeded)return false;
         }
         if(sunScript->callExport("setObserver",json::array({lon,lat,alt}),result)
@@ -2701,6 +2725,7 @@ class World : public Rml::EventListener {
         if(!localConditions())return;
         const auto w=conditions.value("weather",json());
         weather=Weather{};
+        if(inspectAt)return;  // a fixed instant is photographed under a clear sky
         if(w.is_object()) {
             weather.known=true;
             weather.cover=std::clamp(number(w,"cloudCover",0.)/100.,0.,1.);
@@ -3212,7 +3237,7 @@ class World : public Rml::EventListener {
                 }
                 meshCollider(*t.geography,std::make_unique<saida::MeshNode>(part.name,mesh,
                     material(t.served->cooked.parts[part.material].material)));
-                if(std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count()>=3.)return;
+                if(msSince(start)>=kPartUploadMs)return;
             }
         }
     }
@@ -3241,20 +3266,20 @@ class World : public Rml::EventListener {
           const auto q=t.frame.local(playerEcef);const r1::P2 at{q.x,q.z};
           for(auto& room:t.interiors) {
             const double distance=room.contains(at)?0:r1::dist(at,room.plan.door);
-            if(!room.node&&distance<90&&!room.closedDoor) {
+            if(!room.node&&distance<kClosedDoorNear&&!room.closedDoor) {
                 const auto& p=room.plan;
                 room.closedDoor=boxCollider(*t.node,"Unloaded interior door",{float(p.width),2.5f,.10f},{0,1.25f,0});
                 room.closedDoor->transform().position={float(p.door.x),float(p.floor),float(p.door.y)};
                 room.closedDoor->transform().rotation=glm::angleAxis(float(-std::atan2(p.along.y,p.along.x)),glm::vec3(0,1,0));
             }
-            if(room.closedDoor&&(room.node||distance>95)) {room.closedDoor->queueFree();room.closedDoor=nullptr;}
-            if(distance>85)room.refused=false; // Retry a capacity refusal on a later visit.
-            if(room.node&&distance>85) {
+            if(room.closedDoor&&(room.node||distance>kClosedDoorFar)) {room.closedDoor->queueFree();room.closedDoor=nullptr;}
+            if(distance>kInteriorRelease)room.refused=false; // Retry a capacity refusal on a later visit.
+            if(room.node&&distance>kInteriorRelease) {
                 room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
                 room.layout={};room.opening=0;released=true;
             }
             if(room.node)++active;
-            if(!room.node&&!room.refused&&distance<65)candidates.push_back({&t,&room,distance});
+            if(!room.node&&!room.refused&&distance<kInteriorLoad)candidates.push_back({&t,&room,distance});
             if(room.node) {
                 auto p=room.plan.local(at);
                 // Sensor on both sides, with a hold time and a wide safety zone.
@@ -3274,7 +3299,7 @@ class World : public Rml::EventListener {
         }
         if(released)trim();
         std::sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a.distance!=b.distance?a.distance<b.distance:a.room->plan.id<b.room->plan.id;});
-        if(active>=2&&!candidates.empty()) {
+        if(active>=kInteriorRooms&&!candidates.empty()) {
             LiveInterior* farthest=nullptr;double farDistance=candidates.front().distance+5;
             for(auto& [key,t]:loaded)for(auto& room:t.interiors)if(room.node) {
                 auto q=t.frame.local(ecef(lon,lat,alt));r1::P2 at{q.x,q.z};
@@ -3287,7 +3312,7 @@ class World : public Rml::EventListener {
                 farthest->layout={};farthest->opening=0;--active;trim();
             }
         }
-        if(active>=2||candidates.empty())return;
+        if(active>=kInteriorRooms||candidates.empty())return;
         auto& room=*candidates.front().room;auto& t=*candidates.front().tile;const auto& p=room.plan;
         room.layout=r1::layoutInterior(p);auto parts=r1::buildInteriorShell(p);auto door=r1::buildInteriorDoor(p);
         std::map<std::string,std::vector<r1::MeshPart>> furnishings;
@@ -3823,7 +3848,7 @@ class World : public Rml::EventListener {
         placeFarPack();
         saida::Log::info("[World ice] far pack to ",r1::kFarPackRadius/1000.," km around ",lon,", ",lat,
                          ": ",vertices," vertices, ",ice->measured?"measured ":"inferred ",ice->date,
-                         " build_ms=",std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count());
+                         " build_ms=",msSince(started));
     }
     // `roadside`: only what is read from the road -- the signs, which the
     // tile lists before its furniture -- for a driver above 15 km/h.
@@ -3862,7 +3887,7 @@ class World : public Rml::EventListener {
                     if(smoke){testFailed=true;engine.sceneTree().quit();return;}
                 }
                 ++l.nextProp;
-                if(std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count()>=2.)return;
+                if(msSince(start)>=kPropImportMs)return;
             }
         }
     }
@@ -3933,17 +3958,17 @@ class World : public Rml::EventListener {
                 mountLettering(entry->second);
                 placeTiles();
                 reparkIfCovered(t.key());
-                lastMountMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-mountStarted).count();
+                lastMountMs=msSince(mountStarted);
                 const auto arena=engine.resources().geometryUsage();
                 saida::Log::info("[World streaming] mounted ",t.key()," mount_ms=",lastMountMs,
                                  " arena=",arena.vertices,"v/",arena.indices,"i (largest free ",
                                  arena.largestFreeVertices,"v/",arena.largestFreeIndices,"i)",
                                  " cook_ms=",served->cooked.cookMs," since_go_ms=",
-                                 std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-goStarted).count());
+                                 msSince(goStarted));
             }catch(const std::exception& e){text("status",std::string("Tuile indisponible : ")+e.what());}
             // Mounting is cheap now that the parts go up over the next frames;
             // several tiles fit in one tick, as long as the tick stays short.
-            if(std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-tick).count()>=4.)break;
+            if(msSince(tick)>=kMountTickMs)break;
         }
         bool surroundingReady=std::all_of(want.begin(),want.end(),[&](Tile t){return loaded.count(t.key())>0;});
         if(pending && refused==tileAt(pickLon,pickLat).key() && !smoke) {
@@ -4007,7 +4032,7 @@ class World : public Rml::EventListener {
                              :tile(lon,lat)->data.value("offlineApproximation",false)
                                  ?" (simplified offline terrain)":"");
             saida::Log::info("[World streaming] go_to_play_ms=",
-                std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-goStarted).count(),
+                msSince(goStarted),
                 " resident=",loaded.size()," target=",want.size());
             if(smoke){
                 // A test driver must choose a free direction, like a human:
@@ -4135,6 +4160,7 @@ public:
     ~World(){for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
         e->RemoveEventListener("click",this);e->RemoveEventListener("mousedown",this);}}
     bool failed() const {return testFailed;}
+    void inspectInstant(double unixSeconds) {inspectAt=unixSeconds;}
     void ProcessEvent(Rml::Event& event) override {
         auto id=event.GetCurrentElement()->GetId();
         const bool press=event.GetType()=="mousedown";
@@ -4144,7 +4170,7 @@ public:
             auto* map=ui->findElementById("map");auto o=map->GetAbsoluteOffset();
             double x=event.GetParameter<float>("mouse_x",0)-o.x,y=event.GetParameter<float>("mouse_y",0)-o.y;
             const r1::MapPoint clicked=zoom>1?r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).pointAt(x,y)
-                                                :r1::MapPoint{x/1344.*360.-180.,90.-y/560.*180.};
+                                                :r1::MapPoint{x/r1::MapView::width*360.-180.,90.-y/r1::MapView::height*180.};
             select(clicked.lon,clicked.lat);
             field("city-query",std::string());showCityChoices({});
             warming=true;if(!smoke)request(pickLon,pickLat);
@@ -4691,8 +4717,7 @@ public:
         const auto started=std::chrono::steady_clock::now();
         size_t nodes=0;
         engine.sceneTree().world().traverse([&](saida::Node&,const glm::mat4&){++nodes;});
-        const double ms=std::chrono::duration<double,std::milli>(
-            std::chrono::steady_clock::now()-started).count();
+        const double ms=msSince(started);
         saida::Log::info("[World perf] one bare traversal of ",nodes," nodes took ",ms," ms");
         // Where they are. A walk is paid per node, so the composition is the
         // whole optimisation brief.
@@ -4764,7 +4789,7 @@ public:
                 if(smoke) {
                     double sx=pickLon,sy=pickLat;
                     testClick("map");
-                    double expectedLon=10./1344.*360.-180.,expectedLat=90.-10./560.*180.;
+                    double expectedLon=10./r1::MapView::width*360.-180.,expectedLat=90.-10./r1::MapView::height*180.;
                     if(std::abs(pickLon-expectedLon)>1e-5||std::abs(pickLat-expectedLat)>1e-5){
                         saida::Log::error("[World E2E] FAIL map click coordinate conversion");testFailed=true;engine.sceneTree().quit();return;
                     }
@@ -4858,7 +4883,7 @@ public:
         // The view reaches the horizon where something is drawn out to it:
         // 4.7 km at eye height, 113 km from a thousand metres, never past
         // the far pack. Elsewhere it stops at the 5 km haze, as it always has.
-        camera->farZ=farPack.node?float(std::clamp(std::sqrt(2.*6371008.8*std::max(2.,alt+10.))*1.2+1500.,5000.,r1::kFarPackRadius+5000.)):5000.f;
+        camera->farZ=farPack.node?float(std::clamp(std::sqrt(2.*r1::kRMean*std::max(2.,alt+10.))*1.2+1500.,5000.,r1::kFarPackRadius+5000.)):5000.f;
         updateSnow(delta);
         if(checkStanding)keepStanding();
         updateSnowCover();
@@ -4989,7 +5014,7 @@ public:
             const auto nudged=moveFeet(0,0,dt);
             if(tile(nudged.x,nudged.y)&&!onWater(nudged.x,nudged.y,alt)){lon=nudged.x;lat=nudged.y;alt=std::max(height(lon,lat,alt),nudged.z);}
         }
-        if(glm::length(origin.local(ecef(lon,lat,alt)))>350.)rebaseOrigin();
+        if(glm::length(origin.local(ecef(lon,lat,alt)))>kRebaseDistance)rebaseOrigin();
         if(!driving&&!sailing&&!piloting) {
             if(swimming) {
                 jumpOffset=jumpVelocity=0;wasJump=false;
@@ -5072,23 +5097,46 @@ public:
         camera->transform().position=target+backward*float(followDistance);
         if(smoke&&!worldCapture.pngPath.empty()) {
             if(captureView.set) {
-                glm::vec3 position(captureView.position[0],captureView.position[1],captureView.position[2]);
-                glm::vec3 target(captureView.target[0],captureView.target[1],captureView.target[2]);
+                // The viewpoint is relative to where the player stands now, not
+                // to the origin of the spawn: a first visit spawns on ground
+                // that the surveyed relief later raises (Kyoto: 0 m, then the
+                // hillside), and a camera 30 m above the old ground is inside
+                // the hill.
+                const glm::vec3 at=player->transform().position;
+                glm::vec3 position=at+glm::vec3(captureView.position[0],captureView.position[1],captureView.position[2]);
+                glm::vec3 target=at+glm::vec3(captureView.target[0],captureView.target[1],captureView.target[2]);
                 camera->transform().position=position;
                 camera->transform().rotation=glm::quatLookAt(glm::normalize(target-position),glm::vec3(0,1,0));
             }
             auto want=nearby(lon,lat);
+            captureWait+=dt;
+            // A first visit mounts its ground before its streets: a picture of
+            // that is a picture of nothing. The capture waits for OSM, and
+            // after two minutes takes what there is and says so.
+            size_t provisional=0;
             bool settled=std::all_of(want.begin(),want.end(),[&](Tile t){
-                auto i=loaded.find(t.key());return i!=loaded.end()&&i->second.nextProp==i->second.props.size();
+                auto i=loaded.find(t.key());if(i==loaded.end())return false;
+                if(i->second.data.value("provisional",false))++provisional;
+                // Its meshes too: a tile cooked again uploads them over
+                // several frames (uploadParts), and its props may be done first.
+                const auto& resident=i->second;
+                if(!resident.geography||resident.nextPart<std::any_cast<const PreparedTile&>(resident.served->prepared).parts.size())return false;
+                return resident.nextProp==resident.props.size();
             });
+            if(settled&&provisional&&captureWait<120.)settled=false;
+            if(settled&&provisional&&!captureQueued)
+                saida::Log::error("[World capture] ",provisional," of ",want.size(),
+                                  " tiles still wait for OSM after two minutes; photographed as they are");
             // R1WORLD_CAPTURE_SEA: a picture of the sea waits for its ships
             // (half a minute at most -- the log then says there were none).
             if(settled)captureSeaWait+=dt;
             const bool seaReady=(!std::getenv("R1WORLD_CAPTURE_SEA")||(!seaShips.empty()&&captureSeaWait>4.)
                 ||captureSeaWait>30.)
                 // The local weather is part of the picture: a few seconds for it.
-                &&(weather.known||captureSeaWait>6.);
+                &&(weather.known||inspectAt||captureSeaWait>6.);
             if(settled&&seaReady&&!captureQueued){
+                // An inspection picture is of the world: no HUD, no minimap.
+                if(inspectAt){style("hud","display","none");minimapUi->setEnabled(false);}
                 size_t plants=0;for(auto& [key,t]:loaded)plants+=t.vegetation.size();
                 saida::Log::info("[World nature] resident plants=",plants," shared static prototypes=",naturePrototypes.size());
                 saida::Log::info("[World traffic] resident cars=",trafficLive()," of ",trafficWanted()," asked for");
@@ -5296,6 +5344,11 @@ int main(int argc,char** argv) {
         // reads before any tile is cooked, and refuses to run without.
         r1::loadPalette(game.string());
         World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly);
+        for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--at") {
+            const double at=std::stod(argv[i+1]);
+            if(!std::isfinite(at))throw std::runtime_error("Invalid --at instant");
+            world.inspectInstant(at);
+        }
         engine.setOnFrame([&](float dt){world.update(dt);});
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
         engine.run();return engine.captureFailed()||world.failed()?1:0;

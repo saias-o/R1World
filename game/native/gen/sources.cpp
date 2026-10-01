@@ -17,7 +17,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #define STBI_NO_STDIO
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "../../../engine/third_party/stb/stb_image.h"
+#pragma GCC diagnostic pop
 
 namespace fs = std::filesystem;
 

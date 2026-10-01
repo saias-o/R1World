@@ -27,9 +27,9 @@ namespace r1 {
 constexpr int kCrowdRevision = 2;
 // Most people a tile's content can ask for, before the hour is applied.
 constexpr int kCrowdTileCeiling = 40;
-// bench.glb's seat, as a fraction of its height (0.237 of 0.526, measured
-// on the model): a sitter's pelvis goes on it, whatever the bench's scale.
-constexpr double kBenchSeat = 0.237 / 0.526;
+// bench.glb's seat top, in the model's metres (measured on the model): a
+// sitter's pelvis goes on it, scaled with the bench.
+constexpr double kBenchSeatHeight = 0.237;
 
 // Cook side: the tile's walkable network and its people, as the manifest's
 // "crowd" entry. `props` are the tile's placed props, for the benches.

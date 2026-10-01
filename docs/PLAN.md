@@ -65,7 +65,7 @@ Les quatre premiers rangs sont **mesurés**, donc exacts et quasi gratuits. Le
 travail créatif commence au rang 5 et il est porté par l'Atlas
 (`assets/world/atlas.json`).
 
-**On ne reproduit pas :** les intérieurs réels (ils sont générés, §8), les
+**On ne reproduit pas :** les intérieurs réels (ils sont générés, §7), les
 personnes réelles et les plaques, les logos exacts des marques, la
 photogrammétrie (elle ne se corrige pas), ni l'exactitude au-delà de la donnée
 disponible.
@@ -242,6 +242,32 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   reste droit par-dessus le pôle.
 - **Neige et temps visible** : neige qui tombe et neige soufflée par le vent
   mesuré ; sols et toits enneigés quand Open-Meteo mesure 3 cm au sol.
+- **Magasins** (générateur v23) : devanture, vitrines, marquise et nom OSM de
+  l'enseigne ; double porte coulissante sur une entrée cartographiée, sinon
+  inférée vers le parking ; rayons, présentoirs et caisses selon l'usage.
+  Un supermarché cartographié dans une galerie en devient l'ancre (Carrefour
+  dans Le Fourchêne, Vannes). Parkings OSM peints, rattachement au commerce
+  marqué comme inféré (`native/gen/retail.*`).
+- **Intérieurs du bâti ordinaire** (v24-v25) : logements (séjour-cuisine,
+  chambres, salles de bain meublées), écoles, commissariats et gendarmeries,
+  bureaux, garages avec voitures, lieux de culte, restaurants, entrepôts,
+  prisons. Usage tagué d'abord, inféré sinon. Contrat commun
+  `native/gen/interiors.*` : seul le plan léger voyage avec la tuile ; la pièce
+  est construite à 65 m de la porte, libérée à 85 m, deux au plus, 24 000
+  sommets chacune. Portes battantes, rez-de-chaussée seulement.
+- **Stations-service** : l'auvent est un auvent (dalle sur colonnes, 4,7 m de
+  dégagement), îlots et pompes synthétisés dessous, bandeau « station-service »
+  dans la langue du pays, totem à la marque et sans prix ; auvent inféré quand
+  OSM n'en trace pas (`native/gen/fuel.*`).
+- **Canopée mesurée** : la carte de hauteur de canopée Meta/WRI (1 m) devient
+  par tuile une grille de 48 × 48 cellules codée en quelques centaines
+  d'octets (~7 Go pour toutes les terres, un fichier par degré carré). Un
+  arbre inféré ne reste que là où la canopée voit un arbre ; chaque cellule
+  arborée vide reçoit un arbre photoscanné à la hauteur mesurée
+  (`native/gen/canopy.*`).
+- **Physique du moteur** : toutes les collisions du jeu sont des corps Saida
+  (tuiles, intérieurs, portes, meubles, véhicules, troncs) ; le jeu n'a plus
+  de test d'obstacle à lui. Le joueur est un `CharacterBodyNode`.
 - **Cache hors ligne** : un lieu déjà visité ne touche plus le réseau ; une
   réponse à une ancienne question Overpass est cuite telle quelle, et ce qui
   lui manque arrive en couche séparée (`kOsmQueryVersion`, `kOsmBaseVersion`).
@@ -263,98 +289,6 @@ machine de référence (I4).
 - **Optimisé** : instances partagées et animations simples, avec un budget par
   tuile et rien au-delà du rayon proche.
 
-### Mall / magasins — générateur v23
-- **Des magasins qui ressemblent à des magasins** : les bâtiments tagués
-  `shop=*` (ou dont le rez-de-chaussée porte un commerce) reçoivent une
-  devanture, une marquise, des vitrines encadrées et le **nom OSM de
-  l'enseigne** (`name`, puis `brand`). Un nom générique reste le secours
-  lorsque la donnée manque. Décision du 30 septembre 2026 : les noms réels
-  sont désormais permis ; les logos et l'architecture exacte ne sont pas inventés.
-- **On peut entrer** : double porte coulissante automatique, ouverte des deux
-  côtés, seuil raccordé au terrain, plancher horizontal, collisions des murs
-  et des meubles. Le rez-de-chaussée occupe l'emprise entière ; les étages
-  supplémentaires, escaliers et ascenseurs restent à développer.
-- **Des aménagements par usage** : rayonnages et caisses, présentoirs de
-  boulangerie, portants de vêtements, kiosques de galerie. Une circulation
-  centrale reste dégagée. L'emprise est observée, l'aménagement synthétisé.
-- **Trois tailles de supermarché** : la supérette (Carrefour City, Vannes), la
-  moyenne surface (Carrefour Market, Theix) et l'hypermarché dans sa galerie
-  (Carrefour dans Le Fourchêne, Vannes). Un nœud `shop=supermarket` cartographié
-  dans une galerie en devient l'ancre : sa position est mesurée, la surface de
-  vente autour d'elle reçoit des gondoles de 7,5 m (trois instances du même
-  rayon) et une ligne de caisses face à la galerie.
-- **La porte s'ouvre sur une vraie entrée** : les entrées publiques
-  cartographiées seulement (pas `access=private`, ni secours ni sortie) ; parmi
-  elles, celle dont l'allée est la plus profonde. Sinon la porte est inférée
-  vers le parking, sur une allée d'au moins 6 m.
-- **Le parking appartient au magasin** : emprises `amenity=parking`, asphalte,
-  places et cheminement piéton. Rattachement au commerce voisin indiqué comme
-  inféré. À défaut, un parvis peut être inféré dans une parcelle commerciale
-  adaptée ; une simple surface de béton ne suffit pas. Routes, eau et
-  bâtiments sont exclus ; les tracés suivent le terrain et traversent les tuiles.
-- **Généré seulement quand on s'approche** : l'intérieur n'existe qu'à portée
-  de la porte (65 m), il est libéré au-delà de 85 m ; deux intérieurs au plus,
-  avec contrôle de l'arène et priorité à celui où se trouve le joueur.
-  Les meubles sont des instances de prototypes partagés (128 présentoirs et
-  deux caisses au plus ; un hypermarché ancré a des gondoles de trois modules
-  et douze caisses), les petits emballages ne projettent pas d'ombres.
-- **Socle des prochains intérieurs** : `native/gen/interiors.*` expose un plan
-  sérialisable (emprise, sol, plafond, portail, recette), puis l'aménagement et
-  la géométrie. La donnée OSM et les parkings restent dans `retail.*`. Les
-  futures prisons, gendarmeries et églises ajouteront leurs recettes et leurs
-  règles d'accès sans recopier la logique des portes ou du streaming.
-- **Observations anciennes** : une couche `.retail.json` complète les anciens
-  caches sans remplacer l'OSM existant ni bloquer l'arrivée. Une fois présente,
-  elle n'est jamais revalidée ; son absence est indiquée dans le manifeste.
-
-### Végétation update
-- **La végétation est mesurée, pas seulement inférée** : la carte mondiale de
-  hauteur de canopée de Meta et WRI (1 m) dit où sont les arbres et les haies,
-  y compris ceux qu'OSM n'a jamais tracés (rangées le long d'un parking,
-  arbres isolés, bocage). C'est une couche d'observation générique
-  (`native/gen/canopy.*`), que tout système peut interroger : végétation,
-  animaux, ombre…
-- **Compacte, pour tenir le monde entier hors ligne** : la carte brute (des
-  dizaines de téraoctets) n'est jamais gardée. Chaque tuile devient une grille
-  de 48 × 48 cellules (~12 m) : arbre (≥ 3 m), végétation basse (1-3 m) ou
-  rien, plus la hauteur médiane par bloc de ~100 m, codée par un modèle de
-  contexte (comme JBIG). Mesuré : ~200 octets par tuile en bocage breton,
-  2 octets en mer ; ~7 Go estimés pour toutes les terres. Un fichier par degré
-  carré, jamais un fichier par tuile.
-- **Téléchargée une fois, par bandes** : une bande de la carte source couvre
-  78 km ; la convertir remplit une centaine de tuiles d'un coup. Le jeu la lit
-  ensuite hors ligne.
-- **Le mesuré gagne** : un arbre inféré (bord de route, remplissage d'un parc
-  ou d'une forêt) ne reste que là où la canopée voit un arbre ; chaque cellule
-  arborée vide reçoit un arbre photoscanné à la hauteur mesurée, chaque cellule
-  basse un arbuste. Les arbres et rangées cartographiés dans OSM restent à leur
-  place. Budget : 640 arbres par tuile mesurée (320 sinon).
-
-### Station-service update
-- **Une station n'est jamais un magasin** : `amenity=fuel` (souvent tagué
-  `shop=gas`) et un toit sans murs (`building=roof`) n'ont ni rayons ni portes
-  coulissantes.
-- **L'auvent est un auvent** : l'emprise cartographiée (`building=roof`, ou le
-  `wall=no` du cadastre quand une station s'y trouve) devient une dalle sur
-  colonnes, 4,7 m de dégagement et 0,9 m de bandeau, qu'on traverse à pied ou en
-  voiture. Un `building=roof` quelconque devient un toit sur poteaux. Les autres
-  constructions légères du cadastre (`wall=no`) gardent leurs murs.
-- **Sous l'auvent** : îlots, pompes, écrans, bornes et colonnes, synthétisés
-  sur le rectangle de l'auvent (rien dans OSM ne dit où sont les pompes). Les
-  îlots et le totem sont des obstacles ; l'auvent n'en est pas un.
-- **Le bandeau dit « station-service » dans la langue du pays** (STATION-SERVICE,
-  TANKSTELLE, ESTACIÓN DE SERVICIO, PETROL STATION…), sur la couleur de
-  l'enseigne. Le pays vient de la réponse OSM, sinon des frontières embarquées.
-  Quand la police ne sait pas écrire la langue (autre alphabet), le bandeau
-  porte la marque, et le manifeste le dit. Le totem, au bord de la route, porte
-  la marque et aucun prix : un prix n'est pas observé.
-- **Sans auvent cartographié**, un auvent est inféré (18 × 9 m sur un nœud,
-  dans l'emprise d'une zone), le long de la route et à l'écart des bâtiments et
-  des chaussées ; s'il ne tient pas, le manifeste en donne la raison.
-- **Observations** : la requête 9 demande les stations ; la couche
-  `.retail.json` passe en version 2 pour les apporter aux anciens caches.
-  L'ancienne couche reste lue hors ligne en attendant.
-
 ### Beach update
 - Sur les plages OSM (`natural=beach`) quand l'heure, la saison et la météo s'y
   prêtent : parasols, serviettes, transats et baigneurs dans l'eau et sur le
@@ -367,59 +301,10 @@ Le pôle, la banquise et la neige sont faits (§7). Reste :
   plus rabotés par la grille d'élévation grossière, et un horizon qui ne
   s'arrête plus à la brume de 5 km sur la terre ferme.
 
-### Interior update — générateur v24
-- **Le socle des magasins s'étend au bâti ordinaire** : logements privés,
-  écoles, commissariats et gendarmeries, bureaux, garages, centres de soins,
-  lieux de culte, restaurants, entrepôts et prisons ont des recettes distinctes.
-  Les usages tagués gagnent ; les nœuds de service et les campus cartographiés
-  complètent les bâtiments anonymes. À défaut, le logement reste une inférence.
-- **Le logement contient des pièces** : salon avec canapé et table basse,
-  cuisine équipée et coin repas, chambre avec lit et rangement, salle de bain
-  avec douche, lavabo et toilettes, quand l'emprise permet ces pièces. Les
-  cloisons ont de vrais passages sur un couloir dégagé ; murs et meubles
-  arrêtent le joueur. Les écoles ont des tables, chaises et tableaux ; les
-  commissariats un accueil, une attente, des bureaux, archives et auditions.
-- **Les entreprises ont des bureaux**, écrans, rangements et salles de réunion.
-  Les garages ont des établis, des outils et des voitures issues de la flotte
-  existante, dedans et devant lorsque l'espace le permet. Le stationnement
-  synthétisé exclut bâtiments, routes, eau et terrain trop pentu.
-- **Les portes sont animées** : battants dans le bâti ordinaire, portes
-  coulissantes conservées pour les magasins, avec capteur des deux côtés.
-  Le portail seul est percé dans la façade régionale ; la toiture et les
-  hauteurs observées sont conservées. Un seuil raccorde le plancher au terrain.
-- **Le mobilier dérive du seed OSM et de la région**. Seul le plan léger
-  accompagne la tuile ; les pièces, meubles, portes et lumières sont construits
-  à moins de 65 m, libérés au-delà de 85 m, deux intérieurs au plus. Celui du
-  joueur reste prioritaire ; les prototypes de meubles et voitures sont partagés.
-- **Le budget reste 24 000 sommets par intérieur** et 120 000 par tuile.
-  Chaque façade percée est triangulée autour de sa porte avec huit coins
-  soudés, au lieu de quatre bandes superposées ; emprises, portes, hauteurs,
-  silhouettes et textures régionales sont conservées dans les LOD existants.
-  Un refus de capacité se dit et peut être retenté lors d'une visite ultérieure.
-- **Observations** : question Overpass 10, couche `.retail.json` version 3
-  pour les usages civiques et professionnels manquant aux anciens caches.
-  Le manifeste sépare usage observé, rattachement au campus inféré et
-  aménagement synthétisé ; il dit aussi pourquoi un bâtiment est indisponible.
-- **À poursuivre** : étages visitables, escaliers et ascenseurs. Cette version
-  aménage le rez-de-chaussée ; les emprises trop étroites pour une porte, les
-  volumes surélevés sans accès et les bâtiments sans hauteur libre restent
-  signalés comme indisponibles. Les monuments remplacés par leurs assets
-  particuliers ne passent pas encore par ce générateur d'intérieur.
-
-### Residential refinement — générateur v25
-
-Le générateur v25 améliore le logement : séjour/cuisine ouverts, chambres et
-pièces d'eau séparées, mobilier rembourré arrondi, literie, frigo, hotte,
-chevets, lampes, tapis et plantes lorsque l'espace le permet. Les prototypes
-restent partagés, les distances 65/85 m et les budgets restent inchangés.
-Les collisions passent par les corps et requêtes du moteur ; les anciennes
-collisions de polygones, rectangles et cercles du runtime sont supprimées.
-Le winding des boîtes est corrigé et le moteur respecte les matériaux double face.
-Le bug de réactivation du corps du personnage est corrigé dans SaidaEngine,
-avec un test de régression et le parcours Paris → Tunis après conduite validés.
-Le moteur construit désormais les colliders en espace local : le test de
-régression vérifie qu'un mur créé à plusieurs millions de mètres de l'origine
-reste raccordé au mesh après recentrage du monde.
+### Intérieurs, la suite
+Le rez-de-chaussée est aménagé (§7). Reste :
+- **Étages visitables, escaliers et ascenseurs.**
+- **Les intérieurs des monuments** remplacés par leurs modèles propres.
 
 ---
 

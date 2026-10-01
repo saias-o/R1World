@@ -288,15 +288,15 @@ std::vector<const BoatKind*> kindsOf(const std::string& kind) {
     return out;
 }
 
-double beamOf(const BoatKind& kind) {
-    if (kind.lengthRatio > 0) return kind.length / kind.lengthRatio;
-    const ModelBounds& m = modelBounds(kBoatDir + kind.model + ".glb");
-    return (m.high.x - m.low.x) * kind.length / std::max(1e-3, m.high.z - m.low.z);
-}
-
 double r3(double v) { return pyround(v, 3); }
 double r5(double v) { return pyround(v, 5); }
 }  // namespace
+
+double beamOf(const BoatKind& kind) {
+    if (kind.lengthRatio > 0) return kind.length / kind.lengthRatio;
+    const ModelBounds m = modelBounds(kBoatDir + kind.model + ".glb");
+    return (m.high.x - m.low.x) * kind.length / std::max(1e-3, m.high.z - m.low.z);
+}
 
 // ── the sea ─────────────────────────────────────────────────────────────────
 
@@ -504,7 +504,7 @@ OsmNode tracedLighthouse(const OsmWay& way) {
     const double k = std::cos(radians(lat));
     double radius = 0;
     for (const P2& p : ring) radius = std::max(radius, std::hypot((p.x - lon) * k, p.y - lat));
-    radius *= 111320.0;
+    radius *= kMetresPerDegree;
     OsmNode node{way.id, lon, lat, way.tags};
     node.tags["man_made"] = "lighthouse";
     char buf[32]; std::snprintf(buf, sizeof buf, "%.2f", radius);
@@ -679,7 +679,7 @@ std::vector<Berth> planBoats(const OsmData& osm, const Anchor& anchor, const Cel
     std::vector<Berth> placed;
     int ships = 0;
     const Bounds& b = cells.bounds();
-    const double halfCell = (b.north - b.south) * 111320.0 / cells.size() / 2.0;
+    const double halfCell = (b.north - b.south) * kMetresPerDegree / cells.size() / 2.0;
     for (const Line& l : lines) {
         PyRandom rng = seeded(l.id, kSaltBoat);
         for (size_t i = 0; i + 1 < l.line.size(); ++i) {

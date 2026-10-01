@@ -161,7 +161,7 @@ CookedTile cookTile(const Observations& in) {
     };
     BuildingLod buildingLod = BuildingLod::Full;
     BuildingOutput built = buildAtLod(buildingLod);
-    const Landcover interiorCover(osm.landcover);
+    const Landcover landcover(osm.landcover);
     clip::Paths64 forecourtExclusions;
     if(std::any_of(built.interiors.begin(),built.interiors.end(),[](const auto& p){return p.recipe=="garage";})) {
         for(const auto& w:osm.buildings) {
@@ -190,7 +190,7 @@ CookedTile cookTile(const Observations& in) {
                 bool clear=clip::area(clip::intersect(shape,forecourtExclusions))<.001;
                 double lowest=1e9,highest=-1e9;
                 for(auto at:bay) {
-                    const auto g=anchor.toGeodetic(at.x,0,at.y);const auto cover=interiorCover.at(g.x,g.y);
+                    const auto g=anchor.toGeodetic(at.x,0,at.y);const auto cover=landcover.at(g.x,g.y);
                     if(cover&&(*cover=="water"||*cover=="forest"||*cover=="park"))clear=false;
                     auto y=ground(g.x,g.y).y;lowest=std::min(lowest,y);highest=std::max(highest,y);
                 }
@@ -217,7 +217,6 @@ CookedTile cookTile(const Observations& in) {
     std::vector<MeshPart> totemParts=totems.parts();
 
     // Rank 9: the terrain partitioned by what OSM says the ground is.
-    const Landcover landcover(osm.landcover);
     HarbourStats harbour;
     std::optional<Sea> sea;
     if (in.offline) {

@@ -93,7 +93,7 @@ std::optional<double> GradePlan::levelAt(P2 p) const {
 }
 
 std::optional<double> GradePlan::levelNear(P2 p, double reach) const {
-    const double kx = 111320.0 * std::cos(radians(p.y)), ky = 111320.0;
+    const double kx = kMetresPerDegree * std::cos(radians(p.y)), ky = kMetresPerDegree;
     std::optional<double> best;
     double nearest = reach;
     for (const RaisedRun& r : runs)
@@ -516,7 +516,7 @@ ElevationGrid carvedGround(const ElevationGrid& grid, const GradePlan& plan) {
     const int n = kTerrainMeshSize;
     ElevationGrid out{grid.bounds, n, {}};
     out.values.reserve(size_t(n * n));
-    const double kx = 111320.0 * std::cos(radians((grid.bounds.south + grid.bounds.north) / 2)), ky = 111320.0;
+    const double kx = kMetresPerDegree * std::cos(radians((grid.bounds.south + grid.bounds.north) / 2)), ky = kMetresPerDegree;
     for (int row = 0; row < n; ++row)
         for (int col = 0; col < n; ++col) {
             const double lon = grid.bounds.west + (grid.bounds.east - grid.bounds.west) * col / (n - 1);
@@ -549,7 +549,7 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
     BridgeOutput out;
     auto owned = [&](P2 p) { return bounds.west <= p.x && p.x < bounds.east && bounds.south <= p.y && p.y < bounds.north; };
     // Within reach of the tile: a piece's width and its slopes (40 m).
-    const double reachLat = 40.0 / 111320.0, reachLon = reachLat / std::max(0.05, std::cos(radians((bounds.south + bounds.north) / 2)));
+    const double reachLat = 40.0 / kMetresPerDegree, reachLon = reachLat / std::max(0.05, std::cos(radians((bounds.south + bounds.north) / 2)));
     auto overTile = [&](P2 p) {
         return bounds.west - reachLon <= p.x && p.x <= bounds.east + reachLon && bounds.south - reachLat <= p.y &&
                p.y <= bounds.north + reachLat;

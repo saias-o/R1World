@@ -107,7 +107,6 @@ private:
     std::vector<Area> urbanAreas_;
     std::map<std::pair<long, long>, int> buildings_;  // first points on a 50 m grid
     std::map<std::pair<long, long>, int> townCells_;  // 40 m cells -> their town
-    std::vector<int> townSizes_;
     std::vector<std::pair<P2, const std::string*>> addresses_;
     double seen_[4] = {1e300, 1e300, -1e300, -1e300};
     Prediction beside(const RoadNet::Walk& w, bool arriving) const;

@@ -182,7 +182,6 @@ Context::Context(const OsmData& o, const RoadNet& n, Jurisdiction j, const std::
                 }
         }
     }
-    townSizes_ = sizes;
     for (const auto& [cell, id] : piece) if (sizes[size_t(id)] >= kTownMinimum) townCells_[cell] = id;
 }
 

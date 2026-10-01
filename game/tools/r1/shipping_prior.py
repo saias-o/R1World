@@ -88,11 +88,6 @@ def quantize(ships: np.ndarray) -> np.ndarray:
     return q
 
 
-def dequantize(q):
-    """Mean ships present for a quantized byte (0 -> 0)."""
-    return 0.0 if q == 0 else FLOOR * 2.0 ** ((q - 1) / PER_OCTAVE)
-
-
 def _download(url: str, path: Path, digest: str) -> None:
     if path.exists() and _sha256(path) == digest:
         return
