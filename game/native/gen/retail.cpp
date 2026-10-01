@@ -1,6 +1,8 @@
 #include "retail.hpp"
 #include "buildings.hpp"
+#include "spatial.hpp"
 #include <limits>
+#include <optional>
 namespace r1 {
 namespace {
 Bounds extent(const Ring& ring) {
@@ -31,11 +33,30 @@ std::vector<OsmWay> retailBuildings(const std::vector<const OsmWay*>& ways,const
         if(has(n.tags,"entrance")&&kind!="no"&&kind!="service"&&kind!="emergency"&&kind!="exit"&&
            access!="private"&&access!="no"&&access!="staff")entrances.push_back(&n);
     }
+    // Each scan visits only what can match, in the order of the full scan
+    // (gen/spatial.hpp). The sampled ground is the same wherever it is asked.
+    BoxIndex tenantIndex(.002);
+    for(size_t i=0;i<tenants.size();++i)tenantIndex.add(i,{tenants[i]->lon,tenants[i]->lat,tenants[i]->lon,tenants[i]->lat});
+    // Entrances and the road points: only when a store needs them.
+    std::vector<P2> entrancePoints;
+    std::optional<BoxIndex> entranceIndex;
+    auto entrancesNear=[&](const Box& box) {
+        if(!entranceIndex) {
+            entranceIndex.emplace(32.);
+            for(auto* n:entrances){auto p=ground(n->lon,n->lat);entranceIndex->add(entrancePoints.size(),{p.x,p.z,p.x,p.z});entrancePoints.push_back({p.x,p.z});}
+        }
+        return entranceIndex->near(box);
+    };
+    std::optional<NearestPoint> roadIndex;
+    std::vector<P2> parkings;
+    // A point a hair outside a ring's box is outside the ring, whatever the rounding.
+    constexpr double kOutside=1e-9;
     std::vector<OsmWay> out;out.reserve(ways.size());
     for(auto* w:ways) {
         out.push_back(*w);auto& b=out.back();
-        if(!retailUse(b.tags))for(auto* n:tenants)
-            if(pointInPolygon({n->lon,n->lat},b.points)) {
+        const Box box=boxOf(b.points).grown(kOutside);
+        if(!retailUse(b.tags))for(size_t i:tenantIndex.near(box))
+            if(auto* n=tenants[i];box.contains({n->lon,n->lat})&&pointInPolygon({n->lon,n->lat},b.points)) {
                 for(auto key:{"shop","name","brand"})if(has(n->tags,key)&&!has(b.tags,key))b.tags[key]=tagOr(n->tags,key);
                 b.tags["r1:tenant"]=std::to_string(n->id);break;
             }
@@ -59,14 +80,12 @@ std::vector<OsmWay> retailBuildings(const std::vector<const OsmWay*>& ways,const
         // Every mapped entrance on the outline is a candidate: the portal
         // planner keeps the one that opens on a clear aisle.
         std::string fronts;
-        for(auto* node:entrances) {
-            const auto& n=*node;
-            auto p=ground(n.lon,n.lat);double near=1e30;
-            for(size_t e=1;e<b.points.size();++e) {
-                auto a=ground(b.points[e-1].x,b.points[e-1].y),c=ground(b.points[e].x,b.points[e].y);
-                near=std::min(near,clip::distance({{a.x,a.z},{c.x,c.z}},{p.x,p.z}));
-            }
-            if(near<1.)fronts+=(fronts.empty()?"":";")+std::to_string(p.x)+","+std::to_string(p.z);
+        Ring outline;for(auto q:b.points){auto a=ground(q.x,q.y);outline.push_back({a.x,a.z});}
+        // An entrance a metre past the outline's box is a metre from every edge.
+        for(size_t i:entrancesNear(boxOf(outline).grown(1.01))) {
+            const P2 p=entrancePoints[i];double near=1e30;
+            for(size_t e=1;e<outline.size();++e)near=std::min(near,clip::distance({outline[e-1],outline[e]},p));
+            if(near<1.)fronts+=(fronts.empty()?"":";")+std::to_string(p.x)+","+std::to_string(p.y);
         }
         const bool entrance=!fronts.empty();
         if(!entrance) {
@@ -74,10 +93,21 @@ std::vector<OsmWay> retailBuildings(const std::vector<const OsmWay*>& ways,const
             // Ranking nearby observations needs no elevation sampling or ECEF
             // conversion for every vertex of every road in the neighbourhood.
             const double longitudeScale=kMetresPerDegree*std::cos(radians(center.y));
-            auto consider=[&](P2 q){double d=std::hypot(wrap(q.x-center.x)*longitudeScale,(q.y-center.y)*111132.);
+            auto metric=[&](P2 q){return std::hypot(wrap(q.x-center.x)*longitudeScale,(q.y-center.y)*111132.);};
+            auto consider=[&](P2 q){double d=metric(q);
                 if(d<best){best=d;target=q;}};
-            for(auto& p:osm.landcover)if(tagOr(p.tags,"amenity")=="parking"&&tagOr(p.tags,"parking")!="underground")consider(centroid(p.points));
-            if(best>120){best=1e30;for(auto& r:osm.roads)for(auto q:r.points)consider(q);}
+            if(!roadIndex) {
+                for(auto& p:osm.landcover)if(tagOr(p.tags,"amenity")=="parking"&&tagOr(p.tags,"parking")!="underground")parkings.push_back(centroid(p.points));
+                std::vector<P2> points;
+                for(auto& r:osm.roads)points.insert(points.end(),r.points.begin(),r.points.end());
+                roadIndex.emplace(std::move(points),.0005);
+            }
+            for(auto q:parkings)consider(q);
+            if(best>120) {
+                best=1e30;
+                const size_t nearest=roadIndex->nearest(center,std::min(longitudeScale,111132.),metric,best);
+                if(nearest!=NearestPoint::npos)target=roadIndex->points()[nearest];
+            }
         }
         if(!entrance){auto p=ground(target.x,target.y);fronts=std::to_string(p.x)+","+std::to_string(p.z);}
         b.tags["r1:front"]=fronts;

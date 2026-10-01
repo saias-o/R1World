@@ -1,5 +1,6 @@
 #include "crowd.hpp"
 
+#include "spatial.hpp"
 #include "streets.hpp"
 
 #include <algorithm>
@@ -299,15 +300,23 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
         }
         activity.push_back({centre, weight, busy, home});
     }
+    // The sources near a point, in their order (the demand below is a sum).
+    // A metre of slack: the tests below decide, the grid only skips.
+    BoxIndex sources(64.0);
+    for (size_t i = 0; i < activity.size(); ++i) sources.add(i, {activity[i].p.x, activity[i].p.y, activity[i].p.x, activity[i].p.y});
+    auto sourcesNear = [&](P2 p, double radius) { return sources.near(Box{p.x, p.y, p.x, p.y}.grown(radius + 1.0)); };
     // Close homes reinforce one another: the same number of dwellings in a
     // compact block supports more foot traffic than isolated farmhouses.
-    for (auto& source : activity) {
+    for (size_t i = 0; i < activity.size(); ++i) {
+        auto& source = activity[i];
         if (!source.home) continue;
         int neighbours = 0;
-        for (const auto& other : activity)
-            if (&other != &source && other.home &&
+        for (size_t j : sourcesNear(source.p, 50.0)) {
+            const auto& other = activity[j];
+            if (j != i && other.home &&
                 std::abs(other.p.x - source.p.x) < 50.0 && std::abs(other.p.y - source.p.y) < 50.0 &&
                 dist(other.p, source.p) < 50.0) ++neighbours;
+        }
         source.weight *= 1.0 + std::min(0.75, neighbours * 0.12);
     }
     constexpr double kActivityRadius = 80.0;
@@ -316,7 +325,8 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
         const P3& a = nodes[entry[0].get<int>()], &b = nodes[entry[1].get<int>()];
         const P2 midpoint{(a.x + b.x) * 0.5, (a.z + b.z) * 0.5};
         double demand = 0;
-        for (auto& source : activity) {
+        for (size_t i : sourcesNear(midpoint, kActivityRadius)) {
+            auto& source = activity[i];
             if (std::abs(source.p.x - midpoint.x) > kActivityRadius ||
                 std::abs(source.p.y - midpoint.y) > kActivityRadius) continue;
             const double distance = segmentDistance(source.p, {a.x, a.z}, {b.x, b.z});

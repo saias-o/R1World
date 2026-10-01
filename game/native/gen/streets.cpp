@@ -4,6 +4,8 @@
 #include "palette.hpp"
 #include "terrain.hpp"
 
+#include <algorithm>
+#include <cstdint>
 #include <set>
 #include <unordered_map>
 
@@ -141,6 +143,22 @@ void Drape::lay(const clip::Paths64& region, double lift, Mesh& mesh) const {
         for (const P3& p : pts) path.push_back(clip::kMetres.at({p.x, p.z}));
         return path;
     };
+    // Integer boxes of paths: a clip of shapes whose boxes are apart is empty.
+    struct Extent { int64_t x0, y0, x1, y1; };
+    auto extent = [](const clip::Path64& path) {
+        Extent e{INT64_MAX, INT64_MAX, INT64_MIN, INT64_MIN};
+        for (const auto& p : path) { e.x0 = std::min(e.x0, p.x); e.y0 = std::min(e.y0, p.y); e.x1 = std::max(e.x1, p.x); e.y1 = std::max(e.y1, p.y); }
+        return e;
+    };
+    auto extents = [&](const clip::Paths64& paths) {
+        std::vector<Extent> out;
+        for (const auto& path : paths) out.push_back(extent(path));
+        return out;
+    };
+    auto meets = [](const std::vector<Extent>& paths, const Extent& e) {
+        return std::any_of(paths.begin(), paths.end(), [&](const Extent& p) { return p.x0 <= e.x1 && e.x0 <= p.x1 && p.y0 <= e.y1 && e.y0 <= p.y1; });
+    };
+    const std::vector<Extent> regionExtents = extents(region);
     for (int row = 0; row < size_; ++row) {
         // Broad phase only: include every projected grid point, since a row
         // on the curved Earth need not lie between its two end points.
@@ -151,15 +169,29 @@ void Drape::lay(const clip::Paths64& region, double lift, Mesh& mesh) const {
                 x0 = std::min(x0, p.x); x1 = std::max(x1, p.x);
                 z0 = std::min(z0, p.z); z1 = std::max(z1, p.z);
             }
-        const clip::Paths64 strip = clip::intersect(region, {clip::kMetres.path({{x0, z0}, {x1, z0}, {x1, z1}, {x0, z1}})});
+        const clip::Path64 band = clip::kMetres.path({{x0, z0}, {x1, z0}, {x1, z1}, {x0, z1}});
+        // Clipper sweeps along y: a path wholly above or below the band adds
+        // no scanline, edge or winding inside it, so the strip is the same
+        // without it. Only those are left out, in their order.
+        const Extent bandExtent = extent(band);
+        clip::Paths64 crossing;
+        for (size_t i = 0; i < region.size(); ++i)
+            if (regionExtents[i].y0 <= bandExtent.y1 && bandExtent.y0 <= regionExtents[i].y1) crossing.push_back(region[i]);
+        const clip::Paths64 strip = clip::intersect(crossing, {band});
         if (strip.empty()) continue;
+        const std::vector<Extent> stripExtents = extents(strip);
         for (int col = 0; col < size_; ++col) {
             const P3 sw = g(row, col), se = g(row, col + 1), ne = g(row + 1, col + 1), nw = g(row + 1, col);
-            const clip::Paths64 cell = clip::intersect(strip, {footprint({sw, se, ne, nw})});
+            const clip::Path64 quad = footprint({sw, se, ne, nw});
+            if (!meets(stripExtents, extent(quad))) continue;
+            const clip::Paths64 cell = clip::intersect(strip, {quad});
             if (cell.empty()) continue;
+            const std::vector<Extent> cellExtents = extents(cell);
             for (const auto& tri : {std::array<P3, 3>{sw, se, ne}, std::array<P3, 3>{sw, ne, nw}}) {
                 const P3 a = tri[0], b = tri[1], c = tri[2];
-                const clip::Paths64 piece = clip::intersect(cell, {clip::kMetres.path({{a.x, a.z}, {b.x, b.z}, {c.x, c.z}})});
+                const clip::Path64 triangle = clip::kMetres.path({{a.x, a.z}, {b.x, b.z}, {c.x, c.z}});
+                if (!meets(cellExtents, extent(triangle))) continue;
+                const clip::Paths64 piece = clip::intersect(cell, {triangle});
                 if (piece.empty()) continue;
                 auto vertex = [&](P2 q) { return P3{q.x, heightAt(q) + lift, q.y}; };
                 for (const clip::Polygon& part : clip::polygons(piece)) {

@@ -14,6 +14,7 @@
 #include "waterways.hpp"
 #include "retail.hpp"
 #include "fuel.hpp"
+#include "spatial.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -162,32 +163,56 @@ CookedTile cookTile(const Observations& in) {
     BuildingLod buildingLod = BuildingLod::Full;
     BuildingOutput built = buildAtLod(buildingLod);
     const Landcover landcover(osm.landcover);
-    clip::Paths64 forecourtExclusions;
-    if(std::any_of(built.interiors.begin(),built.interiors.end(),[](const auto& p){return p.recipe=="garage";})) {
-        for(const auto& w:osm.buildings) {
-            Ring ring;for(auto q:w.points){auto x=anchor.toEngine(q.x,q.y,0);ring.push_back({x.x,x.z});}
-            auto paths=clip::bufferRing(ring,.4);forecourtExclusions.insert(forecourtExclusions.end(),paths.begin(),paths.end());
+    // What a garage's forecourt bays stay clear of: every building and road
+    // of the neighbourhood, buffered, and its water and green. A bay only
+    // meets what reaches near it, so each garage unites only that; each piece
+    // is buffered once, for every garage and every LOD below.
+    const bool garages=std::any_of(built.interiors.begin(),built.interiors.end(),[](const auto& p){return p.recipe=="garage";});
+    struct Obstacle { int kind; double buffer; Ring ring; Box box; std::optional<clip::Paths64> paths; };
+    std::vector<Obstacle> obstacles;
+    std::optional<BoxIndex> obstacleIndex;
+    auto forecourtExclusions=[&](const Box& bays) {
+        if(!garages)return clip::Paths64{};
+        if(!obstacleIndex) {
+            obstacleIndex.emplace(64.);
+            auto add=[&](const OsmWay& w,int kind,double buffer) {
+                Ring ring;for(auto q:w.points){auto x=anchor.toEngine(q.x,q.y,0);ring.push_back({x.x,x.z});}
+                const Box box=boxOf(ring).grown(buffer+.01);
+                obstacleIndex->add(obstacles.size(),box);obstacles.push_back({kind,buffer,std::move(ring),box,std::nullopt});
+            };
+            for(const auto& w:osm.buildings)add(w,0,.4);
+            for(const auto& road:osm.roads)add(road,1,roadWidth(road.tags)/2+.4);
+            for(const auto& w:osm.landcover)if(tagOr(w.tags,"natural")=="water"||has(w.tags,"water")||
+                tagOr(w.tags,"leisure")=="park"||tagOr(w.tags,"landuse")=="forest"||tagOr(w.tags,"natural")=="wood")add(w,2,0);
         }
-        for(const auto& road:osm.roads) {
-            Ring line;for(auto q:road.points){auto x=anchor.toEngine(q.x,q.y,0);line.push_back({x.x,x.z});}
-            auto paths=clip::bufferLine(line,roadWidth(road.tags)/2+.4);forecourtExclusions.insert(forecourtExclusions.end(),paths.begin(),paths.end());
+        // Past the bays' reach, a margin. Around the bays this union has the
+        // edges a union of the whole neighbourhood has; only where a far piece
+        // crosses a near one is a vertex rounded elsewhere, under a millimetre:
+        // only a bay grazing an obstacle by a sliver of 0.001 m² could tell.
+        const Box reach=bays.grown(5.);
+        clip::Paths64 near;
+        for(size_t i:obstacleIndex->near(reach)) {
+            auto& o=obstacles[i];
+            if(!o.box.overlaps(reach))continue;
+            if(!o.paths)o.paths=o.kind==0?clip::bufferRing(o.ring,o.buffer):o.kind==1?clip::bufferLine(o.ring,o.buffer):
+                clip::Paths64{clip::kMetres.path(o.ring)};
+            near.insert(near.end(),o.paths->begin(),o.paths->end());
         }
-        for(const auto& w:osm.landcover)if(tagOr(w.tags,"natural")=="water"||has(w.tags,"water")||
-            tagOr(w.tags,"leisure")=="park"||tagOr(w.tags,"landuse")=="forest"||tagOr(w.tags,"natural")=="wood") {
-            Ring ring;for(auto q:w.points){auto x=anchor.toEngine(q.x,q.y,0);ring.push_back({x.x,x.z});}
-            forecourtExclusions.push_back(clip::kMetres.path(ring));
-        }
-        forecourtExclusions=clip::unite(forecourtExclusions);
-    }
+        return clip::unite(near);
+    };
     auto approaches=[&] {
         for(auto& p:built.interiors) {
             const auto a=p.point(0,-4);const auto geo=anchor.toGeodetic(a.x,0,a.y);
             p.approach=ground(geo.x,geo.y).y+.09;
             p.exteriorVehicles.clear();
-            if(p.recipe=="garage")for(double u:{-3.5,3.5}) {
+            if(p.recipe!="garage")continue;
+            Box bays;
+            for(double u:{-3.5,3.5})for(double v:{-8.,-3.})for(double side:{-1.15,1.15})bays.add(p.point(u+side,v));
+            const clip::Paths64 exclusions=forecourtExclusions(bays);
+            for(double u:{-3.5,3.5}) {
                 Ring bay{p.point(u-1.15,-8),p.point(u+1.15,-8),p.point(u+1.15,-3),p.point(u-1.15,-3)};
                 clip::Paths64 shape{clip::kMetres.path(bay)};
-                bool clear=clip::area(clip::intersect(shape,forecourtExclusions))<.001;
+                bool clear=clip::area(clip::intersect(shape,exclusions))<.001;
                 double lowest=1e9,highest=-1e9;
                 for(auto at:bay) {
                     const auto g=anchor.toGeodetic(at.x,0,at.y);const auto cover=landcover.at(g.x,g.y);
