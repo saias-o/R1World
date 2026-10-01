@@ -183,7 +183,7 @@ you actually asked for.
 | Piece | Job |
 |---|---|
 | `ui/world.html` | the selectable map, drawn over a Natural Earth basemap baked offline by `r1/prepare_world.py` |
-| `native/world.cpp` | the game: map input, floating origin, streaming, collision, the walk, the vehicles |
+| `native/world.cpp` | the game: map input, floating origin, streaming, engine physics integration, the walk, the vehicles |
 | `native/gen/` | the generator: `sources` fetches and caches OSM and elevation, `service` schedules, `cook` turns one tile's observations into meshes and a manifest |
 | `native/gen/common.hpp` | the grid: metre-sized latitude rings, global, with no Mercator polar cutoff |
 
@@ -789,8 +789,9 @@ The game keeps its arcade ground-following controller in geographic coordinates.
 Saida's `VehicleBehaviour` handles physical raycast vehicles; floating origins
 are now supported by `Scene::rebaseOrigin` / `rebaseSubtree`, including live body
 poses and velocities. R1World uses `rebaseSubtree` when placing streamed tiles.
-Its driving controller still uses the elevation grid and building footprints,
-not Jolt terrain colliders, and does not simulate suspension or rolling bodies.
+Its arcade controller still follows the elevation grid and does not simulate
+suspension or rolling bodies. Obstacles are queried against the streamed Jolt
+scene, including terrain/building meshes and vehicle bodies.
 
 ### The handling is arcade, and the first version was not
 
@@ -1516,8 +1517,8 @@ headless.
   standing capsule the same size, the engine's character body, moved every
   step by `CharacterBodyNode::moveAndSlide`. He stops at whoever is in his
   way and slides round them, and someone walking into him moves him. The game tests no
-  collision of its own; buildings and water are still the footprints
-  `blocked` walks, because they are not bodies yet.
+  collision of its own: streamed buildings, interiors, doors, furniture and
+  vehicles are engine bodies too. Water entry remains a geographic gameplay rule.
 - **Bumps.** What his feet touched comes back from the engine
   (`CharacterBodyNode::contacts`). A contact closing faster than 0.6 m/s is
   a bump (`r1::Crowd::bump`). The person is carried off their line, 20 cm by a
@@ -1808,7 +1809,7 @@ shopfront, framed display windows, a canopy and their observed `name` / `brand`.
 The existing shared Latin sign font supplies the lettering; unsupported names
 are reported in the log. No exact logo or unobserved architecture is claimed.
 Double sliding doors use a sensor on both sides, a hold interval and the same
-opening fraction for geometry and passage collision. The complete ground-floor
+opening fraction for geometry and the engine colliders attached to the leaves. The complete ground-floor
 footprint is walkable, with level flooring, a terrain-connected threshold,
 ceiling clearance and collidable furniture. Upper floors are not yet furnished
 or connected by stairs. Glazing is represented by frames and reflection/safety
@@ -1877,7 +1878,7 @@ playing and `retail.observationsQueried` reports the missing observations.
 only disk. A layer is found beside any neighbourhood query covering the tile,
 even one whose own answer was never fetched because an older answer already
 covered it (the aero layer is found the same way).
-`r1test --game game Retail` exercises portal collision, deterministic
+`r1test --game game Retail` exercises portal geometry and clear aisles, deterministic
 concave layouts, tenant/entrance association, lettering and parking exclusions.
 `R1WORLD_RETAIL_SMOKE=1` with `--smoke --spawn <lon> <lat>` near a shop exercises
 entry, an interior aisle, exit, closing, eviction and regeneration in the game;
@@ -1886,7 +1887,7 @@ it waits for the tiles in front of and inside the door to stream in.
 photographs the store instead (`anchor`: from behind a mall's checkouts toward
 its supermarket) and ends the run.
 
-### Building interiors (generator v24)
+### Building interiors (generator v25)
 
 The shared interior contract now covers ordinary ground floors. `interior_uses.cpp`
 classifies homes, police/gendarmerie stations, schools, offices, garages, clinics,
@@ -1895,8 +1896,9 @@ inference, tenant nodes complete anonymous buildings and mapped campuses provide
 an explicitly inferred association. Ordinary private entrances are usable in
 the simulation. Retail retains its public-entrance selection and shopfronts.
 
-Homes receive living/kitchen/bedroom/bathroom rooms where the footprint fits them;
-partitions leave a 1.8 m central corridor and 1.2 m side doorways. Sofa cushions,
+Homes receive living/kitchen/bedroom/bathroom rooms where the footprint fits them.
+Living and kitchen frontages are open, while private rooms retain opaque walls
+and 1.2 m side doorways beside a 1.8 m clear circulation path. Sofa cushions,
 tables and chairs, kitchen cabinets/hob/basin, beds, showers, lavabos and toilet
 bowls have separate fittings. Schools have classrooms and bookshelves; police
 stations have reception, waiting, offices, filing and interview tables; offices
@@ -1910,7 +1912,7 @@ Exterior vehicles stream with the interior and have collision.
 `interior_furniture.cpp` generates shared prototypes, including revolved ceramics
 and round chair legs. The OSM identity and regional key seed their variants.
 Layouts fit complete rooms and fittings against the concave footprint, reject
-overlap and cap ordinary-room fittings (including partitions) at 128. The plan
+overlap (except low decorative rugs beneath furniture) and cap ordinary-room fittings (including partitions) at 128. The plan
 records the recipe, region, usage provenance and synthesized vehicle positions;
 `storeysFurnished: 1` makes the ground-floor scope explicit.
 
@@ -1938,7 +1940,7 @@ tile at -2.761, 47.656 has 708 interior plans and 119,945 static vertices, withi
 the unchanged 120,000 ceiling. Room streaming retains its separate arena check.
 `generated/tools/r1test.exe Interior` covers recipe selection,
 domestic functions in small houses and offset entrances, concave containment,
-collision, deterministic serialization/prototypes, budgets, observed use and
+aisle clearance, deterministic serialization/prototypes, budgets, observed use and
 preservation of doors/heights across the dense facade LOD, and garage forecourt
 exclusion of roads and parks. The existing Retail,
 Fuel, Airports and building checks continue to run.
@@ -2021,3 +2023,81 @@ Collision reads every trunk of a tile when it mounts, not when each tree is
 drawn: a car parked a moment earlier no longer has a trunk grow through it. A
 building owned by a tile that streams in over the parked car moves the car to
 the nearest free spot, and the log says so.
+
+### Engine collision ownership
+
+The October 1 collision audit found a second, game-side obstacle system:
+footprint/edge tests for walls, rectangle tests for furniture and traffic,
+circles for trunks and segment/edge tests for the camera. Those runtime tests
+have been removed. Generation still uses polygons to place buildings, props,
+parking and circulation space; those are content constraints, not a physics
+solver.
+
+Each uploaded tile mesh receives a Saida `StaticBodyNode` with a `Mesh`
+`CollisionShapeNode`. Interior shell and door meshes are also engine bodies;
+furniture and vehicles have authored box colliders. Trunk colliders are authored
+from the cooked tree positions. Interior bodies are destroyed with the streamed
+room; an unloaded nearby entrance has a closed-door collider. Arrivals wait for
+the destination geometry's first physics sync. Character movement calls
+`CharacterBodyNode::moveAndSlide` without a second game-side wall test; ceiling
+motion, spawn/exit occupancy and camera obstacles also use the engine physics
+API. Geographic water navigation, unloaded-tile limits and the globe's height
+sampling remain game rules. Vehicles retain arcade handling and use engine
+scene queries for obstacles.
+
+The interior E2E driver moves the actual character through the open door and
+back out, then queries closed doors, walls and every furniture collider before
+checking eviction and regeneration. Generator tests separately assert that
+furniture layouts leave their intended corridors clear.
+
+The Paris-to-Tunis walk/drive/traffic-takeover/teleport run exposed an engine
+character lifecycle bug: disabling a character kept its inner physics body,
+and reactivation left movement disconnected from the world. Saida now releases
+that body on detach and recreates it on reactivation. A regression reproduces
+the original failure; both it and the complete in-game route pass with the fix.
+Scene raycasts and sphere overlaps also detect both sides of triangle walls.
+The engine query regression covers front/back hits and the ignored-body filter;
+render sidedness remains a separate material setting.
+The garage facade check also reproduced loss of collider precision when geometry
+was first mounted in a distant world frame. Saida now composes local transforms
+when building mesh/hull/Auto shapes; its distant-frame GPU regression verifies
+that a rebased wall retains the exact drawn surface.
+
+### Residential furnishings and material sidedness (v25)
+
+Private rooms use rounded, smoothly shaded sofa seats, armrests, cushions,
+mattresses, headboards and pillows. Kitchens include cabinet doors, oven,
+hob, basin, faucet, extractor and a fridge where space permits. Bedrooms add
+bedside drawers and lamps, plus full-height two-door wardrobes. Living rooms
+add rugs, floor lamps, bookcases and potted plants. Domestic rooms have bounded
+widths and enclosing side walls when the building is larger. Joining partitions
+are allowed to meet at corners, keeping bedroom and bathroom dividers intact;
+plaster replaces
+shiny partition ceramics, and domestic ceilings omit the retail grid and long
+linear diffusers. Timber uses the existing window-free plank PBR maps rather
+than the facade atlas, which includes baked windows.
+
+The mesh audit found inward winding on all six generated box faces. Their
+winding and normals now point outward, as do revolved fittings. Saida now
+honors `MaterialDesc::doubleSided` in scene draws, including mixed GPU-driven
+draws without splitting their indirect batch. Building facade materials and
+interior fixtures are double-sided. The generator and prototype cache keys
+advance to v25 so old geometry is regenerated.
+
+Doorway plinths are split around the accessible threshold for the actual engine
+character to climb the approach. Pitched roofs omit the invisible eave-height
+membrane beneath their existing sloping panels; streamed rooms provide their
+own ceiling below the attic. This keeps the dense Vannes tile at 118,486
+vertices, below the unchanged 120,000 cap.
+
+Verification: 213 generator tests; 87 native engine tests; 69 GPU streaming
+checks; native runtime
+contract; native and Web shader compilation. The exported material-sidedness
+pixel check sees both colored panels from the front and only the double-sided
+panel from behind. In-game home, supermarket, school, police, garage and office
+traversals exercise real engine entry, exit, door/wall/furniture bodies, eviction
+and regeneration. An optimized
+600-frame Vannes home run measured 0.750 ms/frame for `Physics/SceneStep`, on
+an RTX 4070 host. Lavapipe is unavailable here, so the
+exact Witness golden-image gate is not qualified by these vendor-independent
+pixel checks or game captures.

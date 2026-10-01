@@ -711,15 +711,25 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             if (!frame) continue;
             const bool unifiedBase = lod != BuildingLod::Full && !b.detailed;
             const double base = !raised && unifiedBase ? b.foundation - b.ground : 0.0;
+            auto foundation=[&]() {
+                // The approach slab crosses the facade at floor level. Keep
+                // its portal free below the threshold too, so the character
+                // capsule cannot catch the plinth while climbing the ramp.
+                if(interior&&e==interior->edge) {
+                    const double middle=dist(p0,interior->door),half=interior->width/2+.4;
+                    face(foundations.mesh(wallSwatch),*frame,0.,b.foundation-b.ground,std::max(0.,middle-half),0.);
+                    face(foundations.mesh(wallSwatch),*frame,std::min(frame->length,middle+half),b.foundation-b.ground,frame->length,0.);
+                } else face(foundations.mesh(wallSwatch),*frame,0.,b.foundation-b.ground,frame->length,0.);
+            };
             if(interior&&retailInterior(interior->recipe)) {
-                face(foundations.mesh(wallSwatch), *frame, 0.0, b.foundation-b.ground, frame->length, 0.0);
+                foundation();
                 const double low=interior->ceiling-b.ground;
                 if(g.wallHeight>low)face(wallMesh,*frame,0.,low,frame->length,g.wallHeight);
                 continue;
             }
             if(interior&&e==interior->edge) {
                 // Keep the regional facade; cut only its actual doorway.
-                if(!unifiedBase)face(foundations.mesh(wallSwatch),*frame,0.,b.foundation-b.ground,frame->length,0.);
+                if(!unifiedBase)foundation();
                 const double middle=dist(p0,interior->door),half=interior->width/2;
                 const double threshold=interior->floor-b.ground;
                 const std::pair<double,double> scale{1./profile.bayWidth,1./profile.storeyHeight};
@@ -750,7 +760,10 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                 face(wallMesh, *frame, 0.0, base, frame->length, g.wallHeight);
             }
         }
-        for (const auto& t : triangulate(b.ring)) {
+        // Pitched roofs already close the volume with their sloping panels
+        // and gables. An extra eave-height membrane is invisible inside that
+        // volume; streamed rooms provide their own ceiling below the attic.
+        if(g.roofShape=="flat")for (const auto& t : triangulate(b.ring)) {
             const P2 pa = b.ring[size_t(t[0])], pb = b.ring[size_t(t[1])], pc = b.ring[size_t(t[2])];
             roofMesh.addUpTriangle({pa.x, yEave, pa.y}, {pb.x, yEave, pb.y}, {pc.x, yEave, pc.y});
         }
@@ -775,8 +788,8 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         for (const auto& gable : gableWalls(b.box, g.roofShape, yEave, yRidge, sign))
             wallMesh.addTriangle(gable[0], gable[1], gable[2]);
     }
-    walls.parts(out.parts, "Walls", false, wallMaterials);
-    foundations.parts(out.parts, "Foundations", false, nullptr);
+    walls.parts(out.parts, "Walls", true, wallMaterials);
+    foundations.parts(out.parts, "Foundations", true, nullptr);
     roofs.parts(out.parts, "Roofs", roofThickness <= 0.0, roofMaterials);
     if (!trim.empty()) {
         Material m; m.name = profile.trim.name; m.roughness = profile.trim.roughness;

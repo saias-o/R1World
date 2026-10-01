@@ -313,12 +313,16 @@ std::vector<MeshPart> buildInteriorShell(const InteriorPlan& p) {
     // large malls, with the same floor/ceiling surface covering the full ring.
     const double pitch=std::max(p.recipe=="home"?2.:1.,std::max(hi-lo,back)/96.);
     for(double u=std::ceil(lo/pitch)*pitch;u<hi;u+=pitch) {
-        stripe(p.point(u,0),p.point(u,back),p.floor+.003,.004);
-        stripe(p.point(u,0),p.point(u,back),p.ceiling-.035,.012);
+        if(p.recipe!="home") {
+            stripe(p.point(u,0),p.point(u,back),p.floor+.003,.004);
+            stripe(p.point(u,0),p.point(u,back),p.ceiling-.035,.012);
+        }
     }
     for(double v=0;v<back;v+=pitch) {
-        stripe(p.point(lo,v),p.point(hi,v),p.floor+.003,.004);
-        stripe(p.point(lo,v),p.point(hi,v),p.ceiling-.035,.012);
+        if(p.recipe!="home") {
+            stripe(p.point(lo,v),p.point(hi,v),p.floor+.003,.004);
+            stripe(p.point(lo,v),p.point(hi,v),p.ceiling-.035,.012);
+        }
     }
     for(size_t e=0;e<p.ring.size();++e)if(e!=p.edge) {
         const auto a=p.ring[e],b=p.ring[(e+1)%p.ring.size()];const double len=dist(a,b);
@@ -329,28 +333,16 @@ std::vector<MeshPart> buildInteriorShell(const InteriorPlan& p) {
     const double lightPitch=std::max(7.,std::max(hi-lo,back)/10.);
     for(double v=4;v<back;v+=lightPitch)for(double u=lo+3;u<hi;u+=lightPitch) {
         auto at=p.point(u,v);if(!pointInPolygon(at,p.ring))continue;
-        box(lights,p,u,v,p.ceiling-p.floor-.08,.28,1.8,.035);
+        box(lights,p,u,v,p.ceiling-p.floor-.08,p.recipe=="home"?.38:.28,p.recipe=="home"?.38:1.8,.035);
     }
     auto mat=mineral("Polished mineral floor",{.23,.235,.22,1},.4);
-    if(p.recipe=="home")mat=mineral("Residential warm mineral floor",{.20,.15,.10,1},.72);
+    if(p.recipe=="home")mat=surfaceMaterial("Residential timber floor",{.25,.18,.105},.76,"deck",true);
     if(p.recipe=="garage"||p.recipe=="warehouse")mat=mineral("Workshop concrete floor",{.13,.135,.13,1},.9);
     return {{"Interior floor and accessible threshold",std::move(floor),mat},
         {"Interior ceiling",std::move(ceiling),plain("Acoustic ceiling",{.30,.30,.28,1},.95)},
         {"Interior lining",std::move(lining),plain("Interior plaster",{.26,.265,.25,1},.9)},
         {"Interior surface joints",std::move(joints),plain("Joints",{.12,.125,.12,1})},
         {"Interior linear luminaires",std::move(lights),plain("Light diffuser",{.7,.68,.6,1},.9)}};
-}
-bool interiorBlocked(const InteriorPlan& p,const InteriorLayout& layout,P2 q,double opening,double radius) {
-    const P2 local=p.local(q);
-    for(size_t e=0;e<p.ring.size();++e) {
-        const auto a=p.ring[e],b=p.ring[(e+1)%p.ring.size()];
-        if(clip::distance({a,b},q)>radius+.08)continue;
-        if(e==p.edge&&std::abs(local.x)+radius<p.width*.5*opening)continue;
-        return true;
-    }
-    for(auto f:layout.fixtures)if(f.height>.05)
-        if(std::abs(local.x-f.at.x)<f.size.x/2+radius&&std::abs(local.y-f.at.y)<f.size.y/2+radius)return true;
-    return false;
 }
 double slideDoor(double opening,bool near,double dt) {
     return std::clamp(opening+(near?1.6:-.7)*std::max(0.,dt),0.,1.);

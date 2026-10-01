@@ -1,4 +1,5 @@
 #include "check.hpp"
+#include "layout_clearance.hpp"
 #include "gen/interiors.hpp"
 #include "gen/buildings.hpp"
 #include "gen/clip.hpp"
@@ -14,6 +15,34 @@ InteriorPlan room(const std::string& recipe) {
 bool hasFixture(const InteriorLayout& l,const std::string& kind) {
     return std::any_of(l.fixtures.begin(),l.fixtures.end(),[&](const auto& f){return f.kind==kind;});
 }
+}
+TEST(Interior, generated_boxes_have_outward_winding_and_normals) {
+    for(double yaw:{0.,.75,2.4}) {
+        const P3 center{3,7,-2};Mesh mesh;mesh.addBox(center,{2,3,4},yaw);
+        CHECK(mesh.vertexCount()==24);CHECK(mesh.indices.size()==36);
+        for(size_t i=0;i<mesh.indices.size();i+=3) {
+            auto a=mesh.positions[mesh.indices[i]],b=mesh.positions[mesh.indices[i+1]],c=mesh.positions[mesh.indices[i+2]];
+            auto normal=faceNormal(a,b,c);P3 away{(a.x+b.x+c.x)/3-center.x,(a.y+b.y+c.y)/3-center.y,(a.z+b.z+c.z)/3-center.z};
+            CHECK(normal.x*away.x+normal.y*away.y+normal.z*away.z>0);
+            auto stored=mesh.normals[mesh.indices[i]];NEAR(stored.x,normal.x,1e-9);NEAR(stored.y,normal.y,1e-9);NEAR(stored.z,normal.z,1e-9);
+        }
+    }
+}
+TEST(Interior, rounded_upholstery_is_outward_and_smooth) {
+    const InteriorFixture sofa{{0,0},{2.3,.9},.9,"sofa",0};
+    for(const auto& part:buildInteriorFixture(sofa))if(part.name=="Interior upholstery") {
+        bool rounded=false;
+        for(const auto& normal:part.mesh.normals) {
+            NEAR(normal.x*normal.x+normal.y*normal.y+normal.z*normal.z,1.,1e-9);
+            rounded|=std::abs(normal.x)>.1&&std::abs(normal.y)>.1;
+        }
+        CHECK(rounded);
+        for(size_t i=0;i<part.mesh.indices.size();i+=3) {
+            auto ia=part.mesh.indices[i],ib=part.mesh.indices[i+1],ic=part.mesh.indices[i+2];
+            auto n=faceNormal(part.mesh.positions[ia],part.mesh.positions[ib],part.mesh.positions[ic]);
+            const auto s=part.mesh.normals[ia];CHECK(n.x*s.x+n.y*s.y+n.z*s.z>0);
+        }
+    }
 }
 TEST(Interior, building_use_selects_appropriate_recipes) {
     CHECK(interiorRecipe({{"building","house"},{"access","private"}})=="home");
@@ -33,17 +62,31 @@ TEST(Interior, home_has_separate_living_kitchen_bedroom_and_wet_room) {
     auto p=room("home");auto l=layoutInterior(p);CHECK(l.rooms.size()==4);
     for(const auto& kind:{"sofa","coffee_table","kitchen","dining","bed","wardrobe","shower","toilet","basin","partition"})CHECK_MSG(hasFixture(l,kind),kind);
     CHECK(!hasFixture(l,"shelf"));CHECK(!hasFixture(l,"checkout"));
-    for(double v=.5;v<11.5;v+=.1)CHECK(!interiorBlocked(p,l,p.point(0,v),1));
+    for(double v=.5;v<11.5;v+=.1)CHECK(!furnitureOccupies(l,{0,v}));
     // Room doorways stay open off the corridor; walls elsewhere block.
-    CHECK(!interiorBlocked(p,l,p.point(.98,1.7),1));
-    CHECK(interiorBlocked(p,l,p.point(.98,3.5),1));
-    CHECK(interiorBlocked(p,l,p.point(0,0),0));CHECK(!interiorBlocked(p,l,p.point(0,0),1));
+    CHECK(!furnitureOccupies(l,{.98,1.7}));
+    CHECK(!furnitureOccupies(l,{.98,3.5})); // Open living/kitchen frontage.
+    CHECK(furnitureOccupies(l,{.98,9.5})); // Private rooms retain walls.
+    for(const auto& kind:{"fridge","bedside","lamp","plant","rug"})CHECK_MSG(hasFixture(l,kind),kind);
+    CHECK(!furnitureOccupies(l,{0,0}));
 }
 TEST(Interior, a_small_house_and_an_offset_entrance_keep_all_domestic_functions) {
     for(auto ring:std::vector<Ring>{{{-4,0},{4,0},{4,8},{-4,8}},{{-.8,0},{8,0},{8,13},{-.8,13}}}) {
         auto p=room("home");p.ring=ring;auto l=layoutInterior(p);
         for(const auto& kind:{"sofa","kitchen","bed","toilet","shower"})CHECK_MSG(hasFixture(l,kind),kind);
-        for(double v=.5;v<7.;v+=.1)CHECK(!interiorBlocked(p,l,p.point(0,v),1));
+        for(double v=.5;v<7.;v+=.1)CHECK(!furnitureOccupies(l,{0,v}));
+    }
+}
+TEST(Interior, adjoining_private_rooms_have_dividing_walls) {
+    auto p=room("home");p.ring={{-8,0},{8,0},{8,30},{-8,30}};
+    const auto layout=layoutInterior(p);
+    for(const auto& r:layout.rooms)if(r.use=="bedroom"||r.use=="bathroom") {
+        double left=1e30,right=-1e30,back=-1e30;
+        for(auto q:r.ring){q=p.local(q);left=std::min(left,q.x);right=std::max(right,q.x);back=std::max(back,q.y);}
+        if(back>=29.4)continue; // The final room meets the building's back wall.
+        bool divided=false;
+        for(const auto& f:layout.fixtures)if(f.kind=="partition"&&std::abs(f.at.y-back)<.01&&f.size.x>=right-left-.01)divided=true;
+        CHECK_MSG(divided,r.use);
     }
 }
 TEST(Interior, civic_office_and_garage_have_specific_furnishings) {
@@ -56,7 +99,7 @@ TEST(Interior, civic_office_and_garage_have_specific_furnishings) {
     CHECK(hasFixture(layoutInterior(room("garage")),"vehicle"));
     CHECK(hasFixture(layoutInterior(room("garage")),"workbench"));
     const auto mosque=layoutInterior(room("mosque"));CHECK(hasFixture(mosque,"prayer_mat"));CHECK(!hasFixture(mosque,"pew"));
-    for(const auto& f:mosque.fixtures)CHECK(!interiorBlocked(room("mosque"),mosque,f.at,1));
+    for(const auto& f:mosque.fixtures)CHECK(!furnitureOccupies(mosque,f.at));
 }
 TEST(Interior, seeded_layout_and_prototypes_roundtrip_fit_and_respect_budget) {
     for(const char* recipe:{"home","police","school","office","garage","clinic","worship","mosque","warehouse","restaurant","prison"}) {
@@ -73,7 +116,7 @@ TEST(Interior, seeded_layout_and_prototypes_roundtrip_fit_and_respect_budget) {
         }
         for(auto& part:buildInteriorDoor(p))vertices+=2*part.mesh.vertexCount();
         CHECK_MSG(vertices<24000,std::string(recipe)+" vertices="+std::to_string(vertices));
-        for(double v=.5;v<11.5;v+=.2)CHECK(!interiorBlocked(p,a,p.point(0,v),1));
+        for(double v=.5;v<11.5;v+=.2)CHECK(!furnitureOccupies(a,{0,v}));
     }
 }
 TEST(Interior, concave_and_small_footprints_never_furnish_outside) {

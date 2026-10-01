@@ -64,7 +64,5 @@ std::vector<MeshPart> buildInteriorFixture(InteriorFixture fixture);
 // Door leaves are local to the portal; their scene transforms provide the slide.
 std::vector<MeshPart> buildDoorLeaf(double width);
 std::vector<MeshPart> buildShopfront(const InteriorPlan& plan);
-bool interiorBlocked(const InteriorPlan& plan, const InteriorLayout& layout,
-                     P2 point, double opening, double radius = .32);
 double slideDoor(double opening, bool near, double dt);
 } // namespace r1

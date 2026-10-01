@@ -105,12 +105,12 @@ void Mesh::addBox(P3 center, P3 size, double yaw) {
     };
     const P3 p[8] = {point(-hx, -hy, -hz), point(hx, -hy, -hz), point(hx, -hy, hz), point(-hx, -hy, hz),
                      point(-hx, hy, -hz),  point(hx, hy, -hz),  point(hx, hy, hz),  point(-hx, hy, hz)};
-    addQuad(p[0], p[3], p[2], p[1]);
-    addQuad(p[4], p[5], p[6], p[7]);
-    addQuad(p[0], p[1], p[5], p[4]);
-    addQuad(p[1], p[2], p[6], p[5]);
-    addQuad(p[2], p[3], p[7], p[6]);
-    addQuad(p[3], p[0], p[4], p[7]);
+    addQuad(p[0], p[1], p[2], p[3]);
+    addQuad(p[4], p[7], p[6], p[5]);
+    addQuad(p[0], p[4], p[5], p[1]);
+    addQuad(p[1], p[5], p[6], p[2]);
+    addQuad(p[2], p[6], p[7], p[3]);
+    addQuad(p[3], p[7], p[4], p[0]);
 }
 
 Mesh smoothSurface(const Mesh& mesh) {

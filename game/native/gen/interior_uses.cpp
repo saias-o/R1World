@@ -96,7 +96,11 @@ InteriorLayout layoutBuildingInterior(const InteriorPlan& p) {
     auto random=seeded(p.id,regionalSalt);
     auto add=[&](const std::string& kind,double u,double v,double w,double d,double h) {
         if(out.fixtures.size()>=128||!fits(u,v,w,d))return false;
-        for(const auto& f:out.fixtures)if(std::abs(u-f.at.x)<(w+f.size.x)/2+.06&&std::abs(v-f.at.y)<(d+f.size.y)/2+.06)return false;
+        for(const auto& f:out.fixtures) {
+            // Walls meet at corners; rejecting that contact leaves rooms open.
+            if(kind=="partition"&&f.kind=="partition")continue;
+            if(std::abs(u-f.at.x)<(w+f.size.x)/2+.06&&std::abs(v-f.at.y)<(d+f.size.y)/2+.06)return false;
+        }
         out.fixtures.push_back({{u,v},{w,d},std::min(h,p.ceiling-p.floor-.15),kind,std::min(3,int(random.random()*4))});return true;
     };
     // A continuous 1.8 m hallway, with side rooms and 1.2 m open doorways.
@@ -107,7 +111,7 @@ InteriorLayout layoutBuildingInterior(const InteriorPlan& p) {
     for(double v=.5;v+2.7<back;v+=depth*scale)for(int side:{-1,1}) {
         const double a=side<0?lo+.4:.98,b=side<0?-.98:hi-.4;
         // Limit room widths; very large footprints keep bounded work and instances.
-        const double w=std::min(9.,b-a),d=std::min(depth-.2,back-v-.45),u=side<0?b-w/2:a+w/2;
+        const double w=std::min(p.recipe=="home"?4.8:9.,b-a),d=std::min(depth-.2,back-v-.45),u=side<0?b-w/2:a+w/2;
         if(w<1.5||d<2.5||!fits(u,v+d/2,w,d))continue;
         std::string use=p.recipe;
         const int row=int((v-.5)/(depth*scale)+.1);
@@ -119,23 +123,38 @@ InteriorLayout layoutBuildingInterior(const InteriorPlan& p) {
         out.rooms.push_back({use,{p.point(u-w/2,v),p.point(u+w/2,v),p.point(u+w/2,v+d),p.point(u-w/2,v+d)}});
         // Screens by the hallway, split around each room's doorway. Bedrooms
         // and wet rooms get opaque full-height walls; reception stays open.
-        if(use!="garage"&&use!="worship"&&use!="mosque"&&use!="warehouse"&&use!="waiting"&&use!="reception") {
+        const bool openDomestic=p.recipe=="home"&&(use=="living"||use=="kitchen");
+        if(use!="garage"&&use!="worship"&&use!="mosque"&&use!="warehouse"&&use!="waiting"&&use!="reception"&&!openDomestic) {
             const double x=side<0?b:a;
             add("partition",x,v+.3,.10,.55,p.ceiling-p.floor-.12);
             if(d>2.)add("partition",x,v+1.8+(d-1.8)/2,.10,d-1.8,p.ceiling-p.floor-.12);
             if(v+d<back-.6)add("partition",u,v+d,w,.10,p.ceiling-p.floor-.12);
         }
+        if(openDomestic&&v+d<back-.6)add("partition",u,v+d,w,.10,p.ceiling-p.floor-.12);
+        if(p.recipe=="home"&&w<b-a-.15)
+            add("partition",side<0?u-w/2:u+w/2,v+d/2,.10,d,p.ceiling-p.floor-.12);
         const double left=u-w/2+.25,right=u+w/2-.25,front=v+.35,rear=v+d-.35;
         auto place=[&](const char* kind,double x,double y,double fw,double fd,double h){return add(kind,x,y,fw,fd,h);};
         if(use=="living"||use=="waiting") {
             place("sofa",u,rear-.5,std::min(2.3,w-.5),.9,.85);
             place("coffee_table",u,v+d/2,1.05,.6,.42);
-            if(use=="living")place("tv",u,front+.2,1.1,.38,1.15);
+            if(use=="living") {
+                place("tv",u,front+.2,1.1,.38,1.15);
+                place("lamp",left+.24,rear-.45,.45,.45,1.65);
+                place("plant",right-.25,front+.35,.48,.48,.95);
+                place("bookcase",left+.3,v+d*.5,.55,.38,1.65);
+            }
         } else if(use=="kitchen") {
-            place("kitchen",u,rear-.35,std::min(2.4,w-.5),.65,2.0);
+            const double counter=std::min(2.4,w-1.15);
+            if(w>=2.2) {
+                place("kitchen",u-.42,rear-.35,counter,.65,2.0);
+                place("fridge",u-.42+counter/2+.45,rear-.38,.65,.72,1.95);
+            } else place("kitchen",u,rear-.35,std::min(2.4,w-.5),.65,2.0);
             place("dining",u,front+1.0,std::min(1.8,w-.5),1.5,.78);
         } else if(use=="bedroom"||use=="clinic"||use=="prison") {
-            place("bed",u,v+d/2,std::min(1.5,w-.5),2.05,.85);
+            const double bedWidth=std::min(1.5,w-.5);
+            place("bed",u,v+d/2,bedWidth,2.05,1.1);
+            if(use=="bedroom")for(double side:{-1.,1.})place("bedside",u+side*(bedWidth/2+.32),v+d/2+.55,.44,.40,.86);
             place("wardrobe",u,rear-.3,std::min(1.3,w-.5),.5,1.95);
         } else if(use=="bathroom") {
             place("shower",left+.46,rear-.46,.9,.9,2.05);
@@ -164,6 +183,15 @@ InteriorLayout layoutBuildingInterior(const InteriorPlan& p) {
             place("filing",u,rear-.3,std::min(1.4,w-.5),.5,1.8);
         }
     }
+    if(p.recipe=="home") {
+        // Rugs can sit beneath furniture. They remain decorative surfaces,
+        // with no collider and no obstruction of the continuous hallway.
+        auto fixtures=out.fixtures;
+        for(const auto& f:fixtures)if(f.kind=="coffee_table"&&out.fixtures.size()<128) {
+            const double w=std::min(1.8,2*(std::abs(f.at.x)-.98));
+            if(w>f.size.x&&fits(f.at.x,f.at.y,w,1.35))out.fixtures.push_back({f.at,{w,1.35},.034,"rug",f.variant});
+        }
+    }
     // Compact sheds and narrow/irregular buildings remain enterable, and get
     // fittings only where they fit, with the entrance always clear.
     if(out.rooms.empty())for(double side:{-1.,1.})add(p.recipe=="home"?"sofa":"storage",side*1.8,std::min(back-1.,3.),1.1,.65,.9);
@@ -175,7 +203,7 @@ std::vector<MeshPart> buildInteriorDoor(const InteriorPlan& p) {
     Mesh leaf,metal;const double w=p.width/2;
     leaf.addBox({0,1.05,0},{w-.015,2.1,.055});
     metal.addBox({w*.3,1.05,-.055},{.12,.035,.065});
-    return {{"Swing door panel",std::move(leaf),surfaceMaterial("Timber door",{.14,.085,.04},.7,"wood",true)},
+    return {{"Swing door panel",std::move(leaf),surfaceMaterial("Timber door",{.14,.085,.04},.7,"deck",true)},
         {"Swing door handle",std::move(metal),surfaceMaterial("Door steel",{.12,.13,.14},.25,std::nullopt,true)}};
 }
 } // namespace r1

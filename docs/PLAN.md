@@ -406,6 +406,21 @@ Le pôle, la banquise et la neige sont faits (§7). Reste :
   signalés comme indisponibles. Les monuments remplacés par leurs assets
   particuliers ne passent pas encore par ce générateur d'intérieur.
 
+### Residential refinement — générateur v25
+
+Le générateur v25 améliore le logement : séjour/cuisine ouverts, chambres et
+pièces d'eau séparées, mobilier rembourré arrondi, literie, frigo, hotte,
+chevets, lampes, tapis et plantes lorsque l'espace le permet. Les prototypes
+restent partagés, les distances 65/85 m et les budgets restent inchangés.
+Les collisions passent par les corps et requêtes du moteur ; les anciennes
+collisions de polygones, rectangles et cercles du runtime sont supprimées.
+Le winding des boîtes est corrigé et le moteur respecte les matériaux double face.
+Le bug de réactivation du corps du personnage est corrigé dans SaidaEngine,
+avec un test de régression et le parcours Paris → Tunis après conduite validés.
+Le moteur construit désormais les colliders en espace local : le test de
+régression vérifie qu'un mur créé à plusieurs millions de mètres de l'origine
+reste raccordé au mesh après recentrage du monde.
+
 ---
 
 ## Annexe — Mesures de référence

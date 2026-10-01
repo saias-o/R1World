@@ -1,4 +1,5 @@
 #include "check.hpp"
+#include "layout_clearance.hpp"
 #include "gen/retail.hpp"
 #include "gen/buildings.hpp"
 #include "gen/predict.hpp"
@@ -16,14 +17,13 @@ OsmWay geoWay(int64_t id,const Ring& r,const Tags& t,const Anchor& a) {
     w.points.push_back(w.points.front());return w;
 }
 }
-TEST(Retail, sliding_portal_is_passable_only_when_open_and_walls_remain_solid) {
+TEST(Retail, sliding_portal_geometry_and_clear_aisle) {
     auto p=room();auto layout=layoutInterior(p);
-    CHECK(interiorBlocked(p,layout,p.point(0,0),0));
-    CHECK(!interiorBlocked(p,layout,p.point(0,0),1));
-    CHECK(interiorBlocked(p,layout,p.point(3,0),1));
-    CHECK(interiorBlocked(p,layout,p.point(15,12),1));
-    for(double v=-4;v<24;v+=.1)CHECK(!interiorBlocked(p,layout,p.point(0,v),1));
-    for(auto f:layout.fixtures)CHECK(interiorBlocked(p,layout,p.point(f.at.x,f.at.y),1));
+    CHECK(!buildDoorLeaf(p.width).empty());
+    CHECK(!furnitureOccupies(layout,{0,0}));
+    CHECK(!furnitureOccupies(layout,{3,0}));
+    for(double v=-4;v<24;v+=.1)CHECK(!furnitureOccupies(layout,{0,v}));
+    for(auto f:layout.fixtures)CHECK(furnitureOccupies(layout,{f.at.x,f.at.y}));
     NEAR(slideDoor(0,true,1),1,1e-9);NEAR(slideDoor(1,false,3),0,1e-9);
     NEAR(slideDoor(.5,true,-1),.5,1e-9);
 }
@@ -115,7 +115,7 @@ TEST(Retail, large_rooms_distribute_shared_furniture_across_the_floor) {
         left=left||f.at.x<-20;right=right||f.at.x>20;
     }
     CHECK(prototypes.size()<=5);CHECK(farthest>55);CHECK(left&&right);
-    for(double v=-4;v<64;v+=.1)CHECK(!interiorBlocked(p,layout,p.point(0,v),1));
+    for(double v=-4;v<64;v+=.1)CHECK(!furnitureOccupies(layout,{0,v}));
 }
 TEST(Retail, a_parking_tile_can_identify_a_store_owned_by_another_tile) {
     const auto tile=tileAt(2.35,48.85);const auto c=tile.center();
@@ -152,7 +152,7 @@ TEST(Retail, a_supermarket_mapped_in_a_mall_gets_aisles_and_checkouts_behind_the
     for(const auto& f:layout.fixtures)if(built.insert(interiorFixtureKey(f)).second)
         for(auto& part:buildInteriorFixture(f))vertices+=part.mesh.vertexCount();
     CHECK(vertices<24000);
-    for(double v=-4;v<88;v+=.1)CHECK(!interiorBlocked(p,layout,p.point(0,v),1));
+    for(double v=-4;v<88;v+=.1)CHECK(!furnitureOccupies(layout,{0,v}));
     CHECK(p.place(p.point(0,80))=="Carrefour \xC2\xB7 Le Fourchene");CHECK(p.place(p.point(0,5))=="Le Fourchene");
     // Without a mapped supermarket a mall stays a gallery.
     p.anchor.reset();for(const auto& f:layoutInterior(p).fixtures)CHECK(f.kind!="shelf");

@@ -21,6 +21,7 @@
 #include "physics/CharacterBodyNode.hpp"
 #include "physics/CollisionShapeNode.hpp"
 #include "physics/RigidBodyNode.hpp"
+#include "physics/StaticBodyNode.hpp"
 #include "nodes/WebCanvasNode.hpp"
 #include "scripting/ScriptBehaviour.hpp"
 #include "runtime/CaptureArgs.hpp"
@@ -261,6 +262,7 @@ struct LiveInterior {
     r1::InteriorLayout layout;
     saida::Node* node=nullptr;
     saida::Node* leaves[2]{nullptr,nullptr};
+    saida::Node* closedDoor=nullptr;
     r1::P2 low{1e30,1e30},high{-1e30,-1e30};
     double opening=0,hold=0;
     bool refused=false;
@@ -309,7 +311,7 @@ struct PartUpload {
     size_t material=0;  // index into the cooked tile's parts
 };
 // Everything the frame needs of a cooked tile, made on the worker that cooked
-// it: the parts as the GPU takes them, and the footprints `blocked` walks.
+// it: the parts as the GPU takes them, and building metadata for inspection.
 struct PreparedTile {
     std::vector<PartUpload> parts;
     std::vector<Footprint> footprints;
@@ -377,10 +379,6 @@ struct Loaded {
         :node(n),served(std::move(s)),data(served->cooked.manifest),
          frame(data.at("lon").get<double>(),data.at("lat").get<double>()),props(served->cooked.props){}
     std::vector<Footprint> footprints; std::vector<Plant> vegetation;
-    // Every tree trunk of the tile, read at mount from its cooked props: what
-    // a car or a walker bumps does not wait for the tree to be drawn, or a
-    // car parked a moment earlier would have a trunk grow through it.
-    std::vector<glm::dvec2> trunks;
     std::vector<LiveInterior> interiors;
     std::vector<StoreParking> parking;
     // This tile's road network and the cars on it. The graph must not move
@@ -551,7 +549,7 @@ class World : public Rml::EventListener {
     glm::dvec3 smokeSwimStart{0}; saida::Node* smokeSwimBoat=nullptr;
     double smokeSailTime=0,smokeSailTop=0,smokeSailClear=0; glm::dvec3 smokeSailStart{0};
     std::vector<saida::Animator*> animators;
-    // The player among people (World::walkAmongPeople): his feet in the
+    // The player among people (World::moveFeet): his feet in the
     // engine's physics, his body's stagger, the speed he means on foot
     // (east, north, m/s), and what is left of a broken stride.
     saida::CharacterBodyNode* feet=nullptr; int feetUnbuilt=0; bool feetRefused=false;
@@ -723,7 +721,7 @@ class World : public Rml::EventListener {
         root->addBehaviour<saida::LODGroupBehaviour>()->setLevels({{"Near",.035f},{"Far",0.f}});
         // Their body in the engine's physics: a kinematic capsule that follows
         // the node wherever the crowd moves it, and that the player's feet
-        // meet (World::walkAmongPeople). In the node's units, drawn at scale.
+        // meet (World::moveFeet). In the node's units, drawn at scale.
         auto body=std::make_unique<saida::RigidBodyNode>();
         body->kinematic=true;
         body->transform().position=glm::vec3(0.f,float(playerHeight*.5/humanScale),0.f);
@@ -806,16 +804,15 @@ class World : public Rml::EventListener {
     // against the people's capsules (CharacterBodyNode::moveAndSlide), so he
     // stops at whoever is in the way and slides round them, and whoever walks
     // into him moves him. What his feet touched is then a bump each
-    // (World::meetPeople). Buildings and water stay `blocked`: they are not
-    // bodies.
-    glm::dvec2 walkAmongPeople(double east,double north,double dt) {
+    // (World::meetPeople). Buildings, furnishings and vehicles are streamed engine bodies too.
+    glm::dvec3 moveFeet(double east,double north,double dt) {
         const glm::dvec2 intended=onward(lon,lat,east,north);
-        if(dt<=0)return intended;
+        if(dt<=0)return {intended,alt};
         // The scene's frame is the origin's: x east, y up, z south, near
         // enough within the 350 m it is rebased at.
-        const glm::vec3 from(origin.local(ecef(lon,lat,alt))),to(origin.local(ecef(intended.x,intended.y,alt)));
+        const glm::vec3 from(origin.local(ecef(lon,lat,alt+jumpOffset+.06))),to(origin.local(ecef(intended.x,intended.y,alt+jumpOffset+.06)));
         glm::vec3 velocity=(to-from)/float(dt);
-        velocity.y=0;
+        velocity.y=jumpOffset<=0?-2.f:0.f; // Maintain support on steps and furniture.
         feet->transform().position=from;
         const glm::vec3 end=feet->moveAndSlide(velocity,float(dt));
         // Built by its first physics step; one that never is means he walks
@@ -826,7 +823,8 @@ class World : public Rml::EventListener {
             feetRefused=true;
         }
         meetPeople();
-        return onward(lon,lat,end.x-from.x,-(end.z-from.z));
+        const auto horizontal=onward(lon,lat,end.x-from.x,-(end.z-from.z));
+        return {horizontal,alt+end.y-from.y};
     }
     // Every person the feet touched: the crowd answers the bump if it is one
     // (r1::Crowd::bump), and the player's own body feels it.
@@ -1322,8 +1320,8 @@ class World : public Rml::EventListener {
     // hash lookup, every `poly[i][0]` is a bounds-checked variant unwrap, and
     // `water[row].get<std::string>()` allocates a string per query. Walking or
     // driving asks these questions tens of thousands of times a second --
-    // `blocked` alone crossed ~45 000 JSON element accesses per frame across
-    // nine tiles -- for numbers that never change once the tile is mounted.
+    // Height sampling used to repeat JSON accesses across nine tiles for
+    // numbers that never change once a tile is mounted.
     //
     // So they are unpacked once, at mount, into plain arrays. Nothing here is a
     // different answer to any question: it is the same data, read the way a
@@ -1344,7 +1342,8 @@ class World : public Rml::EventListener {
             auto groups=doc.find("groups");
             if(groups==doc.end()||std::find(groups->begin(),groups->end(),"tree")==groups->end())continue;
             const auto& at=doc.at("transform").at("position");
-            tile.trunks.push_back({at[0].get<double>(),at[2].get<double>()});
+            auto* trunk=boxCollider(*tile.node,"Tree trunk",{.46f,4.f,.46f},{0,2.f,0});
+            trunk->transform().position={at[0].get<float>(),at[1].get<float>(),at[2].get<float>()};
         }
         if(auto retail=tile.data.find("retail");retail!=tile.data.end())for(const auto& area:retail->at("parking")) {
             StoreParking lot;lot.name=area.at("storeName");
@@ -1501,25 +1500,6 @@ class World : public Rml::EventListener {
             });
         return best;
     }
-    // A wall off the ground for someone at `standing`: an embankment rising above
-    // his step, a deck too low to pass under, or a deck's parapet.
-    bool raisedWall(double x,double y,double standing) {
-        if(std::isnan(standing))return false;
-        auto* t=tile(x,y);if(!t)return false;
-        const double ground=terrainHeight(*t,x,y);
-        bool wall=false,parapet=false,floor=false;
-        for(const auto& [key,other]:loaded)
-            raisedAt(other,x,y,[&](double level,bool solid,bool rail){
-                if(level<=ground)return;
-                const bool close=std::abs(level-standing)<1.5;
-                if(rail){parapet|=close;return;}
-                if(level<=standing+kStepUp){floor|=close;return;}
-                wall|=solid||level-1.2<standing+2.;
-            });
-        // A parapet is a wall only where no deck carries the foot: where two
-        // decks meet, one's edge is the other's floor.
-        return wall||(parapet&&!floor);
-    }
     double terrainHeight(const Loaded& tile,double x,double y) const {
         const Loaded* t=&tile;
         double deck=0;if(onDeck(*t,x,y,&deck))return deck;
@@ -1539,7 +1519,7 @@ class World : public Rml::EventListener {
         const auto* t=tile(x,y);
         if(!t||onDeck(*t,x,y)||!(t->ocean||waterCode(*t,x,y)!=0))return false;
         // A bridge's parapet stands between whoever is on it and the river.
-        if(!std::isnan(standing)&&(height(x,y,standing)>terrainHeight(*t,x,y)+.5||raisedWall(x,y,standing)))return false;
+        if(!std::isnan(standing)&&(height(x,y,standing)>terrainHeight(*t,x,y)+.5))return false;
         return true;
     }
     int waterCode(const Loaded& t,double x,double y) const {
@@ -1560,47 +1540,47 @@ class World : public Rml::EventListener {
         if(!t||t->ocean)return 0.;
         return waterCode(*t,x,y)==1?height(x,y):0.;
     }
+    // Collider authoring only: detection and response belong to Saida/Jolt.
+    static saida::StaticBodyNode* boxCollider(saida::Node& parent,const std::string& name,
+                                            glm::vec3 size,glm::vec3 center) {
+        auto body=std::make_unique<saida::StaticBodyNode>();body->setName(name);
+        auto shape=std::make_unique<saida::CollisionShapeNode>();
+        shape->shapeType=saida::CollisionShapeType::Box;shape->halfExtents=size*.5f;shape->offset=center;
+        body->addChild(std::move(shape));return static_cast<saida::StaticBodyNode*>(parent.addChild(std::move(body)));
+    }
+    static void meshCollider(saida::Node& parent,std::unique_ptr<saida::MeshNode> mesh) {
+        auto body=std::make_unique<saida::StaticBodyNode>();body->setName(mesh->name()+" collider");
+        auto shape=std::make_unique<saida::CollisionShapeNode>();shape->shapeType=saida::CollisionShapeType::Mesh;
+        body->addChild(std::move(shape));body->addChild(std::move(mesh));parent.addChild(std::move(body));
+    }
+    void vehicleCollider(saida::Node& node,const VehicleModel& spec) {
+        if(node.findByPath("Vehicle collider"))return;
+        boxCollider(node,"Vehicle collider",{float(spec.width),float(spec.height),float(spec.length)},
+                    {0,float(spec.height*.5),0});
+    }
+    saida::QueryFilter obstacleFilter() const {
+        saida::QueryFilter filter;filter.ignoreInner=feet->innerBodyId();
+        if(car)if(auto* body=dynamic_cast<saida::CollisionObjectNode*>(car->findByPath("Vehicle collider")))filter.ignore=body->bodyId();
+        return filter;
+    }
+    bool solidAt(double x,double y,double level,float radius=.32f) const {
+        auto* physics=engine.sceneTree().world().physics();if(!physics)return true;
+        const glm::vec3 at(origin.local(ecef(x,y,level)));
+        return !physics->overlapSphere(at,radius,obstacleFilter()).empty();
+    }
+    // Spawn/exit/parking occupancy uses the engine's scene queries. Movement
+    // itself uses the character solver, without a second footprint test.
     bool blocked(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
         if(onWater(x,y,standing))return true;
-        if(raisedWall(x,y,standing))return true;
-        const auto worldPoint=ecef(x,y,height(x,y));
-        for(auto& [key,t]:loaded) {
-            // A point can only be inside a building or a tree of a tile it is
-            // in. Two metres of margin covers a footprint digitised a hair over
-            // its own tile edge; the other eight tiles cost one comparison.
-            if(t.interiors.empty()&&!inside(t,x,y,2e-5))continue;
-            glm::dvec3 p=t.frame.local(worldPoint);
-            const glm::dvec2 q(p.x,p.z);
-            for(const auto& trunk:t.trunks)
-                if(std::abs(q.x-trunk.x)<.55&&std::abs(q.y-trunk.y)<.55&&std::hypot(q.x-trunk.x,q.y-trunk.y)<.55)return true;
-            for(const auto& room:t.interiors)if(room.node)for(auto car:room.plan.exteriorVehicles) {
-                const auto local=room.plan.local({q.x,q.y}),at=room.plan.local({car.x,car.z});
-                if(std::abs(local.x-at.x)<1.4&&std::abs(local.y-at.y)<2.6)return true;
-            }
-            for(const auto& shape:t.footprints) {
-                // The rings are already parsed and already carry their box
-                // (see Footprint). Testing the box first is what turns five
-                // hundred polygon walks into a handful.
-                if(q.x<shape.low.x-.32||q.x>shape.high.x+.32||
-                   q.y<shape.low.y-.32||q.y>shape.high.y+.32)continue;
-                if(shape.interior>=0&&!driving&&!sailing&&!piloting&&!parkingCar) {
-                    const auto& room=t.interiors[size_t(shape.interior)];
-                    if(room.node) {
-                        if(r1::interiorBlocked(room.plan,room.layout,{q.x,q.y},room.opening))return true;
-                        continue;
-                    }
-                }
-                const auto& poly=shape.points;
-                bool in=false;const size_t n=poly.size();
-                for(size_t i=0,j=n-1;i<n;j=i++) {
-                    const glm::dvec2 a=poly[i],b=poly[j],d=b-a;
-                    const double len=glm::dot(d,d);
-                    const double f=len>0?std::clamp(glm::dot(q-a,d)/len,0.,1.):0.;
-                    if(glm::length(q-(a+f*d))<.32)return true;
-                    if((a.y>q.y)!=(b.y>q.y) && q.x<(b.x-a.x)*(q.y-a.y)/(b.y-a.y)+a.x)in=!in;
-                }
-                if(in)return true;
-            }
+        const double ground=std::isnan(standing)?height(x,y):standing;
+        if(solidAt(x,y,ground+.6)||solidAt(x,y,ground+1.3))return true;
+        // A mesh encloses air: an arrival below an opaque roof is not an outdoor
+        // spawn, even when its capsule would initially touch no triangles.
+        if(std::isnan(standing)||parkingCar) {
+            auto* physics=engine.sceneTree().world().physics();if(!physics)return true;
+            const glm::vec3 above(origin.local(ecef(x,y,ground+500.)));
+            const auto hit=physics->raycast(above,{0,-1,0},500.f,obstacleFilter());
+            if(hit.hit&&hit.point.y>origin.local(ecef(x,y,ground)).y+2.)return true;
         }
         return false;
     }
@@ -1608,7 +1588,7 @@ class World : public Rml::EventListener {
     //
     // Everything below shares the walk's vocabulary on purpose: the same
     // `advance` on the ellipsoid, the same `blocked` against streamed
-    // footprints and water, the same `height` off the tile's own grid. A car
+    // engine bodies and water, the same `height` off the tile's own grid. A car
     // that used a second notion of where the ground is would disagree with the
     // player about it the first time he stepped out.
 
@@ -1980,27 +1960,16 @@ class World : public Rml::EventListener {
             text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
             return;
         }
-        // A parapet is thinner than a fast car's step: look along the step.
-        const double stepLength=std::abs(carSpeed)*dt;
-        for(double s=.4;s<stepLength;s+=.4) {
-            const auto mid=onward(lon,lat,sin(carYaw*rad)*s*(carSpeed<0?-1:1),cos(carYaw*rad)*s*(carSpeed<0?-1:1));
-            if(tile(mid.x,mid.y)&&raisedWall(mid.x,mid.y,alt)){carStop="a bridge's wall";carSpeed=0;
-                text("stream-status","Obstacle — la voiture s'arrête.");return;}
-        }
         if(onWater(next.x,next.y,alt)){carStop="water";sinkCar(next.x,next.y);return;}
-        if(blocked(next.x,next.y,alt)) {
-            carStop=raisedWall(next.x,next.y,alt)?"a bridge's wall":"an obstacle";
-            carSpeed=0;
-            text("stream-status","Obstacle — la voiture s'arrête.");
-            return;
-        }
-        // Traffic is the one obstacle that moves, so `blocked` -- which reads
-        // footprints and water -- cannot know about it.
-        if(trafficAt(next.x,next.y,2.6)) {
-            carStop="traffic";
-            carSpeed=0;
-            text("stream-status","Voiture devant — la circulation vous arrête.");
-            return;
+        // Arcade handling keeps geographic pose; obstacle detection is a Jolt
+        // query along the travelled step, including the streamed traffic bodies.
+        const double length=std::abs(carSpeed)*dt;
+        const int steps=std::max(1,int(std::ceil(length/.25)));
+        for(int i=1;i<=steps;++i) {const double d=length*i/steps;
+            const auto q=onward(lon,lat,sin(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1),
+                                            cos(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1));
+            if(blocked(q.x,q.y,alt)) {carStop="an obstacle";carSpeed=0;
+                text("stream-status","Obstacle — la voiture s'arrête.");return;}
         }
         lon=next.x;lat=next.y;alt=groundAt(lon,lat,alt);
         carLon=lon;carLat=lat;carAlt=alt;
@@ -2338,40 +2307,16 @@ class World : public Rml::EventListener {
         if(a.node)walk(*a.node);
     }
     static double fuselageHalf(const r1::AircraftType& t) {return std::max(1.2,t.length*.05);}
-    static bool within(const std::vector<glm::dvec2>& poly,glm::dvec2 q) {
-        bool in=false;
-        for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++)
-            if((poly[i].y>q.y)!=(poly[j].y>q.y)&&q.x<(poly[j].x-poly[i].x)*(q.y-poly[i].y)/(poly[j].y-poly[i].y)+poly[i].x)in=!in;
-        return in;
-    }
-    // The altitude of the roof under (x, y) if a point at `above` is on or
-    // over it -- where a helicopter sets down -- and -inf otherwise. Tops are
-    // in their tile's frame, so they are compared there and converted back.
     double roofAt(double x,double y,double above) {
-        double best=-1e30;
-        for(auto& [key,t]:loaded) {
-            if(!inside(t,x,y,2e-5))continue;
-            const glm::dvec3 p=t.frame.local(ecef(x,y,above));
-            const glm::dvec2 q(p.x,p.z);
-            for(const auto& shape:t.footprints) {
-                if(shape.top>1e29||q.x<shape.low.x||q.x>shape.high.x||q.y<shape.low.y||q.y>shape.high.y)continue;
-                if(p.y>=shape.top-1.&&within(shape.points,q))best=std::max(best,above+(shape.top-p.y));
-            }
-        }
-        return best;
+        auto* physics=engine.sceneTree().world().physics();if(!physics)return -1e30;
+        const glm::vec3 start(origin.local(ecef(x,y,above+1.)));
+        const auto hit=physics->raycast(start,{0,-1,0},500.f,obstacleFilter());
+        if(!hit.hit||hit.normal.y<.5f)return -1e30;
+        const double surface=above+1.+double(hit.point.y-start.y);
+        return surface>groundAt(x,y,above)+1.?surface:-1e30;
     }
-    // Whether a point at altitude `alt` is inside a building, below its top.
-    bool buildingAt(double x,double y,double alt) {
-        for(auto& [key,t]:loaded) {
-            if(!inside(t,x,y,2e-5))continue;
-            const glm::dvec3 p=t.frame.local(ecef(x,y,alt));
-            const glm::dvec2 q(p.x,p.z);
-            for(const auto& shape:t.footprints) {
-                if(q.x<shape.low.x||q.x>shape.high.x||q.y<shape.low.y||q.y>shape.high.y)continue;
-                if(p.y<shape.top&&within(shape.points,q))return true;
-            }
-        }
-        return false;
+    bool buildingAt(double x,double y,double level) {
+        return solidAt(x,y,level,.45f);
     }
     // What an aircraft rests on at (x, y): the terrain, a deck, the water's
     // level, or a roof it is above. Where no tile answers yet, the last
@@ -2389,13 +2334,20 @@ class World : public Rml::EventListener {
     }
     // The aircraft's extremities -- nose, tail and the two tips of its wings
     // or its rotor -- against the buildings, at the height of its underside.
-    bool aircraftHits(double x,double y,double alt,double heading) {
+    bool aircraftHits(double x,double y,double alt,double heading,bool sweep=false) {
         const auto& t=*plane.type;
         const double s=std::sin(heading*rad),c=std::cos(heading*rad);
         const double half=t.length*.5,span=t.span*.5,body=alt+.4;
         for(const auto& [a,o]:{std::pair{0.,0.},std::pair{half,0.},std::pair{-half,0.},std::pair{0.,span},std::pair{0.,-span}}) {
             const auto q=onward(x,y,s*a+c*o,c*a-s*o);
             if(buildingAt(q.x,q.y,body))return true;
+            if(sweep) {
+                const auto from=onward(plane.lon,plane.lat,s*a+c*o,c*a-s*o);
+                const glm::vec3 start(origin.local(ecef(from.x,from.y,body))),end(origin.local(ecef(q.x,q.y,body)));
+                const glm::vec3 delta=end-start;const float length=glm::length(delta);
+                auto* physics=engine.sceneTree().world().physics();
+                if(physics&&length>.001f&&physics->raycast(start,delta/length,length,obstacleFilter()).hit)return true;
+            }
         }
         return false;
     }
@@ -2554,7 +2506,7 @@ class World : public Rml::EventListener {
             return false;
         }
         const double heading=horizontal<0?wrap(plane.yaw+180.):plane.yaw;
-        if(aircraftHits(next.x,next.y,plane.alt,heading)&&!aircraftHits(plane.lon,plane.lat,plane.alt,heading)) {
+        if(aircraftHits(next.x,next.y,plane.alt,heading,true)&&!aircraftHits(plane.lon,plane.lat,plane.alt,heading)) {
             plane.speed=0;
             if(!planeStopped) {
                 text("stream-status","Bâtiment — l'appareil s'arrête.");
@@ -3167,7 +3119,7 @@ class World : public Rml::EventListener {
                 const auto& agent=agents[i];
                 tile.carKinds[i]=vehicleKind(agent.seed,tile.graph.lanes[agent.lane]);
                 auto node=clonePlant(*fleet[tile.carKinds[i]].prototype);
-                vehicleLod(*node);
+                vehicleLod(*node);vehicleCollider(*node,fleet[tile.carKinds[i]]);
                 paintCar(*node,paintFor(agent.seed));
                 tile.carWheels[i].clear();tile.carSpin[i]=0.;
                 std::function<void(saida::Node&)> wheels=[&](saida::Node& n){
@@ -3178,10 +3130,10 @@ class World : public Rml::EventListener {
                 tile.cars[i]=tile.node->addChild(std::move(node));
             }
             if(!live) {
-                tile.cars[i]->setVisible(false);
+                tile.cars[i]->setEnabled(false);
                 continue;
             }
-            tile.cars[i]->setVisible(true);
+            tile.cars[i]->setEnabled(true);
             const auto& agent=agents[i];
             // Agent seeds advance at junctions. Keep model and paint stable
             // for the pooled node instead of changing a car in full view.
@@ -3200,26 +3152,6 @@ class World : public Rml::EventListener {
             tile.cars[i]->transform().position=glm::vec3(pose.position.x,up+.06f,pose.position.y);
             tile.cars[i]->transform().rotation=glm::angleAxis(float(-bearing),glm::vec3(0,1,0));
         }
-    }
-    // Is a traffic car standing where the player's car is about to be? The
-    // player's own collision reads streamed footprints and water (`blocked`);
-    // traffic is the one obstacle that moves, so it is asked separately and in
-    // each tile's own frame.
-    bool trafficAt(double x,double y,double clearance) const {
-        for(const auto& [key,tile]:loaded) {
-            if(tile.cars.empty())continue;
-            const glm::dvec3 p=tile.frame.local(ecef(x,y,alt));
-            for(size_t i=0;i<tile.cars.size();++i) {
-                if(!tile.cars[i]||!trafficSlotLive(tile,i))continue;
-                const auto& position=tile.cars[i]->transform().position;
-                const auto& spec=fleet[tile.carKinds[i]];
-                const glm::vec3 offset=glm::inverse(tile.cars[i]->transform().rotation)*
-                    glm::vec3(float(p.x-position.x),0,float(p.z-position.z));
-                const double padding=std::max(0.,clearance-1.8);
-                if(std::abs(offset.x)<spec.width*.5+padding&&std::abs(offset.z)<spec.length*.5+padding)return true;
-            }
-        }
-        return false;
     }
     size_t trafficWanted() const {
         size_t n=0;
@@ -3264,7 +3196,7 @@ class World : public Rml::EventListener {
     // A mount used to upload a whole tile in one frame -- 30 to 60 ms, the
     // hitch every new tile was felt as. Now the ground goes first, a few
     // milliseconds of parts a frame, and the rest follows over the next frames.
-    // Collision never waits: it reads the manifest, which is there at mount.
+    // Physics follows each uploaded mesh; arrivals wait for its first sync.
     void uploadParts() {
         const auto start=std::chrono::steady_clock::now();
         for(auto& [key,t]:loaded) {
@@ -3278,7 +3210,7 @@ class World : public Rml::EventListener {
                     saida::Log::warn("[World streaming] the geometry arena refused ",part.name," of ",key);
                     continue;
                 }
-                t.geography->addChild(std::make_unique<saida::MeshNode>(part.name,mesh,
+                meshCollider(*t.geography,std::make_unique<saida::MeshNode>(part.name,mesh,
                     material(t.served->cooked.parts[part.material].material)));
                 if(std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count()>=3.)return;
             }
@@ -3309,6 +3241,13 @@ class World : public Rml::EventListener {
           const auto q=t.frame.local(playerEcef);const r1::P2 at{q.x,q.z};
           for(auto& room:t.interiors) {
             const double distance=room.contains(at)?0:r1::dist(at,room.plan.door);
+            if(!room.node&&distance<90&&!room.closedDoor) {
+                const auto& p=room.plan;
+                room.closedDoor=boxCollider(*t.node,"Unloaded interior door",{float(p.width),2.5f,.10f},{0,1.25f,0});
+                room.closedDoor->transform().position={float(p.door.x),float(p.floor),float(p.door.y)};
+                room.closedDoor->transform().rotation=glm::angleAxis(float(-std::atan2(p.along.y,p.along.x)),glm::vec3(0,1,0));
+            }
+            if(room.closedDoor&&(room.node||distance>95)) {room.closedDoor->queueFree();room.closedDoor=nullptr;}
             if(distance>85)room.refused=false; // Retry a capacity refusal on a later visit.
             if(room.node&&distance>85) {
                 room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
@@ -3374,7 +3313,8 @@ class World : public Rml::EventListener {
                 // sun shadow. Thin linings and ceiling rails must not cast a
                 // second, nearly coincident shadow onto that same surface.
                 node->castShadows()=up.name.find("door")!=std::string::npos;
-                parent.addChild(std::move(node));
+                if(i<3&&up.name!="Interior surface joints")meshCollider(parent,std::move(node));
+                else parent.addChild(std::move(node));
             }
         };
         try {
@@ -3389,11 +3329,21 @@ class World : public Rml::EventListener {
                 if(prototype[i].mesh.empty())continue;
                 const auto up=uploadOf(prototype[i],i);
                 auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(
-                    "generated/interior-prototypes/v24/"+key+"/"+std::to_string(i),up.vertices,up.indices));
+                    "generated/interior-prototypes/v25/"+key+"/"+std::to_string(i),up.vertices,up.indices));
                 if(!mesh)throw std::runtime_error("furniture prototype allocation refused");
                 prototypes[key].push_back({mesh,material(prototype[i].material),i==0||i==2});
             }
+            size_t fixtureIndex=0;
             for(const auto& fixture:room.layout.fixtures) {
+                if(fixture.height>.05) {
+                    auto* body=boxCollider(*root,fixture.kind+" collider "+std::to_string(fixtureIndex),
+                        {float(fixture.size.x),float(fixture.height),float(fixture.size.y)},
+                        {0,float(fixture.height*.5),0});
+                    const auto at=p.point(fixture.at.x,fixture.at.y);
+                    body->transform().position={float(at.x),float(p.floor),float(at.y)};
+                    body->transform().rotation=glm::angleAxis(float(yaw),glm::vec3(0,1,0));
+                }
+                ++fixtureIndex;
                 if(fixture.kind=="vehicle") {
                     if(fleet.empty())throw std::runtime_error("garage requires the road vehicle fleet");
                     auto instance=clonePlant(*fleet[fixture.variant%std::min<size_t>(5,fleet.size())].prototype);vehicleLod(*instance);
@@ -3412,7 +3362,8 @@ class World : public Rml::EventListener {
             }
             for(const auto at:p.exteriorVehicles) {
                 if(fleet.empty())throw std::runtime_error("garage requires the road vehicle fleet");
-                auto instance=clonePlant(*fleet[size_t(uint64_t(p.id)%std::min<size_t>(5,fleet.size()))].prototype);vehicleLod(*instance);
+                const auto& spec=fleet[size_t(uint64_t(p.id)%std::min<size_t>(5,fleet.size()))];
+                auto instance=clonePlant(*spec.prototype);vehicleLod(*instance);vehicleCollider(*instance,spec);
                 instance->transform().position={float(at.x),float(at.y+.04),float(at.z)};
                 instance->transform().rotation=glm::angleAxis(float(yaw),glm::vec3(0,1,0));root->addChild(std::move(instance));
             }
@@ -3457,6 +3408,7 @@ class World : public Rml::EventListener {
                 root->addChild(std::move(light));
             }
             room.node=t.node->addChild(std::move(root));
+            if(room.closedDoor){room.closedDoor->queueFree();room.closedDoor=nullptr;}
             saida::Log::info("[World interiors] loaded ",p.name," recipe=",p.recipe," vertices=",vertices,
                 " furniture_instances=",room.layout.fixtures.size()," prototypes=",furnishings.size());
         } catch(const std::exception& e) {
@@ -3508,14 +3460,29 @@ class World : public Rml::EventListener {
         // A shop near a tile edge has its forecourt in the neighbour, which
         // may still be streaming: wait for it rather than walk off the world.
         auto resident=[&](double v){auto p=position(0,v);retailTestWait="a tile at the shop to stream in";return tile(p.x,p.y)!=nullptr;};
-        auto move=[&](double v,bool check){auto p=position(0,v);if(check&&blocked(p.x,p.y,alt))return false;
-            lon=p.x;lat=p.y;alt=height(lon,lat,alt);return true;};
+        auto move=[&](double v,bool check){auto p=position(0,v);
+            if(check) {
+                auto from=owner->frame.local(ecef(lon,lat,alt));
+                auto target=owner->frame.local(ecef(p.x,p.y,p.z));
+                auto direction=glm::transpose(origin.basis)*owner->frame.basis*(target-from);
+                const auto end=moveFeet(direction.x,-direction.z,std::max(.001,dt));
+                if(glm::length(ecef(end.x,end.y,alt)-ecef(p.x,p.y,alt))>.18) {
+                    saida::Log::error("[World retail E2E] stalled v=",v," altitude=",alt," jump=",jumpOffset);
+                    for(const auto& contact:feet->contacts())if(contact.node)
+                        saida::Log::error("[World retail E2E] contact=",contact.node->name()," normal=",contact.normal.x,",",contact.normal.y,",",contact.normal.z);
+                    return false;
+                }
+                lon=end.x;lat=end.y;alt=end.z;
+            } else {lon=p.x;lat=p.y;}
+            if(!check)alt=height(lon,lat,alt);return true;};
         if(retailTestPhase==0) {if(!r.node||!resident(-18)||!resident(walkDepth))return;
             const std::string shotAt=std::getenv("R1WORLD_RETAIL_SHOT_AT")?std::getenv("R1WORLD_RETAIL_SHOT_AT"):"";
             if(shotAt=="room") {
                 const r1::InteriorRoom* room=nullptr;
+                const char* requestedRoom=std::getenv("R1WORLD_INTERIOR_ROOM");
                 for(const auto& candidate:r.layout.rooms) {
                     if(!room)room=&candidate;
+                    if(requestedRoom) {if(candidate.use==requestedRoom){room=&candidate;break;}continue;}
                     if((r.plan.recipe=="school"&&candidate.use=="classroom")||
                        (r.plan.recipe=="home"&&candidate.use=="living")||
                        (r.plan.recipe=="garage"&&candidate.use=="garage")){room=&candidate;break;}
@@ -3545,7 +3512,7 @@ class World : public Rml::EventListener {
             }
             move(-3,false);retailTestPhase=1;return;}
         if(retailTestPhase==1) {
-            if(retailTestV<2&&r.opening<.99)return;
+            if(retailTestV<2&&(r.opening<.99||!feet->physicsWorld()))return;
             retailTestV=std::min(walkDepth,retailTestV+std::min(dt,.1)*5.);
             if(!move(retailTestV,true)){fail("open doorway or central aisle blocked");return;}
             if(retailTestV>=walkDepth){saida::Log::info("[World retail E2E] entered ",r.plan.name," recipe=",r.plan.recipe," and walked ",walkDepth," m inside");
@@ -3554,17 +3521,58 @@ class World : public Rml::EventListener {
             return;
         }
         if(retailTestPhase==2) {
-            retailTestV=std::max(-6.,retailTestV-std::min(dt,.1)*5.);
+            retailTestV=std::max(-2.,retailTestV-std::min(dt,.1)*5.);
             if(retailTestV<3&&r.opening<.99)return;
             if(!move(retailTestV,true)){fail("return through automatic door blocked");return;}
-            if(retailTestV<=-6)retailTestPhase=3;
+            if(retailTestV<=-2) {move(-6,false);retailTestPhase=3;}
             return;
         }
         if(retailTestPhase==3) {
             if(r.opening>.001)return;
-            auto door=position(0,0),wall=position(-r.plan.width/2-.5,0);
-            if(!blocked(door.x,door.y,alt)){fail("closed door not solid");return;}
-            if(!blocked(wall.x,wall.y,alt)){fail("facade not solid");return;}
+            // An entrance can be only 30 cm from a facade corner. Probe the
+            // middle of its longer opaque span, rather than beyond that edge.
+            const double left=r.plan.local(r.plan.ring[r.plan.edge]).x;
+            const double right=r.plan.local(r.plan.ring[(r.plan.edge+1)%r.plan.ring.size()]).x;
+            const double half=r.plan.width/2;
+            const double wallU=(-half-left>right-half)?(left-half)/2:(right+half)/2;
+            auto door=position(0,0),wall=position(wallU,0);
+            if(!blocked(door.x,door.y,door.z)){fail("closed door not solid");return;}
+            if(!blocked(wall.x,wall.y,wall.z)) {
+                saida::Log::error("[World retail E2E] wall u=",wallU," edge=",r.plan.edge," floor=",r.plan.floor);
+                const auto bytes=r1::writeGlb(owner->served->cooked.parts);
+                std::ofstream geometry(game/"generated/interior-smoke-failure.glb",std::ios::binary);
+                geometry.write(reinterpret_cast<const char*>(bytes.data()),std::streamsize(bytes.size()));
+                std::ofstream planFile(game/"generated/interior-smoke-failure.json");planFile<<r.plan.json().dump();
+                fail("facade not solid");return;
+            }
+            // Query presence alone does not prove that the character solver
+            // stops at a mesh. Try crossing both closed door and facade.
+            auto cannotCross=[&](double u) {
+                const glm::dvec3 saved(lon,lat,alt);auto from=position(u,-.65),target=position(u,.65);
+                lon=from.x;lat=from.y;alt=from.z;
+                auto delta=origin.local(ecef(target.x,target.y,alt))-origin.local(ecef(lon,lat,alt));
+                const auto end=moveFeet(delta.x,-delta.z,.1);
+                const auto local=owner->frame.local(ecef(end.x,end.y,end.z));
+                const bool stopped=r.plan.local({local.x,local.z}).y<.15;
+                lon=saved.x;lat=saved.y;alt=saved.z;
+                feet->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+.06)));
+                return stopped;
+            };
+            if(!cannotCross(0)||!cannotCross(wallU)){fail("character crossed closed door or facade");return;}
+            auto* physics=engine.sceneTree().world().physics();
+            for(size_t i=0;i<r.layout.fixtures.size();++i) {
+                const auto& fixture=r.layout.fixtures[i];if(fixture.height<=.05)continue;
+                auto* body=dynamic_cast<saida::CollisionObjectNode*>(r.node->findByPath(fixture.kind+" collider "+std::to_string(i)));
+                if(!body||!body->physicsWorld()){fail("furniture collider not synchronized");return;}
+                const auto at=r.plan.point(fixture.at.x,fixture.at.y);
+                const glm::vec3 center(owner->node->worldTransform()*glm::vec4(float(at.x),float(r.plan.floor+fixture.height*.5),float(at.y),1));
+                const auto hits=physics->overlapSphere(center,.1f,obstacleFilter());
+                if(std::find(hits.begin(),hits.end(),body->bodyId())==hits.end()) {
+                    saida::Log::error("[World retail E2E] fixture=",fixture.kind," index=",i," collider id=",body->bodyId().GetIndexAndSequenceNumber(),
+                        " expected=",center.x,",",center.y,",",center.z);
+                    fail("furniture's drawn center has no matching engine collider");return;
+                }
+            }
             if(!resident(-95))return;
             move(-95,false);retailTestPhase=4;return;
         }
@@ -3573,7 +3581,7 @@ class World : public Rml::EventListener {
             move(-3,false);retailTestPhase=5;return;
         }
         if(retailTestPhase==5&&r.node&&r.opening>.99) {
-            saida::Log::info("[World retail E2E] PASS entry, aisle, exit, closing, wall collision, eviction and regeneration");
+            saida::Log::info("[World retail E2E] PASS engine character entry, aisle, exit, door/wall/furniture colliders, eviction and regeneration");
             engine.sceneTree().quit();
         }
     }
@@ -3844,7 +3852,11 @@ class World : public Rml::EventListener {
                         l.vegetation.push_back(entry);
                         n->setVisible(false);
                     }
-                    l.node->addChild(std::move(n));
+                    if(n->isInGroup("landmark")) {
+                        auto body=std::make_unique<saida::StaticBodyNode>();body->setName(n->name()+" collider");
+                        auto shape=std::make_unique<saida::CollisionShapeNode>();shape->shapeType=saida::CollisionShapeType::Mesh;
+                        body->addChild(std::move(shape));body->addChild(std::move(n));l.node->addChild(std::move(body));
+                    } else l.node->addChild(std::move(n));
                 } catch(const std::exception& e) {
                     saida::Log::warn("[World streaming] prop failed in ",t.key(),": ",e.what());
                     if(smoke){testFailed=true;engine.sceneTree().quit();return;}
@@ -3944,12 +3956,16 @@ class World : public Rml::EventListener {
             return;
         }
         if(pending)text("status",kPreparing);
-        if(pending && tile(pickLon,pickLat)) {
+        auto ready=[&](double x,double y){auto* t=tile(x,y);if(!t)return false;
+            if(t->geography&&t->nextPart<std::any_cast<const PreparedTile&>(t->served->prepared).parts.size())return false;
+            return !t->geography||(!t->geography->children().empty()&&
+                static_cast<saida::CollisionObjectNode*>(t->geography->children().back().get())->physicsWorld());};
+        if(pending && ready(pickLon,pickLat)) {
             const bool waterSpawn=onWater(pickLon,pickLat);
             double x0=pickLon,y0=pickLat;bool found=waterSpawn||!blocked(x0,y0);
             for(int i=1;!found&&i<=160;++i) {
                 double a=i*2.39996323,d=2.*std::sqrt(double(i));auto q=advance(pickLon,pickLat,d*cos(a),d*sin(a));
-                if(tile(q.x,q.y)&&!blocked(q.x,q.y)){x0=q.x;y0=q.y;found=true;}
+                if(ready(q.x,q.y)&&!blocked(q.x,q.y)){x0=q.x;y0=q.y;found=true;}
             }
             if(!found) {
                 // A safe point can lie just across the tile boundary. Only
@@ -4076,7 +4092,7 @@ public:
         prototypes=e.sceneTree().world().createChild<saida::Node>("Shared prototypes");
         prototypes->setEnabled(false);
         loadPaints();
-        buildTrafficPrototype();
+        buildTrafficPrototype();vehicleCollider(*car,vehicleSpec(*car));
         buildAircraftPrototypes();
         saida::Log::info("[World traffic] ready, ",paints.size()," paints");
         // Textures resident at once. A city neighbourhood shows about fifteen
@@ -4951,7 +4967,7 @@ public:
             double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
             footEast=east/dt;footNorth=north/dt;
             // People are bodies: he stops at them and slides round them.
-            auto next=walkAmongPeople(east,north,dt);
+            auto next=moveFeet(east,north,dt);
             if(tile(next.x,next.y)) {
                 if(onWater(next.x,next.y,alt)) {
                     lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
@@ -4960,8 +4976,8 @@ public:
                     jumpOffset=jumpVelocity=0;moving=true;
                     text("stream-status","À l'eau — nagez vers la rive.");
                     saida::Log::info("[World swim] entered water at ",lon,", ",lat);
-                } else if(!blocked(next.x,next.y,alt)){
-                    lon=next.x;lat=next.y;alt=height(lon,lat,alt);moving=true;
+                } else {
+                    lon=next.x;lat=next.y;alt=std::max(height(lon,lat,alt),next.z);moving=true;
                     auto facing=glm::angleAxis(float(-std::atan2(east,north)),glm::vec3(0,1,0));
                     player->transform().rotation=glm::slerp(player->transform().rotation,facing,float(1-std::exp(-16*dt)));
                 }
@@ -4970,8 +4986,8 @@ public:
         } else if(jumpOffset<=0) {
             // Standing still, he is still a body: whoever walks into him
             // meets his feet, and a shoulder moves him a little.
-            const auto nudged=walkAmongPeople(0,0,dt);
-            if(tile(nudged.x,nudged.y)&&!blocked(nudged.x,nudged.y,alt)){lon=nudged.x;lat=nudged.y;alt=height(lon,lat,alt);}
+            const auto nudged=moveFeet(0,0,dt);
+            if(tile(nudged.x,nudged.y)&&!onWater(nudged.x,nudged.y,alt)){lon=nudged.x;lat=nudged.y;alt=std::max(height(lon,lat,alt),nudged.z);}
         }
         if(glm::length(origin.local(ecef(lon,lat,alt)))>350.)rebaseOrigin();
         if(!driving&&!sailing&&!piloting) {
@@ -4990,6 +5006,7 @@ public:
                 if(smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
                 if(jump&&!wasJump&&jumpOffset<=0)jumpVelocity=std::sqrt(2*22.*1.5);
                 wasJump=jump;
+                const double previous=jumpOffset;
                 if(jumpVelocity-22*dt>-kFallTerminal){jumpOffset+=jumpVelocity*dt-11*dt*dt;jumpVelocity-=22*dt;}
                 else{jumpVelocity=-kFallTerminal;jumpOffset+=jumpVelocity*dt;}
                 if(jumpOffset<=0) {
@@ -5000,11 +5017,14 @@ public:
                     }
                     jumpOffset=0;jumpVelocity=0;
                 }
-                for(auto& [key,t]:loaded)for(auto& room:t.interiors) {
-                    const auto p=t.frame.local(ecef(lon,lat,alt));
-                    if(r1::pointInPolygon({p.x,p.z},room.plan.ring)) {
-                        const double limit=std::max(0.,room.plan.ceiling-room.plan.floor-playerHeight-.12);
-                        if(jumpOffset>limit){jumpOffset=limit;jumpVelocity=std::min(0.,jumpVelocity);}
+                if(jumpOffset>0) {
+                    feet->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+previous+.06)));
+                    const auto end=feet->moveAndSlide({0,float((jumpOffset-previous)/dt),0},float(dt));
+                    const double resolved=end.y-origin.local(ecef(lon,lat,alt+.06)).y;
+                    if(resolved<jumpOffset-.01&&jumpVelocity>0)jumpVelocity=0;
+                    jumpOffset=std::max(0.,resolved);
+                    if(jumpVelocity<0&&feet->isOnFloor()) {
+                        alt+=jumpOffset;jumpOffset=jumpVelocity=0;
                     }
                 }
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
@@ -5037,40 +5057,12 @@ public:
                               :driving?car->transform().position:player->transform().position;
         const glm::vec3 target=anchor+glm::vec3(0,eye,0);
         const glm::vec3 backward=camera->transform().rotation*glm::vec3(0,0,1);
-        // Sweep against streamed building footprints, not an empty physics
-        // scene. One segment/edge pass; no scene raycasts or mesh reconstruction.
         double clear=maxFollow;
-        auto end=onward(lon,lat,backward.x*clear,-backward.z*clear);
-        for(auto& [key,t]:loaded){
-            auto a3=t.frame.local(ecef(lon,lat,alt)),b3=t.frame.local(ecef(end.x,end.y,alt));
-            glm::dvec2 a(a3.x,a3.z),v(b3.x-a3.x,b3.z-a3.z);
-            auto cross=[](glm::dvec2 a,glm::dvec2 b){return a.x*b.y-a.y*b.x;};
-            auto low=glm::min(a,a+v)-glm::dvec2(.3),high=glm::max(a,a+v)+glm::dvec2(.3);
-            const double eyeY=t.frame.local(ecef(lon,lat,alt+eye)).y;
-            for(auto& shape:t.footprints){
-                if(shape.high.x<low.x||shape.low.x>high.x||shape.high.y<low.y||shape.low.y>high.y)continue;
-                if(shape.top<eyeY)continue;  // lower than the view: it hides nothing
-                auto& poly=shape.points;
-                for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++){
-                    glm::dvec2 p=poly[j],q=poly[i];
-                    auto edge=q-p;double den=cross(v,edge);
-                    if(std::abs(den)<1e-9)continue;
-                    double along=cross(p-a,edge)/den,side=cross(p-a,v)/den;
-                    if(shape.interior>=0) {
-                        const auto& room=t.interiors[size_t(shape.interior)];
-                        const auto hit=a+v*along;const auto door=room.plan.local({hit.x,hit.y});
-                        if(j==room.plan.edge&&std::abs(door.x)<room.plan.width*.5*room.opening&&eyeY<room.plan.floor+2.5)continue;
-                    }
-                    if(along>=0&&along<=1&&side>=0&&side<=1)clear=std::min(clear,std::max(.15,along*maxFollow-.3));
-                }
-            }
+        if(auto* physics=engine.sceneTree().world().physics()) {
+            const auto hit=physics->raycast(target,backward,float(maxFollow),obstacleFilter());
+            if(hit.hit)clear=std::max(.15,double(hit.distance)-.3);
         }
-        // Keep the camera above terrain and inside loaded tiles as well.
-        for(auto& [key,t]:loaded)for(auto& room:t.interiors) {
-            auto p=t.frame.local(ecef(lon,lat,alt));
-            if(r1::pointInPolygon({p.x,p.z},room.plan.ring)&&backward.y>.01)
-                clear=std::min(clear,std::max(.15,(room.plan.ceiling-p.y-eye-.2)/backward.y));
-        }
+        // Keep the camera above the geographic surface and inside loaded tiles.
         for(double d=.25;d<=clear;d+=.25){
             auto q=onward(lon,lat,backward.x*d,-backward.z*d);
             if(!tile(q.x,q.y)&&piloting)continue;  // in the air, unstreamed ground ahead is no wall
@@ -5188,7 +5180,7 @@ public:
                 saida::Log::error("[World E2E] FAIL could not walk back to the car, still ",
                                   carDistance(),"m away after ",smokeApproachTime,"s; player at ",lon,", ",lat,
                                   " alt ",alt,", car alt ",carAlt,"; next step: water=",onWater(q.x,q.y,alt),
-                                  " raised wall=",raisedWall(q.x,q.y,alt)," blocked=",blocked(q.x,q.y,alt),
+                                  " obstacle=",blocked(q.x,q.y,alt)," blocked=",blocked(q.x,q.y,alt),
                                   " level there ",height(q.x,q.y,alt));
                 testFailed=true;engine.sceneTree().quit();
             }
