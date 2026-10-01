@@ -575,21 +575,23 @@ TEST(Service, a_visited_place_never_touches_the_network) {
     _putenv_s("HTTPS_PROXY", "http://127.0.0.1:9");
     _putenv_s("HTTP_PROXY", "http://127.0.0.1:9");
 #endif
-    std::vector<std::string> said;
-    std::mutex lock;
+    // The cooking threads outlive the service: a tile still cooking when this
+    // test gives up writes its log lines here, so they own what they write to.
+    struct Said { std::mutex lock; std::vector<std::string> lines; };
+    const auto said = std::make_shared<Said>();
     WorldService::Options options;
     options.gameRoot = r1test::gameRoot();
     options.threads = 2;
-    options.log = [&](const std::string& s) { std::lock_guard<std::mutex> g(lock); said.push_back(s); };
+    options.log = [said](const std::string& s) { std::lock_guard<std::mutex> g(said->lock); said->lines.push_back(s); };
     WorldService service(std::move(options));
     const Tile t = tileAt(2.3522, 48.8566);
     service.want({t}, {});
     std::shared_ptr<const ServedTile> served;
     for (int i = 0; i < 300 && !(served = service.find(t)); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    CHECK(served);
+    CHECK_MSG(served, t.key() << " was not served within 15 s");
     CHECK(!served->cooked.manifest["offlineApproximation"].get<bool>());
-    std::lock_guard<std::mutex> g(lock);
-    for (const auto& s : said) CHECK_MSG(s.find("OFFLINE") == std::string::npos && s.find("FALLBACK") == std::string::npos, s);
+    std::lock_guard<std::mutex> g(said->lock);
+    for (const auto& s : said->lines) CHECK_MSG(s.find("OFFLINE") == std::string::npos && s.find("FALLBACK") == std::string::npos, s);
 }
 
 TEST(Service, cached_streets_appear_before_relief_and_remain_after_it_arrives) {

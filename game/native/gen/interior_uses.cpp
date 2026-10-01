@@ -1,6 +1,7 @@
 #include "interiors.hpp"
 #include "palette.hpp"
 #include "clip.hpp"
+#include "spatial.hpp"
 #include <algorithm>
 
 namespace r1 {
@@ -40,32 +41,53 @@ bool residential(const Tags& t) {
 std::vector<OsmWay> interiorBuildings(const std::vector<OsmWay>& buildings,const OsmData& osm,
                                     const std::function<P3(double,double)>& ground) {
     auto out=buildings;
+    // Every scan below visits only what can match, in the order of the full
+    // scan (gen/spatial.hpp): the first tenant, the order of the fronts and
+    // the nearest road point are those of the scan over everything.
     std::vector<P2> entrancePoints;
+    BoxIndex entranceIndex(32.);
     for(const auto& n:osm.features) {
         auto kind=tagOr(n.tags,"entrance");
         if(kind.empty()||kind=="no"||kind=="exit"||kind=="emergency"||kind=="service")continue;
-        auto at=ground(n.lon,n.lat);entrancePoints.push_back({at.x,at.z});
+        auto at=ground(n.lon,n.lat);entranceIndex.add(entrancePoints.size(),{at.x,at.z,at.x,at.z});entrancePoints.push_back({at.x,at.z});
     }
+    std::vector<const OsmNode*> tenants;
+    BoxIndex tenantIndex(.002);
+    for(const auto& n:osm.features)if(observedUse(n.tags)){tenantIndex.add(tenants.size(),{n.lon,n.lat,n.lon,n.lat});tenants.push_back(&n);}
+    std::vector<std::pair<const OsmWay*,Box>> campuses;
+    for(const auto& area:osm.landcover)if(observedUse(area.tags))campuses.push_back({&area,boxOf(area.points)});
+    std::vector<P2> roadPoints;
+    for(const auto& road:osm.roads)roadPoints.insert(roadPoints.end(),road.points.begin(),road.points.end());
+    const NearestPoint roadIndex(std::move(roadPoints),.0005);
+    // A point a hair outside a ring's box is outside the ring, whatever the rounding.
+    constexpr double kOutside=1e-9;
     for(auto& b:out) {
         // Explicit building use wins over a campus or a nearby tenant.
         b.tags["r1:useSource"]=observedUse(b.tags)||tagOr(b.tags,"building")!="yes"?"measured:building-tags":"inferred:residential-default";
         if(!observedUse(b.tags)&&!residential(b.tags)&&!interiorRecipe(b.tags).empty()) {
             bool found=false;
-            for(const auto& n:osm.features)if(observedUse(n.tags)&&pointInPolygon({n.lon,n.lat},b.points)) {
+            const Box box=boxOf(b.points).grown(kOutside);
+            for(size_t i:tenantIndex.near(box)) {
+                const auto& n=*tenants[i];
+                if(!box.contains({n.lon,n.lat})||!pointInPolygon({n.lon,n.lat},b.points))continue;
                 for(auto key:{"amenity","office","craft","military","shop","name","brand"})
                     if(has(n.tags,key)&&!has(b.tags,key))b.tags[key]=tagOr(n.tags,key);
                 b.tags["r1:useSource"]="measured:tenant-node";found=true;break;
             }
             // Schools and gendarmeries are often mapped as a campus polygon.
-            if(!found)for(const auto& area:osm.landcover)if(observedUse(area.tags)&&pointInPolygon(centroid(b.points),area.points)) {
-                for(auto key:{"amenity","office","craft","military"})if(has(area.tags,key)&&!has(b.tags,key))b.tags[key]=tagOr(area.tags,key);
+            const P2 c=centroid(b.points);
+            if(!found)for(const auto& [area,areaBox]:campuses) {
+                if(!areaBox.grown(kOutside).contains(c)||!pointInPolygon(c,area->points))continue;
+                for(auto key:{"amenity","office","craft","military"})if(has(area->tags,key)&&!has(b.tags,key))b.tags[key]=tagOr(area->tags,key);
                 b.tags["r1:useSource"]="inferred:observed-campus";break;
             }
         }
         if(retailUse(b.tags)||interiorRecipe(b.tags).empty())continue;
         std::string fronts;
         Ring outline;for(auto q:b.points){auto at=ground(q.x,q.y);outline.push_back({at.x,at.z});}
-        for(auto at:entrancePoints) {
+        // An entrance a metre past the outline's box is a metre from every edge.
+        for(size_t i:entranceIndex.near(boxOf(outline).grown(1.01))) {
+            const P2 at=entrancePoints[i];
             double near=1e30;
             for(size_t e=1;e<outline.size();++e)near=std::min(near,clip::distance({outline[e-1],outline[e]},at));
             if(near<1.)fronts+=(fronts.empty()?"":";")+std::to_string(at.x)+","+std::to_string(at.y);
@@ -73,10 +95,9 @@ std::vector<OsmWay> interiorBuildings(const std::vector<OsmWay>& buildings,const
         b.tags["r1:entranceSource"]=fronts.empty()?"inferred:nearest-road":"measured";
         if(fronts.empty()) {
             const auto c=centroid(b.points);auto at=ground(c.x,c.y);P2 target{at.x,at.z};double best=1e30;
-            for(const auto& road:osm.roads)for(auto q:road.points) {
-                double d=std::hypot(wrap(q.x-c.x)*std::cos(radians(c.y)),q.y-c.y);
-                if(d<best){best=d;auto p=ground(q.x,q.y);target={p.x,p.z};}
-            }
+            const double scale=std::cos(radians(c.y));
+            const size_t nearest=roadIndex.nearest(c,std::min(scale,1.),[&](P2 q){return std::hypot(wrap(q.x-c.x)*scale,q.y-c.y);},best);
+            if(nearest!=NearestPoint::npos){const auto q=roadIndex.points()[nearest];auto p=ground(q.x,q.y);target={p.x,p.z};}
             fronts=std::to_string(target.x)+","+std::to_string(target.y);
         }
         b.tags["r1:front"]=fronts;
