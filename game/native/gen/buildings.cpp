@@ -310,6 +310,24 @@ struct MeshBook {
     }
 };
 
+// ── shopfronts: one part per material, not four per shop ────────────────────
+// A part is a mesh to upload, a draw and a static body. Four per shop made the
+// rue de Rivoli tile (v26_27772_23992) 849 parts, 820 of them shopfronts, and
+// it took a minute to come up. The fascia is the one material that varies.
+struct ShopfrontBook {
+    std::vector<MeshPart> parts;
+    void add(std::vector<MeshPart>&& shop) {
+        for (MeshPart& part : shop) {
+            auto same = std::find_if(parts.begin(), parts.end(), [&](const MeshPart& p) {
+                return p.name == part.name && p.material.name == part.material.name && p.material.color == part.material.color;
+            });
+            if (same == parts.end()) { parts.push_back(std::move(part)); continue; }
+            const Mesh& m = part.mesh;
+            for (uint32_t i : m.indices) same->mesh.indices.push_back(same->mesh.vertex(m.positions[i], m.normals[i], m.texcoords[i]));
+        }
+    }
+};
+
 // ── wall frames and faces ───────────────────────────────────────────────────
 struct WallFrame {
     double ox, oz, ground, ax, az, nx, nz, length;
@@ -637,6 +655,7 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
     }
 
     MeshBook walls, foundations, roofs;
+    ShopfrontBook shopfronts;
     roofs.mode = roofMaterials ? UvMode::Slope : UvMode::None;
     Mesh trim, glass;
     for (size_t owner = 0; owner < planned.size(); ++owner) {
@@ -699,7 +718,7 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                 // The approach meets the sampled terrain four metres outside.
                 p.approach=p.floor-.08;
                 interior=p;out.interiors.push_back(p);
-                if(retailInterior(p.recipe))for(auto& part:buildShopfront(p))out.parts.push_back(std::move(part));
+                if(retailInterior(p.recipe))shopfronts.add(buildShopfront(p));
             }
         }
         if(!interior&&!interiorRecipe(*b.tags).empty())out.interiorUnavailable.push_back({
@@ -788,6 +807,7 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         for (const auto& gable : gableWalls(b.box, g.roofShape, yEave, yRidge, sign))
             wallMesh.addTriangle(gable[0], gable[1], gable[2]);
     }
+    for (auto& part : shopfronts.parts) out.parts.push_back(std::move(part));
     walls.parts(out.parts, "Walls", true, wallMaterials);
     foundations.parts(out.parts, "Foundations", true, nullptr);
     roofs.parts(out.parts, "Roofs", roofThickness <= 0.0, roofMaterials);

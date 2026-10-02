@@ -157,3 +157,29 @@ TEST(Retail, a_supermarket_mapped_in_a_mall_gets_aisles_and_checkouts_behind_the
     // Without a mapped supermarket a mall stays a gallery.
     p.anchor.reset();for(const auto& f:layoutInterior(p).fixtures)CHECK(f.kind!="shelf");
 }
+TEST(Retail, a_street_of_shops_is_one_part_per_material_not_four_per_shop) {
+    // Four parts a shop made the rue de Rivoli tile 849 parts, each a mesh, a
+    // draw and a body; it took a minute to come up. Every shop is still there.
+    auto a=Anchor::at(2.35,48.85,0);OsmData osm;std::vector<OsmWay> ways;
+    for(int i=0;i<12;++i) {
+        const double x=i*20.;
+        ways.push_back(geoWay(100+i,{{x,0},{x+14,0},{x+14,20},{x,20}},{{"building","yes"},{"height","9"}},a));
+        const auto at=a.toGeodetic(x+7,0,10);
+        osm.features.push_back({200+i,at.x,at.y,{{"shop",i%3?"clothes":"bakery"},{"name","Boutique "+std::to_string(i)}}});
+    }
+    auto ground=[&](double x,double y){auto p=a.toEngine(x,y,0);p.y=10;return p;};
+    std::vector<const OsmWay*> pointers;for(auto& w:ways)pointers.push_back(&w);
+    const auto shops=retailBuildings(pointers,osm,ground);
+    std::vector<const OsmWay*> enriched;for(auto& w:shops)enriched.push_back(&w);
+    const auto built=buildBuildings(enriched,ground,profileFor(2.35,48.85),{},-1,0,{},{});
+    CHECK(built.interiors.size()==12);
+    size_t parts=0,vertices=0,expected=0;std::set<std::string> fascias;
+    for(const auto& part:built.parts)if(part.name.rfind("Shop ",0)==0) {
+        ++parts;vertices+=part.mesh.vertexCount();
+        if(part.name=="Shop fascia")fascias.insert(part.material.name+std::to_string(part.material.color[0]));
+    }
+    for(const auto& p:built.interiors)for(const auto& part:buildShopfront(p))expected+=part.mesh.vertexCount();
+    CHECK(fascias.size()==2);
+    CHECK(parts==3+fascias.size());
+    CHECK(vertices==expected);
+}
