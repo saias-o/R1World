@@ -73,21 +73,24 @@ const EPOCH_UNIX = props.useSystemClock ? Date.now() / 1000.0 : props.epochUnix;
 const TIME_SCALE = props.secondsPerSecond;
 const TURBIDITY = props.turbidity;
 const PEAK_INTENSITY = props.peakIntensity;
-// Haze, as an extinction per metre: a meteorological visibility of 5 km
-// (Koschmieder, 3.912 / V), the air of a city on an ordinary day. It used to be
-// 0.0035 -- a one-kilometre fog that hid the edge of the streamed neighbourhood
-// and, with it, every landmark more than a kilometre away. Kept equal to
+// Haze, as an extinction per metre, where no visibility is measured: a clear
+// day's 60 km (Koschmieder, 3.912 / V), the clearest a measurement is taken
+// at below. The reference photographs read clearer still: the Vercors at
+// 8.7 km and Table Mountain at 17 km keep half their contrast, about 90 km.
+// The haze is the horizon's colour, far brighter than a facade, so a little
+// of it hides a lot: 24 km left the Statue of Liberty a ghost at 2.7 km. It
+// was a 5 km city haze, which the engine never drew past a kilometre (its fog
+// took any depth over 0.9999 for sky). Kept equal to
 // `prepare_world.FOG_DENSITY`, which gives the scene its first frame.
-const FOG_DENSITY = 0.00078;
+const FOG_DENSITY = 0.0000652;
 let weatherCloud = 0.0;
 let weatherRain = 0.0;
 let weatherFog = FOG_DENSITY;
 
 // `visibility`, when the game passes one, is the measured meteorological
 // visibility in metres (Open-Meteo), turned into an extinction the same way
-// (Koschmieder). The game only passes more than 5 km where something is
-// drawn out to the horizon -- the pack ice's far field -- because anywhere
-// else clearer air would only show where the streamed world ends.
+// (Koschmieder), as measured: what is measured is not thinned to hide where
+// the streamed world ends.
 function setWeather(cloudFraction, precipitation, visibility) {
     if (!isFinite(cloudFraction) || !isFinite(precipitation)) return false;
     weatherRain = Math.max(0.0, precipitation);

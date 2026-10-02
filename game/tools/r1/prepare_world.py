@@ -20,11 +20,11 @@ WORLD_TURBIDITY = 2.4
 # player is nowhere near.
 DEFAULT_LON, DEFAULT_LAT = 2.3522, 48.8566
 
-# Haze as an extinction per metre, and how far the camera draws. A visibility of
-# 5 km (Koschmieder: 3.912 / V) is an ordinary city day; beyond it a monument is
-# more than 97% haze, so the far plane stops there too. `sun_cycle.js` carries
-# the same density every frame. See `landmarks.FAR_RANGE`.
-FOG_DENSITY = 0.00078
+# Haze as an extinction per metre where no visibility is measured, and how far
+# the camera draws. A clear day's 60 km (Koschmieder: 3.912 / V); `sun_cycle.js`
+# carries the same density every frame, and the measured visibility replaces
+# it. See `landmarks.FAR_RANGE`.
+FOG_DENSITY = 0.0000652
 FAR_PLANE = 5000
 
 

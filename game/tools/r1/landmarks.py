@@ -76,8 +76,7 @@ MAX_VERTICES = 32_768
 LOD_BUDGET = (MAX_VERTICES, 12_288, 4_096)
 
 # Where level 1 gives way to level 2, and where level 2 stops being drawn.
-# The haze is a visibility of 5 km (`prepare_world.FOG_DENSITY`): past it a
-# monument is more than 97% air, and the camera's far plane stops there too.
+# Level 2 is drawn as far as the camera's far plane (`prepare_world.FAR_PLANE`).
 LOD1_UNTIL = 1_800.0
 FAR_RANGE = 5_000.0
 

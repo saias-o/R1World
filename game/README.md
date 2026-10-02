@@ -873,10 +873,13 @@ The engine features this needed are generic: a second sky and a crossfade
 lighting value; `r1/prepare_world.py` writes them. Rebuild the skies with
 `python -m r1.skies`.
 
-The haze is a 5 km visibility (`fogDensity 0.00078`, Koschmieder's 3.912 / V)
-and the far plane stops at 5 km with it: beyond the nine resident tiles the
-world ends, and that edge is faint haze. Measured visibility may only thicken
-it, except over the far pack.
+The haze is the measured visibility (Koschmieder's 3.912 / V); where none is
+measured, and in inspection captures, a clear day's 60 km (`fogDensity
+0.0000652`): the haze is the horizon's colour, far brighter than a facade, and
+24 km already left the Statue of Liberty a ghost at 2.7 km. The engine's fog reaches the far plane since its depth is reversed:
+before, it took any depth over 0.9999 for sky and left everything past a
+kilometre unfogged. The far plane stops at 5 km: beyond the nine resident tiles
+the world ends, and in clear air that edge shows.
 
 ## The car and the traffic
 
@@ -1031,8 +1034,8 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
 
 ## Known limits
 
-- **The world ends at about 800 m**, in a 5 km haze; from the air, only the far
-  landmarks stand beyond it. A summit OSM does not survey stays as rounded as
+- **The world ends at about 800 m**, and in clear air the edge shows; from the
+  air, only the far landmarks stand beyond it. A summit OSM does not survey stays as rounded as
   the elevation model has it.
 - **Buildings**: preview façades without modelled openings; only ground floors
   are furnished (no upper floors, stairs or lifts); landmark interiors are not

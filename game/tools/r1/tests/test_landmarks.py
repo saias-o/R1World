@@ -171,13 +171,12 @@ class LevelsOfDetail(unittest.TestCase):
                 self.assertTrue((landmarks.GAME / level["path"]).exists(), level["path"])
                 self.assertEqual(level["path"], landmarks.model_path(source, lod).relative_to(landmarks.GAME).as_posix())
 
-    def test_far_range_is_the_haze(self):
-        # Past the far range a monument is more than 95% haze: drawing it
-        # further costs vertices nobody sees, drawing it less far loses it.
+    def test_far_range_is_what_the_camera_draws(self):
+        # A monument is drawn as far as the camera sees: past its far plane a
+        # level costs vertices nobody sees, and short of it the monument
+        # would vanish in clear air.
         from r1 import prepare_world
-        haze = 1.0 - math.exp(-(landmarks.FAR_RANGE - 160.0) * prepare_world.FOG_DENSITY)
-        self.assertGreater(haze, 0.95)
-        self.assertLessEqual(landmarks.FAR_RANGE, prepare_world.FAR_PLANE)
+        self.assertEqual(landmarks.FAR_RANGE, prepare_world.FAR_PLANE)
 
     def test_haze_is_the_same_in_the_scene_and_the_script(self):
         # The scene gives the first frame, `sun_cycle.js` every frame after:

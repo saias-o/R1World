@@ -2794,13 +2794,11 @@ class World : public Rml::EventListener {
         }
         applyWeather();
     }
-    // The measured visibility is the fog, but past 5 km only where the world
-    // is drawn out to the horizon: anywhere else the clearer air would only
-    // show where the streamed tiles end.
+    // The measured visibility is the fog, as measured (sun_cycle.js).
     void applyWeather() {
         if(!sunScript)return;
         fogFar=farPack.node!=nullptr;
-        const double seen=weather.visibility>0?(fogFar?weather.visibility:std::min(weather.visibility,5015.)):0.;
+        const double seen=weather.visibility>0?weather.visibility:0.;
         json result;
         sunScript->callExport("setWeather",json::array({weather.cover,weather.rain,seen}),result);
     }
