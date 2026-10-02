@@ -98,6 +98,14 @@ int main(int argc, char** argv) {
                 for (const auto& [t, c] : r1::fetchCanopyBand(tile)) r1::storeCanopy(game, t, c);
                 in.canopy = r1::storedCanopy(game, tile);
             }
+            // The surveyed summits, as the game reads them (gen/peaks).
+            for (const r1::PeakCell& cell : r1::peakCells(tile.bounds())) {
+                auto peaks = store.peaks(cell);
+                if (!peaks && fetch) peaks = store.fetchPeaks(cell);
+                if (peaks) in.peaks.insert(in.peaks.end(), peaks->begin(), peaks->end());
+                else in.peaksPending = true;
+            }
+            std::sort(in.peaks.begin(), in.peaks.end(), [](const r1::Peak& a, const r1::Peak& b) { return a.id < b.id; });
             in.airportsPending = line.value("airportsPending", false);
             line["parseMs"] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - parseStart).count();
             in.elevations = ground->first;
@@ -117,6 +125,8 @@ int main(int argc, char** argv) {
             line["buildings"] = cooked.manifest["buildings"];
             line["predicted"] = cooked.manifest["predicted"];
             line["bridges"] = cooked.manifest["bridges"];
+            line["elevationSource"] = cooked.manifest["elevationSource"];
+            line["peaks"] = cooked.manifest["peaks"];
             nlohmann::json parts = nlohmann::json::array();
             for (const auto& p : cooked.parts)
                 parts.push_back({{"name", p.name}, {"vertices", p.mesh.vertexCount()}, {"triangles", p.mesh.indices.size() / 3}});

@@ -298,13 +298,42 @@ These are geometry capacities, not frame-rate measurements.
 
 ### Elevation
 
-The terrain mesh is 41 × 41 over a tile (`kTerrainMeshSize`). In mainland
-France and Corsica the game asks IGN RGE ALTI for a bare-earth grid; elsewhere,
-or when IGN fails or does not cover, the whole tile falls back to Copernicus
-GLO-90 through Open-Meteo (a 7 × 7 grid: its 90 m is all there is).
-`ground-elevation.json` keeps both successes and fallbacks and the manifest's
+The terrain mesh is 41 × 41 over a tile (`kTerrainMeshSize`), and every
+source is read at that grid (`native/gen/sources.cpp`):
+
+1. **Mainland France and Corsica**: IGN RGE ALTI, a bare-earth grid.
+2. **Elsewhere, or when IGN fails**: the Terrain Tiles (Mapzen's archive on
+   AWS: SRTM, 3DEP, EU-DEM and national surveys), read at zoom 13 (19 m a
+   pixel at the equator), bilinear between pixel centres. Past zoom 13 the
+   images are the same data resampled: Lion's Head reads 605 m at 12 and 630 m
+   at 13, 14 and 15. The images are kept in `cache/world/terrain/<zoom>/`; a
+   place read before generator 26 (seven samples a side, nearest pixel) is read
+   again from its zoom-12 images on disk, without the network.
+3. **Last**: Copernicus GLO-90 through Open-Meteo, 7 × 7.
+
+`ground-elevation.json` keeps successes and fallbacks, and the manifest's
 `elevationSource` says which answered. At the rue de Lobau the Copernicus grid
 read about 49.3 m and IGN 34.63 m.
+
+### Surveyed summits
+
+Every model of the relief rounds a summit off, and a steep one most: the
+Sugarloaf (396 m) reads 298 m in the Terrain Tiles and 329 m in Copernicus at
+30 m, the Corcovado (710 m) 584 m and 632 m. OSM's `natural=peak|volcano` nodes
+carry the surveyed height where the summit is, and what is measured wins
+(`native/gen/peaks.*`):
+
+- The summits of a square degree are one Overpass answer, kept in
+  `cache/world/peaks/<lat>_<lon>.json`. A tile is cooked on the relief as it is
+  and again when its list lands.
+- Under a summit the ground rises to a dome (30 m crown radius) that fades out
+  150 m away, only where the relief stands below it. The raise reads nothing
+  but the vertex, the summit and their distance, so neighbouring tiles agree
+  on their shared edge.
+- An `ele` that is not plain metres ("6234 ft", "1200-1300") is not read, and a
+  summit more than 250 m above the relief under it is doubted, not drawn.
+- The manifest's `peaks` says which summits raised the ground and by how
+  much, which agreed with it, and which were doubted.
 
 Buildings stand on a solid foundation below their sampled perimeter (samples
 at most 4 m apart), so floors and roofs stay horizontal; tagged elevated
@@ -422,9 +451,8 @@ extruded; its neighbours are.
 
 `python -m r1.landmarks` (from `game/tools`) bakes them into
 `assets/world/landmarks/`; `tools/landmark_preview.py` draws a contact sheet
-without the engine. Where the terrain is Copernicus, summits are shaved
-(Corcovado reads 565 m instead of about 700 m) and the Christ stands on the
-drawn terrain.
+without the engine. The Christ stands on the drawn terrain, which the
+Corcovado's surveyed summit raises ([Surveyed summits](#surveyed-summits)).
 
 ## Streets, signs and bridges
 
@@ -1004,7 +1032,8 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
 ## Known limits
 
 - **The world ends at about 800 m**, in a 5 km haze; from the air, only the far
-  landmarks stand beyond it. Summits on Copernicus ground are shaved.
+  landmarks stand beyond it. A summit OSM does not survey stays as rounded as
+  the elevation model has it.
 - **Buildings**: preview façades without modelled openings; only ground floors
   are furnished (no upper floors, stairs or lifts); landmark interiors are not
   generated; no sorted glass pass. The Atlas building palettes are not yet
@@ -1028,8 +1057,13 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
 
 ## Attribution
 
-Map data is © OpenStreetMap contributors (ODbL). Elevation: IGN RGE ALTI
-(Licence Ouverte) and the Copernicus DEM GLO-90 through Open-Meteo; weather from
+Map data is © OpenStreetMap contributors (ODbL), summits included. Elevation:
+IGN RGE ALTI (Licence Ouverte); the Terrain Tiles (Mapzen, with the credits
+its sources require in `assets/licenses/Terrain-Tiles-attribution.txt`: USGS
+SRTM, 3DEP and GMTED2010, NOAA ETOPO1, EU-DEM (Copernicus), Geoscience
+Australia, Kartverket, LINZ, the Environment Agency, INEGI, the Government of
+Canada, DGM Österreich, ArcticDEM); the Copernicus DEM GLO-90 through
+Open-Meteo; weather from
 Open-Meteo (CC BY 4.0); sea ice from NOAA CoastWatch/PolarWatch (Metop-C
 ASCAT); canopy from Meta and WRI's High Resolution Canopy Height Maps
 (CC BY 4.0); shipping density from the World Bank's Global Shipping Traffic

@@ -115,7 +115,9 @@ tuile dit lequel a répondu.
 |---|---|---|
 | Bâti, voirie, eau, usage du sol, aéroports | OpenStreetMap (Overpass) | ODbL |
 | Élévation, France | IGN RGE ALTI (Géoplateforme) | Licence Ouverte |
-| Élévation, ailleurs | Copernicus DEM GLO-90 (Open-Meteo) | libre, attribution |
+| Élévation, ailleurs | Terrain Tiles (Mapzen, AWS) : SRTM, 3DEP, EU-DEM, relevés nationaux | libre, attribution par source (`assets/licenses/`) |
+| Élévation, en dernier recours | Copernicus DEM GLO-90 (Open-Meteo) | libre, attribution |
+| Sommets (altitude relevée) | OpenStreetMap `natural=peak` avec `ele` | ODbL |
 | Météo, visibilité, vent, neige au sol, courants | Open-Meteo | CC BY 4.0 |
 | Banquise (glace de mer, son âge) | NOAA CoastWatch/PolarWatch, ASCAT Metop-C | libre, sans garantie |
 | Trait de côte hors ligne | Natural Earth | domaine public |

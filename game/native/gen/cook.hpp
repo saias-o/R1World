@@ -7,6 +7,7 @@
 #include "canopy.hpp"
 #include "mesh.hpp"
 #include "osm.hpp"
+#include "peaks.hpp"
 #include "seaice.hpp"
 #include "../minimap.hpp"
 
@@ -44,6 +45,11 @@ struct Observations {
     // The measured canopy (gen/canopy), when converted; on its way otherwise.
     std::optional<Canopy> canopy;
     bool canopyPending = false;
+    // The surveyed summits around the tile (gen/peaks): the relief is raised
+    // to them before anything stands on it. Pending while a square degree's
+    // list is on its way.
+    std::vector<Peak> peaks;
+    bool peaksPending = false;
 };
 
 struct CookedTile {

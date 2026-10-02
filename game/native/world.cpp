@@ -1048,7 +1048,7 @@ class World : public Rml::EventListener {
     // stands where the photographer stood, whatever this build's relief says
     // the ground there is (tools/gallery.py's reference views).
     std::optional<double> captureAltitude;
-    double captureWait=0;
+    double captureWait=0,captureReport=0;
     std::string number(double n,int precision=6) {std::ostringstream s;s<<std::fixed<<std::setprecision(precision)<<n;return s.str();}
     // Every write re-lays and re-renders the whole interface -- the map is
     // 1.3 million pixels, some 240 ms -- so a write that changes nothing is
@@ -4188,6 +4188,7 @@ public:
         options.tileVertexTarget=std::min(r1::kTileVertexBudget,residentVertexBudget*95/900);
         options.enrichRetail=true;
         options.fetchCanopy=true;
+        options.fetchPeaks=true;
         options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);};
         options.log=[](const std::string& line){saida::Log::info("[World service] ",line);};
         service=std::make_unique<r1::WorldService>(std::move(options));
@@ -5226,20 +5227,45 @@ public:
             // A first visit mounts its ground before its streets: a picture of
             // that is a picture of nothing. The capture waits for OSM, and
             // after two minutes takes what there is and says so.
-            size_t provisional=0;
+            // The same for the surveyed summits: a mountain photographed
+            // before its summit list landed is the relief they correct.
+            size_t provisional=0,summitsPending=0;
             bool settled=std::all_of(want.begin(),want.end(),[&](Tile t){
                 auto i=loaded.find(t.key());if(i==loaded.end())return false;
                 if(i->second.data.value("provisional",false))++provisional;
+                if(i->second.data.contains("peaks")&&i->second.data.at("peaks").value("pending",false))++summitsPending;
                 // Its meshes too: a tile cooked again uploads them over
                 // several frames (uploadParts), and its props may be done first.
                 const auto& resident=i->second;
                 if(!resident.geography||resident.nextPart<std::any_cast<const PreparedTile&>(resident.served->prepared).parts.size())return false;
                 return resident.nextProp==resident.props.size();
             });
-            if(settled&&provisional&&captureWait<120.)settled=false;
+            // A capture that waits says what for, every ten seconds: otherwise
+            // the only report is the smoke's data timeout, which blames the
+            // network for whatever it was (CLAUDE.md §3).
+            captureReport+=dt;
+            if(!settled&&!captureQueued&&captureReport>=10.) {
+                captureReport=0;
+                std::string why;
+                for(Tile t:want) {
+                    auto i=loaded.find(t.key());
+                    if(i==loaded.end()){why+=" "+t.key()+" not mounted;";continue;}
+                    const auto& r=i->second;
+                    const size_t parts=r.served?std::any_cast<const PreparedTile&>(r.served->prepared).parts.size():0;
+                    if(!r.geography)why+=" "+t.key()+" no geography;";
+                    else if(r.nextPart<parts)why+=" "+t.key()+" parts "+std::to_string(r.nextPart)+"/"+std::to_string(parts)+";";
+                    else if(r.nextProp<r.props.size())why+=" "+t.key()+" props "+std::to_string(r.nextProp)+"/"+std::to_string(r.props.size())+";";
+                }
+                saida::Log::info("[World capture wait] ",int(captureWait)," s, not settled:",why.empty()?" every tile is in":why);
+            }
+            // Summits refine a relief that is already there: a minute less.
+            if(settled&&((provisional&&captureWait<120.)||(summitsPending&&captureWait<45.)))settled=false;
             if(settled&&provisional&&!captureQueued)
                 saida::Log::error("[World capture] ",provisional," of ",want.size(),
                                   " tiles still wait for OSM after two minutes; photographed as they are");
+            if(settled&&summitsPending&&!captureQueued)
+                saida::Log::error("[World capture] ",summitsPending," of ",want.size(),
+                                  " tiles still wait for their surveyed summits after 45 s; photographed as they are");
             // R1WORLD_CAPTURE_SEA: a picture of the sea waits for its ships
             // (half a minute at most -- the log then says there were none).
             if(settled)captureSeaWait+=dt;

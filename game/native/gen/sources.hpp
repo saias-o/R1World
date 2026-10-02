@@ -10,11 +10,15 @@
 //   cache/world/v<N>_<row>_<col>/ground-elevation.json its terrain (IGN or GLO-90)
 //   cache/world/sources/<sha256[:20]>.json             a neighbourhood's shared answer
 //   cache/world/seaice/ascat_<row>_<col>.json          the sea ice around a block of tiles
+//   cache/world/peaks/<lat>_<lon>.json                 the surveyed summits of a square degree
+//   cache/world/terrain/<zoom>/<x>/<y>.png             the Terrain Tiles images the ground was read from
 //
 // Any version's folder answers; new observations are written under kVersion.
 #pragma once
 
 #include "osm.hpp"
+#include "peaks.hpp"
+#include "terrain.hpp"
 
 #include <functional>
 #include <optional>
@@ -99,6 +103,11 @@ public:
     // nullopt; from the network, written to disk before it returns.
     std::optional<nlohmann::json> seaIce(double lon, double lat) const;
     nlohmann::json fetchSeaIce(double lon, double lat) const;
+    // The surveyed summits of a square degree (gen/peaks.hpp): from disk, or
+    // nullopt; from the network, written to disk before they return.
+    std::optional<std::vector<Peak>> peaks(const PeakCell& cell) const;
+    std::vector<Peak> fetchPeaks(const PeakCell& cell) const;
+    std::string peaksPath(const PeakCell& cell) const;
     static std::string aeroSibling(const std::string& mainPath);
     // The question an answer on disk replied to (1 when it does not say).
     static int queryVersion(const std::string& path);
@@ -122,6 +131,11 @@ private:
                                         std::map<std::string, Bounds>* regions = nullptr,
                                         const std::string& sibling = {}) const;
 };
+
+// The Terrain Tiles' height at (lon, lat), bilinear between the pixel centres
+// of the zoom's 256-pixel Web Mercator images, each read through `rgb(x, y)`
+// (256 x 256 x 3 bytes). NaN where a pixel holds no data.
+double terrariumHeight(double lon, double lat, int zoom, const std::function<const unsigned char*(int, int)>& rgb);
 
 std::string sha256Hex(const std::string& data);
 nlohmann::json readJson(const std::string& path);

@@ -6,6 +6,7 @@
 #include "crowd.hpp"
 #include "harbours.hpp"
 #include "landmarks.hpp"
+#include "peaks.hpp"
 #include "predict.hpp"
 #include "scatter.hpp"
 #include "seaice.hpp"
@@ -97,16 +98,27 @@ CookedTile cookTile(const Observations& in) {
     const OsmData& osm = *in.osm;
     for (double h : in.elevations.values)
         if (!std::isfinite(h)) throw std::runtime_error("Elevation source returned non-finite data");
+    // Measured summits first: every model of the relief rounds them off, and
+    // everything below stands on the ground they give (gen/peaks.hpp). The
+    // neighbours' relief is raised the same way, so a bridge or a summit near
+    // the edge is solved on the same ground from both sides.
+    std::vector<const ElevationGrid*> known{&in.elevations};
+    for (const ElevationGrid& g : in.around) known.push_back(&g);
+    nlohmann::json peakReport;
+    const ElevationGrid surveyed = raiseToPeaks(in.elevations, in.peaks, known, &peakReport);
+    peakReport["pending"] = in.peaksPending;
+    std::vector<ElevationGrid> around;
+    for (const ElevationGrid& g : in.around) around.push_back(raiseToPeaks(g, in.peaks, known));
     const Anchor anchor = Anchor::at(center.x, center.y, 0);
     // What the maps do not say comes first: the crossings the model predicts
     // are bridges, and bridges decide where the roads leave the ground and
     // where the ground is dug under them. Everything after stands on that.
-    const GroundAt surveyedGround = [&](double lon, double lat) { return groundPoint(lon, lat, in.elevations, anchor); };
+    const GroundAt surveyedGround = [&](double lon, double lat) { return groundPoint(lon, lat, surveyed, anchor); };
     PredictOutput predicted = predictDetails(osm, tile, anchor, surveyedGround, in.osmExtent);
-    const GroundField field(in.elevations, in.around);
+    const GroundField field(surveyed, around);
     const GradePlan grades = planGrades(osm, predicted.structures, field, anchor, bounds);
-    const ElevationGrid dug = grades.carves.empty() ? ElevationGrid{} : carvedGround(in.elevations, grades);
-    const ElevationGrid& elevations = grades.carves.empty() ? in.elevations : dug;
+    const ElevationGrid dug = grades.carves.empty() ? ElevationGrid{} : carvedGround(surveyed, grades);
+    const ElevationGrid& elevations = grades.carves.empty() ? surveyed : dug;
     const GroundAt ground = [&](double lon, double lat) { return groundPoint(lon, lat, elevations, anchor); };
     const auto elevationAt = [&](double lon, double lat) { return elevations.sample(lon, lat); };
 
@@ -488,6 +500,7 @@ CookedTile cookTile(const Observations& in) {
         {"region", profile.name}, {"regionTier", profile.tier}, {"climate", climate},
         {"osmQueryVersion", osm.queryVersion},
         {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats}}},
+        {"peaks", peakReport},
         {"water", pack ? pack->water : cells.rows()}, {"decks", works.decks}, {"boats", boats}, {"harbour", harbour.json()},
         {"props", props.stats},
         {"aircraft", ocean ? nlohmann::json::array() : airports.aircraft}, {"airports", airports.stats},

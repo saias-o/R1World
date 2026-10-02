@@ -233,12 +233,30 @@ std::optional<std::string> ObservationStore::osmPath(const Tile& tile, const std
     return best.empty() ? paths.front() : best;
 }
 
+namespace {
+std::pair<ElevationGrid, std::string> terrainTiles(const Bounds& b, const std::string& root, bool network);
+void writeGround(const std::string& path, const ElevationGrid& g, const std::string& source);
+}  // namespace
+
 std::optional<std::pair<ElevationGrid, std::string>> ObservationStore::ground(const Tile& tile) const {
     const Bounds b = tile.bounds();
     if (auto path = find(tile, "ground-elevation.json")) {
         const auto doc = readJson(*path);
         if (!sameBounds(doc.at("bounds"), b)) throw std::runtime_error("Ground elevation cache bounds mismatch");
-        return std::make_pair(gridFrom(doc, b), doc.at("source").get<std::string>());
+        auto grid = gridFrom(doc, b);
+        auto source = doc.at("source").get<std::string>();
+        // Read before the ground was read finely: seven samples a side, each
+        // the nearest pixel. The images it was read from are on disk, and the
+        // finer read needs nothing else -- no network for a place visited.
+        if (source.rfind("Mapzen", 0) == 0 && grid.size < kTerrainMeshSize) {
+            try {
+                std::tie(grid, source) = terrainTiles(b, root_, false);
+                writeGround(tileFolder(tile) + "/ground-elevation.json", grid, source);
+            } catch (const SourceUnavailable& e) {
+                if (log_) log_("GROUND-COARSE " + tile.key() + " kept: " + e.what());
+            }
+        }
+        return std::make_pair(std::move(grid), std::move(source));
     }
     // The GLO-90 grid an older worker fetched and never converted.
     if (auto path = find(tile, "elevation.json")) {
@@ -457,6 +475,47 @@ nlohmann::json ObservationStore::fetchRetail(const Bounds& b,const std::string& 
     throw SourceUnavailable("retail observations unavailable: "+failures);
 }
 
+std::string ObservationStore::peaksPath(const PeakCell& cell) const {
+    return root_ + "/cache/world/peaks/" + cell.file();
+}
+
+std::optional<std::vector<Peak>> ObservationStore::peaks(const PeakCell& cell) const {
+    std::error_code ec;
+    const std::string path = peaksPath(cell);
+    if (!fs::exists(path, ec)) return std::nullopt;
+    return peaksFromDocument(readJson(path));
+}
+
+std::vector<Peak> ObservationStore::fetchPeaks(const PeakCell& cell) const {
+    char bbox[96];
+    std::snprintf(bbox, sizeof bbox, "%d,%d,%d,%d", cell.lat, cell.lon, cell.lat + 1, cell.lon + 1);
+    // Two exact tags, not one pattern: Overpass answers an exact tag from its
+    // index, and a pattern by scanning every node of the square degree (around
+    // Paris, three minutes and a 504; exact, eleven seconds).
+    const std::string box = std::string("(") + bbox + ");";
+    const std::string query = "[out:json][timeout:120];(node[natural=peak][ele]" + box +
+                              "node[natural=volcano][ele]" + box + ");out qt;";
+    std::string failures;
+    for (const int i : endpointOrder()) {
+        try {
+            const auto answer = nlohmann::json::parse(net::requestJson(kOverpass[i], "data=" + net::urlEncode(query),
+                                                                       "application/x-www-form-urlencoded"));
+            // A query that ran out of time answers 200 with what it had and a
+            // remark: half the summits of a range is not the range.
+            const std::string remark = answer.value("remark", std::string());
+            if (remark.find("error") != std::string::npos) throw std::runtime_error("Overpass: " + remark);
+            int refused = 0;
+            auto peaks = peaksFromOverpass(answer, &refused);
+            writeJson(peaksPath(cell), peaksDocument(peaks, refused));
+            return peaks;
+        } catch (const std::exception& e) {
+            markDown(i);
+            failures += std::string(failures.empty() ? "" : " | ") + kOverpass[i] + ": " + e.what();
+        }
+    }
+    throw SourceUnavailable("surveyed summits: all Overpass endpoints failed: " + failures);
+}
+
 nlohmann::json ObservationStore::fetchSeaIce(double lon, double lat) const {
     const SeaIceWindow window = seaIceWindow(lon, lat);
     nlohmann::json doc;
@@ -469,6 +528,28 @@ nlohmann::json ObservationStore::fetchSeaIce(double lon, double lat) const {
     return doc;
 }
 
+double terrariumHeight(double lon, double lat, int zoom, const std::function<const unsigned char*(int, int)>& rgb) {
+    const int images = 1 << zoom, pixels = images * 256;
+    // Pixel centres sit half a pixel in from each image's edge.
+    const double px = (lon + 180.0) / 360.0 * pixels - 0.5;
+    const double py = std::clamp((1.0 - std::asinh(std::tan(radians(lat))) / M_PI) * 0.5 * pixels - 0.5,
+                                 0.0, double(pixels) - 1.0);
+    const int x0 = int(std::floor(px)), y0 = int(std::floor(py));
+    const double fx = px - x0, fy = py - y0;
+    auto at = [&](int x, int y) {
+        x = ((x % pixels) + pixels) % pixels;  // the date line is not an edge
+        y = std::clamp(y, 0, pixels - 1);
+        const unsigned char* image = rgb(x >> 8, y >> 8);
+        const size_t i = size_t(((y & 255) * 256 + (x & 255)) * 3);
+        // Red 0 is no data (the format's heights start at -32768 m).
+        if (image[i] == 0) return std::nan("");
+        return image[i] * 256.0 + image[i + 1] + image[i + 2] / 256.0 - 32768.0;
+    };
+    const double low = at(x0, y0) * (1.0 - fx) + at(x0 + 1, y0) * fx;
+    const double high = at(x0, y0 + 1) * (1.0 - fx) + at(x0 + 1, y0 + 1) * fx;
+    return low * (1.0 - fy) + high * fy;
+}
+
 namespace {
 // The public AWS Terrain Tiles archive is a global, already tiled DEM. A
 // single 256px image covers many of our small world tiles, so one download
@@ -476,10 +557,12 @@ namespace {
 // source image on disk too: a return visit needs no network at all.
 struct TerrainImage { std::vector<unsigned char> rgb; };
 
-std::shared_ptr<const TerrainImage> terrainImage(const std::string& root, int x, int y) {
+// `network` false: the image on disk or nothing, for a place already visited.
+std::shared_ptr<const TerrainImage> terrainImage(const std::string& root, int zoom, int x, int y, bool network) {
     static std::mutex mutex;
     static std::map<std::string, std::shared_ptr<const TerrainImage>> memory;
-    const std::string key = root + "/cache/world/terrain/12/" + std::to_string(x) + "/" + std::to_string(y) + ".png";
+    const std::string key = root + "/cache/world/terrain/" + std::to_string(zoom) + "/" + std::to_string(x) + "/" +
+                            std::to_string(y) + ".png";
     std::lock_guard<std::mutex> guard(mutex);
     if (auto it = memory.find(key); it != memory.end()) return it->second;
 
@@ -496,22 +579,27 @@ std::shared_ptr<const TerrainImage> terrainImage(const std::string& root, int x,
         stbi_image_free(pixels);
         return image;
     };
+    // A tile's 41 x 41 samples straddle up to four images, and a teleport
+    // reads a neighbourhood's worth of them.
+    auto keep = [&](std::shared_ptr<const TerrainImage> image) {
+        if (memory.size() >= 48) memory.erase(memory.begin());
+        memory[key] = image;
+        return image;
+    };
 
     std::error_code ec;
     if (fs::exists(key, ec)) {
         try {
             std::ifstream input(key, std::ios::binary);
             const std::string bytes((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-            auto image = decode(bytes);
-            if (memory.size() >= 16) memory.erase(memory.begin());
-            memory[key] = image;
-            return image;
+            return keep(decode(bytes));
         } catch (const std::exception&) {
             fs::remove(key, ec);  // a truncated download is never a cache hit
         }
     }
+    if (!network) throw SourceUnavailable("Mapzen terrain tile z" + std::to_string(zoom) + " is not on disk");
 
-    const std::string url = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/12/" +
+    const std::string url = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + std::to_string(zoom) + "/" +
                             std::to_string(x) + "/" + std::to_string(y) + ".png";
     const auto response = net::request("GET", url, {}, {}, 12.0);
     if (response.status != 200) throw SourceUnavailable("Mapzen terrain tile: HTTP " + std::to_string(response.status));
@@ -526,31 +614,46 @@ std::shared_ptr<const TerrainImage> terrainImage(const std::string& root, int x,
         // The fetched image is still valid for this session when the cache is
         // read-only. The next visit will retry the download.
     }
-    if (memory.size() >= 16) memory.erase(memory.begin());
-    memory[key] = image;
-    return image;
+    return keep(image);
 }
 
-ElevationGrid mapzenGround(const Bounds& b, const std::string& root) {
-    constexpr int zoom = 12, n = 1 << zoom, size = 7;
+// The zoom the ground is read at: 13 is 19 m a pixel at the equator, finer
+// than the 41 x 41 grid needs nowhere and coarser than what the archive holds
+// (SRTM's 30 m) nowhere either. Beyond it the images are the same data
+// resampled: a summit gains nothing past 13 (Lion's Head 630 m at 13, 14
+// and 15; 605 m at 12).
+constexpr int kTerrainZoom = 13;
+
+std::string mapzenSource(int zoom) {
+    return "Mapzen Terrain Tiles z" + std::to_string(zoom) + " (SRTM and open DEM via AWS)";
+}
+
+ElevationGrid mapzenGround(const Bounds& b, const std::string& root, int zoom, bool network) {
     if (b.south < -85.0 || b.north > 85.0) throw SourceUnavailable("Mapzen Mercator terrain stops at 85 degrees");
+    const auto rgb = [&](int x, int y) { return terrainImage(root, zoom, x, y, network)->rgb.data(); };
+    const int size = kTerrainMeshSize;
     ElevationGrid grid{b, size, {}};
     for (int row = 0; row < size; ++row) for (int col = 0; col < size; ++col) {
-        const double lon = b.west + (b.east - b.west) * col / (size - 1);
-        const double lat = b.south + (b.north - b.south) * row / (size - 1);
-        const double tx = std::clamp((lon + 180.0) / 360.0 * n, 0.0, double(n) - 1e-9);
-        const double ty = std::clamp((1.0 - std::asinh(std::tan(radians(lat))) / M_PI) * 0.5 * n,
-                                     0.0, double(n) - 1e-9);
-        const int x = int(tx), y = int(ty);
-        const auto image = terrainImage(root, x, y);
-        const int px = std::clamp(int((tx - x) * 256), 0, 255);
-        const int py = std::clamp(int((ty - y) * 256), 0, 255);
-        const size_t i = size_t((py * 256 + px) * 3);
-        const double h = image->rgb[i] * 256.0 + image->rgb[i + 1] + image->rgb[i + 2] / 256.0 - 32768.0;
-        if (image->rgb[i] == 0 || !std::isfinite(h)) throw SourceUnavailable("Mapzen terrain tile has no elevation here");
+        const double h = terrariumHeight(b.west + (b.east - b.west) * col / (size - 1),
+                                         b.south + (b.north - b.south) * row / (size - 1), zoom, rgb);
+        if (!std::isfinite(h)) throw SourceUnavailable("Mapzen terrain tile has no elevation here");
         grid.values.push_back(h);
     }
     return grid;
+}
+
+// The finest Terrain Tiles ground there is: zoom 13, else the zoom 12 every
+// place visited before the finer read kept on disk.
+std::pair<ElevationGrid, std::string> terrainTiles(const Bounds& b, const std::string& root, bool network) {
+    std::string failures;
+    for (const int zoom : {kTerrainZoom, 12}) {
+        try {
+            return {mapzenGround(b, root, zoom, network), mapzenSource(zoom)};
+        } catch (const SourceUnavailable& e) {
+            failures += std::string(failures.empty() ? "" : " | ") + e.what();
+        }
+    }
+    throw SourceUnavailable(failures);
 }
 
 // Copernicus GLO-90 through Open-Meteo, 7x7: its 90 m is all there is.
@@ -659,8 +762,7 @@ std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& 
     ElevationGrid g;
     std::string source;
     try {
-        g = mapzenGround(b, root_);
-        source = "Mapzen Terrain Tiles (SRTM and open DEM via AWS)";
+        std::tie(g, source) = terrainTiles(b, root_, true);
     } catch (const std::exception& e) {
         if (log_) log_(std::string("ELEVATION-FALLBACK ") + e.what());
         g = copernicus(b, 120.0, 3);
@@ -675,8 +777,7 @@ std::pair<ElevationGrid, std::string> ObservationStore::quickGround(const Tile& 
     ElevationGrid g;
     std::string source;
     try {
-        g = mapzenGround(b, root_);
-        source = "Mapzen Terrain Tiles (SRTM and open DEM via AWS)";
+        std::tie(g, source) = terrainTiles(b, root_, true);
     } catch (const std::exception& e) {
         if (log_) log_(std::string("ELEVATION-FALLBACK ") + e.what());
         g = copernicus(b, 4.0, 1);
