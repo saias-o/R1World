@@ -1,9 +1,14 @@
 """Photograph the reference viewpoints and lay them beside the previous run.
 
 A visual regression is the one no test sees (CLAUDE.md, rule 1): only an eye
-on the picture does. This takes the same six pictures every time -- the same
+on the picture does. This takes the same pictures every time -- the same
 place, the same camera, the same solar hour, a clear sky -- so that the eye
 compares a build with the last one rather than with its memory of it.
+
+Some views are also a real photograph's: the camera stands where the
+photographer stood, looks where the photograph looks, through the same lens and
+frame, at the instant it was taken. Those are laid beside the photograph, which
+says how far the world still is from the place.
 
     python tools\\gallery.py                 # every viewpoint
     python tools\\gallery.py kyoto theix     # some of them
@@ -39,6 +44,21 @@ def enu(origin: tuple[float, float], point: tuple[float, float]) -> tuple[float,
     east = math.radians(lon - lon0) * 6378137.0 * math.cos(math.radians(lat0))
     north = math.radians(lat - lat0) * 6378137.0
     return east, -north
+
+
+def aim(heading: float, pitch: float, eye: float):
+    """A camera at the spawn, `eye` metres up, looking along a compass
+    `heading` and `pitch` (degrees): a photograph's line of sight."""
+    h, p = math.radians(heading), math.radians(pitch)
+    d = 1000.0
+    return (0.0, eye, 0.0), (math.sin(h) * d, eye + math.tan(p) * d, -math.cos(h) * d)
+
+
+def lens(focal_35mm: float, width: int, height: int) -> float:
+    """The vertical field of view, in degrees, of a 35 mm-equivalent focal
+    length on a frame of this shape (the equivalence holds on the diagonal)."""
+    half_diagonal = math.atan(math.hypot(36.0, 24.0) / 2.0 / focal_35mm)
+    return math.degrees(2.0 * math.atan(math.tan(half_diagonal) * height / math.hypot(width, height)))
 
 
 def toward(origin, target, height, back, eye):
@@ -79,6 +99,33 @@ VIEWS = [
      # From behind the fuel station (node 966271160), looking north-west:
      # the station in front, the car park, the store at the back.
      "camera": ((75.0, 25.0, 75.0), (0.0, 0.0, -5.0))},
+    # ── Mountains: each one a real photograph (Wikimedia Commons) ────────────
+    # Position and lens from the file's camera location and EXIF; the heading
+    # and pitch fitted on the summits it shows (OSM peaks), so that a summit
+    # the world draws in the right place stands where the photograph has it.
+    {"name": "grenoble", "title": "Grenoble, le Vercors et le Moucherotte depuis la Bastille",
+     "spawn": (5.723786, 45.197956),
+     # Moucherotte (1 901 m, 8.7 km, bearing 229.8°) at x 810 of 1 280.
+     "camera": aim(224.97, 1.0, 1.7), "fov": lens(55, 2972, 2197), "frame": (2972, 2197),
+     "at": "2008-10-12T08:31:12Z",
+     "photo": {"file": "Moucherotte.jpg", "author": "Eusebius", "licence": "CC BY 3.0",
+               "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Moucherotte.jpg/1280px-Moucherotte.jpg"}},
+    {"name": "lecap", "title": "Le Cap, la montagne de la Table depuis Bloubergstrand",
+     "spawn": (18.468255, -33.810255),
+     # Devil's Peak (16.3 km) at x 400 and Lion's Head (15.7 km) at x 1 015
+     # agree on the heading to 0.2°.
+     "camera": aim(196.4, 1.8, 1.7), "fov": lens(52, 2048, 1340), "frame": (2048, 1340),
+     "at": "2007-02-25T08:08:46Z",
+     "photo": {"file": "Table_Mountain_DanieVDM.jpg", "author": "Danie van der Merwe", "licence": "CC BY 2.0",
+               "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Table_Mountain_DanieVDM.jpg/1280px-Table_Mountain_DanieVDM.jpg"}},
+    {"name": "rio", "title": "Rio, le Corcovado et le Christ depuis le Pain de Sucre",
+     "spawn": (-43.156605, -22.949413),
+     # On the summit (396 m, OSM), whatever this build's relief says: the
+     # Christ (5.5 km, bearing 267.1°) at x 775.
+     "camera": aim(258.5, -4.9, 1.7), "altitude": 396.0, "fov": lens(25, 6000, 4000), "frame": (6000, 4000),
+     "at": "2015-05-22T20:53:16Z",
+     "photo": {"file": "Cidade_maravilhosa.JPG", "author": "Brunno Monteiro Lira", "licence": "CC BY-SA 3.0",
+               "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Cidade_maravilhosa.JPG/1280px-Cidade_maravilhosa.JPG"}},
 ]
 
 
@@ -99,6 +146,21 @@ def git_head() -> str:
         return "nogit"
 
 
+def size_of(view: dict, size: str) -> str:
+    """The capture's size: the photograph's frame at the gallery's width."""
+    if "frame" not in view:
+        return size
+    width = int(size.split("x")[0])
+    fw, fh = view["frame"]
+    return f"{width}x{round(width * fh / fw)}"
+
+
+def moment(view: dict) -> float:
+    if "at" in view:
+        return datetime.fromisoformat(view["at"].replace("Z", "+00:00")).timestamp()
+    return instant(view["spawn"][0])
+
+
 def shoot(view: dict, folder: Path, env: dict) -> dict:
     lon, lat = view["spawn"]
     pos, look = view["camera"]
@@ -106,7 +168,12 @@ def shoot(view: dict, folder: Path, env: dict) -> dict:
     args = [sys.executable, str(GAME / "tools" / "play_world.py"), "--smoke",
             "--spawn", str(lon), str(lat), "--screenshot", str(png),
             "--camera-pos", vec(pos), "--camera-look", vec(look), "--after-frames", "12",
-            "--at", f"{instant(lon):.0f}"]
+            "--at", f"{moment(view):.0f}"]
+    if "fov" in view:
+        args += ["--camera-fov", f"{view['fov']:.3f}"]
+    if "altitude" in view:
+        args += ["--camera-altitude", f"{view['altitude']:.2f}"]
+    env = dict(env, SAIDA_WINDOW_SIZE=size_of(view, env["SAIDA_WINDOW_SIZE"]))
     try:
         run = subprocess.run(args, cwd=GAME, env=env, capture_output=True, text=True, timeout=600)
         log = run.stdout.strip().splitlines()[-1:] if run.stdout else []
@@ -150,10 +217,21 @@ def page() -> None:
                     f'</figcaption></figure>')
 
         lon, lat = view["spawn"]
+        photo = view.get("photo")
+        reference = ""
+        when = f"{SOLAR_HOUR:g} h solaires, {DAY:%d/%m}"
+        if photo:
+            page_url = f"https://commons.wikimedia.org/wiki/File:{photo['file']}"
+            reference = (f'<figure><a href="{page_url}"><img src="{photo["thumb"]}" loading="lazy" alt=""></a>'
+                         f'<figcaption>Photographie réelle · {html.escape(photo["author"])} · '
+                         f'{html.escape(photo["licence"])} · <a href="{page_url}">Wikimedia Commons</a>'
+                         f'</figcaption></figure>')
+            when = "à l'instant de la photographie, " + view["at"][:16].replace("T", " ") + " UTC"
         rows.append(
             f'<section><h2>{html.escape(view["title"])}</h2>'
-            f'<p class="where">{lat:.5f}, {lon:.5f} · {SOLAR_HOUR:g} h solaires, {DAY:%d/%m}, ciel clair</p>'
-            f'<div class="pair">{figure(before, "Précédente")}{figure(latest, "Dernière")}</div></section>')
+            f'<p class="where">{lat:.5f}, {lon:.5f} · {when}, ciel clair</p>'
+            f'<div class="pair{" trio" if photo else ""}">{reference}{figure(before, "Précédente")}'
+            f'{figure(latest, "Dernière")}</div></section>')
     (GALLERY / "index.html").write_text(f"""<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Galerie de référence</title>
@@ -166,14 +244,15 @@ h1 {{ font-size:22px; margin:0 0 4px; }} h2 {{ font-size:17px; margin:0; }}
 .lead, .where {{ color:var(--muted); margin:2px 0 12px; }}
 section {{ border-top:1px solid var(--line); padding:20px 0; }}
 .pair {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
-@media (max-width:800px) {{ .pair {{ grid-template-columns:1fr; }} }}
+.pair.trio {{ grid-template-columns:1fr 1fr 1fr; }}
+@media (max-width:800px) {{ .pair, .pair.trio {{ grid-template-columns:1fr; }} }}
 figure {{ margin:0; background:var(--card); border:1px solid var(--line); border-radius:6px; overflow:hidden; }}
 figure.empty {{ display:flex; align-items:center; justify-content:center; min-height:160px; }}
 img {{ display:block; width:100%; height:auto; }}
 figcaption {{ padding:6px 10px; color:var(--muted); font-size:13px; }}
 </style></head><body><main>
 <h1>Galerie de référence</h1>
-<p class="lead">Les mêmes vues à chaque version : même caméra, même heure solaire, ciel clair. {len(history)} prise(s).</p>
+<p class="lead">Les mêmes vues à chaque version : même caméra, même heure solaire, ciel clair. Les vues de montagne sont celles d'une photographie réelle, posée à gauche : même point, même cap, même objectif, même instant. {len(history)} prise(s).</p>
 {''.join(rows)}
 </main></body></html>
 """, encoding="utf-8")

@@ -1043,6 +1043,11 @@ class World : public Rml::EventListener {
     // in the same light (tools/gallery.py). Without it a capture keeps the
     // real instant it started at and today's weather.
     std::optional<double> inspectAt;
+    // --camera-altitude <metres>: the viewpoint's heights are above the sea
+    // rather than above the player's feet. A capture laid beside a photograph
+    // stands where the photographer stood, whatever this build's relief says
+    // the ground there is (tools/gallery.py's reference views).
+    std::optional<double> captureAltitude;
     double captureWait=0;
     std::string number(double n,int precision=6) {std::ostringstream s;s<<std::fixed<<std::setprecision(precision)<<n;return s.str();}
     // Every write re-lays and re-renders the whole interface -- the map is
@@ -4211,6 +4216,7 @@ public:
         e->RemoveEventListener("click",this);e->RemoveEventListener("mousedown",this);}}
     bool failed() const {return testFailed;}
     void inspectInstant(double unixSeconds) {inspectAt=unixSeconds;}
+    void captureFromAltitude(double metres) {captureAltitude=metres;}
     void ProcessEvent(Rml::Event& event) override {
         auto id=event.GetCurrentElement()->GetId();
         const bool press=event.GetType()=="mousedown";
@@ -5208,7 +5214,8 @@ public:
                 // that the surveyed relief later raises (Kyoto: 0 m, then the
                 // hillside), and a camera 30 m above the old ground is inside
                 // the hill.
-                const glm::vec3 at=player->transform().position;
+                glm::vec3 at=player->transform().position;
+                if(captureAltitude)at.y+=float(*captureAltitude-alt);
                 glm::vec3 position=at+glm::vec3(captureView.position[0],captureView.position[1],captureView.position[2]);
                 glm::vec3 target=at+glm::vec3(captureView.target[0],captureView.target[1],captureView.target[2]);
                 camera->transform().position=position;
@@ -5447,6 +5454,7 @@ int main(int argc,char** argv) {
         engine.mountWorld();saida::Time::setScale(1);
         saida::CaptureRequest capture;saida::runtime::CaptureViewpoint view;std::string error;
         if(!saida::runtime::parseCaptureArgs(argc,argv,capture,view,error))throw std::runtime_error(error);
+        engine.setCameraFovOverride(view.fovDegrees);
         std::string profile;
         if(!saida::runtime::parseProfileArgs(argc,argv,profile,error))throw std::runtime_error(error);
         engine.profileTo(profile);
@@ -5458,6 +5466,11 @@ int main(int argc,char** argv) {
             const double at=std::stod(argv[i+1]);
             if(!std::isfinite(at))throw std::runtime_error("Invalid --at instant");
             world.inspectInstant(at);
+        }
+        for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--camera-altitude") {
+            const double metres=std::stod(argv[i+1]);
+            if(!std::isfinite(metres))throw std::runtime_error("Invalid --camera-altitude");
+            world.captureFromAltitude(metres);
         }
         engine.setOnFrame([&](float dt){world.update(dt);});
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
