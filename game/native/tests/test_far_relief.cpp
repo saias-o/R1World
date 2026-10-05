@@ -7,14 +7,16 @@ using namespace r1;
 
 namespace {
 // A ramp rising east at `grade` (rise over run) from `base` metres: one ring of
-// 8 x 8 cells, 64 m apart, sampled around (lon, lat).
-FarLevel ramp(double lon, double lat, double base, double grade, FarLayers& layers) {
+// 8 x 8 cells, `spacing` metres apart, sampled around (lon, lat).
+FarLevel ramp(double lon, double lat, double base, double grade, FarLayers& layers, double spacing = kSlopeBaseline) {
     const Anchor anchor = Anchor::at(lon, lat, 0.0);
     auto height = [&](double x, double) {
         const double east = (x - lon) * kMetresPerDegree * std::cos(radians(lat));
         return base + grade * east;
     };
-    return sampleFarLevel(anchor, -256.0, -256.0, 64.0, 8, height, layers);
+    const int cells = 8;
+    const double half = 0.5 * cells * spacing;
+    return sampleFarLevel(anchor, -half, -half, spacing, cells, height, layers);
 }
 }  // namespace
 
@@ -40,4 +42,16 @@ TEST(FarRelief, steep_slopes_below_the_treeline_are_wooded) {
     // Above the trees the slope is the region's ground again, below the snow.
     const FarLevel high = ramp(5.72, 45.20, 2400.0, 0.5, alps);
     CHECK(high.forestCells == 0 && high.snowCells < 64);
+}
+
+// Terrain is self-affine: a cliff band a coarse cell averages away still
+// reads as rock, judged over the finest ring's baseline.
+TEST(FarRelief, a_slope_is_judged_over_the_finest_baseline) {
+    NEAR(baselineSlope(0.4, kSlopeBaseline), 0.4, 1e-12);
+    NEAR(baselineSlope(0.4, 16.0 * kSlopeBaseline), 0.4 * 2.0, 1e-12);  // 16^(1/4)
+    FarLayers alps;
+    const FarLevel fine = ramp(5.72, 45.20, 800.0, 0.6, alps);
+    CHECK(fine.rockCells == 0 && fine.forestCells == 64);
+    const FarLevel coarse = ramp(5.72, 45.20, 800.0, 0.6, alps, 8.0 * kSlopeBaseline);
+    CHECK(coarse.rockCells == 64);
 }

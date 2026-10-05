@@ -10,6 +10,11 @@
 // mediterranean; the region's ground elsewhere -- every colour a measured
 // albedo (CLAUDE.md rule 2).
 //
+// A slope is judged as it would be measured over the finest ring's cells:
+// terrain is self-affine, so a slope read over a longer baseline is gentler
+// than the ground it spans, by (spacing / reference)^(1 - Hurst). A cliff band
+// a 128 m cell averages away is still rock.
+//
 // The Earth's curvature is content, not a correction (PLAN §3 I2): each sample
 // is the true surface point under its grid position in the rings' tangent
 // frame, so the far side of a valley drops below the horizon as it does.
@@ -62,6 +67,18 @@ int farZoom(double spacing, double lat);
 // it -- 2 140 m at 45 degrees (the Alps' 1 900 to 2 200), 950 m at 60
 // (Scandinavia's 600 to 1 000), 4 100 m in the tropics (3 500 to 4 500).
 double treeline(double lat);
+
+// Self-affine terrain: the Hurst exponent mountain elevation models measure
+// (0.7 to 0.8), and the baseline slopes are judged over (the finest ring's).
+constexpr double kHurst = 0.75;
+constexpr double kSlopeBaseline = 16.0;
+// Steeper than this is bare rock (35 degrees); than this, below the treeline,
+// is wooded or scrub (15 degrees), as tangents over kSlopeBaseline.
+constexpr double kRockSlope = 0.70;
+constexpr double kWoodedSlope = 0.27;
+
+// A slope measured over `spacing` metres, as it would read over kSlopeBaseline.
+double baselineSlope(double slope, double spacing);
 
 // Samples one ring. `heightAt(lon, lat)` is the measured relief and may throw
 // (SourceUnavailable): the ring is then not built. `borderAt`, when given, is

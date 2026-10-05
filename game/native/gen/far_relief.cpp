@@ -35,7 +35,15 @@ uint64_t FarLayers::revision() const {
     return revision_;
 }
 
-double treeline(double lat) { return 0.75 * snowline(lat); }
+namespace {
+constexpr double kTreelineOfSnowline = 0.75;
+}  // namespace
+
+double treeline(double lat) { return kTreelineOfSnowline * snowline(lat); }
+
+double baselineSlope(double slope, double spacing) {
+    return slope * std::pow(std::max(spacing, kSlopeBaseline) / kSlopeBaseline, 1.0 - kHurst);
+}
 
 int farZoom(double spacing, double lat) {
     const double equatorPixel = 2.0 * M_PI * kA / 256.0;  // metres a pixel at zoom 0
@@ -85,17 +93,18 @@ FarLevel sampleFarLevel(const Anchor& anchor, double originX, double originZ, do
             const double lat = 0.25 * (lats[a] + lats[b] + lats[c] + lats[d]);
             const double mean = 0.25 * (measured[a] + measured[b] + measured[c] + measured[d]);
             const double top = std::max({measured[a], measured[b], measured[c], measured[d]});
-            const double slope = std::max(std::abs(measured[b] - measured[a]) + std::abs(measured[d] - measured[c]),
-                                          std::abs(measured[c] - measured[a]) + std::abs(measured[d] - measured[b])) /
-                                 (2.0 * spacing);
+            const double slope = baselineSlope(
+                std::max(std::abs(measured[b] - measured[a]) + std::abs(measured[d] - measured[c]),
+                         std::abs(measured[c] - measured[a]) + std::abs(measured[d] - measured[b])) / (2.0 * spacing),
+                spacing);
             int layer;
             if (top <= 0.0) { layer = FarLayers::kWater; ++out.seaCells; }
             else if (mean >= snowline(lat)) { layer = FarLayers::kSnow; ++out.snowCells; }
-            else if (slope > 0.70) { layer = FarLayers::kRock; ++out.rockCells; }
+            else if (slope > kRockSlope) { layer = FarLayers::kRock; ++out.rockCells; }
             else {
                 const RegionProfile& profile = profileFor(lon, lat);
                 const std::string climate = climateAt(profile.climate, lat);
-                const bool wooded = slope > 0.27 && mean < treeline(lat);
+                const bool wooded = slope > kWoodedSlope && mean < treeline(lat);
                 if (wooded && (climate == "temperate" || climate == "boreal" || climate == "tropical")) {
                     layer = FarLayers::kForest;
                     ++out.forestCells;

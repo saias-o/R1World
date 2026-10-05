@@ -924,13 +924,19 @@ resolved. The camera's far plane follows the farthest ring drawn.
   treeline (three quarters of the snowline: 2 140 m at 45°, 950 m at 60°), a
   slope past 15°, which nobody ploughs, is forest where the climate is wet
   (temperate, boreal, tropical) and scrub where it is mediterranean (the Cape's
-  fynbos). The region's ground covers the rest. The log names each ring's zoom
-  and how many cells were inferred as each.
+  fynbos). The region's ground covers the rest. Slopes are judged as they
+  would read over the finest ring's 16 m: terrain is self-affine (Hurst
+  exponent 0.75, what mountain elevation models measure), so a slope read over
+  a 128 m cell is steepened by (128 / 16)^0.25, and a cliff band the cell
+  averages away is still rock. The log names each ring's zoom and how many
+  cells were inferred as each.
 - **Their own shadows**: the engine marches from every sample toward the Sun
   over the rings' heights, out to the horizon. At dusk a range darkens the
   valley behind it while the summits stay lit. The march runs again only when
   the Sun has turned by 0.1° (about every 25 s) or a ring changed. The streets
-  and buildings of the nine tiles do not receive these shadows yet.
+  and buildings of the nine tiles receive them too: the engine keeps, over the
+  finest ring's square, the height below which the Sun is hidden, so a roof
+  keeps the last light the street has lost.
 - **The tiles are holes** in the rings: the resident tiles draw their own,
   finer ground, and the rings neither overlap them nor leave a gap.
 - **Offline**: the images are kept in `cache/world/terrain/<zoom>/`; a place
