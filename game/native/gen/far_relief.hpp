@@ -40,10 +40,11 @@ class FarLayers {
 public:
     static constexpr int kMax = 16;  // TerrainRingsNode::kMaxLayers
     static constexpr int kWater = 0, kSnow = 1, kRock = 2, kForest = 3, kScrub = 4;
-    FarLayers();
+    explicit FarLayers(std::string climate = "temperate");
     // The slot of a region's ground; the last slot when they are all taken.
     int ground(const Swatch& swatch);
     std::vector<Swatch> swatches() const;
+    std::vector<Material> materials() const;
     uint64_t revision() const;
 
 private:
@@ -51,6 +52,7 @@ private:
     std::vector<Swatch> swatches_;
     std::map<std::string, int> byName_;
     uint64_t revision_ = 1;
+    std::string climate_;
 };
 
 // One ring's samples, laid out as the engine wants them: `heights` are

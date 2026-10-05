@@ -273,7 +273,14 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   (`TerrainRingsNode`, profondeur inversée), sans un sommet de l'arène, avec la
   courbure de la Terre ; la brume est la visibilité mesurée, 150 km par temps
   clair. Comparé à des photographies réelles dans la galerie (Grenoble, Le
-  Cap, Rio).
+  Cap, Rio). Les anneaux portent des matériaux photographiés à leur échelle
+  réelle : paroi rocheuse de 27 m, projection sur trois axes, répétition cassée
+  et détails filtrés à distance ; la forêt varie par massifs de 12 m sans
+  ajouter de géométrie. L'apparence reste inférée, pas une carte de couvert
+  mesurée. Chaque capture consigne heure UTC et météo ; l'horloge sans fuseau
+  de la photo de Rio est corrigée d'une heure par inférence du Soleil visible,
+  avec cette incertitude indiquée. La ville et le couvert détaillé au-delà des
+  tuiles résidentes restent à restituer pour atteindre la fidélité des photos.
 - **Relief installé** : une grille mesurée d'environ 278 m couvre les latitudes
   de −85° à +85°, en blocs compacts de 10° (`native/gen/relief.*`, `r1relief`).
   Les anneaux de 256 m et plus la lisent sans réseau ; les anneaux fins et le

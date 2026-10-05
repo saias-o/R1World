@@ -1048,6 +1048,9 @@ class World : public Rml::EventListener {
     // in the same light (tools/gallery.py). Without it a capture keeps the
     // real instant it started at and today's weather.
     std::optional<double> inspectAt;
+    // Cloud fraction, rain mm/h, visibility metres (zero keeps clear-air
+    // extinction). Inspection weather never replaces live observations.
+    std::array<double,3> inspectWeather{0.,0.,0.};
     // --camera-altitude <metres>: the viewpoint's heights are above the sea
     // rather than above the player's feet. A capture laid beside a photograph
     // stands where the photographer stood, whatever this build's relief says
@@ -1327,7 +1330,8 @@ class World : public Rml::EventListener {
         }
         if(sunScript->callExport("setObserver",json::array({lon,lat,alt}),result)
                !=saida::ScriptCallStatus::Succeeded)return false;
-        return result.is_boolean() && result.get<bool>();
+        if(!result.is_boolean()||!result.get<bool>())return false;
+        return applyWeather();
     }
     // The air thins with altitude over the Earth, not over the scene's
     // tangent plane: the engine's fog is given the sphere that fits the
@@ -1347,7 +1351,7 @@ class World : public Rml::EventListener {
         // rather than a crash, so it has to be said out loud once.
         if(tellSun()||sunReported)return;
         sunReported=true;
-        saida::Log::error("[World] the sun cycle did not accept the observer; "
+        saida::Log::error("[World] the sun cycle did not accept the observer or weather; "
                           "the light stays on the scene's opening instant");
     }
     Loaded* tile(double x,double y) {
@@ -2817,12 +2821,18 @@ class World : public Rml::EventListener {
     // the photographed horizons of clear days read 150 km and more, so a
     // reading at the models' ceiling is the clear default, not 24 km of haze.
     static constexpr double kVisibilityCeiling=24000.;
-    void applyWeather() {
-        if(!sunScript)return;
+    bool applyWeather() {
+        if(!sunScript)return false;
         fogFar=farPack.node!=nullptr;
-        const double seen=weather.visibility>0&&weather.visibility<kVisibilityCeiling?weather.visibility:0.;
+        const double seen=inspectAt?inspectWeather[2]:
+            weather.visibility>0&&weather.visibility<kVisibilityCeiling?weather.visibility:0.;
+        const double cloud=inspectAt?inspectWeather[0]:weather.cover;
+        const double rain=inspectAt?inspectWeather[1]:weather.rain;
         json result;
-        sunScript->callExport("setWeather",json::array({weather.cover,weather.rain,seen,height(lon,lat)}),result);
+        const bool accepted=sunScript->callExport("setWeather",json::array({cloud,rain,seen,height(lon,lat)}),result)
+            ==saida::ScriptCallStatus::Succeeded&&result.is_boolean()&&result.get<bool>();
+        if(inspectAt&&accepted)saida::Log::info("[World inspection] cloud=",cloud," rain_mm_h=",rain," visibility_m=",seen);
+        return accepted;
     }
     // Streets and buildings that arrive after the player (a provisional
     // tile cooked again) can land on him: he is moved to the nearest free
@@ -3978,7 +3988,6 @@ class World : public Rml::EventListener {
             n->setName("far relief");
             n->levels=kFarLevels;n->baseSpacing=float(kFarBaseSpacing);
             farRelief.node=static_cast<saida::TerrainRingsNode*>(engine.sceneTree().world().addChild(std::move(n)));
-            farRelief.layers=std::make_shared<r1::FarLayers>();
         }
         if(!farRelief.node->visible())farRelief.node->setVisible(true);
         auto& f=farRelief;
@@ -3987,6 +3996,8 @@ class World : public Rml::EventListener {
         if(f.job) {const r1::P3 p=f.anchor.toEngine(lon,lat,0.);focus={p.x,p.z};}
         if(!f.job||glm::length(focus)>kFarReanchor) {
             f.lon=lon;f.lat=lat;f.anchor=r1::Anchor::at(lon,lat,0.);
+            f.layers=std::make_shared<r1::FarLayers>(r1::climateAt(r1::profileFor(lon,lat).climate,lat));
+            f.layersSeen=0;
             f.node->clearLevels();f.asked={};f.retryAt={};f.reach=0;++f.generation;
             f.job=std::make_shared<FarJob>();
             focus={0.,0.};
@@ -4010,9 +4021,26 @@ class World : public Rml::EventListener {
         if(f.layers->revision()!=f.layersSeen) {
             f.layersSeen=f.layers->revision();
             const auto swatches=f.layers->swatches();
-            for(size_t i=0;i<swatches.size();++i)
-                f.node->setLayer(int(i),{glm::vec3(float(swatches[i].color[0]),float(swatches[i].color[1]),float(swatches[i].color[2])),
-                                        float(swatches[i].roughness)});
+            const auto surfaces=f.layers->materials();
+            // Stand-scale variation remains visible beyond the physical
+            // texture's detail; its mean stays the Atlas's measured albedo.
+            constexpr float kGroundMacroMetres=128.0f, kForestMacroMetres=12.0f;
+            constexpr float kGroundVariation=0.35f, kForestVariation=0.65f, kSnowVariation=0.06f;
+            constexpr float kCanopyNormalStrength=0.45f;
+            for(size_t i=0;i<size_t(saida::TerrainRingsNode::kMaxLayers);++i) {
+                if(i>=swatches.size()) {f.node->setLayer(int(i),{});continue;}
+                saida::TerrainRingsNode::Layer layer;
+                layer.albedo={float(swatches[i].color[0]),float(swatches[i].color[1]),float(swatches[i].color[2])};
+                layer.roughness=float(swatches[i].roughness);
+                if(!surfaces[i].baseColorTexture.empty())layer.material=material(surfaces[i]);
+                layer.textureScale=float(surfaces[i].uvScale);
+                layer.macroSize=i==r1::FarLayers::kForest?kForestMacroMetres:kGroundMacroMetres;
+                layer.macroVariation=i==r1::FarLayers::kWater?0.0f:
+                    i==r1::FarLayers::kSnow?kSnowVariation:
+                    i==r1::FarLayers::kForest?kForestVariation:kGroundVariation;
+                layer.macroNormalStrength=i==r1::FarLayers::kForest?kCanopyNormalStrength:0.0f;
+                f.node->setLayer(int(i),layer);
+            }
         }
         // The resident tiles draw their own ground: holes in the rings.
         std::vector<saida::TerrainRingsNode::Hole> holes;
@@ -4223,9 +4251,8 @@ class World : public Rml::EventListener {
                 return;
             }
             lon=x0;lat=y0;alt=waterSpawn?waterLevel(lon,lat):height(lon,lat);
-            origin=Frame(lon,lat,alt);placeTiles();moveSun();
             conditions=json::object();weather=Weather{};
-            if(sunScript){json result;sunScript->callExport("setWeather",json::array({0.,0.,0.,alt}),result);}
+            origin=Frame(lon,lat,alt);placeTiles();moveSun();
             jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
             // Teleporting leaves the current vehicle. A water arrival starts
             // swimming at the selected coordinate, including in the open sea.
@@ -4371,6 +4398,10 @@ public:
         e->RemoveEventListener("click",this);e->RemoveEventListener("mousedown",this);}}
     bool failed() const {return testFailed;}
     void inspectInstant(double unixSeconds) {inspectAt=unixSeconds;}
+    void inspectConditions(std::array<double,3> conditions) {
+        if(!inspectAt||worldCapture.pngPath.empty())throw std::runtime_error("--weather requires --at and --screenshot");
+        inspectWeather=conditions;
+    }
     void captureFromAltitude(double metres) {captureAltitude=metres;}
     void ProcessEvent(Rml::Event& event) override {
         auto id=event.GetCurrentElement()->GetId();
@@ -5659,6 +5690,18 @@ int main(int argc,char** argv) {
             const double metres=std::stod(argv[i+1]);
             if(!std::isfinite(metres))throw std::runtime_error("Invalid --camera-altitude");
             world.captureFromAltitude(metres);
+        }
+        for(int i=1;i<argc;++i)if(std::string(argv[i])=="--weather") {
+            if(i+3>=argc)throw std::runtime_error("--weather requires cloud fraction, rain mm/h and visibility metres");
+            std::array<double,3> conditions{};
+            for(size_t k=0;k<conditions.size();++k) {
+                const std::string value=argv[i+1+int(k)];size_t end=0;
+                conditions[k]=std::stod(value,&end);
+                if(end!=value.size()||!std::isfinite(conditions[k]))throw std::runtime_error("Invalid --weather value");
+            }
+            if(conditions[0]<0.||conditions[0]>1.||conditions[1]<0.||conditions[2]<0.)
+                throw std::runtime_error("--weather requires cloud in [0,1], nonnegative rain and visibility");
+            world.inspectConditions(conditions);
         }
         engine.setOnFrame([&](float dt){world.update(dt);});
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);

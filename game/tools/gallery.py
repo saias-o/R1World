@@ -2,13 +2,13 @@
 
 A visual regression is the one no test sees (CLAUDE.md, rule 1): only an eye
 on the picture does. This takes the same pictures every time -- the same
-place, the same camera, the same solar hour, a clear sky -- so that the eye
+place, the same camera, the same solar hour, fixed weather -- so that the eye
 compares a build with the last one rather than with its memory of it.
 
 Some views are also a real photograph's: the camera stands where the
 photographer stood, looks where the photograph looks, through the same lens and
-frame, at the instant it was taken. Those are laid beside the photograph, which
-says how far the world still is from the place.
+frame, at its recorded or explicitly calibrated instant. Those are laid beside
+the photograph, which says how far the world still is from the place.
 
     python tools\\gallery.py                 # every viewpoint
     python tools\\gallery.py kyoto theix     # some of them
@@ -26,6 +26,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -35,6 +36,9 @@ GALLERY = GAME / "generated" / "gallery"
 # season's: near the equinox no hemisphere is favoured.
 DAY = datetime(2026, 9, 21, tzinfo=timezone.utc)
 SOLAR_HOUR = 10.5  # morning light: shadows long enough to read the relief
+CLEAR_WEATHER = (0.0, 0.0, 150000.0)  # cloud fraction, rain mm/h, visibility m
+# The runtime logger prints six significant digits.
+LOG_NUMBER_REL_TOL = 1e-5
 
 
 def enu(origin: tuple[float, float], point: tuple[float, float]) -> tuple[float, float]:
@@ -123,7 +127,15 @@ VIEWS = [
      # On the summit (396 m, OSM), whatever this build's relief says: the
      # Christ (5.5 km, bearing 267.1°) at x 775.
      "camera": aim(258.5, -4.9, 1.7), "altitude": 396.0, "fov": lens(25, 6000, 4000), "frame": (6000, 4000),
-     "at": "2015-05-22T20:53:16Z",
+     # EXIF 17:53 has no timezone. Treating it as Rio civil time puts the
+     # Sun 8.7 degrees below the horizon, although the photo shows it above
+     # the skyline at the right edge. A camera clock one hour ahead gives
+     # 4.35 degrees elevation and 294.27 degrees azimuth, consistent with
+     # that position. This is a visual calibration, not a measured UTC time.
+     "at": "2015-05-22T19:53:16Z",
+     "timeNote": "EXIF 17:53 sans fuseau ; correction d’horloge −1 h inférée du Soleil visible (UTC estimée).",
+     "weather": (0.08, 0.0, 150000.0),
+     "weatherNote": "Réanalyse Open-Meteo, 22/05/2015 à 20 h UTC : 8 % nuages, 0 mm/h ; visibilité 150 km estimée visuellement.",
      "photo": {"file": "Cidade_maravilhosa.JPG", "author": "Brunno Monteiro Lira", "licence": "CC BY-SA 3.0",
                "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Cidade_maravilhosa.JPG/1280px-Cidade_maravilhosa.JPG"}},
 ]
@@ -169,6 +181,9 @@ def shoot(view: dict, folder: Path, env: dict) -> dict:
             "--spawn", str(lon), str(lat), "--screenshot", str(png),
             "--camera-pos", vec(pos), "--camera-look", vec(look), "--after-frames", "12",
             "--at", f"{moment(view):.0f}"]
+    weather = view.get("weather", CLEAR_WEATHER)
+    applied_weather = None
+    args += ["--weather", *(str(value) for value in weather)]
     if "fov" in view:
         args += ["--camera-fov", f"{view['fov']:.3f}"]
     if "altitude" in view:
@@ -181,16 +196,28 @@ def shoot(view: dict, folder: Path, env: dict) -> dict:
         reason = "" if ok else f"exit {run.returncode}"
         # A picture of ground whose streets never came is not the place: the
         # game says so in its log, and so does the gallery.
-        if ok and log and log[0].startswith("Logs:"):
-            game_log = Path(log[0][5:].strip()) / "game.log"
-            text = game_log.read_text(encoding="utf-8", errors="replace") if game_log.exists() else ""
+        if ok:
+            text = ""
+            if log and log[0].startswith("Logs:"):
+                game_log = Path(log[0][5:].strip()) / "game.log"
+                if game_log.exists():
+                    text = game_log.read_text(encoding="utf-8", errors="replace")
+            readings = re.findall(r"\[World inspection\] cloud=(\S+) rain_mm_h=(\S+) visibility_m=(\S+)", text)
+            if readings:
+                applied_weather = [float(value) for value in readings[-1]]
+            if applied_weather is None or any(not math.isclose(got, want, rel_tol=LOG_NUMBER_REL_TOL)
+                                               for got, want in zip(applied_weather, weather)):
+                ok, reason = False, "inspection weather differs from the requested conditions or is unconfirmed"
             for line in text.splitlines():
                 if "[World capture]" in line:
                     ok, reason = False, line.split("[World capture]", 1)[1].strip()
     except subprocess.TimeoutExpired:
         ok, log, reason = False, [], "no picture after 10 minutes"
     print(f"{view['name']:8} {'ok' if ok else 'FAILED: ' + reason}  {' '.join(log)}")
-    return {"name": view["name"], "ok": ok, "reason": reason, "log": " ".join(log)}
+    return {"name": view["name"], "ok": ok, "reason": reason, "log": " ".join(log),
+            "instant": moment(view), "weather": weather, "timeNote": view.get("timeNote", ""),
+            "appliedWeather": applied_weather,
+            "weatherNote": view.get("weatherNote", "Conditions estimées visuellement, sans relevé météo historique.")}
 
 
 def runs() -> list[Path]:
@@ -212,8 +239,19 @@ def page() -> None:
                 return f'<figure class="empty"><figcaption>{label} : aucune image</figcaption></figure>'
             m = meta[run]
             src = f"{run.name}/{view['name']}.png"
+            condition = next((item for item in m["views"] if item["name"] == view["name"]), {})
+            recorded = condition.get("instant")
+            caption = (datetime.fromtimestamp(recorded, timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
+                       if recorded is not None else "conditions non enregistrées")
+            if "weather" in condition:
+                applied = condition.get("appliedWeather")
+                cloud, rain, visibility = applied or condition["weather"]
+                if applied is None:
+                    caption += " · météo demandée, application non contrôlée"
+                caption += f" · nuages {cloud:.0%} · {rain:g} mm/h · {visibility / 1000:g} km"
             return (f'<figure><a href="{src}"><img src="{src}" loading="lazy" alt=""></a>'
                     f'<figcaption>{label} · {html.escape(m["when"])} · <code>{html.escape(m["commit"])}</code>'
+                    f'<br>{caption}'
                     f'</figcaption></figure>')
 
         lon, lat = view["spawn"]
@@ -222,14 +260,22 @@ def page() -> None:
         when = f"{SOLAR_HOUR:g} h solaires, {DAY:%d/%m}"
         if photo:
             page_url = f"https://commons.wikimedia.org/wiki/File:{photo['file']}"
-            reference = (f'<figure><a href="{page_url}"><img src="{photo["thumb"]}" loading="lazy" alt=""></a>'
+            original = photo["thumb"].replace("/thumb/", "/").rsplit("/", 1)[0]
+            reference = (f'<figure><a href="{page_url}"><img src="{photo["thumb"]}" loading="lazy" '
+                         f'onerror="this.onerror=null;this.src=\'{original}\'" alt=""></a>'
                          f'<figcaption>Photographie réelle · {html.escape(photo["author"])} · '
                          f'{html.escape(photo["licence"])} · <a href="{page_url}">Wikimedia Commons</a>'
                          f'</figcaption></figure>')
-            when = "à l'instant de la photographie, " + view["at"][:16].replace("T", " ") + " UTC"
+            when = view["at"][:16].replace("T", " ") + " UTC"
+            if view.get("timeNote"):
+                when += " · " + html.escape(view["timeNote"])
+        weather = view.get("weather", CLEAR_WEATHER)
+        weather_note = view.get("weatherNote", "Conditions estimées visuellement, sans relevé météo historique.")
         rows.append(
             f'<section><h2>{html.escape(view["title"])}</h2>'
-            f'<p class="where">{lat:.5f}, {lon:.5f} · {when}, ciel clair</p>'
+            f'<p class="where">{lat:.5f}, {lon:.5f} · {when}. '
+            f'Nuages {weather[0]:.0%}, pluie {weather[1]:g} mm/h, visibilité {weather[2] / 1000:g} km. '
+            f'{html.escape(weather_note)}</p>'
             f'<div class="pair{" trio" if photo else ""}">{reference}{figure(before, "Précédente")}'
             f'{figure(latest, "Dernière")}</div></section>')
     (GALLERY / "index.html").write_text(f"""<!doctype html>
@@ -252,7 +298,7 @@ img {{ display:block; width:100%; height:auto; }}
 figcaption {{ padding:6px 10px; color:var(--muted); font-size:13px; }}
 </style></head><body><main>
 <h1>Galerie de référence</h1>
-<p class="lead">Les mêmes vues à chaque version : même caméra, même heure solaire, ciel clair. Les vues de montagne sont celles d'une photographie réelle, posée à gauche : même point, même cap, même objectif, même instant. {len(history)} prise(s).</p>
+<p class="lead">Caméra, heure solaire et météo fixes, enregistrées avec chaque capture. Les photos de montagne sont à gauche ; les incertitudes d’horloge et de météo sont indiquées. {len(history)} prise(s).</p>
 {''.join(rows)}
 </main></body></html>
 """, encoding="utf-8")

@@ -55,3 +55,17 @@ TEST(FarRelief, a_slope_is_judged_over_the_finest_baseline) {
     const FarLevel coarse = ramp(5.72, 45.20, 800.0, 0.6, alps, 8.0 * kSlopeBaseline);
     CHECK(coarse.rockCells == 64);
 }
+
+TEST(FarRelief, cliffs_use_a_wall_scan_and_forests_follow_the_climate) {
+    const auto temperate = FarLayers("temperate").materials();
+    const auto tropical = FarLayers("tropical").materials();
+    CHECK(temperate[FarLayers::kWater].baseColorTexture.empty());
+    CHECK(temperate[FarLayers::kRock].baseColorTexture.find("cliff_albedo") != std::string::npos);
+    NEAR(temperate[FarLayers::kRock].uvScale, 1.0 / 27.0, 1e-9);
+    CHECK(temperate[FarLayers::kRock].baseColorTexture != temperate[FarLayers::kForest].baseColorTexture);
+    CHECK(temperate[FarLayers::kForest].baseColorTexture != tropical[FarLayers::kForest].baseColorTexture);
+    for (const int at : {FarLayers::kSnow, FarLayers::kRock, FarLayers::kForest, FarLayers::kScrub}) {
+        CHECK(!temperate[size_t(at)].normalTexture.empty());
+        CHECK(!temperate[size_t(at)].metallicRoughnessTexture.empty());
+    }
+}

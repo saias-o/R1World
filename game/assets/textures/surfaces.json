@@ -691,6 +691,19 @@
    "normal": "assets/textures/surfaces/sea_ice_normal.jpg",
    "mr": "assets/textures/surfaces/sea_ice_mr.jpg",
    "clipped": 0.0
+  },
+  "cliff": {
+   "kind": "ground",
+   "source": "polyhaven",
+   "asset": "rock_face_03",
+   "size": 27.0,
+   "sizeMeasured": true,
+   "uvSize": 27.0,
+   "level": 0.471,
+   "albedo": "assets/textures/surfaces/cliff_albedo.jpg",
+   "normal": "assets/textures/surfaces/cliff_normal.jpg",
+   "mr": "assets/textures/surfaces/cliff_mr.jpg",
+   "clipped": 0.0097
   }
  }
 }

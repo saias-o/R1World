@@ -765,6 +765,23 @@
         "assets/models/humans/pilot_female_02.glb",
         "assets/models/humans/player.glb"
       ]
+    },
+    {
+      "name": "rock_face_03 (cliff surface material)",
+      "author": "Poly Haven; Dario Barresi (photography), Rico Cilliers (processing)",
+      "source": "https://polyhaven.com/a/rock_face_03",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised per channel to measured palette albedo; 27 m scan at 1024 px, normal and roughness at 512 px (r1/surfaces.py). Existing ground-rock material preserved.",
+      "files": [
+        "assets/textures/surfaces/cliff_albedo.jpg",
+        "assets/textures/surfaces/cliff_normal.jpg",
+        "assets/textures/surfaces/cliff_mr.jpg"
+      ],
+      "sha256": {
+        "assets/textures/surfaces/cliff_albedo.jpg": "f62a639eb79f247c9bbf8c847863897589a9615fb18578aad91811a2aea4a63e",
+        "assets/textures/surfaces/cliff_normal.jpg": "41d28a5390dbb8fe76eba399df52f68f8cfd04122258e8a4ecdf940531b6e58c",
+        "assets/textures/surfaces/cliff_mr.jpg": "348a0664ee1586c3a3bcee7f445b0753579ff8e958d93094da8fc84c73b32a0c"
+      }
     }
   ]
 }

@@ -94,6 +94,7 @@ _SOURCES_SPEC = {
     "sand_beach":       ("ground", "polyhaven", "coast_sand_01", 15.0),
     "savanna":          ("ground", "polyhaven", "red_laterite_soil_stones", 2.0),
     "rock":             ("ground", "polyhaven", "rocks_ground_02", 2.0),
+    "cliff":            ("ground", "polyhaven", "rock_face_03", 27.0),
     "bare":             ("ground", "polyhaven", "rock_ground", 1.5),
     "mud":              ("ground", "polyhaven", "brown_mud_02", 1.3),
     # Snow014 and Snow015 publish no size: estimated from the drift features
@@ -369,9 +370,11 @@ def _bake_facade(name: str, albedo, normal, rough, size_m: float) -> dict:
     }
 
 
-def build() -> dict:
+def build(names: list[str] | None = None) -> dict:
     families = {}
     for name, spec in _SOURCES_SPEC.items():
+        if names is not None and name not in names:
+            continue
         _kind, origin, asset, size_m = spec[:4]
         measured = spec[4] if len(spec) > 4 else True
         kind = KINDS[name]
@@ -390,13 +393,25 @@ def build() -> dict:
               f"level {baked['level']:.3f}  clipped {baked['clipped']:.3f}")
     # The sea ice's two surfaces are made from the snow just baked.
     from .sea_ice_textures import derive
-    families.update(derive(families))
+    if "snow" in families:
+        families.update(derive(families))
     return {"schema": 1, "level": LEVEL, "snowLevel": SNOW_LEVEL, "wallLevel": WALL_LEVEL,
             "bay": [BAY_WIDTH, STOREY_HEIGHT], "families": families}
 
 
 def main() -> int:
-    table = build()
+    import argparse
+    parser = argparse.ArgumentParser(description="Build pinned, albedo-normalised surface textures.")
+    parser.add_argument("families", nargs="*", metavar="FAMILY")
+    args = parser.parse_args()
+    unknown = set(args.families) - _SOURCES_SPEC.keys()
+    if unknown:
+        parser.error("unknown surface families: " + ", ".join(sorted(unknown)))
+    table = build(args.families or None)
+    if args.families and TABLE_PATH.exists():
+        previous = json.loads(TABLE_PATH.read_text(encoding="utf-8"))
+        previous["families"].update(table["families"])
+        table = previous
     TABLE_PATH.parent.mkdir(parents=True, exist_ok=True)
     TABLE_PATH.write_text(json.dumps(table, indent=1) + "\n", encoding="utf-8")
     return 0

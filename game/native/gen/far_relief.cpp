@@ -7,7 +7,7 @@
 
 namespace r1 {
 
-FarLayers::FarLayers() {
+FarLayers::FarLayers(std::string climate) : climate_(std::move(climate)) {
     const Palette& p = palette();
     auto named = [&](const char* name) {
         for (const auto& c : p.groundClasses)
@@ -30,6 +30,23 @@ int FarLayers::ground(const Swatch& swatch) {
 std::vector<Swatch> FarLayers::swatches() const {
     std::lock_guard<std::mutex> guard(lock_);
     return swatches_;
+}
+
+std::vector<Material> FarLayers::materials() const {
+    std::lock_guard<std::mutex> guard(lock_);
+    std::vector<Material> result;
+    result.reserve(swatches_.size());
+    for (size_t i = 0; i < swatches_.size(); ++i) {
+        const auto& swatch = swatches_[i];
+        std::optional<std::string> family;
+        if (i == kSnow) family = "snow_clean";
+        else if (i == kRock) family = "cliff";
+        else if (i == kForest) family = groundFamily("forest", "", climate_);
+        else if (i == kScrub) family = groundFamily("scrub", "", climate_);
+        else if (i != kWater) family = groundFamily(kInferred, swatch.name, climate_);
+        result.push_back(surfaceMaterial(swatch.name, swatch.color, swatch.roughness, family));
+    }
+    return result;
 }
 
 uint64_t FarLayers::revision() const {

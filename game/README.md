@@ -121,7 +121,11 @@ load time does not change the lighting:
 
 `--at <unix seconds>` makes a capture an inspection picture: lit at that
 instant, under a clear sky (fetched weather is ignored), without the HUD or the
-minimap. A capture waits for OSM on tiles still provisional, up to two minutes,
+minimap. `--weather <cloud fraction> <rain mm/h> <visibility metres>` overrides
+inspection weather; it requires both `--at` and `--screenshot`. Cloud fraction
+must be in [0,1], rain/visibility nonnegative and all values finite; zero
+visibility keeps the clear-air default. The applied values are logged as
+`[World inspection]`. A capture waits for OSM on tiles still provisional, up to two minutes,
 then says so in the log. The picture's size is the window's: the hidden window
 is 640 × 360 unless `SAIDA_WINDOW_SIZE=1600x900` (an engine variable) says
 otherwise.
@@ -129,8 +133,12 @@ otherwise.
 ### The reference gallery
 
 A visual regression is the one no test sees (`CLAUDE.md` §1). `tools/gallery.py`
-takes the same nine pictures every time — same place, same camera, 10:30 local
-solar time on 21 September, clear sky, 1600 × 900:
+takes the same nine pictures every time — same place, same camera and fixed
+weather, 1600 × 900. City views use 10:30 local solar time on 21 September;
+mountain views use the photograph's date, lens and aspect ratio. Each run records
+its UTC instant, cloud fraction, rain and visibility; old captures without that
+record are labelled accordingly. Weather inferred from the image is labelled
+as estimated, not a historical station observation:
 
 | View | Where |
 |---|---|
@@ -142,7 +150,7 @@ solar time on 21 September, clear sky, 1600 × 900:
 | `theix` | Theix: the fuel station, the car park and the Carrefour Market |
 | `grenoble` | Grenoble, towards the Moucherotte and its limestone cliffs |
 | `lecap` | Cape Town, towards Table Mountain |
-| `rio` | Rio de Janeiro, towards the Dois Irmãos |
+| `rio` | Rio de Janeiro, the Corcovado from the Sugarloaf summit |
 
 ```powershell
 python tools\gallery.py                 # every view
@@ -154,6 +162,16 @@ Each run is a folder of `generated/gallery/` (date and commit);
 `generated/gallery/index.html` shows each view, the latest run beside the one
 before. Run it after every update and look at it before calling the update
 done.
+
+Rio's EXIF says 17:53 on 22 May 2015 without a timezone. Reading it as civil
+Rio time puts the Sun 8.7° below the horizon; the photo contains a low Sun on
+the right. The test uses 19:53 UTC (16:53 civil time), an inferred one-hour
+camera-clock correction: elevation 4.35°, azimuth 294.27°. The gallery states
+that uncertainty. Open-Meteo's hourly reanalysis at 20:00 UTC gives 8% cloud and
+no rain; visibility is visually estimated at 150 km. This is an approximate
+lighting comparison, not a certified time/weather observation. The terrain
+still lacks surveyed land cover and the distant city's buildings beyond the
+resident tiles, and its silhouettes inherit the elevation source's resolution.
 
 Three assertions of `--spawn2` exist because of bugs that shipped:
 
@@ -381,7 +399,7 @@ surface.
 ### Photographed surfaces
 
 `r1/surfaces.py` gives the ground, streets, walls and roofs seamless CC0
-materials (Poly Haven, ambientCG; 44 families from 43 scans):
+materials from Poly Haven and ambientCG scans:
 
 - **A texture brings structure, never albedo.** Each colour map is normalised
   per channel and the colour factor is the palette's albedo divided by that
@@ -400,6 +418,9 @@ one bay by one storey with a window. UVs cost no vertex. Textures cost about
 90 MB for a city neighbourhood; the GPU budget is 512 MB (`setGpuBudget` in
 `native/world.cpp`). Ground and street colour maps are 1024², the rest 512².
 Rebuild with `python -m r1.surfaces` from `game\tools`.
+Pass family names to rebuild only those families, preserving the others, for
+example `python -m r1.surfaces cliff`. The cliff scan is Poly Haven's
+`rock_face_03`, a 27 m wall, separate from the existing 2 m rocky ground.
 
 ## Buildings
 
@@ -947,6 +968,14 @@ resolved. The camera's far plane follows the farthest ring drawn.
   a 128 m cell is steepened by (128 / 16)^0.25, and a cliff band the cell
   averages away is still rock. The log names each ring's zoom and how many
   cells were inferred as each.
+- **Physical-scale materials**: cliffs use the 27 m photographed wall scan,
+  snow and ground use the installed PBR surfaces. Forests select the climate's
+  surface again when the rings reanchor, with 12 m filtered colour/normal
+  variation for distant stands. Three-axis projection retains detail on
+  vertical walls; continuous warping breaks texture repetition, and mip/normal
+  filtering prevents distant shimmer. Cell materials and ring borders blend;
+  the Atlas remains the albedo reference. This is inferred surface appearance,
+  not a satellite image or a measured canopy map, and adds no geometry.
 - **Their own shadows**: the engine marches from every sample toward the Sun
   over the rings' heights, out to the horizon. At dusk a range darkens the
   valley behind it while the summits stay lit. The march runs again only when
