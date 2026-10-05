@@ -644,6 +644,11 @@ architecture is invented. A funeral home keeps its building.
   Ownership by a nearby shop is inferred and labelled. An inferred forecourt
   needs a mapped retail (or asphalt commercial) parcel. Underground,
   multistorey and private lots are excluded.
+- **Parts**: a tile's shopfronts are one part per material (shell, frames,
+  glazing reflections, one fascia per paint), never four per shop. Each part
+  is a mesh upload, a draw and a static body: four per shop made the rue de
+  Rivoli tile (`v26_27772_23992`, 205 shops) 849 parts, and the Paris capture
+  timed out waiting for them. It is now 36.
 
 Glazing is frames and reflection strips: the renderer has no sorted transparent
 pass. `python -m r1.retail_materials` rebuilds the dedicated plaster finish and
@@ -1080,6 +1085,10 @@ Engine fixes this game found, each with its regression test in Saida:
   metres from the origin stays on its mesh after a rebase;
 - `MaterialDesc::doubleSided` is honoured in scene draws, including mixed
   GPU-driven batches (facades and interior fixtures are double-sided).
+- every shape of a compound walked its whole body for meshes every frame, a
+  box included: a tile's ~600 trunk boxes made that N² visits, 89 ms of a
+  110 ms Paris frame in `Physics/ResolveAutoShapes` (2 October 2026; 3.4 ms
+  after). Box, sphere and capsule shapes now read no mesh.
 
 ## Performance
 
@@ -1093,6 +1102,14 @@ Measured on the Paris smoke with `--profile` (25 September 2026): a frame is
 | CPU per frame, Paris, 60 people | 37.3 ms | 4.5 ms |
 | Animators (60 people and the player) | 2.97 ms | 0.09 ms |
 | Arrival frames over 33 ms | 216 of 278 | 4 of 569 |
+
+The Paris gallery capture (2 October 2026, 1600 × 900, rue de Rivoli) failed
+four runs in five on the 180 s smoke limit: frames of 110 ms, and tiles
+uploading about 20 parts a second. The profile named the trunk compound above
+and 849-part tiles; with both fixed, every tile is in and the picture is
+taken within 10 s of the spawn. Each memory-mesh upload still waits for the
+GPU queue (about 1.7 ms a part), and the scene's two full transform walks
+cost 6–7 ms each with nine Paris tiles resident.
 
 Later measurements: Le Fourchêne hypermarket at 60 fps; the canopy tile at
 60 fps (+0.8 ms scene update); a 600-frame Vannes home run at 0.750 ms/frame
