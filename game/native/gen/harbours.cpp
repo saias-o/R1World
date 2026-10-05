@@ -471,6 +471,10 @@ double Cells::adjust(int row, int col, double height) const {
     return height;
 }
 
+double Cells::roadLevel(int row, int col, double height) const {
+    return hasSea_ ? std::max(adjust(row, col, height), kLandAboveSea) : height;
+}
+
 std::vector<std::string> Cells::rows() const {
     std::vector<std::string> out;
     for (const auto& line : codes_) {

@@ -219,7 +219,7 @@ Landcover::Landcover(const std::vector<OsmWay>& ways) {
     const auto& classes = palette().groundClasses;
     for (const auto& way : ways) {
         const std::string name = classifyWay(way.tags);
-        if (name.empty()) continue;
+        if (name.empty() || (name == "water" && hiddenWater(way.tags))) continue;
         std::vector<P2> ring = way.points;
         if (ring.front() == ring.back()) ring.pop_back();
         if (ring.size() < 3) continue;

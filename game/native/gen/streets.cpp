@@ -103,14 +103,27 @@ double lengthTag(const std::string* value, double fallback) {
 
 double roadWidth(const Tags& tags) { return lengthTag(tag(tags, "width"), roadWidthOf(tagOr(tags, "highway"))); }
 
-Drape::Drape(const ElevationGrid& elevations, const Anchor& anchor)
+Drape::Drape(const ElevationGrid& elevations, const Anchor& anchor,
+             const std::function<double(int, int, double)>& adjust)
     : bounds_(elevations.bounds), anchor_(anchor), size_(kTerrainMeshSize - 1) {
     for (int row = 0; row <= size_; ++row)
         for (int col = 0; col <= size_; ++col) {
             const double lo = bounds_.west + (bounds_.east - bounds_.west) * col / size_;
             const double la = bounds_.south + (bounds_.north - bounds_.south) * row / size_;
-            grid_.push_back(anchor.toEngine(lo, la, elevations.sample(lo, la)));
+            double height = elevations.sample(lo, la);
+            if (adjust) height = adjust(row, col, height);
+            grid_.push_back(anchor.toEngine(lo, la, height));
         }
+}
+
+clip::Path64 Drape::outline() const {
+    auto g = [&](int row, int col) { return grid_[size_t(row * (size_ + 1) + col)]; };
+    std::vector<P2> ring;
+    for (int col = 0; col < size_; ++col) ring.push_back({g(0, col).x, g(0, col).z});
+    for (int row = 0; row < size_; ++row) ring.push_back({g(row, size_).x, g(row, size_).z});
+    for (int col = size_; col > 0; --col) ring.push_back({g(size_, col).x, g(size_, col).z});
+    for (int row = size_; row > 0; --row) ring.push_back({g(row, 0).x, g(row, 0).z});
+    return clip::kMetres.path(ring);
 }
 
 // The height of the drawn terrain under an engine point. Asked of the
@@ -205,30 +218,72 @@ void Drape::lay(const clip::Paths64& region, double lift, Mesh& mesh) const {
 }
 
 StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<OsmNode>& features,
-                          const ElevationGrid& elevations, const Anchor& anchor, const std::vector<Ring>& footprints) {
+                          const ElevationGrid& elevations, const Anchor& anchor, const std::vector<Ring>& footprints,
+                          const std::function<double(int, int, double)>& adjust) {
     using clip::Paths64;
     int sidewalkTagged = 0, sidewalkInferred = 0, zebras = 0, widthsTagged = 0, widthsInferred = 0, graded = 0;
-    Paths64 roadPolys, cobblePolys, walkPolys;
-    struct MotorLine { int64_t id; std::vector<P2> line; double half; };
-    std::vector<MotorLine> motorLines;
+    // A way comes cut into its segments, and a strip per segment left a
+    // notch on the outside of every bend: the segments of one way are joined
+    // back into its line, which is buffered with round joins.
+    struct Line { const OsmWay* way; std::vector<P2> points; };
+    std::vector<Line> axes;
     for (const OsmWay& road : roads) {
         const Tags& tags = road.tags;
         if (tagOr(tags, "area") == "yes" || tagOr(tags, "footway") == "crossing") continue;
         // Bridges and embankments are built off the ground (gen/bridges).
         if (taggedYes(tags, "tunnel") || taggedYes(tags, "bridge") || has(tags, "r1:raised")) { ++graded; continue; }
         std::vector<P2> line;
-        for (const P2& p : road.points) { const P3 e = anchor.toEngine(p.x, p.y, 0.0); line.push_back({e.x, e.z}); }
+        for (const P2& p : road.points) {
+            const P3 e = anchor.toEngine(p.x, p.y, 0.0);
+            if (line.empty() || dist(line.back(), {e.x, e.z}) > 1e-9) line.push_back({e.x, e.z});
+        }
+        if (line.size() < 2) continue;
+        Line* previous = axes.empty() ? nullptr : &axes.back();
+        if (previous && previous->way->id == road.id && previous->way->tags == tags &&
+            dist(previous->points.back(), line.front()) < 1e-6)
+            previous->points.insert(previous->points.end(), line.begin() + 1, line.end());
+        else
+            axes.push_back({&road, std::move(line)});
+    }
+    // Where two lines meet end to end, or one ends on another, the end is
+    // rounded: the two strips of a bend split between two ways then close
+    // the corner as one line's join would.
+    auto keyOf = [](P2 p) { return std::make_pair(std::llround(p.x * 1000), std::llround(p.y * 1000)); };
+    std::map<std::pair<long long, long long>, int> meetings;
+    for (const Line& l : axes)
+        for (const P2& p : l.points) ++meetings[keyOf(p)];
+    auto roundEnd = [&](const std::vector<P2>& line, bool atEnd, double half, Paths64& into) {
+        const P2 end = atEnd ? line.back() : line.front();
+        if (meetings[keyOf(end)] < 2) return;
+        const P2 before = atEnd ? line[line.size() - 2] : line[1];
+        const double length = dist(before, end);
+        if (length < 1e-9) return;
+        const P2 d{(end.x - before.x) / length, (end.y - before.y) / length}, n{-d.y, d.x};
+        std::vector<P2> cap;
+        for (int k = 0; k <= 16; ++k) {
+            const double t = -kPi / 2 + kPi * k / 16;
+            cap.push_back({end.x + half * (std::sin(t) * n.x + std::cos(t) * d.x),
+                           end.y + half * (std::sin(t) * n.y + std::cos(t) * d.y)});
+        }
+        into.push_back(clip::kMetres.path(cap));
+    };
+    Paths64 roadPolys, cobblePolys, walkPolys;
+    struct MotorLine { int64_t id; std::vector<P2> line; double half; };
+    std::vector<MotorLine> motorLines;
+    for (const Line& l : axes) {
+        const Tags& tags = l.way->tags;
+        const std::vector<P2>& line = l.points;
         if (clip::length(line) < 0.1) continue;
         const double half = roadWidth(tags) * 0.5;
         const Paths64 strip = clip::bufferLineRoundJoins(line, half);
         ++(has(tags, "width") ? widthsTagged : widthsInferred);
-        if (!kMotor.count(tagOr(tags, "highway"))) {
-            walkPolys.insert(walkPolys.end(), strip.begin(), strip.end());
-            continue;
-        }
-        Paths64& target = kCobbled.count(tagOr(tags, "surface")) ? cobblePolys : roadPolys;
+        const bool motor = kMotor.count(tagOr(tags, "highway")) > 0;
+        Paths64& target = !motor ? walkPolys : kCobbled.count(tagOr(tags, "surface")) ? cobblePolys : roadPolys;
         target.insert(target.end(), strip.begin(), strip.end());
-        motorLines.push_back({road.id, line, half});
+        roundEnd(line, false, half, target);
+        roundEnd(line, true, half, target);
+        if (!motor) continue;
+        motorLines.push_back({l.way->id, line, half});
         for (const auto& [side, inferred] : sidewalkSides(tags)) {
             ++(inferred ? sidewalkInferred : sidewalkTagged);
             const double sw = lengthTag(tag(tags, ("sidewalk:" + side + ":width").c_str()),
@@ -247,11 +302,15 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         }
     buildings = clip::unite(buildings);
     // Integer millimetres throughout: the precision snap shapely needed is
-    // the grid itself here.
-    const Paths64 asphalt = clip::subtract(clip::unite(roadPolys), buildings);
-    const Paths64 cobbles = clip::subtract(clip::subtract(clip::unite(cobblePolys), buildings), asphalt);
-    const Paths64 paving =
-        clip::subtract(clip::subtract(clip::subtract(clip::unite(walkPolys), asphalt), cobbles), buildings);
+    // the grid itself here. The tile keeps what lies inside it; its
+    // neighbour lays the rest of a street that crosses the edge.
+    const Drape drape(elevations, anchor, adjust);
+    const Paths64 tile{drape.outline()};
+    const Paths64 asphalt = clip::intersect(clip::subtract(clip::unite(roadPolys), buildings), tile);
+    const Paths64 cobbles =
+        clip::intersect(clip::subtract(clip::subtract(clip::unite(cobblePolys), buildings), asphalt), tile);
+    const Paths64 paving = clip::intersect(
+        clip::subtract(clip::subtract(clip::subtract(clip::unite(walkPolys), asphalt), cobbles), buildings), tile);
     const Paths64 carriageway = clip::unite(asphalt, cobbles);
 
     // Zebra crossings, where OSM says they are painted.
@@ -270,6 +329,9 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
             if (d < bestDistance || (d == bestDistance && best && m.id < best->id)) { bestDistance = d; best = &m; }
         }
         if (!best || bestDistance > 1.0) continue;
+        // One past the edge is drawn where it reaches in, and counted by its own tile.
+        const Bounds& box = elevations.bounds;
+        const bool inside = box.west <= f.lon && f.lon <= box.east && box.south <= f.lat && f.lat <= box.north;
         const double total = clip::length(best->line), along = clip::project(best->line, point);
         const P2 a = clip::interpolate(best->line, std::max(0.0, along - 0.2));
         const P2 b = clip::interpolate(best->line, std::min(total, along + 0.2));
@@ -281,7 +343,7 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         auto p = [&](double s, double t) { return P2{centre.x + dx * s - dz * t, centre.y + dz * s + dx * t}; };
         for (double offset = -best->half + 0.25; offset + 0.5 < best->half; offset += 1.0)
             stripes.push_back(clip::kMetres.path({p(-span, offset), p(span, offset), p(span, offset + 0.5), p(-span, offset + 0.5)}));
-        ++zebras;
+        if (inside) ++zebras;
     }
     const Paths64 paint = clip::intersect(clip::unite(stripes), asphalt);
 
@@ -289,7 +351,6 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
     struct Surface { const Paths64* region; Mesh* mesh; double lift; };
     const Surface surfaces[] = {{&asphalt, &roadMesh, 0.06}, {&cobbles, &cobbleMesh, 0.06},
                                 {&paving, &walkMesh, 0.21}, {&paint, &paintMesh, 0.075}};
-    const Drape drape(elevations, anchor);
     for (const Surface& s : surfaces) drape.lay(*s.region, s.lift, *s.mesh);
 
     // Kerbs only where pavement meets carriageway: the paving edges that lie
@@ -316,7 +377,6 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         for (const Ring& h : p.holes) edges(h);
     }
     // line_merge: chain segments through the points exactly two of them share.
-    auto keyOf = [](P2 p) { return std::make_pair(std::llround(p.x * 1000), std::llround(p.y * 1000)); };
     std::map<std::pair<long long, long long>, std::vector<size_t>> ends;
     for (size_t i = 0; i < contact.size(); ++i) {
         ends[keyOf(contact[i].first)].push_back(i);
@@ -351,16 +411,17 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         for (size_t i = 0; i + 1 < line.size(); ++i) {
             const P2 a = line[i], b = line[i + 1];
             const int n = std::max(1, int(std::ceil(dist(a, b) / 8.0)));
+            // On the ground the street was laid on, so the kerb meets both.
             auto p = [&](double t, double lift) {
-                const double x = a.x + (b.x - a.x) * t, z = a.y + (b.y - a.y) * t;
-                const P3 geo = anchor.toGeodetic(x, 0, z);
-                return P3{x, groundPoint(geo.x, geo.y, elevations, anchor).y + lift, z};
+                const P2 q{a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t};
+                return P3{q.x, drape.heightAt(q) + lift, q.y};
             };
             for (int k = 0; k < n; ++k)
                 kerbMesh.addQuad(p(double(k) / n, 0.06), p(double(k + 1) / n, 0.06), p(double(k + 1) / n, 0.21), p(double(k) / n, 0.21));
         }
 
     StreetOutput out;
+    out.ground = clip::unite(carriageway, paving);
     struct Spec { const char* name; Mesh* mesh; std::array<double, 3> color; const char* family; };
     const Spec specs[] = {{"Carriageway", &roadMesh, {0.10, 0.11, 0.12}, "asphalt"},
                           {"Cobbled carriageway", &cobbleMesh, {0.16, 0.155, 0.145}, "cobbles"},

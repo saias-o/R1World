@@ -28,6 +28,7 @@ double waterwayWidth(const Tags& tags) {
 clip::Paths64 inlandWaterRegion(const std::vector<OsmWay>& waterways, const Anchor& anchor) {
     clip::Paths64 shapes;
     for (const OsmWay& way : waterways) {
+        if (hiddenWater(way.tags)) continue;
         std::vector<P2> line;
         line.reserve(way.points.size());
         for (const P2& p : way.points) {

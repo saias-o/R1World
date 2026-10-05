@@ -78,6 +78,44 @@ std::vector<OsmWay> clipRoads(const std::vector<OsmWay>& roads, const Bounds& b)
     return out;
 }
 
+// How far past the tile a street is still cut for it: a carriageway and its
+// pavements that cross the edge, or run along it outside, reach in this far.
+constexpr double kStreetReach = 30.0;
+Bounds grown(const Bounds& b, double metres) {
+    const double dLat = metres / 111320.0;
+    const double dLon = metres / (111320.0 * std::max(0.01, std::cos((b.south + b.north) / 2 * kPi / 180.0)));
+    return {b.south - dLat, b.west - dLon, b.north + dLat, b.east + dLon};
+}
+
+// Where a street crosses a water cell, the street is dry: a cell is 25 m of
+// water or not, and a car on the quay must not sink with it. The pieces are
+// in the tile's frame, rings in even-odd, read before the water (world.cpp).
+nlohmann::json dryStreets(const clip::Paths64& streets, const Cells& cells, const Anchor& anchor) {
+    const Bounds& b = cells.bounds();
+    const int n = cells.size();
+    clip::Paths64 wet;
+    for (int row = 0; row < n; ++row)
+        for (int col = 0; col < n; ++col) {
+            const double lon0 = b.west + (b.east - b.west) * col / n, lon1 = b.west + (b.east - b.west) * (col + 1) / n;
+            const double lat0 = b.south + (b.north - b.south) * row / n, lat1 = b.south + (b.north - b.south) * (row + 1) / n;
+            if (cells.at((lon0 + lon1) / 2, (lat0 + lat1) / 2) <= 0) continue;
+            std::vector<P2> square;
+            for (const P2& c : {P2{lon0, lat0}, P2{lon1, lat0}, P2{lon1, lat1}, P2{lon0, lat1}}) {
+                const P3 e = anchor.toEngine(c.x, c.y, 0.0);
+                square.push_back({e.x, e.z});
+            }
+            wet.push_back(clip::kMetres.path(square));
+        }
+    nlohmann::json out = nlohmann::json::array();
+    if (wet.empty() || streets.empty()) return out;
+    for (const auto& path : clip::intersect(streets, clip::unite(wet))) {
+        nlohmann::json ring = nlohmann::json::array();
+        for (const auto& p : path) ring.push_back({double(p.x) / 1000.0, double(p.y) / 1000.0});
+        out.push_back(std::move(ring));
+    }
+    return out;
+}
+
 size_t indexCount(const std::vector<MeshPart>& parts) {
     size_t n = 0;
     for (const MeshPart& p : parts) n += p.mesh.indices.size();
@@ -291,7 +329,10 @@ CookedTile cookTile(const Observations& in) {
                                                 groundFamily(name, profile.ground.name, climate))});
     }
     const std::vector<OsmWay> roads = clipRoads(grades.roads, bounds);
-    StreetOutput streets = buildStreets(roads, osm.features, elevations, anchor, footprints);
+    // The streets lie on the ground drawn, above the sea it meets.
+    StreetOutput streets = buildStreets(clipRoads(grades.roads, grown(bounds, kStreetReach)), osm.features, elevations,
+                                        anchor, footprints,
+                                        [&](int r, int c, double h) { return cells.roadLevel(r, c, h); });
     std::vector<InteriorPlan> stores;
     for(const auto& p:built.interiors)if(retailInterior(p.recipe))stores.push_back(p);
     const ParkingOutput parking=buildRetailParking(osm,stores,footprints,elevations,anchor);
@@ -299,6 +340,9 @@ CookedTile cookTile(const Observations& in) {
     clip::Paths64 visibleInland = inland;
     if (sea) visibleInland = clip::subtract(visibleInland, projectWater(sea->region, anchor));
     if (tidal) visibleInland = clip::subtract(visibleInland, projectWater(*tidal, anchor));
+    // No water is drawn over a street: what the water region says of a road
+    // (a river's assumed width, a canal's edge) is wrong where the road is.
+    visibleInland = clip::subtract(visibleInland, streets.ground);
     if (!visibleInland.empty()) Drape(elevations, anchor).lay(visibleInland, 0.12, inlandMesh);
     BridgeOutput bridges = buildBridges(grades, bounds, elevations, anchor);
     // Road centre lines in engine metres, so a bench faces its street.
@@ -501,7 +545,8 @@ CookedTile cookTile(const Observations& in) {
         {"osmQueryVersion", osm.queryVersion},
         {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats}}},
         {"peaks", peakReport},
-        {"water", pack ? pack->water : cells.rows()}, {"decks", works.decks}, {"boats", boats}, {"harbour", harbour.json()},
+        {"water", pack ? pack->water : cells.rows()}, {"decks", works.decks},
+        {"dryStreets", pack || ocean ? nlohmann::json::array() : dryStreets(streets.ground, cells, anchor)}, {"boats", boats}, {"harbour", harbour.json()},
         {"props", props.stats},
         {"aircraft", ocean ? nlohmann::json::array() : airports.aircraft}, {"airports", airports.stats},
         {"airportsPending", in.airportsPending}, {"provisional", in.provisional}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},

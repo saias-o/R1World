@@ -193,6 +193,49 @@ TEST(Streets, sharp_bend_has_continuous_carriageway_and_sidewalk_edges) {
         NEAR(area(walk->mesh), out.stats["sidewalkAreaM2"].get<double>(), 0.15);
     }
 }
+TEST(Streets, a_bend_cut_into_segments_or_ways_has_no_notch) {
+    // The cook hands the streets one two-point way per segment: the bend of
+    // the test above must stay whole, and so must one split between two ways.
+    Slope s;
+    auto geo = [&](P2 p) { const P3 g = s.anchor.toGeodetic(p.x, 0, p.y); return P2{g.x, g.y}; };
+    const Tags tags{{"highway", "residential"}, {"width", "6"}, {"sidewalk", "both"}, {"sidewalk:width", "2"}};
+    for (int64_t second : {2, 3}) {
+        const auto out = s.streets({way(2, {geo({-25, 0}), geo({0, 0})}, tags), way(second, {geo({0, 0}), geo({0, 25})}, tags)});
+        const MeshPart* road = part(out.parts, "Carriageway");
+        const MeshPart* walk = part(out.parts, "Sidewalks");
+        CHECK(road && walk);
+        for (double angle : {-1.3, -0.9, -0.45, -0.1}) {
+            CHECK_MSG(covers(road->mesh, {2.5 * std::cos(angle), 2.5 * std::sin(angle)}), "road at " << angle << ", way " << second);
+            // A bend inside one way keeps its pavement round the outside too.
+            if (second == 2) CHECK_MSG(covers(walk->mesh, {4.0 * std::cos(angle), 4.0 * std::sin(angle)}), "walk at " << angle);
+        }
+        // A free end stays square: nothing is laid past it.
+        CHECK(!covers(road->mesh, {-26.0, 0.0}) && !covers(road->mesh, {0.0, 26.0}));
+    }
+}
+TEST(Streets, a_street_crossing_the_tile_edge_is_laid_up_to_it) {
+    // A diagonal street cut at the edge: its square end leaves a corner of
+    // the tile to the neighbour, which does not lay outside itself.
+    Slope s;
+    const P3 corner = s.anchor.toEngine(s.grid.bounds.east, 0, 0);
+    auto geo = [&](P2 p) { const P3 g = s.anchor.toGeodetic(p.x, 0, p.y); return P2{g.x, g.y}; };
+    const Tags tags{{"highway", "primary"}, {"width", "10"}, {"sidewalk", "no"}};
+    const auto out = s.streets({way(2, {geo({corner.x - 40, -40}), geo({corner.x + 40, 40})}, tags)});
+    const MeshPart* road = part(out.parts, "Carriageway");
+    CHECK(road);
+    // Just inside the edge, on the far side of the axis from where it was cut.
+    CHECK(covers(road->mesh, {corner.x - 0.3, 3.0}));
+    CHECK(covers(road->mesh, {corner.x - 0.3, -3.0}));
+    double east = -1e300;
+    for (const P3& p : road->mesh.positions) east = std::max(east, p.x);
+    CHECK(east < corner.x + 0.01);
+}
+TEST(Streets, the_ground_they_cover_is_said) {
+    Slope s;
+    const auto out = s.streets({s.road});
+    CHECK(clip::contains(out.ground, P2{0, 0}) && clip::contains(out.ground, P2{0, 4.5}));
+    CHECK(!clip::contains(out.ground, P2{0, 10}));
+}
 TEST(Streets, a_zebra_needs_a_surveyed_marking) {
     Slope s;
     for (const auto& [marking, expected] : std::vector<std::pair<std::string, int>>{{"zebra", 1}, {"no", 0}, {"yes", 0}}) {
@@ -220,6 +263,19 @@ TEST(Water, a_mapped_river_line_has_a_visible_width_without_mapped_banks) {
                                                  {{"waterway", "river"}, {"width", "80 m"}})}, anchor);
     CHECK(clip::contains(measured, P2{0, 35}));
     CHECK(!clip::contains(measured, P2{0, 45}));
+}
+
+TEST(Water, water_under_the_street_is_not_drawn) {
+    // The canal under a boulevard, a culverted stream, a covered reservoir.
+    const Anchor anchor = Anchor::at(2.35, 48.85);
+    const P3 a = anchor.toGeodetic(-60, 0, 0), b = anchor.toGeodetic(60, 0, 0);
+    for (const Tags& tags : {Tags{{"waterway", "canal"}, {"tunnel", "yes"}}, Tags{{"waterway", "stream"}, {"tunnel", "culvert"}},
+                             Tags{{"waterway", "river"}, {"location", "underground"}}})
+        CHECK(inlandWaterRegion({way(1, {{a.x, a.y}, {b.x, b.y}}, tags)}, anchor).empty());
+    const P3 c = anchor.toGeodetic(-60, 0, -60), d = anchor.toGeodetic(60, 0, 60);
+    const std::vector<P2> square{{c.x, c.y}, {d.x, c.y}, {d.x, d.y}, {c.x, d.y}, {c.x, c.y}};
+    CHECK(!Landcover({way(3, square, {{"natural", "water"}, {"covered", "yes"}})}).at(2.35, 48.85));
+    CHECK(Landcover({way(3, square, {{"natural", "water"}})}).at(2.35, 48.85));
 }
 
 // ── the sea ─────────────────────────────────────────────────────────────────

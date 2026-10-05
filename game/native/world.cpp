@@ -431,6 +431,13 @@ struct Loaded {
         :node(n),served(std::move(s)),data(served->cooked.manifest),
          frame(data.at("lon").get<double>(),data.at("lat").get<double>()),props(served->cooked.props){}
     std::vector<Footprint> footprints; std::vector<Plant> vegetation;
+    // Every trunk of the tile is one static body, a compound of one box per
+    // tree: a body per trunk spent up to 640 of the world's bodies on one tile
+    // of measured canopy, and nine Paris tiles ran it out. A trunk joins it
+    // when its tree is mounted (World::streamProps), never before: a tree
+    // still waiting to stream -- all of them while driving -- was a wall
+    // nobody could see.
+    saida::StaticBodyNode* trunks=nullptr;
     std::vector<LiveInterior> interiors;
     std::vector<StoreParking> parking;
     // This tile's road network and the cars on it. The graph must not move
@@ -456,6 +463,8 @@ struct Loaded {
     int waterRows=0,waterCols=0; std::vector<uint8_t> water;
     bool ocean=false,seaIce=false;
     std::vector<Deck> decks; glm::dvec2 deckLow{1e30},deckHigh{-1e30};
+    // The streets through water cells (gen/cook.cpp dryStreets): rings, even-odd.
+    std::vector<Deck> dryStreets; glm::dvec2 dryLow{1e30},dryHigh{-1e30};
     std::vector<RaisedPiece> raised; glm::dvec2 raisedLow{1e30},raisedHigh{-1e30};
     std::vector<Mooring> boats;
     std::vector<AircraftSpot> aircraft;
@@ -1421,23 +1430,6 @@ class World : public Rml::EventListener {
             std::map<std::string,size_t> reasons;for(const auto& p:streaming->at("unavailable"))++reasons[p.at("reason").get<std::string>()];
             for(const auto& [reason,count]:reasons)saida::Log::info("[World interiors] ",count," buildings unavailable: ",reason);
         }
-        // Every trunk of the tile is one static body, a compound of one box
-        // per tree: a body per trunk spent up to 640 of the world's bodies on
-        // one tile of measured canopy, and nine Paris tiles ran it out.
-        saida::StaticBodyNode* trunks=nullptr;
-        for(const auto& doc:tile.props) {
-            auto groups=doc.find("groups");
-            if(groups==doc.end()||std::find(groups->begin(),groups->end(),"tree")==groups->end())continue;
-            const auto& at=doc.at("transform").at("position");
-            if(!trunks) {
-                auto body=std::make_unique<saida::StaticBodyNode>();body->setName("Tree trunks");
-                trunks=static_cast<saida::StaticBodyNode*>(tile.node->addChild(std::move(body)));
-            }
-            auto shape=std::make_unique<saida::CollisionShapeNode>();
-            shape->shapeType=saida::CollisionShapeType::Box;shape->halfExtents={.23f,2.f,.23f};
-            shape->offset={at[0].get<float>(),at[1].get<float>()+2.f,at[2].get<float>()};
-            trunks->addChild(std::move(shape));
-        }
         if(auto retail=tile.data.find("retail");retail!=tile.data.end())for(const auto& area:retail->at("parking")) {
             StoreParking lot;lot.name=area.at("storeName");
             for(const auto& path:area.at("rings")){r1::Ring r;for(const auto& p:path)r.push_back({p[0],p[1]});lot.rings.push_back(std::move(r));}
@@ -1478,6 +1470,17 @@ class World : public Rml::EventListener {
                 }
                 tile.deckLow=glm::min(tile.deckLow,deck.low);tile.deckHigh=glm::max(tile.deckHigh,deck.high);
                 tile.decks.push_back(std::move(deck));
+            }
+        if(auto dry=tile.data.find("dryStreets");dry!=tile.data.end())
+            for(const auto& ring:*dry) {
+                Deck piece;
+                for(const auto& point:ring) {
+                    glm::dvec2 q{double(point[0]),double(point[1])};
+                    piece.points.push_back(q);piece.low=glm::min(piece.low,q);piece.high=glm::max(piece.high,q);
+                }
+                if(piece.points.size()<3)continue;
+                tile.dryLow=glm::min(tile.dryLow,piece.low);tile.dryHigh=glm::max(tile.dryHigh,piece.high);
+                tile.dryStreets.push_back(std::move(piece));
             }
         auto raised=tile.data.find("raised");
         if(raised!=tile.data.end())
@@ -1534,6 +1537,22 @@ class World : public Rml::EventListener {
             if(in){if(level)*level=d.y;return true;}
         }
         return false;
+    }
+    // Is this coordinate on a street that crosses a water cell? A cell is
+    // water or not as a whole; a street through it is dry, always.
+    bool onDryStreet(const Loaded& t,double x,double y) const {
+        if(t.dryStreets.empty())return false;
+        const glm::dvec3 p=t.frame.local(ecef(x,y,0.));
+        const glm::dvec2 q(p.x,p.z);
+        if(q.x<t.dryLow.x||q.x>t.dryHigh.x||q.y<t.dryLow.y||q.y>t.dryHigh.y)return false;
+        bool in=false;
+        for(const Deck& d:t.dryStreets) {
+            if(q.x<d.low.x||q.x>d.high.x||q.y<d.low.y||q.y>d.high.y)continue;
+            const auto& poly=d.points;
+            for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++)
+                if((poly[i].y>q.y)!=(poly[j].y>q.y)&&q.x<(poly[j].x-poly[i].x)*(q.y-poly[i].y)/(poly[j].y-poly[i].y)+poly[i].x)in=!in;
+        }
+        return in;
     }
     // The surfaces off the ground at (x, y): bridge decks and embankments
     // (gen/bridges.hpp). Each is handed to `seen(level, solid, parapet)`:
@@ -1610,7 +1629,7 @@ class World : public Rml::EventListener {
     // `standing`: whoever is at that altitude on a bridge over the water is dry.
     bool onWater(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
         const auto* t=tile(x,y);
-        if(!t||onDeck(*t,x,y)||!(t->ocean||waterCode(*t,x,y)!=0))return false;
+        if(!t||onDeck(*t,x,y)||!(t->ocean||waterCode(*t,x,y)!=0)||onDryStreet(*t,x,y))return false;
         // A bridge's parapet stands between whoever is on it and the river.
         if(!std::isnan(standing)&&(height(x,y,standing)>terrainHeight(*t,x,y)+.5))return false;
         return true;
@@ -4088,6 +4107,19 @@ class World : public Rml::EventListener {
             std::lock_guard<std::mutex> g(job->lock);job->busy=false;
         }).detach();
     }
+    // The trunk of a tree that has just been mounted. The compound is rebuilt
+    // at the next physics sync, once however many trees joined it this frame.
+    void addTrunk(Loaded& l,const json& at) {
+        if(!l.trunks) {
+            auto body=std::make_unique<saida::StaticBodyNode>();body->setName("Tree trunks");
+            l.trunks=static_cast<saida::StaticBodyNode*>(l.node->addChild(std::move(body)));
+        }
+        auto shape=std::make_unique<saida::CollisionShapeNode>();
+        shape->shapeType=saida::CollisionShapeType::Box;shape->halfExtents={.23f,2.f,.23f};
+        shape->offset={at[0].get<float>(),at[1].get<float>()+2.f,at[2].get<float>()};
+        l.trunks->addChild(std::move(shape));
+        l.trunks->markDirty();
+    }
     // `roadside`: only what is read from the road -- the signs, which the
     // tile lists before its furniture -- for a driver above 15 km/h.
     void streamProps(bool roadside=false) {
@@ -4115,6 +4147,8 @@ class World : public Rml::EventListener {
                         l.vegetation.push_back(entry);
                         n->setVisible(false);
                     }
+                    if(doc.contains("groups")&&std::find(doc["groups"].begin(),doc["groups"].end(),"tree")!=doc["groups"].end())
+                        addTrunk(l,doc.at("transform").at("position"));
                     if(n->isInGroup("landmark")) {
                         auto body=std::make_unique<saida::StaticBodyNode>();body->setName(n->name()+" collider");
                         auto shape=std::make_unique<saida::CollisionShapeNode>();shape->shapeType=saida::CollisionShapeType::Mesh;
@@ -5023,13 +5057,16 @@ public:
                          densestKey," holds ",densest," static bodies of ",kTileStaticBodies," (kTileStaticBodies)");
     }
     // A tile's trunks are one compound body: the query the car stops on and
-    // the feet's solver meet every tile's first trunk, a metre off the ground.
+    // the feet's solver meet every tile's first mounted trunk, a metre off the ground.
     bool trunksSolid() {
         auto* physics=engine.sceneTree().world().physics();
         size_t checked=0;
         for(const auto& [key,t]:loaded) {
             auto* body=dynamic_cast<saida::StaticBodyNode*>(t.node->findByPath("Tree trunks"));
             if(!body||body->children().empty())continue;
+            // Trunks join as their trees stream: a body whose first trees
+            // arrived this frame is built at the next sync, refused never.
+            if(body->bodyId().IsInvalid()&&!body->bodyRefused())continue;
             auto* shape=dynamic_cast<saida::CollisionShapeNode*>(body->children().front().get());
             const glm::vec3 at(body->worldTransform()*glm::vec4(shape->offset-glm::vec3(0,1.f,0),1.f));
             bool met=false;

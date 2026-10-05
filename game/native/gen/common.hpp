@@ -61,6 +61,11 @@ inline bool taggedYes(const Tags& t, const char* key) {
     auto it = t.find(key);
     return it != t.end() && it->second != "no";
 }
+// Water nobody sees: a culvert, a canal under a boulevard, a covered
+// reservoir. OSM maps it where it runs, and above it is the street.
+inline bool hiddenWater(const Tags& t) {
+    return taggedYes(t, "tunnel") || tagOr(t, "covered") == "yes" || tagOr(t, "location") == "underground";
+}
 
 // ── seeded draws ────────────────────────────────────────────────────────────
 //
@@ -165,7 +170,7 @@ inline PyRandom seeded(__int128 id, __int128 salt) { return PyRandom((id * 10000
 // raw observations already on disk.
 constexpr int kRows = 36000;
 constexpr double kStep = 180.0 / kRows;
-constexpr int kVersion = 27;  // 27: shopfronts batched by their complete material
+constexpr int kVersion = 28;  // 28: streets whole through bends and tile edges, never under water
 // The version the Python worker wrote its caches under. Its raw observations
 // (osm.json, elevation) are reused, never its geometry.
 constexpr int kFirstVersion = 1;

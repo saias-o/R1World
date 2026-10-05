@@ -33,6 +33,9 @@ public:
           const std::function<bool(double, double)>& inlandAt = {});
     int at(double lon, double lat) const;
     double adjust(int row, int col, double height) const;
+    // Where a street lies: on the ground `adjust` drew, and never under the
+    // sea that ground meets (a road through a sea cell is a causeway).
+    double roadLevel(int row, int col, double height) const;
     std::vector<std::string> rows() const;
     bool hasSea() const { return hasSea_; }
     int seaCells() const;
