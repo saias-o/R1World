@@ -882,7 +882,17 @@ ceiling, fifteen miles), a clear day's 150 km (`fogDensity 0.0000261`). That
 value is measured on the reference photographs: drawn without haze, Table
 Mountain from Bloubergstrand stands 20% darker than the sky, as in the
 photograph; 60 km made it whiter than the sky. The haze is the horizon's
-colour, far brighter than a facade, so a little of it hides a lot. The
+colour, far brighter than a facade, so a little of it hides a lot.
+
+The air is layered, not uniform (the engine's `fogRayleigh` and
+`fogScaleHeight`). Clear air takes 13.6e-6 per metre at sea level at 550 nm
+(Bucholtz), as λ⁻⁴ at the sky model's three wavelengths: blue goes about three
+times faster than red, so far mountains turn blue, as in the photographs. It
+thins over the pressure scale height (8.4 km). The rest of the measured
+extinction, at the ground it was measured on, is aerosol: grey, thinning over
+1.2 km, so summits stand in clearer air than valleys. Altitude along each ray
+is taken over the sphere that fits the ground under the player (its Gaussian
+radius), so the rays to the horizon climb out of the haze as they do. The
 engine's fog reaches the far plane since its depth is reversed: before, it took
 any depth over 0.9999 for sky and left everything past a kilometre unfogged.
 

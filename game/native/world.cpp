@@ -1329,7 +1329,20 @@ class World : public Rml::EventListener {
                !=saida::ScriptCallStatus::Succeeded)return false;
         return result.is_boolean() && result.get<bool>();
     }
+    // The air thins with altitude over the Earth, not over the scene's
+    // tangent plane: the engine's fog is given the sphere that fits the
+    // ground under the player (centre of curvature, Gaussian radius), so a
+    // ray to the horizon climbs out of the haze as it does.
+    void tellPlanet() {
+        const double p=lat*rad,l=lon*rad,w=1.0-r1::kE2*std::sin(p)*std::sin(p);
+        const double radius=std::sqrt(r1::kA/std::sqrt(w)*r1::kA*(1.0-r1::kE2)/(w*std::sqrt(w)));
+        const glm::dvec3 normal(std::cos(p)*std::cos(l),std::cos(p)*std::sin(l),std::sin(p));
+        auto& settings=engine.sceneTree().world().settings();
+        settings.fogPlanetRadius=float(radius);
+        settings.fogPlanetCentre=glm::vec3(origin.local(ecef(lon,lat,0.)-normal*radius));
+    }
     void moveSun() {
+        tellPlanet();
         // A failure here is a scene that keeps lighting the wrong hemisphere
         // rather than a crash, so it has to be said out loud once.
         if(tellSun()||sunReported)return;
@@ -2809,7 +2822,7 @@ class World : public Rml::EventListener {
         fogFar=farPack.node!=nullptr;
         const double seen=weather.visibility>0&&weather.visibility<kVisibilityCeiling?weather.visibility:0.;
         json result;
-        sunScript->callExport("setWeather",json::array({weather.cover,weather.rain,seen}),result);
+        sunScript->callExport("setWeather",json::array({weather.cover,weather.rain,seen,height(lon,lat)}),result);
     }
     // Streets and buildings that arrive after the player (a provisional
     // tile cooked again) can land on him: he is moved to the nearest free
@@ -4215,7 +4228,7 @@ class World : public Rml::EventListener {
             lon=x0;lat=y0;alt=waterSpawn?waterLevel(lon,lat):height(lon,lat);
             origin=Frame(lon,lat,alt);placeTiles();moveSun();
             conditions=json::object();weather=Weather{};
-            if(sunScript){json result;sunScript->callExport("setWeather",json::array({0.,0.}),result);}
+            if(sunScript){json result;sunScript->callExport("setWeather",json::array({0.,0.,0.,alt}),result);}
             jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
             // Teleporting leaves the current vehicle. A water arrival starts
             // swimming at the selected coordinate, including in the open sea.

@@ -86,13 +86,37 @@ const FOG_DENSITY = 0.0000261;
 let weatherCloud = 0.0;
 let weatherRain = 0.0;
 let weatherFog = FOG_DENSITY;
+// Where the visibility was measured: the ground under the observer, not the
+// observer (a pilot at 10 km is not where the station is).
+let weatherGround = 0.0;
+
+// The air is layered, not a uniform haze (the engine's fog, `fogRayleigh` and
+// `fogScaleHeight`). Clear air's own extinction at sea level, per channel at
+// WAVELENGTHS -- 13.56e-6 per metre at 550 nm (Bucholtz 1995), as lambda^-4 --
+// takes blue about three times faster than red: far mountains turn blue. It
+// thins with the pressure scale height. What the measured visibility says
+// beyond it is aerosol, grey, thinning over AEROSOL_SCALE_HEIGHT: summits
+// stand in clearer air than valleys.
+const RAYLEIGH_550 = 13.558e-6;
+const AEROSOL_SCALE_HEIGHT = 1200.0;
+const RAYLEIGH = WAVELENGTHS.map(function (w) { return RAYLEIGH_550 * Math.pow(0.550 / w, 4.0); });
+
+// The grey extinction at altitude 0 that, with clear air, gives the measured
+// extinction (`weatherFog` plus the rain's) at the ground it was measured on.
+function aerosolAtSeaLevel() {
+    const ground = Math.max(-500.0, Math.min(weatherGround, 6000.0));
+    const measured = weatherFog + Math.min(weatherRain, 2.0) * 0.001;
+    const air = RAYLEIGH_550 * Math.exp(-ground / PRESSURE_SCALE_HEIGHT);
+    return Math.max(0.0, measured - air) * Math.exp(ground / AEROSOL_SCALE_HEIGHT);
+}
 
 // `visibility`, when the game passes one, is the measured meteorological
 // visibility in metres (Open-Meteo), turned into an extinction the same way
 // (Koschmieder), as measured: what is measured is not thinned to hide where
 // the streamed world ends.
-function setWeather(cloudFraction, precipitation, visibility) {
+function setWeather(cloudFraction, precipitation, visibility, groundAltitude) {
     if (!isFinite(cloudFraction) || !isFinite(precipitation)) return false;
+    weatherGround = isFinite(groundAltitude) ? groundAltitude : 0.0;
     weatherRain = Math.max(0.0, precipitation);
     weatherCloud = Math.max(0.0, Math.min(1.0, Math.max(cloudFraction, weatherRain * 0.5)));
     weatherFog = isFinite(visibility) && visibility > 0.0
@@ -557,7 +581,10 @@ function refreshSun() {
     // colour, because they are one scattering column.
     scene.setSetting("fogColor", sky.horizonColor);
     scene.setSetting("clearColor", sky.horizonColor);
-    scene.setSetting("fogDensity", weatherFog + Math.min(weatherRain, 2.0) * 0.001);
+    scene.setSetting("fogDensity", aerosolAtSeaLevel());
+    scene.setSetting("fogScaleHeight", AEROSOL_SCALE_HEIGHT);
+    scene.setSetting("fogRayleigh", RAYLEIGH);
+    scene.setSetting("fogRayleighScaleHeight", PRESSURE_SCALE_HEIGHT);
     scene.setSetting("iblDiffuseIntensity", sky.iblIntensity);
     scene.setSetting("iblSpecularIntensity", sky.iblIntensity);
 
