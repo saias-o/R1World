@@ -222,7 +222,7 @@
         0.7
       ],
       "fogStart": 160,
-      "fogDensity": 0.0000652,
+      "fogDensity": 0.0000261,
       "iblEnabled": false,
       "aoEnabled": true,
       "bloomEnabled": false,

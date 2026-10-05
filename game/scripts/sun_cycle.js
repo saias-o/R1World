@@ -73,16 +73,16 @@ const EPOCH_UNIX = props.useSystemClock ? Date.now() / 1000.0 : props.epochUnix;
 const TIME_SCALE = props.secondsPerSecond;
 const TURBIDITY = props.turbidity;
 const PEAK_INTENSITY = props.peakIntensity;
-// Haze, as an extinction per metre, where no visibility is measured: a clear
-// day's 60 km (Koschmieder, 3.912 / V), the clearest a measurement is taken
-// at below. The reference photographs read clearer still: the Vercors at
-// 8.7 km and Table Mountain at 17 km keep half their contrast, about 90 km.
-// The haze is the horizon's colour, far brighter than a facade, so a little
-// of it hides a lot: 24 km left the Statue of Liberty a ghost at 2.7 km. It
-// was a 5 km city haze, which the engine never drew past a kilometre (its fog
-// took any depth over 0.9999 for sky). Kept equal to
-// `prepare_world.FOG_DENSITY`, which gives the scene its first frame.
-const FOG_DENSITY = 0.0000652;
+// Haze, as an extinction per metre, where the air is clear or nothing is
+// measured: 150 km (Koschmieder, 3.912 / V). Measured against the reference
+// photographs with the relief drawn to the horizon: drawn without any haze,
+// Table Mountain from Bloubergstrand (17 km) stands 20% darker than the sky
+// above it, exactly as in the photograph -- so on that day the air took
+// almost nothing, and 60 km had made the mountain whiter than the sky. The
+// haze is the horizon's colour, far brighter than a facade, so a little of it
+// hides a lot. Kept equal to `prepare_world.FOG_DENSITY`, which gives the
+// scene its first frame.
+const FOG_DENSITY = 0.0000261;
 let weatherCloud = 0.0;
 let weatherRain = 0.0;
 let weatherFog = FOG_DENSITY;
@@ -96,7 +96,7 @@ function setWeather(cloudFraction, precipitation, visibility) {
     weatherRain = Math.max(0.0, precipitation);
     weatherCloud = Math.max(0.0, Math.min(1.0, Math.max(cloudFraction, weatherRain * 0.5)));
     weatherFog = isFinite(visibility) && visibility > 0.0
-        ? 3.912 / Math.max(50.0, Math.min(visibility, 60000.0)) : FOG_DENSITY;
+        ? 3.912 / Math.max(50.0, Math.min(visibility, 300000.0)) : FOG_DENSITY;
     return true;
 }
 

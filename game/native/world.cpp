@@ -17,6 +17,7 @@
 #include "nodes/MeshNode.hpp"
 #include "nodes/LightNode.hpp"
 #include "nodes/ParticleSystemNode.hpp"
+#include "nodes/TerrainRingsNode.hpp"
 #include "behaviours/LODGroupBehaviour.hpp"
 #include "physics/CharacterBodyNode.hpp"
 #include "physics/CollisionShapeNode.hpp"
@@ -43,6 +44,8 @@
 #include "gen/predict.hpp"
 #include "gen/net.hpp"
 #include "gen/sea.hpp"
+#include "gen/far_relief.hpp"
+#include "gen/sources.hpp"
 #include "gen/service.hpp"
 #include "minimap.hpp"
 #include <filesystem>
@@ -58,6 +61,8 @@
 #include <cstring>
 #include <functional>
 #include <future>
+#include <mutex>
+#include <thread>
 #include <optional>
 
 namespace fs = std::filesystem;
@@ -2794,11 +2799,15 @@ class World : public Rml::EventListener {
         }
         applyWeather();
     }
-    // The measured visibility is the fog, as measured (sun_cycle.js).
+    // The measured visibility is the fog (sun_cycle.js). From 24 km up it is
+    // clear air: the weather models stop there (24.14 km, fifteen miles), and
+    // the photographed horizons of clear days read 150 km and more, so a
+    // reading at the models' ceiling is the clear default, not 24 km of haze.
+    static constexpr double kVisibilityCeiling=24000.;
     void applyWeather() {
         if(!sunScript)return;
         fogFar=farPack.node!=nullptr;
-        const double seen=weather.visibility>0?weather.visibility:0.;
+        const double seen=weather.visibility>0&&weather.visibility<kVisibilityCeiling?weather.visibility:0.;
         json result;
         sunScript->callExport("setWeather",json::array({weather.cover,weather.rain,seen}),result);
     }
@@ -3303,6 +3312,7 @@ class World : public Rml::EventListener {
                 position-turn*t.node->transform().position,turn);
         }
         for(auto& f:farLandmarks)if(f.node)placeFar(f);
+        placeFarRelief();
         placeFarPack();
     }
     void trim() {
@@ -3902,6 +3912,143 @@ class World : public Rml::EventListener {
         saida::Log::info("[World ice] far pack to ",r1::kFarPackRadius/1000.," km around ",lon,", ",lat,
                          ": ",vertices," vertices, ",ice->measured?"measured ":"inferred ",ice->date,
                          " build_ms=",msSince(started));
+    }
+    // ── the relief to the horizon ─────────────────────────────────────────────
+    //
+    // Past the streamed tiles the engine draws nested rings of terrain
+    // (Saida's TerrainRingsNode): nine rings of 128 cells, 16 m to 4 km, out to
+    // 262 km. Their heights are the Terrain Tiles at each ring's zoom, sampled
+    // on a thread of their own (gen/far_relief); a ring is sampled again when
+    // the player has moved two of its cells. The resident tiles are holes in
+    // the rings, so the two never overlap and never leave a gap. The images
+    // are kept on disk: a place visited sees its horizon offline.
+    static constexpr double kFarBaseSpacing=16.0;
+    static constexpr int kFarLevels=9;
+    static constexpr double kFarReanchor=20000.0;  // metres before the rings' tangent frame moves
+    struct FarJob {
+        std::mutex lock;
+        std::vector<std::pair<int,r1::FarLevel>> done;
+        std::vector<std::string> said;
+        bool busy=false;
+    };
+    struct FarRelief {
+        saida::TerrainRingsNode* node=nullptr;
+        double lon=0,lat=0; r1::Anchor anchor;
+        std::shared_ptr<r1::FarLayers> layers;
+        uint64_t layersSeen=0,generation=0;
+        std::array<glm::dvec2,saida::TerrainRingsNode::kMaxLevels> origins{};
+        std::array<bool,saida::TerrainRingsNode::kMaxLevels> asked{};
+        std::shared_ptr<FarJob> job;
+        double reach=0;
+    } farRelief;
+    void placeFarRelief() {
+        if(!farRelief.node)return;
+        const auto position=glm::vec3(origin.local(ecef(farRelief.lon,farRelief.lat,0.)));
+        const Frame own(farRelief.lon,farRelief.lat,0.);
+        const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*own.basis));
+        const auto turn=rotation*glm::inverse(farRelief.node->transform().rotation);
+        engine.sceneTree().world().rebaseSubtree(*farRelief.node,position-turn*farRelief.node->transform().position,turn);
+    }
+    void updateFarRelief() {
+        // Where it cannot be drawn: before a spawn, over the pack (whose own
+        // far field is the horizon there), and past the Mercator images' 85 degrees.
+        const bool wanted=playing&&!pending&&!farPack.node&&std::abs(lat)<84.5;
+        if(!wanted) {
+            if(farRelief.node&&farRelief.node->visible())farRelief.node->setVisible(false);
+            return;
+        }
+        if(!farRelief.node) {
+            auto n=std::make_unique<saida::TerrainRingsNode>();
+            n->setName("far relief");
+            n->levels=kFarLevels;n->baseSpacing=float(kFarBaseSpacing);
+            farRelief.node=static_cast<saida::TerrainRingsNode*>(engine.sceneTree().world().addChild(std::move(n)));
+            farRelief.layers=std::make_shared<r1::FarLayers>();
+        }
+        if(!farRelief.node->visible())farRelief.node->setVisible(true);
+        auto& f=farRelief;
+        // A new tangent frame where the player is, when the old one is far.
+        glm::dvec2 focus{0.};
+        if(f.job) {const r1::P3 p=f.anchor.toEngine(lon,lat,0.);focus={p.x,p.z};}
+        if(!f.job||glm::length(focus)>kFarReanchor) {
+            f.lon=lon;f.lat=lat;f.anchor=r1::Anchor::at(lon,lat,0.);
+            f.node->clearLevels();f.asked={};f.reach=0;++f.generation;
+            f.job=std::make_shared<FarJob>();
+            focus={0.,0.};
+            placeFarRelief();
+            saida::Log::info("[World far] rings anchored at ",lon,", ",lat);
+        }
+        f.node->focus=focus;
+        // What came back from the thread.
+        std::vector<std::pair<int,r1::FarLevel>> done;std::vector<std::string> said;
+        {std::lock_guard<std::mutex> g(f.job->lock);done.swap(f.job->done);said.swap(f.job->said);}
+        for(const auto& line:said)saida::Log::info("[World far] ",line);
+        for(auto& [k,level]:done) {
+            saida::TerrainRingsNode::Level l;
+            l.origin={level.originX,level.originZ};l.spacing=level.spacing;
+            l.heights=std::move(level.heights);l.layers=std::move(level.layers);
+            if(f.node->setLevel(k,std::move(l)))
+                f.reach=std::max(f.reach,0.5*saida::TerrainRingsNode::kResolution*level.spacing);
+        }
+        if(f.layers->revision()!=f.layersSeen) {
+            f.layersSeen=f.layers->revision();
+            const auto swatches=f.layers->swatches();
+            for(size_t i=0;i<swatches.size();++i)
+                f.node->setLayer(int(i),{glm::vec3(float(swatches[i].color[0]),float(swatches[i].color[1]),float(swatches[i].color[2])),
+                                        float(swatches[i].roughness)});
+        }
+        // The resident tiles draw their own ground: holes in the rings.
+        std::vector<saida::TerrainRingsNode::Hole> holes;
+        for(const auto& [key,t]:loaded) {
+            if(!t.geography||t.ocean)continue;
+            auto at=[&](double x,double y){const r1::P3 p=f.anchor.toEngine(x,y,0.);return glm::dvec2(p.x,p.z);};
+            holes.push_back({at(t.west,t.south),at(t.east,t.south),at(t.east,t.north),at(t.west,t.north)});
+        }
+        f.node->setHoles(std::move(holes));
+        // The rings whose samples no longer sit around the player, finest first.
+        {std::lock_guard<std::mutex> g(f.job->lock);if(f.job->busy)return;}
+        std::vector<std::pair<int,glm::dvec2>> asks;
+        for(int k=0;k<kFarLevels;++k) {
+            const glm::dvec2 o=f.node->levelOrigin(k,focus);
+            if(f.asked[size_t(k)]&&o==f.origins[size_t(k)])continue;
+            f.origins[size_t(k)]=o;f.asked[size_t(k)]=true;asks.push_back({k,o});
+        }
+        if(asks.empty())return;
+        f.job->busy=true;
+        std::thread([job=f.job,layers=f.layers,anchor=f.anchor,asks,root=game.string()] {
+            const r1::ObservationStore store(root);
+            for(const auto& [k,o]:asks) {
+                const double spacing=kFarBaseSpacing*std::ldexp(1.,k);
+                const auto started=std::chrono::steady_clock::now();
+                const int zoom=r1::farZoom(spacing,anchor.lat);
+                std::string why;
+                // The ring's own zoom, fetched if need be; else a coarser one
+                // already on disk (offline, a place visited at another height).
+                for(int z=zoom;z>=std::max(3,zoom-3);--z) {
+                    try {
+                        // Its edge on the next ring's zoom: the two meet on the same heights.
+                        const int outer=r1::farZoom(2.*spacing,anchor.lat);
+                        auto level=r1::sampleFarLevel(anchor,o.x,o.y,spacing,saida::TerrainRingsNode::kResolution,
+                                                      store.terrainSampler(z,z==zoom),*layers,
+                                                      outer==z?std::function<double(double,double)>{}:store.terrainSampler(outer,true));
+                        level.zoom=z;
+                        std::ostringstream line;
+                        line<<"ring "<<k<<": "<<spacing<<" m, Terrain Tiles z"<<z<<(z==zoom?"":" (coarser, on disk)")
+                            <<", sea "<<level.seaCells<<" snow "<<level.snowCells<<" rock "<<level.rockCells
+                            <<" cells inferred, build_ms="<<msSince(started);
+                        std::lock_guard<std::mutex> g(job->lock);
+                        job->said.push_back(line.str());
+                        job->done.push_back({k,std::move(level)});
+                        why.clear();
+                        break;
+                    } catch(const std::exception& e) {why=e.what();}
+                }
+                if(!why.empty()) {
+                    std::lock_guard<std::mutex> g(job->lock);
+                    job->said.push_back("ring "+std::to_string(k)+" refused: no relief at "+std::to_string(spacing)+" m: "+why);
+                }
+            }
+            std::lock_guard<std::mutex> g(job->lock);job->busy=false;
+        }).detach();
     }
     // `roadside`: only what is read from the road -- the signs, which the
     // tile lists before its furniture -- for a driver above 15 km/h.
@@ -4986,7 +5133,7 @@ public:
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
         cost.props=timed([&]{streamProps(fast);});
-        cost.distant=timed([&]{updateFar();updateFarPack();});
+        cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
         cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateCrowd(delta);updateSea(delta);});
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
@@ -4995,6 +5142,10 @@ public:
         // 4.7 km at eye height, 113 km from a thousand metres, never past
         // the far pack. Elsewhere it stops at the 5 km haze, as it always has.
         camera->farZ=farPack.node?float(std::clamp(std::sqrt(2.*r1::kRMean*std::max(2.,alt+10.))*1.2+1500.,5000.,r1::kFarPackRadius+5000.)):5000.f;
+        // Out to the farthest ring drawn: a summit 200 km off stands above
+        // the horizon from a beach, and the haze, not the far plane, hides it.
+        if(farRelief.node&&farRelief.node->visible()&&farRelief.reach>0)
+            camera->farZ=std::max(camera->farZ,float(farRelief.reach+2000.));
         updateSnow(delta);
         if(checkStanding)keepStanding();
         updateSnowCover();
@@ -5228,6 +5379,10 @@ public:
             // The same for the surveyed summits: a mountain photographed
             // before its summit list landed is the relief they correct.
             size_t provisional=0,summitsPending=0;
+            // And the rings to the horizon, where they are drawn.
+            const bool farPending=farRelief.node&&farRelief.node->visible()&&
+                (!farRelief.job||[&]{std::lock_guard<std::mutex> g(farRelief.job->lock);return farRelief.job->busy||!farRelief.job->done.empty();}()
+                 ||[&]{for(int k=0;k<kFarLevels;++k)if(!farRelief.node->level(k))return true;return false;}());
             bool settled=std::all_of(want.begin(),want.end(),[&](Tile t){
                 auto i=loaded.find(t.key());if(i==loaded.end())return false;
                 if(i->second.data.value("provisional",false))++provisional;
@@ -5257,7 +5412,7 @@ public:
                 saida::Log::info("[World capture wait] ",int(captureWait)," s, not settled:",why.empty()?" every tile is in":why);
             }
             // Summits refine a relief that is already there: a minute less.
-            if(settled&&((provisional&&captureWait<120.)||(summitsPending&&captureWait<45.)))settled=false;
+            if(settled&&((provisional&&captureWait<120.)||((summitsPending||farPending)&&captureWait<45.)))settled=false;
             if(settled&&provisional&&!captureQueued)
                 saida::Log::error("[World capture] ",provisional," of ",want.size(),
                                   " tiles still wait for OSM after two minutes; photographed as they are");

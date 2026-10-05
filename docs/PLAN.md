@@ -267,6 +267,13 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   arbre inféré ne reste que là où la canopée voit un arbre ; chaque cellule
   arborée vide reçoit un arbre photoscanné à la hauteur mesurée
   (`native/gen/canopy.*`).
+- **Montagnes** : le relief est lu finement (41 × 41, zoom 13) et relevé aux
+  sommets que OSM a mesurés (`native/gen/peaks.*`) ; au-delà des tuiles, le
+  moteur dessine le relief jusqu'à 262 km en anneaux imbriqués
+  (`TerrainRingsNode`, profondeur inversée), sans un sommet de l'arène, avec la
+  courbure de la Terre ; la brume est la visibilité mesurée, 150 km par temps
+  clair. Comparé à des photographies réelles dans la galerie (Grenoble, Le
+  Cap, Rio).
 - **Physique du moteur** : toutes les collisions du jeu sont des corps Saida
   (tuiles, intérieurs, portes, meubles, véhicules, troncs) ; le jeu n'a plus
   de test d'obstacle à lui. Le joueur est un `CharacterBodyNode`.
@@ -296,12 +303,6 @@ machine de référence (I4).
   prêtent : parasols, serviettes, transats et baigneurs dans l'eau et sur le
   sable. La densité suit la chaleur et l'heure, et le manifeste dit que c'est
   inféré.
-
-### Pays froids update, la suite
-Le pôle, la banquise et la neige sont faits (§7). Reste :
-- **Montagnes** : un relief qui se voit de loin, avec des sommets qui ne soient
-  plus rabotés par la grille d'élévation grossière, et un horizon qui ne
-  s'arrête plus à la brume de 5 km sur la terre ferme.
 
 ### Intérieurs, la suite
 Le rez-de-chaussée est aménagé (§7). Reste :

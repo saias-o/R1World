@@ -874,12 +874,53 @@ lighting value; `r1/prepare_world.py` writes them. Rebuild the skies with
 `python -m r1.skies`.
 
 The haze is the measured visibility (Koschmieder's 3.912 / V); where none is
-measured, and in inspection captures, a clear day's 60 km (`fogDensity
-0.0000652`): the haze is the horizon's colour, far brighter than a facade, and
-24 km already left the Statue of Liberty a ghost at 2.7 km. The engine's fog reaches the far plane since its depth is reversed:
-before, it took any depth over 0.9999 for sky and left everything past a
-kilometre unfogged. The far plane stops at 5 km: beyond the nine resident tiles
-the world ends, and in clear air that edge shows.
+measured, in inspection captures, and from 24 km up (the weather models'
+ceiling, fifteen miles), a clear day's 150 km (`fogDensity 0.0000261`). That
+value is measured on the reference photographs: drawn without haze, Table
+Mountain from Bloubergstrand stands 20% darker than the sky, as in the
+photograph; 60 km made it whiter than the sky. The haze is the horizon's
+colour, far brighter than a facade, so a little of it hides a lot. The
+engine's fog reaches the far plane since its depth is reversed: before, it took
+any depth over 0.9999 for sky and left everything past a kilometre unfogged.
+
+## The relief to the horizon
+
+Past the nine resident tiles the engine draws the relief out to 262 km
+(Saida's `TerrainRingsNode`, geometry clipmaps): nine nested square rings of
+128 × 128 cells, 16 m for the finest and 4 096 m for the last, each centred on
+the player snapped to two of its cells. The grid is generated in the vertex
+shader and the heights live in one storage buffer, so the horizon costs
+nothing in the geometry arena; with reversed depth a metre at 100 km is still
+resolved. The camera's far plane follows the farthest ring drawn.
+
+- **Measured heights** (`native/gen/far_relief.*`): the Terrain Tiles at the
+  zoom each ring's spacing asks for, 13 for the finest, 5 for the last,
+  sampled on a thread of the game's own (0.1 to 1.3 s a ring). A ring is
+  sampled again when the player has moved two of its cells. Its outer samples
+  are read at the next ring's zoom, so where two rings meet they stand on the
+  same heights and no crack opens.
+- **Ringing filtered**: the images of zoom 11 and coarser overshoot by
+  thousands of metres where a cliff meets the sea floor (4 109 m by Vidigal,
+  Rio, where zoom 13 reads 137 m and Copernicus 418 m); a 3 × 3 median takes it
+  out.
+- **The curvature is content** (PLAN §3 I2): each sample is the true surface
+  point under its grid position in the rings' tangent frame, which moves with
+  the player every 20 km.
+- **Inferred surfaces, measured albedos**: the sea where the model is at or
+  below 0, snow above the latitude's snowline, rock past a 35° slope, the
+  region's ground elsewhere; the log names each ring's zoom and how many cells
+  were inferred as sea, snow and rock.
+- **The tiles are holes** in the rings: the resident tiles draw their own,
+  finer ground, and the rings neither overlap them nor leave a gap.
+- **Offline**: the images are kept in `cache/world/terrain/<zoom>/`; a place
+  visited sees its horizon offline, at a coarser zoom on disk if its own is
+  missing. A place never visited, offline, has no far relief yet.
+- Not drawn over the pack ice (its own far field is the horizon there) nor
+  past 84.5° (the images are Web Mercator).
+
+The reference views of the gallery (Grenoble, Le Cap, Rio) are laid beside
+real photographs: the Moucherotte, Table Mountain between Devil's Peak and
+Lion's Head, and the Corcovado's ridge stand where the photographs have them.
 
 ## The car and the traffic
 
@@ -1034,9 +1075,12 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
 
 ## Known limits
 
-- **The world ends at about 800 m**, and in clear air the edge shows; from the
-  air, only the far landmarks stand beyond it. A summit OSM does not survey stays as rounded as
-  the elevation model has it.
+- **The streets and buildings end at about 800 m**: past the nine resident
+  tiles only the relief is drawn, to the horizon. A summit OSM does not survey
+  stays as rounded as the elevation model has it, and the far relief does not
+  raise to surveyed summits yet. A place never visited has no far relief
+  offline: the planet-wide relief layer (measured: about 1.2 GB at 270 m,
+  8.7 GB at 90 m) is still to be built.
 - **Buildings**: preview façades without modelled openings; only ground floors
   are furnished (no upper floors, stairs or lifts); landmark interiors are not
   generated; no sorted glass pass. The Atlas building palettes are not yet

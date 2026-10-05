@@ -108,6 +108,12 @@ public:
     std::optional<std::vector<Peak>> peaks(const PeakCell& cell) const;
     std::vector<Peak> fetchPeaks(const PeakCell& cell) const;
     std::string peaksPath(const PeakCell& cell) const;
+    // The Terrain Tiles' height at (lon, lat) from the images of one zoom,
+    // fetched on first use when `network` allows and kept on disk; throws
+    // SourceUnavailable where an image is neither on disk nor fetchable, or
+    // holds no data. The function keeps the images it read: one per caller
+    // and thread, for the samples of one ring.
+    std::function<double(double, double)> terrainSampler(int zoom, bool network) const;
     static std::string aeroSibling(const std::string& mainPath);
     // The question an answer on disk replied to (1 when it does not say).
     static int queryVersion(const std::string& path);

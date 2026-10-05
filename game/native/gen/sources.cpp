@@ -236,6 +236,7 @@ std::optional<std::string> ObservationStore::osmPath(const Tile& tile, const std
 namespace {
 std::pair<ElevationGrid, std::string> terrainTiles(const Bounds& b, const std::string& root, bool network);
 void writeGround(const std::string& path, const ElevationGrid& g, const std::string& source);
+std::function<double(double, double)> imageSampler(const std::string& root, int zoom, bool network);
 }  // namespace
 
 std::optional<std::pair<ElevationGrid, std::string>> ObservationStore::ground(const Tile& tile) const {
@@ -475,6 +476,10 @@ nlohmann::json ObservationStore::fetchRetail(const Bounds& b,const std::string& 
     throw SourceUnavailable("retail observations unavailable: "+failures);
 }
 
+std::function<double(double, double)> ObservationStore::terrainSampler(int zoom, bool network) const {
+    return imageSampler(root_, zoom, network);
+}
+
 std::string ObservationStore::peaksPath(const PeakCell& cell) const {
     return root_ + "/cache/world/peaks/" + cell.file();
 }
@@ -654,6 +659,58 @@ std::pair<ElevationGrid, std::string> terrainTiles(const Bounds& b, const std::s
         }
     }
     throw SourceUnavailable(failures);
+}
+
+// The images of zoom 11 and coarser ring: resampled from finer data, they
+// overshoot by thousands of metres where a cliff meets the sea floor (Rio, by
+// Vidigal: 4 109 m at zoom 11 where zoom 13 reads 137 and Copernicus 418). A
+// 3 x 3 median takes the ringing out and leaves relief broader than a pixel
+// (70 m and more there) as it was.
+constexpr int kRingingZoom = 11;
+
+std::vector<unsigned char> withoutRinging(const std::vector<unsigned char>& rgb) {
+    auto height = [&](int x, int y) {
+        const size_t i = size_t((y * 256 + x) * 3);
+        return rgb[i] * 256.0 + rgb[i + 1] + rgb[i + 2] / 256.0;  // + 32768, kept encoded
+    };
+    std::vector<unsigned char> out(rgb);
+    std::array<double, 9> around{};
+    for (int y = 0; y < 256; ++y)
+        for (int x = 0; x < 256; ++x) {
+            if (rgb[size_t((y * 256 + x) * 3)] == 0) continue;  // no data stays no data
+            int n = 0;
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const int px = x + dx, py = y + dy;
+                    if (px < 0 || py < 0 || px > 255 || py > 255 || rgb[size_t((py * 256 + px) * 3)] == 0) continue;
+                    around[size_t(n++)] = height(px, py);
+                }
+            std::nth_element(around.begin(), around.begin() + n / 2, around.begin() + n);
+            const double v = around[size_t(n / 2)];
+            const size_t i = size_t((y * 256 + x) * 3);
+            out[i] = (unsigned char)(int(v) / 256);
+            out[i + 1] = (unsigned char)(int(v) % 256);
+            out[i + 2] = (unsigned char)std::clamp(int((v - std::floor(v)) * 256.0), 0, 255);
+        }
+    return out;
+}
+
+// One caller's images of one zoom: each fetched or read once, then held.
+std::function<double(double, double)> imageSampler(const std::string& root, int zoom, bool network) {
+    auto held = std::make_shared<std::map<std::pair<int, int>, std::vector<unsigned char>>>();
+    return [root, zoom, network, held](double lon, double lat) {
+        const auto rgb = [&](int x, int y) -> const unsigned char* {
+            auto& image = (*held)[{x, y}];
+            if (image.empty()) {
+                const auto source = terrainImage(root, zoom, x, y, network);
+                image = zoom <= kRingingZoom ? withoutRinging(source->rgb) : source->rgb;
+            }
+            return image.data();
+        };
+        const double h = terrariumHeight(lon, lat, zoom, rgb);
+        if (!std::isfinite(h)) throw SourceUnavailable("Mapzen terrain tile has no elevation here");
+        return h;
+    };
 }
 
 // Copernicus GLO-90 through Open-Meteo, 7x7: its 90 m is all there is.

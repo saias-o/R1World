@@ -21,10 +21,10 @@ WORLD_TURBIDITY = 2.4
 DEFAULT_LON, DEFAULT_LAT = 2.3522, 48.8566
 
 # Haze as an extinction per metre where no visibility is measured, and how far
-# the camera draws. A clear day's 60 km (Koschmieder: 3.912 / V); `sun_cycle.js`
+# the camera draws. A clear day's 150 km (Koschmieder: 3.912 / V); `sun_cycle.js`
 # carries the same density every frame, and the measured visibility replaces
 # it. See `landmarks.FAR_RANGE`.
-FOG_DENSITY = 0.0000652
+FOG_DENSITY = 0.0000261
 FAR_PLANE = 5000
 
 
