@@ -32,7 +32,13 @@ public:
 
 // The Overpass question, as a number: an answer to an older one is used only
 // when the network cannot give the current one, and the manifest says so.
-constexpr int kOsmQueryVersion = 10; // 10: civic uses, office and craft tenants. Old caches remain usable.
+constexpr int kOsmQueryVersion = 11; // 11: surveyed summits. Old caches remain usable.
+// The question that brought the shops, stations and civic uses: an answer to
+// it or a later one needs no retail layer of its own.
+constexpr int kOsmRetailVersion = 10;
+// The question that brings the surveyed summits (gen/peaks.hpp) in the
+// neighbourhood's own answer: a summit is never one Overpass call more.
+constexpr int kOsmPeaksVersion = 11;
 // .retail.json: 2 added fuel stations, 3 adds civic/office/craft uses.
 constexpr int kRetailLayerVersion = 3;
 // The question that brought the aero layer: an answer to it or a later one
@@ -103,11 +109,11 @@ public:
     // nullopt; from the network, written to disk before it returns.
     std::optional<nlohmann::json> seaIce(double lon, double lat) const;
     nlohmann::json fetchSeaIce(double lon, double lat) const;
-    // The surveyed summits of a square degree (gen/peaks.hpp): from disk, or
-    // nullopt; from the network, written to disk before they return.
-    std::optional<std::vector<Peak>> peaks(const PeakCell& cell) const;
-    std::vector<Peak> fetchPeaks(const PeakCell& cell) const;
-    std::string peaksPath(const PeakCell& cell) const;
+    // The surveyed summits a tile is raised to (gen/peaks.hpp): those its
+    // neighbourhood's answer carries; for an answer older than
+    // kOsmPeaksVersion, the square degrees an earlier generator kept on disk.
+    // Never a download. `origin` says which answered, for the manifest.
+    std::vector<Peak> peaks(const Tile& tile, const OsmData& osm, std::string* origin = nullptr) const;
     // The Terrain Tiles' height at (lon, lat) from the images of one zoom,
     // fetched on first use when `network` allows and kept on disk; throws
     // SourceUnavailable where an image is neither on disk nor fetchable, or

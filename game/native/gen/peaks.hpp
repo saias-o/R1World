@@ -23,8 +23,10 @@ struct Peak {
     std::string name;
 };
 
-// The surveyed summits are kept by square degree: one Overpass answer each,
-// `<root>/cache/world/peaks/<lat>_<lon>.json` (south-west corner, floored).
+// The surveyed summits come in the neighbourhood's own Overpass answer
+// (sources.hpp, kOsmPeaksVersion). A generator before it asked them by square
+// degree, `<root>/cache/world/peaks/<lat>_<lon>.json` (south-west corner,
+// floored): those lists are still read for the places they cover.
 struct PeakCell {
     int lat = 0, lon = 0;
     bool operator<(const PeakCell& o) const { return lat < o.lat || (lat == o.lat && lon < o.lon); }
@@ -46,11 +48,11 @@ std::vector<PeakCell> peakCells(const Bounds& bounds);
 // metres, and guessing which would be inferring a measurement.
 std::optional<double> parseElevation(const std::string& text);
 
-// The summits of an Overpass answer (`out` of nodes with tags), sorted by id;
-// `refused` counts the ones whose `ele` is not a height in metres.
-std::vector<Peak> peaksFromOverpass(const nlohmann::json& answer, int* refused = nullptr);
-// The compact form kept on disk, and back.
-nlohmann::json peaksDocument(const std::vector<Peak>& peaks, int refused);
+// The summits among an answer's tagged nodes (`natural=peak|volcano` with an
+// `ele`), sorted by id; `refused` counts the ones whose `ele` is not a height
+// in metres.
+std::vector<Peak> peaksFromFeatures(const std::vector<OsmNode>& features, int* refused = nullptr);
+// A square degree's list as an earlier generator kept it on disk.
 std::vector<Peak> peaksFromDocument(const nlohmann::json& document);
 
 // The ground raised to the surveyed summits, on the terrain mesh's grid

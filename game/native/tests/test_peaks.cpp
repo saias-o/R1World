@@ -4,6 +4,8 @@
 #include "gen/terrain.hpp"
 
 #include <array>
+#include <filesystem>
+#include <fstream>
 #include <map>
 
 using namespace r1;
@@ -126,4 +128,52 @@ TEST(Peaks, terrain_tiles_are_read_between_pixel_centres) {
         return zeros.data();
     };
     CHECK(std::isnan(terrariumHeight(lon, 45.0, zoom, empty)));
+}
+
+// The summits come in the neighbourhood's own answer: no Overpass call of
+// their own. Only a summit with a height in metres is one.
+TEST(Peaks, the_summits_are_read_from_the_neighbourhood_answer) {
+    const std::vector<OsmNode> features{
+        {7, -43.1566, -22.9494, {{"natural", "peak"}, {"ele", "396"}, {"name", "P\u00e3o de A\u00e7\u00facar"}}},
+        {3, -43.2830, -22.9990, {{"natural", "volcano"}, {"ele", "844 m"}}},
+        {5, -43.2000, -22.9700, {{"natural", "peak"}, {"ele", "1299 ft"}}},
+        {6, -43.2100, -22.9700, {{"natural", "peak"}}},
+        {8, -43.2200, -22.9700, {{"natural", "rock"}, {"ele", "12"}}},
+        {9, -43.2300, -22.9700, {{"shop", "bakery"}}},
+    };
+    int refused = 0;
+    const auto peaks = peaksFromFeatures(features, &refused);
+    CHECK(peaks.size() == 2);
+    CHECK(peaks[0].id == 3 && peaks[1].id == 7);
+    NEAR(peaks[0].ele, 844.0, 1e-9);
+    NEAR(peaks[1].ele, 396.0, 1e-9);
+    CHECK(refused == 1);
+}
+
+// An answer to question 11 carries the summits; an older one is raised to the
+// square degrees an earlier generator kept on disk, and nothing is fetched.
+TEST(Peaks, an_older_answer_reads_the_degrees_kept_on_disk) {
+    namespace fs = std::filesystem;
+    const std::string root = (fs::temp_directory_path() / "r1-peaks-kept").string();
+    fs::remove_all(root);
+    const ObservationStore store(root);
+    OsmData osm;
+    osm.queryVersion = kOsmPeaksVersion;
+    osm.features = {{7, kSugarloaf.lon, kSugarloaf.lat, {{"natural", "peak"}, {"ele", "396"}}}};
+    std::string origin;
+    auto peaks = store.peaks(kRio, osm, &origin);
+    CHECK(peaks.size() == 1 && origin == "the neighbourhood's answer");
+
+    osm.queryVersion = kOsmPeaksVersion - 1;
+    peaks = store.peaks(kRio, osm, &origin);
+    CHECK(peaks.empty());
+    CHECK(origin.find("not asked") == 0);
+
+    fs::create_directories(root + "/cache/world/peaks");
+    std::ofstream(root + "/cache/world/peaks/-23_-44.json")
+        << R"({"format":1,"peaks":[[34582421,-43.1561568,-22.9494891,392.0,"Pao de Acucar"]],"refusedEle":0})";
+    peaks = store.peaks(kRio, osm, &origin);
+    CHECK(peaks.size() == 1 && peaks[0].id == 34582421);
+    CHECK(origin == "square degrees on disk");
+    fs::remove_all(root);
 }

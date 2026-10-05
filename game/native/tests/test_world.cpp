@@ -722,6 +722,9 @@ TEST(Sources, the_overpass_question_is_well_formed) {
     CHECK(q.find("((") == std::string::npos && q.find("))") == std::string::npos);
     CHECK(q.find("{B}") == std::string::npos && q.find("{W}") == std::string::npos && q.find("{C}") == std::string::npos);
     CHECK(q.find("is_in(48.85500000,2.29500000)->.here;") != std::string::npos);
+    // The summits are asked in the same answer, by exact tags (an index read).
+    CHECK(q.find("node[natural=peak][ele](") != std::string::npos);
+    CHECK(q.find("node[natural=volcano][ele](") != std::string::npos);
     int depth = 0;
     for (char c : q) {
         depth += c == '(' ? 1 : c == ')' ? -1 : 0;

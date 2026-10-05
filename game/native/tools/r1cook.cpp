@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
             std::optional<nlohmann::json> retail;
             if(const auto path=store.osmPath(tile,shared)) {
                 auto layer=store.retailPath(tile,shared,*path);
-                if((!layer||!store.retailCurrent(*layer))&&fetch&&store.queryVersion(*path)<r1::kOsmQueryVersion) {
+                if((!layer||!store.retailCurrent(*layer))&&fetch&&store.queryVersion(*path)<r1::kOsmRetailVersion) {
                     auto target=store.retailTarget(tile,shared);retail=store.fetchRetail(target.region,target.path);
                 } else if(layer)retail=r1::readJson(*layer);
             }
@@ -99,13 +99,7 @@ int main(int argc, char** argv) {
                 in.canopy = r1::storedCanopy(game, tile);
             }
             // The surveyed summits, as the game reads them (gen/peaks).
-            for (const r1::PeakCell& cell : r1::peakCells(tile.bounds())) {
-                auto peaks = store.peaks(cell);
-                if (!peaks && fetch) peaks = store.fetchPeaks(cell);
-                if (peaks) in.peaks.insert(in.peaks.end(), peaks->begin(), peaks->end());
-                else in.peaksPending = true;
-            }
-            std::sort(in.peaks.begin(), in.peaks.end(), [](const r1::Peak& a, const r1::Peak& b) { return a.id < b.id; });
+            in.peaks = store.peaks(tile, *in.osm, &in.peaksSource);
             in.airportsPending = line.value("airportsPending", false);
             line["parseMs"] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - parseStart).count();
             in.elevations = ground->first;

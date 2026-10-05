@@ -323,9 +323,11 @@ Sugarloaf (396 m) reads 298 m in the Terrain Tiles and 329 m in Copernicus at
 carry the surveyed height where the summit is, and what is measured wins
 (`native/gen/peaks.*`):
 
-- The summits of a square degree are one Overpass answer, kept in
-  `cache/world/peaks/<lat>_<lon>.json`. A tile is cooked on the relief as it is
-  and again when its list lands.
+- The summits come in the neighbourhood's own Overpass answer (question 11),
+  by exact tags in the runways' wider box: not one Overpass call more, and a
+  few hundred bytes. An older answer is raised to the square-degree lists an
+  earlier generator kept in `cache/world/peaks/`, else not at all; nothing
+  asks Overpass again for them.
 - Under a summit the ground rises to a dome (30 m crown radius) that fades out
   150 m away, only where the relief stands below it. The raise reads nothing
   but the vertex, the summit and their distance, so neighbouring tiles agree
@@ -333,7 +335,8 @@ carry the surveyed height where the summit is, and what is measured wins
 - An `ele` that is not plain metres ("6234 ft", "1200-1300") is not read, and a
   summit more than 250 m above the relief under it is doubted, not drawn.
 - The manifest's `peaks` says which summits raised the ground and by how
-  much, which agreed with it, and which were doubted.
+  much, which agreed with it, which were doubted, and what answered
+  (`source`).
 
 Buildings stand on a solid foundation below their sampled perimeter (samples
 at most 4 m apart), so floors and roofs stay horizontal; tagged elevated

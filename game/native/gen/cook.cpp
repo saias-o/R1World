@@ -106,7 +106,7 @@ CookedTile cookTile(const Observations& in) {
     for (const ElevationGrid& g : in.around) known.push_back(&g);
     nlohmann::json peakReport;
     const ElevationGrid surveyed = raiseToPeaks(in.elevations, in.peaks, known, &peakReport);
-    peakReport["pending"] = in.peaksPending;
+    peakReport["source"] = in.peaksSource;
     std::vector<ElevationGrid> around;
     for (const ElevationGrid& g : in.around) around.push_back(raiseToPeaks(g, in.peaks, known));
     const Anchor anchor = Anchor::at(center.x, center.y, 0);

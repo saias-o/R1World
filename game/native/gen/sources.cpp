@@ -300,6 +300,8 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
     // box stops at it.
     std::snprintf(wide, sizeof wide, "%.8f,%.8f,%.8f,%.8f", std::max(-90.0, b.south - dLat), std::max(-180.0, b.west - dLon),
                   std::min(90.0, b.north + dLat), std::min(180.0, b.east + dLon));
+    // The surveyed summits come in the wider box: the tiles around are raised
+    // to them too (gen/peaks.hpp), and they are a few hundred bytes.
     // Rank 10 is a list of point features, as narrow as it is on purpose:
     // `node[amenity]` alone would bring every bank and restaurant.
     // Every statement carries its own box: a global `[bbox]` would also cut
@@ -341,6 +343,8 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
   node[power~"^(tower|pole)$"]{B};
   node[man_made~"^(water_tower|windmill|lighthouse|mast)$"]{B};
   node[natural~"^(rock|stone)$"]{B};
+  node[natural=peak][ele]{W};
+  node[natural=volcano][ele]{W};
   node[traffic_calming]{B};
   node[highway~"^(give_way|stop)$"]{B};
   node[traffic_sign]{B};
@@ -448,7 +452,7 @@ std::optional<nlohmann::json> ObservationStore::seaIce(double lon, double lat) c
 
 std::optional<std::string> ObservationStore::retailPath(const Tile& tile,const std::optional<Shared>& shared,
                                                        const std::string& mainPath) const {
-    if(queryVersionOf(mainPath)>=kOsmQueryVersion)return std::nullopt;
+    if(queryVersionOf(mainPath)>=kOsmRetailVersion)return std::nullopt;
     // A layer of the current version first; an older one is still read
     // while the current one is fetched (it has the shops, not the stations).
     const auto layers=candidates(tile,shared,nullptr,".retail.json");
@@ -480,45 +484,34 @@ std::function<double(double, double)> ObservationStore::terrainSampler(int zoom,
     return imageSampler(root_, zoom, network);
 }
 
-std::string ObservationStore::peaksPath(const PeakCell& cell) const {
-    return root_ + "/cache/world/peaks/" + cell.file();
-}
-
-std::optional<std::vector<Peak>> ObservationStore::peaks(const PeakCell& cell) const {
+std::vector<Peak> ObservationStore::peaks(const Tile& tile, const OsmData& osm, std::string* origin) const {
+    if (osm.queryVersion >= kOsmPeaksVersion) {
+        if (origin) *origin = "the neighbourhood's answer";
+        return peaksFromFeatures(osm.features);
+    }
+    // An older answer did not ask: a place visited while the summits were
+    // asked by square degree kept them so. Nothing asks Overpass again.
+    std::vector<Peak> out;
+    int kept = 0, cells = 0;
     std::error_code ec;
-    const std::string path = peaksPath(cell);
-    if (!fs::exists(path, ec)) return std::nullopt;
-    return peaksFromDocument(readJson(path));
-}
-
-std::vector<Peak> ObservationStore::fetchPeaks(const PeakCell& cell) const {
-    char bbox[96];
-    std::snprintf(bbox, sizeof bbox, "%d,%d,%d,%d", cell.lat, cell.lon, cell.lat + 1, cell.lon + 1);
-    // Two exact tags, not one pattern: Overpass answers an exact tag from its
-    // index, and a pattern by scanning every node of the square degree (around
-    // Paris, three minutes and a 504; exact, eleven seconds).
-    const std::string box = std::string("(") + bbox + ");";
-    const std::string query = "[out:json][timeout:120];(node[natural=peak][ele]" + box +
-                              "node[natural=volcano][ele]" + box + ");out qt;";
-    std::string failures;
-    for (const int i : endpointOrder()) {
+    for (const PeakCell& cell : peakCells(tile.bounds())) {
+        ++cells;
+        const std::string path = root_ + "/cache/world/peaks/" + cell.file();
+        if (!fs::exists(path, ec)) continue;
         try {
-            const auto answer = nlohmann::json::parse(net::requestJson(kOverpass[i], "data=" + net::urlEncode(query),
-                                                                       "application/x-www-form-urlencoded"));
-            // A query that ran out of time answers 200 with what it had and a
-            // remark: half the summits of a range is not the range.
-            const std::string remark = answer.value("remark", std::string());
-            if (remark.find("error") != std::string::npos) throw std::runtime_error("Overpass: " + remark);
-            int refused = 0;
-            auto peaks = peaksFromOverpass(answer, &refused);
-            writeJson(peaksPath(cell), peaksDocument(peaks, refused));
-            return peaks;
+            const auto peaks = peaksFromDocument(readJson(path));
+            out.insert(out.end(), peaks.begin(), peaks.end());
+            ++kept;
         } catch (const std::exception& e) {
-            markDown(i);
-            failures += std::string(failures.empty() ? "" : " | ") + kOverpass[i] + ": " + e.what();
+            if (log_) log_("PEAKS-UNREADABLE " + cell.file() + " " + e.what());
         }
     }
-    throw SourceUnavailable("surveyed summits: all Overpass endpoints failed: " + failures);
+    std::sort(out.begin(), out.end(), [](const Peak& a, const Peak& b) { return a.id < b.id; });
+    if (origin)
+        *origin = kept == cells ? "square degrees on disk"
+                  : kept      ? "square degrees on disk, some missing"
+                              : "not asked: an answer older than question " + std::to_string(kOsmPeaksVersion);
+    return out;
 }
 
 nlohmann::json ObservationStore::fetchSeaIce(double lon, double lat) const {

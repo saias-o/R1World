@@ -55,28 +55,19 @@ std::optional<double> parseElevation(const std::string& text) {
     return value;
 }
 
-std::vector<Peak> peaksFromOverpass(const nlohmann::json& answer, int* refused) {
+std::vector<Peak> peaksFromFeatures(const std::vector<OsmNode>& features, int* refused) {
     std::vector<Peak> peaks;
     int doubted = 0;
-    for (const auto& e : answer.value("elements", nlohmann::json::array())) {
-        if (e.value("type", "") != "node" || !e.contains("lat") || !e.contains("lon")) continue;
-        const auto& tags = e.value("tags", nlohmann::json::object());
-        const auto ele = tags.contains("ele") && tags["ele"].is_string()
-                             ? parseElevation(tags["ele"].get<std::string>()) : std::nullopt;
+    for (const OsmNode& n : features) {
+        const std::string natural = tagOr(n.tags, "natural");
+        if ((natural != "peak" && natural != "volcano") || !has(n.tags, "ele")) continue;
+        const auto ele = parseElevation(n.tags.at("ele"));
         if (!ele) { ++doubted; continue; }
-        peaks.push_back({e.value("id", int64_t(0)), e["lon"].get<double>(), e["lat"].get<double>(), *ele,
-                         tags.value("name", std::string())});
+        peaks.push_back({n.id, n.lon, n.lat, *ele, tagOr(n.tags, "name")});
     }
     std::sort(peaks.begin(), peaks.end(), [](const Peak& a, const Peak& b) { return a.id < b.id; });
     if (refused) *refused = doubted;
     return peaks;
-}
-
-nlohmann::json peaksDocument(const std::vector<Peak>& peaks, int refused) {
-    nlohmann::json rows = nlohmann::json::array();
-    for (const Peak& p : peaks) rows.push_back({p.id, p.lon, p.lat, p.ele, p.name});
-    return {{"source", "OpenStreetMap natural=peak|volcano with ele (ODbL)"}, {"format", 1},
-            {"peaks", rows}, {"refusedEle", refused}};
 }
 
 std::vector<Peak> peaksFromDocument(const nlohmann::json& document) {

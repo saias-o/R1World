@@ -46,10 +46,10 @@ struct Observations {
     std::optional<Canopy> canopy;
     bool canopyPending = false;
     // The surveyed summits around the tile (gen/peaks): the relief is raised
-    // to them before anything stands on it. Pending while a square degree's
-    // list is on its way.
+    // to them before anything stands on it. `peaksSource` says what answered
+    // (ObservationStore::peaks).
     std::vector<Peak> peaks;
-    bool peaksPending = false;
+    std::string peaksSource;
 };
 
 struct CookedTile {

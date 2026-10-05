@@ -4333,7 +4333,6 @@ public:
         options.tileVertexTarget=std::min(r1::kTileVertexBudget,residentVertexBudget*95/900);
         options.enrichRetail=true;
         options.fetchCanopy=true;
-        options.fetchPeaks=true;
         options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);};
         options.log=[](const std::string& line){saida::Log::info("[World service] ",line);};
         service=std::make_unique<r1::WorldService>(std::move(options));

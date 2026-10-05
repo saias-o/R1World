@@ -346,42 +346,6 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         return true;
     }
 
-    // A square degree's surveyed summits: one small Overpass answer serves
-    // every tile in it, and every tile within a summit's reach of its edge.
-    static std::string peaksKey(const PeakCell& cell) { return "peaks:" + cell.file(); }
-
-    bool downloadPeaks(const PeakCell& cell) {
-        const std::string key = peaksKey(cell);
-        std::lock_guard<std::mutex> guard(downloading);
-        if (downloads.count(key)) return true;
-        if (sourceFailedUntil[key] > Clock::now()) return false;
-        downloads.insert(key);
-        std::thread([self = shared_from_this(), cell, key] {
-            Counter c(self->fetching);
-            self->overpass.acquire();
-            if (self->requested(key)) {
-                try {
-                    const auto peaks = self->store.fetchPeaks(cell);
-                    {
-                        std::lock_guard<std::mutex> g(self->lock);
-                        self->landed.insert(key);
-                    }
-                    self->say("PEAKS " + cell.file() + ": " + std::to_string(peaks.size()) + " surveyed summits");
-                } catch (const std::exception& e) {
-                    self->say("PEAKS-FAILED " + cell.file() + " " + e.what());
-                    self->failedDownload(key);
-                }
-            }
-            self->overpass.release();
-            {
-                std::lock_guard<std::mutex> g(self->downloading);
-                self->downloads.erase(key);
-            }
-            self->wake.notify_all();
-        }).detach();
-        return true;
-    }
-
     static std::string groundPath(const Tile& tile, const ObservationStore& store) {
         return store.tileFolder(tile) + "/ground-elevation.json";
     }
@@ -559,7 +523,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                 if (!download(target.region, target.path, true)) unwatch(tile, target.path, true);
             }
             const auto retail=store.retailPath(tile,shared,*document);
-            if(options.enrichRetail&&store.queryVersion(*document)<kOsmQueryVersion&&(!retail||!store.retailCurrent(*retail))) {
+            if(options.enrichRetail&&store.queryVersion(*document)<kOsmRetailVersion&&(!retail||!store.retailCurrent(*retail))) {
                 const auto target=store.retailTarget(tile,shared);watch(tile,target.path);
                 if(!download(target.region,target.path,false,true))unwatch(tile,target.path,true);
             }
@@ -589,24 +553,8 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             watch(tile, canopyKey(tile));
             if (!downloadCanopy(tile)) unwatch(tile, canopyKey(tile), true);
         }
-        for (const PeakCell& cell : peakCells(tile.bounds())) {
-            std::optional<std::vector<Peak>> peaks;
-            try {
-                peaks = store.peaks(cell);
-            } catch (const std::exception& e) {
-                say("PEAKS-UNREADABLE " + cell.file() + " " + e.what());
-            }
-            if (peaks) {
-                in.peaks.insert(in.peaks.end(), peaks->begin(), peaks->end());
-            } else if (options.fetchPeaks) {
-                // The tile is cooked now on the relief as it is, and again
-                // when its summits land; a failed list never holds it back.
-                in.peaksPending = true;
-                watch(tile, peaksKey(cell));
-                if (!downloadPeaks(cell)) unwatch(tile, peaksKey(cell));
-            }
-        }
-        std::sort(in.peaks.begin(), in.peaks.end(), [](const Peak& a, const Peak& b) { return a.id < b.id; });
+        // The summits come in the answer itself: never an Overpass call more.
+        in.peaks = store.peaks(tile, *in.osm, &in.peaksSource);
         return in;
     }
 

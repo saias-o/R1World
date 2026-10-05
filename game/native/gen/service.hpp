@@ -41,9 +41,6 @@ public:
         // Fetch and convert the measured canopy (gen/canopy) of tiles that
         // have none stored. Off in tests; the store is read either way.
         bool fetchCanopy = false;
-        // Fetch the surveyed summits (gen/peaks) of square degrees that have
-        // none stored. Off in tests; the store is read either way.
-        bool fetchPeaks = false;
         // Optional source overrides for deterministic streaming tests.
         std::function<void(const Bounds&, const std::string&)> fetchOsm;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> quickGround;
