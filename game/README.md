@@ -913,6 +913,11 @@ resolved. The camera's far plane follows the farthest ring drawn.
   below 0, snow above the latitude's snowline, rock past a 35° slope, the
   region's ground elsewhere; the log names each ring's zoom and how many cells
   were inferred as sea, snow and rock.
+- **Their own shadows**: the engine marches from every sample toward the Sun
+  over the rings' heights, out to the horizon. At dusk a range darkens the
+  valley behind it while the summits stay lit. The march runs again only when
+  the Sun has turned by 0.1° (about every 25 s) or a ring changed. The streets
+  and buildings of the nine tiles do not receive these shadows yet.
 - **The tiles are holes** in the rings: the resident tiles draw their own,
   finer ground, and the rings neither overlap them nor leave a gap.
 - **Offline**: the images are kept in `cache/world/terrain/<zoom>/`; a place
