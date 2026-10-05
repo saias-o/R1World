@@ -7,3 +7,6 @@ pipeline_cache.bin
 # Python bytecode.
 __pycache__/
 *.pyc
+# The planet relief layer, built by game/native/tools/r1relief (about 859 MB):
+# installed with the game by its export, not kept in git.
+game/assets/world/relief/

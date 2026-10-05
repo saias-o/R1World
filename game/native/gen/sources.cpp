@@ -1,6 +1,7 @@
 #include "sources.hpp"
 
 #include "net.hpp"
+#include "relief.hpp"
 #include "seaice.hpp"
 
 #include <algorithm>
@@ -548,6 +549,24 @@ double terrariumHeight(double lon, double lat, int zoom, const std::function<con
     return low * (1.0 - fy) + high * fy;
 }
 
+std::vector<unsigned char> terrariumPixels(const std::string& png) {
+    int width = 0, height = 0, channels = 0;
+    auto* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(png.data()), int(png.size()),
+                                         &width, &height, &channels, 3);
+    if (!pixels || width != kTerrariumSize || height != kTerrariumSize) {
+        stbi_image_free(pixels);
+        throw SourceUnavailable("Mapzen terrain tile is not a 256px PNG");
+    }
+    std::vector<unsigned char> rgb(pixels, pixels + kTerrariumSize * kTerrariumSize * 3);
+    stbi_image_free(pixels);
+    return rgb;
+}
+
+std::string terrariumUrl(int zoom, int x, int y) {
+    return "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + std::to_string(zoom) + "/" +
+           std::to_string(x) + "/" + std::to_string(y) + ".png";
+}
+
 namespace {
 // The public AWS Terrain Tiles archive is a global, already tiled DEM. A
 // single 256px image covers many of our small world tiles, so one download
@@ -565,16 +584,8 @@ std::shared_ptr<const TerrainImage> terrainImage(const std::string& root, int zo
     if (auto it = memory.find(key); it != memory.end()) return it->second;
 
     auto decode = [](const std::string& bytes) -> std::shared_ptr<const TerrainImage> {
-        int width = 0, height = 0, channels = 0;
-        auto* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(bytes.data()), int(bytes.size()),
-                                             &width, &height, &channels, 3);
-        if (!pixels || width != 256 || height != 256) {
-            stbi_image_free(pixels);
-            throw SourceUnavailable("Mapzen terrain tile is not a 256px PNG");
-        }
         auto image = std::make_shared<TerrainImage>();
-        image->rgb.assign(pixels, pixels + 256 * 256 * 3);
-        stbi_image_free(pixels);
+        image->rgb = terrariumPixels(bytes);
         return image;
     };
     // A tile's 41 x 41 samples straddle up to four images, and a teleport
@@ -597,9 +608,7 @@ std::shared_ptr<const TerrainImage> terrainImage(const std::string& root, int zo
     }
     if (!network) throw SourceUnavailable("Mapzen terrain tile z" + std::to_string(zoom) + " is not on disk");
 
-    const std::string url = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + std::to_string(zoom) + "/" +
-                            std::to_string(x) + "/" + std::to_string(y) + ".png";
-    const auto response = net::request("GET", url, {}, {}, 12.0);
+    const auto response = net::request("GET", terrariumUrl(zoom, x, y), {}, {}, 12.0);
     if (response.status != 200) throw SourceUnavailable("Mapzen terrain tile: HTTP " + std::to_string(response.status));
     auto image = decode(response.body);
     try {
@@ -691,12 +700,22 @@ std::vector<unsigned char> withoutRinging(const std::vector<unsigned char>& rgb)
 // One caller's images of one zoom: each fetched or read once, then held.
 std::function<double(double, double)> imageSampler(const std::string& root, int zoom, bool network) {
     auto held = std::make_shared<std::map<std::pair<int, int>, std::vector<unsigned char>>>();
-    return [root, zoom, network, held](double lon, double lat) {
+    auto failed = std::make_shared<std::map<std::pair<int, int>, std::string>>();
+    return [root, zoom, network, held, failed](double lon, double lat) {
         const auto rgb = [&](int x, int y) -> const unsigned char* {
-            auto& image = (*held)[{x, y}];
+            const auto key = std::make_pair(x, y);
+            if (auto it = failed->find(key); it != failed->end()) throw SourceUnavailable(it->second);
+            auto& image = (*held)[key];
             if (image.empty()) {
-                const auto source = terrainImage(root, zoom, x, y, network);
-                image = zoom <= kRingingZoom ? withoutRinging(source->rgb) : source->rgb;
+                try {
+                    const auto source = terrainImage(root, zoom, x, y, network);
+                    image = zoom <= kRingingZoom ? withoutRinging(source->rgb) : source->rgb;
+                } catch (const std::exception& e) {
+                    // A ring samples an image thousands of times. One failed
+                    // read per sampler is enough; a new sampler retries it.
+                    (*failed)[key] = e.what();
+                    throw;
+                }
             }
             return image.data();
         };
@@ -764,6 +783,11 @@ void writeGround(const std::string& path, const ElevationGrid& g, const std::str
 bool ignEligible(const Bounds& b) { return -5.5 <= b.west && b.east <= 9.8 && 41.2 <= b.south && b.north <= 51.2; }
 }  // namespace
 
+std::vector<unsigned char> terrariumReliefPixels(const std::string& png, int zoom) {
+    auto pixels = terrariumPixels(png);
+    return zoom <= kRingingZoom ? withoutRinging(pixels) : pixels;
+}
+
 std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& tile) const {
     if (auto disk = ground(tile)) return *disk;
     const Bounds b = tile.bounds();
@@ -820,6 +844,15 @@ std::pair<ElevationGrid, std::string> ObservationStore::fetchGround(const Tile& 
     }
     writeGround(path, g, source);
     return {g, source};
+}
+
+std::optional<std::pair<ElevationGrid, std::string>> ObservationStore::offlineGround(const Bounds& b) const {
+    // Nothing answers: the installed layer, never written to the cache, so
+    // the finer ground replaces it as soon as a source answers again.
+    auto grid = installedGround(b, root_);
+    if (!grid) return std::nullopt;
+    if (log_) log_(std::string("ELEVATION-INSTALLED ") + kInstalledReliefSource);
+    return std::make_pair(std::move(*grid), std::string(kInstalledReliefSource));
 }
 
 std::pair<ElevationGrid, std::string> ObservationStore::quickGround(const Tile& tile) const {

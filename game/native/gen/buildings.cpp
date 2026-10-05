@@ -319,7 +319,7 @@ struct ShopfrontBook {
     void add(std::vector<MeshPart>&& shop) {
         for (MeshPart& part : shop) {
             auto same = std::find_if(parts.begin(), parts.end(), [&](const MeshPart& p) {
-                return p.name == part.name && p.material.name == part.material.name && p.material.color == part.material.color;
+                return p.name == part.name && p.material == part.material;
             });
             if (same == parts.end()) { parts.push_back(std::move(part)); continue; }
             const Mesh& m = part.mesh;

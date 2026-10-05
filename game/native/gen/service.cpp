@@ -534,6 +534,13 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             in.offline = true;
             in.provisional = true;
         }
+        if (!ground) {
+            try {
+                ground = store.offlineGround(tile.bounds());
+            } catch (const std::exception& e) {
+                say("ELEVATION-INSTALLED-UNREADABLE " + tile.key() + " " + e.what());
+            }
+        }
         if (ground) {
             in.elevations = ground->first;
             in.elevationSource = ground->second;

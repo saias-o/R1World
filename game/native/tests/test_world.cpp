@@ -6,6 +6,7 @@
 #include "gen/cook.hpp"
 #include "gen/harbours.hpp"
 #include "gen/landmarks.hpp"
+#include "gen/relief.hpp"
 #include "gen/scatter.hpp"
 #include "gen/sea.hpp"
 #include "gen/service.hpp"
@@ -627,6 +628,50 @@ TEST(Service, cached_streets_appear_before_relief_and_remain_after_it_arrives) {
     CHECK(!upgraded->cooked.manifest["groundPending"].get<bool>());
     CHECK(upgraded->cooked.manifest["buildings"].get<int>() == 1);
     CHECK(!upgraded->cooked.minimap.roads.empty());
+}
+
+TEST(Service, installed_ground_is_not_cached_and_yields_to_the_fine_survey) {
+    const Tile t = tileAt(5.5, 45.5);
+    const std::string root = placeVisitedAt(kOsmQueryVersion, t, "-installed-relief");
+    const auto groundPath = root + "/cache/world/" + t.key() + "/ground-elevation.json";
+    fs::remove(groundPath);
+    const auto reliefDir = root + "/" + kReliefDirectory;
+    fs::create_directories(reliefDir);
+    ReliefCell cell{45, 5, {}};
+    cell.heights.assign(size_t(cell.rows()) * cell.columns(), 600);
+    std::vector<std::optional<std::string>> cells(size_t(kPackDegrees * kPackDegrees));
+    cells[size_t(5 * kPackDegrees + 5)] = encodeReliefCell(cell);
+    std::ofstream(reliefDir + "/" + packFileName(40, 0), std::ios::binary) << encodeReliefPack(cells);
+    std::promise<void> release;
+    const auto ready = release.get_future().share();
+    WorldService::Options options;
+    options.gameRoot = root;
+    options.threads = 1;
+    options.quickGround = [](const Tile&) -> std::pair<ElevationGrid, std::string> {
+        throw SourceUnavailable("offline in this test");
+    };
+    options.fetchGround = [ready, groundPath](const Tile& tile) {
+        ready.wait();
+        const Bounds b = tile.bounds();
+        nlohmann::json doc = {{"bounds", {{"south", b.south}, {"west", b.west}, {"north", b.north}, {"east", b.east}}},
+                              {"size", 2}, {"values", {{50.0, 50.0}, {50.0, 50.0}}}, {"source", "fine survey"}};
+        std::ofstream(groundPath) << doc.dump();
+        return std::pair{ElevationGrid{b, 2, {50.0, 50.0, 50.0, 50.0}}, std::string("fine survey")};
+    };
+    WorldService service(std::move(options));
+    service.want({t}, {});
+    const auto first = waitForTile(service, t);
+    const bool cached = fs::exists(groundPath);
+    release.set_value();
+    CHECK(first);
+    CHECK(first->cooked.manifest["groundPending"].get<bool>());
+    CHECK(first->cooked.manifest["elevationSource"] == kInstalledReliefSource);
+    CHECK(!cached);
+    const auto upgraded = waitForTile(service, t, first->serial);
+    CHECK(upgraded);
+    CHECK(!upgraded->cooked.manifest["groundPending"].get<bool>());
+    CHECK(upgraded->cooked.manifest["elevationSource"] == "fine survey");
+    CHECK(ObservationStore(root).ground(t)->second == "fine survey");
 }
 
 TEST(Service, arriving_osm_replaces_only_the_missing_map_data) {

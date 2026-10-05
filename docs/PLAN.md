@@ -274,6 +274,18 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   courbure de la Terre ; la brume est la visibilité mesurée, 150 km par temps
   clair. Comparé à des photographies réelles dans la galerie (Grenoble, Le
   Cap, Rio).
+- **Relief installé** : une grille mesurée d'environ 278 m couvre les latitudes
+  de −85° à +85°, en blocs compacts de 10° (`native/gen/relief.*`, `r1relief`).
+  Les anneaux de 256 m et plus la lisent sans réseau ; les anneaux fins et le
+  sol proche s'y replient quand les observations fines manquent. Elle n'entre
+  jamais dans le cache des observations : le sol fin reprend la priorité dès
+  son arrivée. Premier test hors ligne à Santiago, sans OSM ni sol en cache :
+  apparition à 559,2 m en 234 ms, marche, saut, conduite et neuf anneaux vérifiés.
+  Planète complète vérifiée le 5 octobre 2026 : 648 blocs, 22 856 cellules de
+  terres, 859 Mo ; les 2,35 milliards de hauteurs stockées ont été décodées.
+  Les exports Windows et Web conservent les fichiers `.r1relief`. Le jeu reste
+  natif Windows : le chargement asynchrone de ces blocs par le système d'assets
+  du moteur est encore nécessaire pour un port Web ou consoles.
 - **Physique du moteur** : toutes les collisions du jeu sont des corps Saida
   (tuiles, intérieurs, portes, meubles, véhicules, troncs) ; le jeu n'a plus
   de test d'obstacle à lui. Le joueur est un `CharacterBodyNode`.

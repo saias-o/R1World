@@ -109,6 +109,9 @@ public:
     // nullopt; from the network, written to disk before it returns.
     std::optional<nlohmann::json> seaIce(double lon, double lat) const;
     nlohmann::json fetchSeaIce(double lon, double lat) const;
+    // The installed relief layer's ground over `bounds`, when no source
+    // answers (gen/relief); nullopt where it has nothing.
+    std::optional<std::pair<ElevationGrid, std::string>> offlineGround(const Bounds& bounds) const;
     // The surveyed summits a tile is raised to (gen/peaks.hpp): those its
     // neighbourhood's answer carries; for an answer older than
     // kOsmPeaksVersion, the square degrees an earlier generator kept on disk.
@@ -148,6 +151,15 @@ private:
 // of the zoom's 256-pixel Web Mercator images, each read through `rgb(x, y)`
 // (256 x 256 x 3 bytes). NaN where a pixel holds no data.
 double terrariumHeight(double lon, double lat, int zoom, const std::function<const unsigned char*(int, int)>& rgb);
+
+// A Terrain Tiles image's pixels, RGB, kTerrariumSize square; throws
+// SourceUnavailable when the bytes are not such a PNG.
+constexpr int kTerrariumSize = 256;
+std::vector<unsigned char> terrariumPixels(const std::string& png);
+// The same coastal-ringing correction used by runtime samplers (zoom <= 11).
+std::vector<unsigned char> terrariumReliefPixels(const std::string& png, int zoom);
+// Where the Terrain Tiles images are served: zoom/x/y.png under it.
+std::string terrariumUrl(int zoom, int x, int y);
 
 std::string sha256Hex(const std::string& data);
 nlohmann::json readJson(const std::string& path);

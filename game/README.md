@@ -129,7 +129,7 @@ otherwise.
 ### The reference gallery
 
 A visual regression is the one no test sees (`CLAUDE.md` §1). `tools/gallery.py`
-takes the same six pictures every time — same place, same camera, 10:30 local
+takes the same nine pictures every time — same place, same camera, 10:30 local
 solar time on 21 September, clear sky, 1600 × 900:
 
 | View | Where |
@@ -140,6 +140,9 @@ solar time on 21 September, clear sky, 1600 × 900:
 | `kyoto` | Higashiyama, Kyoto, towards the hills |
 | `vannes` | the port of Vannes from the place Gambetta |
 | `theix` | Theix: the fuel station, the car park and the Carrefour Market |
+| `grenoble` | Grenoble, towards the Moucherotte and its limestone cliffs |
+| `lecap` | Cape Town, towards Table Mountain |
+| `rio` | Rio de Janeiro, towards the Dois Irmãos |
 
 ```powershell
 python tools\gallery.py                 # every view
@@ -168,12 +171,16 @@ Three assertions of `--spawn2` exist because of bugs that shipped:
 ```powershell
 $env:HTTP_PROXY = "http://127.0.0.1:9"; $env:HTTPS_PROXY = "http://127.0.0.1:9"
 python tools\play_world.py --smoke --spawn 2.3522 48.8566                       # visited: saved terrain
-python tools\play_world.py --smoke --spawn -58.3816 -34.6037                    # new: simplified terrain
+python tools\play_world.py --smoke --spawn -70.65 -33.45                       # new: installed relief (Santiago)
 python tools\play_world.py --smoke --spawn 4.8900 52.3730 --spawn2 10.1815 36.8065  # Amsterdam, then Tunis
 ```
 
 A smoke test that passes with closed proxies on a visited place is what proves
 the cache's promise (`CLAUDE.md` §7).
+The Santiago test was first run with neither OSM nor ground cached: arrival at
+559.2 m in 234 ms, walking/jumping/driving passed, all nine terrain rings drawn.
+The installed layer is never written to `cache/world/`; the finer survey wins
+when it arrives. The service regression holds this upgrade with a delayed survey.
 
 ## Streaming, cache and network
 
@@ -182,7 +189,7 @@ the cache's promise (`CLAUDE.md` §7).
 Tiles are metric latitude rings with no polar cutoff (`native/gen/common.hpp`):
 36 000 rows of 0.005° and `72 000 · cos(lat)` columns per row, so a tile is
 about 556 m on a side everywhere, keyed `v<version>_<row>_<col>`. The
-generator version is `kVersion` (25 today). Within 18 km of a pole the
+generator version is `kVersion` (27 today). Within 18 km of a pole the
 neighbourhood is the tiles nearest in metres, twelve at the pole.
 
 The player's position is WGS84; each tile owns its tangent frame, and the
@@ -203,17 +210,19 @@ threads; downloads and cooking never block the frame. OSM and relief improve a
 tile independently:
 
 - **With no OSM answer on disk**, the first cook does not wait for Overpass.
-  The tile is cooked from `quickGround` (Copernicus through Open-Meteo, one
-  request, four seconds at most) with Natural Earth's coast and nothing built
-  on it. The manifest says `provisional`, the HUD says streets and buildings
+  The tile uses cached ground, then quick Terrain Tiles when they arrive,
+  otherwise the installed relief, with Natural Earth's coast and nothing built
+  on it. Terrain Tiles fall back to Copernicus through Open-Meteo. The manifest
+  says `provisional`, the HUD says streets and buildings
   are on their way, and the tile is cooked again when the answer lands — with
   IGN's finer ground in France. A building that lands on the player moves them
   to the nearest free ground. First visits to Nice, Porto and Oslo: playable
   0.36 s after Go.
 - **A failure from one source does not pause the others**; the HUD names the
   missing observation. With no observation and no network, Go opens a
-  simplified tile (Natural Earth land/sea, flat, no streets), labelled
+  simplified tile (Natural Earth land/sea, installed relief, no streets), labelled
   **Hors ligne : terrain simplifié** and `offlineApproximation: true`.
+  Flat ground remains the last resort where no usable relief is installed.
 - **Mounting**: terrain, buildings and collision first; trees and street
   objects follow on the main thread within a soft 2 ms per-frame budget. Logs
   carry `[World streaming] go_to_play_ms` and `mount_ms`; each `mounted` line
@@ -911,11 +920,14 @@ shader and the heights live in one storage buffer, so the horizon costs
 nothing in the geometry arena; with reversed depth a metre at 100 km is still
 resolved. The camera's far plane follows the farthest ring drawn.
 
-- **Measured heights** (`native/gen/far_relief.*`): the Terrain Tiles at the
-  zoom each ring's spacing asks for, 13 for the finest, 5 for the last,
-  sampled on a thread of the game's own (0.1 to 1.3 s a ring). A ring is
-  sampled again when the player has moved two of its cells. Its outer samples
-  are read at the next ring's zoom, so where two rings meet they stand on the
+- **Measured heights** (`native/gen/far_relief.*`): below 256 m spacing, the
+  Terrain Tiles at each ring's zoom, then up to three coarser cached zooms,
+  then the installed relief. From 256 m spacing, installed relief first,
+  cached images second, without network. Sampling runs on a worker; a ring is
+  sampled again when the player has moved two of its cells. A fine ring using
+  installed fallback retries after 60 s, even when the player stands still.
+  Missing rings retry on the same schedule. Its outer samples use the next
+  ring's source policy, so where two rings meet they stand on the
   same heights and no crack opens.
 - **Ringing filtered**: the images of zoom 11 and coarser overshoot by
   thousands of metres where a cliff meets the sea floor (4 109 m by Vidigal,
@@ -944,11 +956,55 @@ resolved. The camera's far plane follows the farthest ring drawn.
   keeps the last light the street has lost.
 - **The tiles are holes** in the rings: the resident tiles draw their own,
   finer ground, and the rings neither overlap them nor leave a gap.
-- **Offline**: the images are kept in `cache/world/terrain/<zoom>/`; a place
-  visited sees its horizon offline, at a coarser zoom on disk if its own is
-  missing. A place never visited, offline, has no far relief yet.
+- **Offline**: images stay in `cache/world/terrain/<zoom>/`; fine rings prefer
+  them to the installed fallback. Even a place never visited has its relief
+  and horizon from the installed layer. Missing packs are unavailable, never
+  interpreted as sea; malformed indices and truncated streams are refused and logged.
 - Not drawn over the pack ice (its own far field is the horizon there) nor
   past 84.5° (the images are Web Mercator).
+
+### The installed planet
+
+`native/gen/relief.*` stores a grid per square degree: 400 intervals north/south
+(about 278 m), longitude intervals reduced with latitude, metre heights from
+−500 to 9 000. A median edge predictor and the shared binary range coder keep
+the grid compact and lossless after source sampling/rounding. One indexed
+`.r1relief` file holds a complete 10° × 10° block; absent cells within a valid
+pack mean sea. There are 648 packs between 85° south and 85° north. The reader
+keeps at most 64 decoded cells (about 20 MB at the equator), with shared access
+protected across the world's workers.
+
+The complete build on 5 October 2026 contains 22 856 land cells and weighs
+858 961 885 bytes (859 MB, 819 MiB). Every pack and all 2 347 763 572 height
+samples were decoded successfully before installation. Latitude edges share
+the northern cell's edge curve, so grids of different widths join continuously.
+Final validation after merging all branches: 235 generator tests, 110 Python
+tests and 90 engine tests passed; all nine offline reference captures passed.
+Offline walking/driving passed in Santiago and Paris, and Theix's retail check
+passed entry, collisions, exit, eviction and regeneration.
+
+From `game/`, build and install it:
+
+```powershell
+sh native/build_tools.sh
+generated\tools\r1relief.exe --out assets/world/relief
+```
+
+`--threads <n>` controls concurrent packs; `--region <south> <west> <north>
+<east>` selects whole intersecting packs; `--measure` writes nothing. An
+interrupted build resumes by validating existing headers, spans and file sizes.
+Each complete pack is published from a checked temporary file; failed packs
+remain missing and make the command exit nonzero. The survey uses Terrain Tiles
+zoom 7, the stored relief zoom 9, both with the same coastal-ringing correction
+as the runtime. The source images are discarded after each pack.
+
+The layer belongs under `assets/world/relief/`, is excluded from Git, and must
+be built before distributing the game. Engine exports copy unknown extensions:
+Windows and Web exports were checked with an actual pack and identical SHA-256.
+On Web it is listed among the MEMFS boot files, which would preload the entire
+layer. R1World currently builds as a Windows native application; a Web/console
+port still needs asynchronous reads through the engine's asset system and an
+explicit delivery policy for these packs. Those platforms are not claimed here.
 
 The reference views of the gallery (Grenoble, Le Cap, Rio) are laid beside
 real photographs: the Moucherotte, Table Mountain between Devil's Peak and
@@ -1110,6 +1166,10 @@ and 849-part tiles; with both fixed, every tile is in and the picture is
 taken within 10 s of the spawn. Each memory-mesh upload still waits for the
 GPU queue (about 1.7 ms a part), and the scene's two full transform walks
 cost 6–7 ms each with nine Paris tiles resident.
+On 5 October, with the installed relief and both fixes merged into `main`,
+the offline Rivoli gallery run reached play in 1.64 s and mounted all nine
+tiles in 2.33 s. The generator is version 27; batching compares every material
+property, including textures, rather than only its name and paint.
 
 Later measurements: Le Fourchêne hypermarket at 60 fps; the canopy tile at
 60 fps (+0.8 ms scene update); a 600-frame Vannes home run at 0.750 ms/frame
@@ -1122,9 +1182,9 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
 - **The streets and buildings end at about 800 m**: past the nine resident
   tiles only the relief is drawn, to the horizon. A summit OSM does not survey
   stays as rounded as the elevation model has it, and the far relief does not
-  raise to surveyed summits yet. A place never visited has no far relief
-  offline: the planet-wide relief layer (measured: about 1.2 GB at 270 m,
-  8.7 GB at 90 m) is still to be built.
+  raise to surveyed summits yet. The installed planet supplies the relief of
+  unvisited places offline at about 278 m; streets and buildings still need
+  their surveyed observations from the network or an earlier visit.
 - **Buildings**: preview façades without modelled openings; only ground floors
   are furnished (no upper floors, stairs or lifts); landmark interiors are not
   generated; no sorted glass pass. The Atlas building palettes are not yet

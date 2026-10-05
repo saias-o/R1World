@@ -29,6 +29,11 @@
 
 namespace r1 {
 
+class ObservationStore;
+constexpr double kInstalledReliefSpacing = 256.0;
+constexpr int kFarMinimumZoom = 3;
+constexpr int kFarCachedZoomSteps = 3;
+
 // The layers a set of rings is painted with, shared by the threads that
 // sample its levels: a swatch gets a slot the first time a cell needs it.
 class FarLayers {
@@ -56,6 +61,7 @@ struct FarLevel {
     std::vector<float> heights;
     std::vector<uint8_t> layers;
     int zoom = 0;
+    bool installedFallback = false;
     int seaCells = 0, snowCells = 0, rockCells = 0, forestCells = 0, scrubCells = 0;
 };
 
@@ -87,5 +93,12 @@ double baselineSlope(double slope, double spacing);
 FarLevel sampleFarLevel(const Anchor& anchor, double originX, double originZ, double spacing, int resolution,
                         const std::function<double(double, double)>& heightAt, FarLayers& layers,
                         const std::function<double(double, double)>& borderAt = {});
+
+// Coarse rings read installed relief, then cached images, without network.
+// Fine rings prefer their zoom, then coarser cached images, then installed
+// relief. The border uses the next ring's policy. Missing packs never mean sea.
+FarLevel sampleWorldFarLevel(const ObservationStore& store, const Anchor& anchor,
+                             double originX, double originZ, double spacing, int resolution,
+                             FarLayers& layers, bool network = true);
 
 }  // namespace r1

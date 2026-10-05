@@ -3930,7 +3930,8 @@ class World : public Rml::EventListener {
     //
     // Past the streamed tiles the engine draws nested rings of terrain
     // (Saida's TerrainRingsNode): nine rings of 128 cells, 16 m to 4 km, out to
-    // 262 km. Their heights are the Terrain Tiles at each ring's zoom, sampled
+    // 262 km. Fine rings read Terrain Tiles; from 256 m they read the installed
+    // relief without network. Both fall back to local observations, sampled
     // on a thread of their own (gen/far_relief); a ring is sampled again when
     // the player has moved two of its cells. The resident tiles are holes in
     // the rings, so the two never overlap and never leave a gap. The images
@@ -3938,6 +3939,7 @@ class World : public Rml::EventListener {
     static constexpr double kFarBaseSpacing=16.0;
     static constexpr int kFarLevels=9;
     static constexpr double kFarReanchor=20000.0;  // metres before the rings' tangent frame moves
+    static constexpr auto kFarRetry=std::chrono::seconds(60);
     struct FarJob {
         std::mutex lock;
         std::vector<std::pair<int,r1::FarLevel>> done;
@@ -3951,6 +3953,7 @@ class World : public Rml::EventListener {
         uint64_t layersSeen=0,generation=0;
         std::array<glm::dvec2,saida::TerrainRingsNode::kMaxLevels> origins{};
         std::array<bool,saida::TerrainRingsNode::kMaxLevels> asked{};
+        std::array<std::chrono::steady_clock::time_point,saida::TerrainRingsNode::kMaxLevels> retryAt{};
         std::shared_ptr<FarJob> job;
         double reach=0;
     } farRelief;
@@ -3984,7 +3987,7 @@ class World : public Rml::EventListener {
         if(f.job) {const r1::P3 p=f.anchor.toEngine(lon,lat,0.);focus={p.x,p.z};}
         if(!f.job||glm::length(focus)>kFarReanchor) {
             f.lon=lon;f.lat=lat;f.anchor=r1::Anchor::at(lon,lat,0.);
-            f.node->clearLevels();f.asked={};f.reach=0;++f.generation;
+            f.node->clearLevels();f.asked={};f.retryAt={};f.reach=0;++f.generation;
             f.job=std::make_shared<FarJob>();
             focus={0.,0.};
             placeFarRelief();
@@ -3996,6 +3999,8 @@ class World : public Rml::EventListener {
         {std::lock_guard<std::mutex> g(f.job->lock);done.swap(f.job->done);said.swap(f.job->said);}
         for(const auto& line:said)saida::Log::info("[World far] ",line);
         for(auto& [k,level]:done) {
+            f.retryAt[size_t(k)]=level.installedFallback?std::chrono::steady_clock::now()+kFarRetry:
+                std::chrono::steady_clock::time_point{};
             saida::TerrainRingsNode::Level l;
             l.origin={level.originX,level.originZ};l.spacing=level.spacing;
             l.heights=std::move(level.heights);l.layers=std::move(level.layers);
@@ -4022,8 +4027,11 @@ class World : public Rml::EventListener {
         std::vector<std::pair<int,glm::dvec2>> asks;
         for(int k=0;k<kFarLevels;++k) {
             const glm::dvec2 o=f.node->levelOrigin(k,focus);
-            if(f.asked[size_t(k)]&&o==f.origins[size_t(k)])continue;
+            const auto retry=f.retryAt[size_t(k)];
+            const bool due=retry!=std::chrono::steady_clock::time_point{}&&std::chrono::steady_clock::now()>=retry;
+            if(f.asked[size_t(k)]&&o==f.origins[size_t(k)]&&!due)continue;
             f.origins[size_t(k)]=o;f.asked[size_t(k)]=true;asks.push_back({k,o});
+            f.retryAt[size_t(k)]=std::chrono::steady_clock::now()+kFarRetry;
         }
         if(asks.empty())return;
         f.job->busy=true;
@@ -4032,32 +4040,21 @@ class World : public Rml::EventListener {
             for(const auto& [k,o]:asks) {
                 const double spacing=kFarBaseSpacing*std::ldexp(1.,k);
                 const auto started=std::chrono::steady_clock::now();
-                const int zoom=r1::farZoom(spacing,anchor.lat);
-                std::string why;
-                // The ring's own zoom, fetched if need be; else a coarser one
-                // already on disk (offline, a place visited at another height).
-                for(int z=zoom;z>=std::max(3,zoom-3);--z) {
-                    try {
-                        // Its edge on the next ring's zoom: the two meet on the same heights.
-                        const int outer=r1::farZoom(2.*spacing,anchor.lat);
-                        auto level=r1::sampleFarLevel(anchor,o.x,o.y,spacing,saida::TerrainRingsNode::kResolution,
-                                                      store.terrainSampler(z,z==zoom),*layers,
-                                                      outer==z?std::function<double(double,double)>{}:store.terrainSampler(outer,true));
-                        level.zoom=z;
-                        std::ostringstream line;
-                        line<<"ring "<<k<<": "<<spacing<<" m, Terrain Tiles z"<<z<<(z==zoom?"":" (coarser, on disk)")
-                            <<", sea "<<level.seaCells<<" snow "<<level.snowCells<<" rock "<<level.rockCells<<" forest "<<level.forestCells<<" scrub "<<level.scrubCells
-                            <<" cells inferred, build_ms="<<msSince(started);
-                        std::lock_guard<std::mutex> g(job->lock);
-                        job->said.push_back(line.str());
-                        job->done.push_back({k,std::move(level)});
-                        why.clear();
-                        break;
-                    } catch(const std::exception& e) {why=e.what();}
-                }
-                if(!why.empty()) {
+                try {
+                    auto level=r1::sampleWorldFarLevel(store,anchor,o.x,o.y,spacing,
+                                                      saida::TerrainRingsNode::kResolution,*layers);
+                    std::ostringstream line;
+                    line<<"ring "<<k<<": "<<spacing<<" m, "
+                        <<(spacing>=r1::kInstalledReliefSpacing?"local relief":"Terrain Tiles z"+std::to_string(level.zoom))
+                        <<(level.installedFallback?" (installed fallback; retry pending)":"")
+                        <<", sea "<<level.seaCells<<" snow "<<level.snowCells<<" rock "<<level.rockCells<<" forest "<<level.forestCells<<" scrub "<<level.scrubCells
+                        <<" cells inferred, build_ms="<<msSince(started);
                     std::lock_guard<std::mutex> g(job->lock);
-                    job->said.push_back("ring "+std::to_string(k)+" refused: no relief at "+std::to_string(spacing)+" m: "+why);
+                    job->said.push_back(line.str());
+                    job->done.push_back({k,std::move(level)});
+                } catch(const std::exception& e) {
+                    std::lock_guard<std::mutex> g(job->lock);
+                    job->said.push_back("ring "+std::to_string(k)+" refused: no relief at "+std::to_string(spacing)+" m: "+e.what());
                 }
             }
             std::lock_guard<std::mutex> g(job->lock);job->busy=false;

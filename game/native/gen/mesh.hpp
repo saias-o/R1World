@@ -78,6 +78,16 @@ struct Material {
     std::string baseColorTexture, normalTexture, metallicRoughnessTexture;
     // Mesh UVs are metres, or bays and storeys on walls; this makes them repeats.
     double uvScale = 1.0;
+
+    bool operator==(const Material& other) const {
+        return name == other.name && color == other.color &&
+               roughness == other.roughness && metallic == other.metallic &&
+               doubleSided == other.doubleSided &&
+               baseColorTexture == other.baseColorTexture &&
+               normalTexture == other.normalTexture &&
+               metallicRoughnessTexture == other.metallicRoughnessTexture &&
+               uvScale == other.uvScale;
+    }
 };
 
 struct MeshPart {

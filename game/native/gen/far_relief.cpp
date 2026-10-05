@@ -1,4 +1,6 @@
 #include "far_relief.hpp"
+#include "relief.hpp"
+#include "sources.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -49,7 +51,41 @@ int farZoom(double spacing, double lat) {
     const double equatorPixel = 2.0 * M_PI * kA / 256.0;  // metres a pixel at zoom 0
     const double pixel = equatorPixel * std::max(0.05, std::cos(radians(lat)));
     const int zoom = int(std::lround(std::log2(pixel / std::max(spacing, 1.0))));
-    return std::clamp(zoom, 3, 13);
+    return std::clamp(zoom, kFarMinimumZoom, 13);
+}
+
+FarLevel sampleWorldFarLevel(const ObservationStore& store, const Anchor& anchor,
+                             double originX, double originZ, double spacing, int resolution,
+                             FarLayers& layers, bool network) {
+    bool usedFineFallback = false;
+    const ReliefLayer& installed = installedRelief(store.root());
+    auto sampler = [&](double sampleSpacing) -> std::function<double(double, double)> {
+        const bool coarse = sampleSpacing >= kInstalledReliefSpacing;
+        const int zoom = farZoom(sampleSpacing, anchor.lat);
+        std::vector<std::function<double(double, double)>> images;
+        for (int z = zoom; z >= std::max(kFarMinimumZoom, zoom - kFarCachedZoomSteps); --z)
+            images.push_back(store.terrainSampler(z, network && !coarse && z == zoom));
+        return [&, coarse, images = std::move(images)](double lon, double lat) {
+            auto height = [&]() -> std::optional<double> {
+                auto h = installed.height(lon, lat);
+                if (h && !coarse) usedFineFallback = true;
+                return h;
+            };
+            if (coarse) if (auto h = height()) return *h;
+            std::string why;
+            for (const auto& image : images) {
+                try { return image(lon, lat); }
+                catch (const std::exception& e) { why = e.what(); }
+            }
+            if (!coarse) if (auto h = height()) return *h;
+            throw SourceUnavailable("no relief at " + std::to_string(lon) + "," + std::to_string(lat) + ": " + why);
+        };
+    };
+    auto level = sampleFarLevel(anchor, originX, originZ, spacing, resolution,
+                               sampler(spacing), layers, sampler(2.0 * spacing));
+    level.zoom = farZoom(spacing, anchor.lat);
+    level.installedFallback = usedFineFallback;
+    return level;
 }
 
 FarLevel sampleFarLevel(const Anchor& anchor, double originX, double originZ, double spacing, int resolution,
