@@ -4046,7 +4046,7 @@ class World : public Rml::EventListener {
                         level.zoom=z;
                         std::ostringstream line;
                         line<<"ring "<<k<<": "<<spacing<<" m, Terrain Tiles z"<<z<<(z==zoom?"":" (coarser, on disk)")
-                            <<", sea "<<level.seaCells<<" snow "<<level.snowCells<<" rock "<<level.rockCells
+                            <<", sea "<<level.seaCells<<" snow "<<level.snowCells<<" rock "<<level.rockCells<<" forest "<<level.forestCells<<" scrub "<<level.scrubCells
                             <<" cells inferred, build_ms="<<msSince(started);
                         std::lock_guard<std::mutex> g(job->lock);
                         job->said.push_back(line.str());

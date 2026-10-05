@@ -4,8 +4,11 @@
 // The heights are measured (the Terrain Tiles, at the zoom each ring's spacing
 // asks for); what each cell is made of is inferred from them and from the
 // Atlas -- the sea where the model is at or below sea level, snow above the
-// latitude's snowline, rock where the slope passes 35 degrees, the region's
-// ground elsewhere -- every colour a measured albedo (CLAUDE.md rule 2).
+// latitude's snowline, rock where the slope passes 35 degrees, and below the
+// treeline a slope past 15 degrees, which nobody ploughs, is forest where the
+// climate is wet (temperate, boreal, tropical) and scrub where it is
+// mediterranean; the region's ground elsewhere -- every colour a measured
+// albedo (CLAUDE.md rule 2).
 //
 // The Earth's curvature is content, not a correction (PLAN §3 I2): each sample
 // is the true surface point under its grid position in the rings' tangent
@@ -26,7 +29,7 @@ namespace r1 {
 class FarLayers {
 public:
     static constexpr int kMax = 16;  // TerrainRingsNode::kMaxLayers
-    static constexpr int kWater = 0, kSnow = 1, kRock = 2;
+    static constexpr int kWater = 0, kSnow = 1, kRock = 2, kForest = 3, kScrub = 4;
     FarLayers();
     // The slot of a region's ground; the last slot when they are all taken.
     int ground(const Swatch& swatch);
@@ -48,12 +51,17 @@ struct FarLevel {
     std::vector<float> heights;
     std::vector<uint8_t> layers;
     int zoom = 0;
-    int seaCells = 0, snowCells = 0, rockCells = 0;
+    int seaCells = 0, snowCells = 0, rockCells = 0, forestCells = 0, scrubCells = 0;
 };
 
 // The Terrain Tiles zoom whose pixel is closest to `spacing` at `lat`,
 // from 3 (a continent a pixel row) to 13 (the tiles' own).
 int farZoom(double spacing, double lat);
+
+// The altitude trees stop at, from the latitude's snowline: three quarters of
+// it -- 2 140 m at 45 degrees (the Alps' 1 900 to 2 200), 950 m at 60
+// (Scandinavia's 600 to 1 000), 4 100 m in the tropics (3 500 to 4 500).
+double treeline(double lat);
 
 // Samples one ring. `heightAt(lon, lat)` is the measured relief and may throw
 // (SourceUnavailable): the ring is then not built. `borderAt`, when given, is

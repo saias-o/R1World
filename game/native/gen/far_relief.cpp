@@ -12,7 +12,7 @@ FarLayers::FarLayers() {
             if (c.name == name) return c.swatch;
         throw std::runtime_error(std::string("the Atlas has no ground class ") + name);
     };
-    swatches_ = {named("water"), p.snow, named("rock")};
+    swatches_ = {named("water"), p.snow, named("rock"), named("forest"), named("scrub")};
     for (int i = 0; i < int(swatches_.size()); ++i) byName_[swatches_[size_t(i)].name] = i;
 }
 
@@ -34,6 +34,8 @@ uint64_t FarLayers::revision() const {
     std::lock_guard<std::mutex> guard(lock_);
     return revision_;
 }
+
+double treeline(double lat) { return 0.75 * snowline(lat); }
 
 int farZoom(double spacing, double lat) {
     const double equatorPixel = 2.0 * M_PI * kA / 256.0;  // metres a pixel at zoom 0
@@ -90,7 +92,20 @@ FarLevel sampleFarLevel(const Anchor& anchor, double originX, double originZ, do
             if (top <= 0.0) { layer = FarLayers::kWater; ++out.seaCells; }
             else if (mean >= snowline(lat)) { layer = FarLayers::kSnow; ++out.snowCells; }
             else if (slope > 0.70) { layer = FarLayers::kRock; ++out.rockCells; }
-            else layer = layers.ground(profileFor(lon, lat).ground);
+            else {
+                const RegionProfile& profile = profileFor(lon, lat);
+                const std::string climate = climateAt(profile.climate, lat);
+                const bool wooded = slope > 0.27 && mean < treeline(lat);
+                if (wooded && (climate == "temperate" || climate == "boreal" || climate == "tropical")) {
+                    layer = FarLayers::kForest;
+                    ++out.forestCells;
+                } else if (wooded && climate == "mediterranean") {
+                    layer = FarLayers::kScrub;
+                    ++out.scrubCells;
+                } else {
+                    layer = layers.ground(profile.ground);
+                }
+            }
             out.layers[size_t(j) * size_t(resolution) + size_t(i)] = uint8_t(layer);
         }
     return out;

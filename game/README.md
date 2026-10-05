@@ -920,9 +920,12 @@ resolved. The camera's far plane follows the farthest ring drawn.
   point under its grid position in the rings' tangent frame, which moves with
   the player every 20 km.
 - **Inferred surfaces, measured albedos**: the sea where the model is at or
-  below 0, snow above the latitude's snowline, rock past a 35° slope, the
-  region's ground elsewhere; the log names each ring's zoom and how many cells
-  were inferred as sea, snow and rock.
+  below 0, snow above the latitude's snowline, rock past a 35° slope. Below the
+  treeline (three quarters of the snowline: 2 140 m at 45°, 950 m at 60°), a
+  slope past 15°, which nobody ploughs, is forest where the climate is wet
+  (temperate, boreal, tropical) and scrub where it is mediterranean (the Cape's
+  fynbos). The region's ground covers the rest. The log names each ring's zoom
+  and how many cells were inferred as each.
 - **Their own shadows**: the engine marches from every sample toward the Sun
   over the rings' heights, out to the horizon. At dusk a range darkens the
   valley behind it while the summits stay lit. The march runs again only when
