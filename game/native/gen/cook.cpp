@@ -252,8 +252,26 @@ CookedTile cookTile(const Observations& in) {
     };
     auto approaches=[&] {
         for(auto& p:built.interiors) {
-            const auto a=p.point(0,-4);const auto geo=anchor.toGeodetic(a.x,0,a.y);
-            p.approach=ground(geo.x,geo.y).y+.09;
+            auto groundAt=[&](double u,double v){
+                const auto a=p.point(u,v);const auto geo=anchor.toGeodetic(a.x,0,a.y);return ground(geo.x,geo.y).y;};
+            p.approach=groundAt(0,-4)+.09;p.steps=0;p.stairBase=p.approach;
+            // A door above the ground is reached by steps, never a long
+            // slope: risers of at most kRiser down to where the flight meets
+            // the ground, found again as the flight grows.
+            double foot=groundAt(0,-InteriorPlan::stairRun(1))+.02;
+            int steps=0;
+            for(int pass=0;pass<4&&p.floor-foot>=.1;++pass) {
+                steps=std::min(24,int(std::ceil((p.floor-foot)/InteriorPlan::kRiser)));
+                foot=groundAt(0,-InteriorPlan::stairRun(steps))+.02;
+            }
+            if(steps>0&&p.floor-foot>=.1) {
+                p.steps=std::max(1,std::min(24,int(std::ceil((p.floor-foot)/InteriorPlan::kRiser))));
+                p.approach=foot;
+                const double run=InteriorPlan::stairRun(p.steps),half=p.width/2+.4;
+                double lowest=foot;
+                for(double u:{-half,0.,half})for(double v:{0.,-run/2,-run})lowest=std::min(lowest,groundAt(u,v));
+                p.stairBase=lowest;
+            }
             p.exteriorVehicles.clear();
             if(p.recipe!="garage")continue;
             Box bays;

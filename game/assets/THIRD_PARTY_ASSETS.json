@@ -229,9 +229,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/siding_albedo.jpg",
-        "assets/textures/facades/siding_mr.jpg",
-        "assets/textures/facades/siding_normal.jpg"
+        "assets/textures/facades/siding_and_window_albedo.jpg",
+        "assets/textures/facades/siding_and_window_mr.jpg",
+        "assets/textures/facades/siding_and_window_normal.jpg"
       ]
     },
     {
@@ -265,9 +265,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/brick_red_albedo.jpg",
-        "assets/textures/facades/brick_red_mr.jpg",
-        "assets/textures/facades/brick_red_normal.jpg"
+        "assets/textures/facades/brick_red_and_window_albedo.jpg",
+        "assets/textures/facades/brick_red_and_window_mr.jpg",
+        "assets/textures/facades/brick_red_and_window_normal.jpg"
       ]
     },
     {
@@ -301,9 +301,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/earth_albedo.jpg",
-        "assets/textures/facades/earth_mr.jpg",
-        "assets/textures/facades/earth_normal.jpg"
+        "assets/textures/facades/earth_and_window_albedo.jpg",
+        "assets/textures/facades/earth_and_window_mr.jpg",
+        "assets/textures/facades/earth_and_window_normal.jpg"
       ]
     },
     {
@@ -337,9 +337,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/concrete_albedo.jpg",
-        "assets/textures/facades/concrete_mr.jpg",
-        "assets/textures/facades/concrete_normal.jpg"
+        "assets/textures/facades/concrete_and_window_albedo.jpg",
+        "assets/textures/facades/concrete_and_window_mr.jpg",
+        "assets/textures/facades/concrete_and_window_normal.jpg"
       ]
     },
     {
@@ -361,9 +361,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/concrete_panel_albedo.jpg",
-        "assets/textures/facades/concrete_panel_mr.jpg",
-        "assets/textures/facades/concrete_panel_normal.jpg"
+        "assets/textures/facades/concrete_panel_and_window_albedo.jpg",
+        "assets/textures/facades/concrete_panel_and_window_mr.jpg",
+        "assets/textures/facades/concrete_panel_and_window_normal.jpg"
       ]
     },
     {
@@ -508,10 +508,10 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo; facade bay sheets (r1/surfaces.py); native 1K mineral finish with subdued variation for shop floors and cladding (r1/retail_materials.py)",
       "files": [
-        "assets/textures/facades/render_albedo.jpg",
+        "assets/textures/facades/render_and_window_albedo.jpg",
         "assets/textures/interiors/mineral_albedo.jpg",
-        "assets/textures/facades/render_mr.jpg",
-        "assets/textures/facades/render_normal.jpg"
+        "assets/textures/facades/render_and_window_mr.jpg",
+        "assets/textures/facades/render_and_window_normal.jpg"
       ]
     },
     {
@@ -533,9 +533,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/brick_dark_albedo.jpg",
-        "assets/textures/facades/brick_dark_mr.jpg",
-        "assets/textures/facades/brick_dark_normal.jpg"
+        "assets/textures/facades/brick_dark_and_window_albedo.jpg",
+        "assets/textures/facades/brick_dark_and_window_mr.jpg",
+        "assets/textures/facades/brick_dark_and_window_normal.jpg"
       ]
     },
     {
@@ -641,9 +641,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/timber_albedo.jpg",
-        "assets/textures/facades/timber_mr.jpg",
-        "assets/textures/facades/timber_normal.jpg"
+        "assets/textures/facades/timber_and_window_albedo.jpg",
+        "assets/textures/facades/timber_and_window_mr.jpg",
+        "assets/textures/facades/timber_and_window_normal.jpg"
       ]
     },
     {
@@ -653,9 +653,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/render_rough_albedo.jpg",
-        "assets/textures/facades/render_rough_mr.jpg",
-        "assets/textures/facades/render_rough_normal.jpg"
+        "assets/textures/facades/render_rough_and_window_albedo.jpg",
+        "assets/textures/facades/render_rough_and_window_mr.jpg",
+        "assets/textures/facades/render_rough_and_window_normal.jpg"
       ]
     },
     {
@@ -665,9 +665,21 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/stone_albedo.jpg",
-        "assets/textures/facades/stone_mr.jpg",
-        "assets/textures/facades/stone_normal.jpg"
+        "assets/textures/facades/stone_and_window_albedo.jpg",
+        "assets/textures/facades/stone_and_window_mr.jpg",
+        "assets/textures/facades/stone_and_window_normal.jpg"
+      ]
+    },
+    {
+      "name": "marble_rock_02 (surface material)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/marble_rock_02",
+      "license": "CC0 1.0",
+      "modified": "Colour normalised to the palette albedo, resized (r1/surfaces.py); worn by entrance steps",
+      "files": [
+        "assets/textures/surfaces/step_stone_albedo.jpg",
+        "assets/textures/surfaces/step_stone_mr.jpg",
+        "assets/textures/surfaces/step_stone_normal.jpg"
       ]
     },
     {
@@ -689,9 +701,9 @@
       "license": "CC0 1.0",
       "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
       "files": [
-        "assets/textures/facades/brick_buff_albedo.jpg",
-        "assets/textures/facades/brick_buff_mr.jpg",
-        "assets/textures/facades/brick_buff_normal.jpg"
+        "assets/textures/facades/brick_buff_and_window_albedo.jpg",
+        "assets/textures/facades/brick_buff_and_window_mr.jpg",
+        "assets/textures/facades/brick_buff_and_window_normal.jpg"
       ]
     },
     {

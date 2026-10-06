@@ -212,6 +212,13 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   adresses. Rulebooks : France (IISR) et États-Unis (MUTCD : stops, yield,
   mph, sens interdits, plaques de noms de rue). Les panneaux relevés par OSM
   sont dessinés là où ils ont été relevés.
+- **Rues** : chaque voie est recollée en une ligne avant d'être élargie, les
+  virages et les jonctions sont arrondis, et une rue qui traverse le bord d'une
+  tuile est posée jusqu'à ce bord, sans trou (`native/gen/streets.cpp`, v28).
+  **Jamais d'eau sur une rue** : aucune eau dessinée sur la chaussée ou le
+  trottoir, l'eau cachée (busée, couverte, souterraine) n'est pas dessinée, et
+  les rues qui traversent une case d'eau sont sèches pour la marche et la
+  voiture (`dryStreets`).
 - **Ponts** : tabliers au gabarit, rampes et remblais à 5 %, piles, culées ; ce
   que le tablier ne peut pas donner est creusé dans le relief
   (`native/gen/bridges.cpp`). On y marche et on y roule, dessus comme dessous.
@@ -256,7 +263,10 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   prisons. Usage tagué d'abord, inféré sinon. Contrat commun
   `native/gen/interiors.*` : seul le plan léger voyage avec la tuile ; la pièce
   est construite à 65 m de la porte, libérée à 85 m, deux au plus, 24 000
-  sommets chacune. Portes battantes, rez-de-chaussée seulement.
+  sommets chacune. Portes battantes, rez-de-chaussée seulement. Une porte
+  au-dessus du sol est précédée d'un perron (v29) : marches de 18 cm au plus,
+  giron de 30 cm, palier, en pierre là où la maçonnerie est la tradition
+  régionale, en béton ailleurs et pour les commerces ; jamais de pente.
 - **Stations-service** : l'auvent est un auvent (dalle sur colonnes, 4,7 m de
   dégagement), îlots et pompes synthétisés dessous, bandeau « station-service »
   dans la langue du pays, totem à la marque et sans prix ; auvent inféré quand
@@ -295,7 +305,14 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   du moteur est encore nécessaire pour un port Web ou consoles.
 - **Physique du moteur** : toutes les collisions du jeu sont des corps Saida
   (tuiles, intérieurs, portes, meubles, véhicules, troncs) ; le jeu n'a plus
-  de test d'obstacle à lui. Le joueur est un `CharacterBodyNode`.
+  de test d'obstacle à lui. Le joueur est un `CharacterBodyNode`. Un tronc
+  n'est solide qu'une fois son arbre affiché : rien d'invisible ne bloque.
+- **L'eau** (moteur, `WaterNode`) : vue d'avion, la mer ne se répète plus en
+  carrelage. Trains de vagues sans période commune, ce que le maillage ou le
+  pixel ne peut pas porter passe aux normales puis à la rugosité (un long
+  reflet du Soleil au loin), rafales de vent sur des centaines de mètres,
+  hachage entier exact. Calcul seul, sans texture : même coût sur bureau,
+  mobile et Web.
 - **Cache hors ligne** : un lieu déjà visité ne touche plus le réseau ; une
   réponse à une ancienne question Overpass est cuite telle quelle, et ce qui
   lui manque arrive en couche séparée (`kOsmQueryVersion`, `kOsmBaseVersion`).

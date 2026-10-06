@@ -1591,13 +1591,14 @@ class World : public Rml::EventListener {
         for(const auto& [key,other]:loaded) {
           const auto local=other.frame.local(worldPoint);const r1::P2 q{local.x,local.z};
           for(const auto& room:other.interiors) {
-            if(q.x<room.low.x-4.5||q.x>room.high.x+4.5||q.y<room.low.y-4.5||q.y>room.high.y+4.5)continue;
             const auto& p=room.plan;
+            const double reach=std::max(4.5,p.approachRun()+.5);
+            if(q.x<room.low.x-reach||q.x>room.high.x+reach||q.y<room.low.y-reach||q.y>room.high.y+reach)continue;
             const auto door=p.local(q);
             double level=0;
             if(room.contains(q))level=p.floor;
-            else if(std::abs(door.x)<p.width/2+.4&&door.y>=-4&&door.y<=0)
-                level=p.floor+(p.approach-p.floor)*(-door.y/4);
+            else if(std::abs(door.x)<p.width/2+.4&&door.y>=-p.approachRun()&&door.y<=0)
+                level=p.floor+(p.approach-p.floor)*(-door.y/p.approachRun());
             else continue;
             // Store floors replace the terrain inside, even on a slope.
             return level-other.frame.local(ecef(x,y,0.)).y;

@@ -207,7 +207,7 @@ when it arrives. The service regression holds this upgrade with a delayed survey
 Tiles are metric latitude rings with no polar cutoff (`native/gen/common.hpp`):
 36 000 rows of 0.005° and `72 000 · cos(lat)` columns per row, so a tile is
 about 556 m on a side everywhere, keyed `v<version>_<row>_<col>`. The
-generator version is `kVersion` (27 today). Within 18 km of a pole the
+generator version is `kVersion` (29 today). Within 18 km of a pole the
 neighbourhood is the tiles nearest in metres, twelve at the pole.
 
 The player's position is WGS84; each tile owns its tangent frame, and the
@@ -414,7 +414,11 @@ materials from Poly Haven and ambientCG scans:
 
 Streets are asphalt, sidewalks concrete slabs, `sett`/`cobblestone`/
 `paving_stones` cobbles. Roof UVs follow the slope; walls are baked sheets of
-one bay by one storey with a window. UVs cost no vertex. Textures cost about
+one bay by one storey with a window, and their files say so
+(`assets/textures/facades/<family>_and_window_*.jpg`): a wall family is a
+façade, never a plain material for anything else. Entrance steps wear
+`step_stone` (Poly Haven `marble_rock_02`, worn pale stone without joints, 2 m)
+or `quay` (Poly Haven `concrete`, 4 m). UVs cost no vertex. Textures cost about
 90 MB for a city neighbourhood; the GPU budget is 512 MB (`setGpuBudget` in
 `native/world.cpp`). Ground and street colour maps are 1024², the rest 512².
 Rebuild with `python -m r1.surfaces` from `game\tools`.
@@ -493,7 +497,15 @@ Corcovado's surveyed summit raises ([Surveyed summits](#surveyed-summits)).
 
 Streets are polygon unions and differences (Clipper2) that connect
 intersections, remove overlapping sidewalks and cut out buildings; their tops
-are clipped to the same terrain triangles as the ground. Sidewalks rise 15 cm;
+are clipped to the same terrain triangles as the ground. The cook cuts every
+way into two-point segments; the streets join a way's segments back into one
+line, buffered with round joins, so a bend keeps its outer edge (a strip per
+segment left a notch at every bend, visible all over Paris). Where two ways
+meet end to end, or one ends on another, the ends are rounded too; a free end
+stays square. Streets are cut 30 m past the tile and only what lies inside it
+is laid, so a street crossing the edge meets its neighbour's without a gap.
+They lie on the ground the terrain draws, sea-level adjustments included, and
+never under the sea that ground meets. Sidewalks rise 15 cm;
 widths and sides follow OSM where tagged, and inferred defaults are labelled in
 the `streets` manifest. Separately mapped sidewalks are respected. Zebras are
 drawn only where OSM maps a marked crossing. Normals are shared, with a
@@ -707,8 +719,14 @@ inference.
   (clear of buildings, roads, water, parks and slopes over 0.4 m).
 - **Doors**: the doorway alone is cut in the regional façade (triangulated with
   a hole and eight welded corners); two leaves swing inward, stores keep
-  sliding doors. A threshold joins floor and terrain; measured roofs and
-  heights are kept.
+  sliding doors. A door above the ground outside is reached by a flight of
+  steps, never a slope: risers of at most 18 cm, 30 cm treads with a nosing,
+  a 60 cm landing before the door, down to where the flight meets the
+  sampled ground and founded below it (`buildEntranceStairs`). Cut stone where
+  masonry is the regional tradition (Europe, the Mediterranean, Manhattan's
+  stoops), concrete elsewhere and for shops, garages and warehouses. The flight
+  is seen only; the walked slope stays inside it, under every tread. Measured
+  roofs and heights are kept.
 - **Furniture** is shared prototypes (`interior_furniture.cpp`, including
   revolved ceramics), seeded by OSM id and region, fitted against the concave
   footprint without overlap, 128 fittings at most.
@@ -769,6 +787,29 @@ length: drag grows with the square of speed, the rudder needs way on, and the
 bow refuses land. Below 1.5 m/s, **F** steps onto a bank or deck alongside, or
 into the water; a faster boat refuses the exit. Ships can be taken from the
 water or from a boat at matched speed. The sea is continuous across tiles.
+
+**No water on a street.** No water is drawn over a carriageway, cobbles or
+pavement laid on the ground; water nobody sees (a culvert, a canal under a
+boulevard, a covered reservoir: `tunnel`, `covered=yes`,
+`location=underground`) is not drawn at all. A water cell is 25 m of water or
+not; the streets crossing a water cell are published in the manifest
+(`dryStreets`, rings in the tile's frame) and answer before the water, so a
+car on a quay never sinks. Bridges are not streets on the ground: the river
+under them stays water.
+
+**How the water is drawn** (Saida's `WaterNode`, realistic style). Seen from an
+aircraft, the sea used to read as tiles: five wave trains on headings in
+37-degree steps with a 1.87 wavelength ratio closed into a lattice, short
+trains aliased on the 4.4 m grid into a regular moiré, and a float hash tore
+the ripples along lattice lines. Now the trains fan around the wind at
+irregular offsets with an irrational wavelength ratio, so their sum never
+repeats; the mesh carries only the trains it has eight vertices for, and the
+fragment shader draws every train and ripple as normals, each faded once a
+pixel outgrows it. What a pixel cannot show becomes roughness, so a far sea is
+a broad glitter path under the Sun; gusts hundreds of metres across vary the
+ripples and the gloss, and the noise hash is integer, exact on every platform.
+ALU only, no texture or binding added: the same cost class on desktop, mobile
+and the Web (the WGSL translation is validated with `naga`).
 
 ## Airports and aircraft
 
@@ -1153,8 +1194,11 @@ and 4 Hz, held in between (`Animator::setPoseRate(hz, PoseRateMode::Hold)`).
 All runtime collision is the engine's (Jolt through Saida); the game has no
 obstacle tests of its own. Each uploaded tile mesh gets a `StaticBodyNode` with
 a `Mesh` `CollisionShapeNode`; interior shells and doors are mesh bodies;
-furniture and vehicles have box colliders; trunks are authored from the cooked
-tree positions. Interior bodies are destroyed with their room. Arrivals wait
+furniture and vehicles have box colliders; a tile's trunks are one compound
+body, and a trunk joins it when its tree is mounted, never before. A tree
+still waiting to stream (all of them while driving above 15 km/h, when only
+the signs stream) was an obstacle nobody could see, on tiles cooked before OSM
+answered as much as after. Interior bodies are destroyed with their room. Arrivals wait
 for the destination's first physics sync. Character motion, ceilings,
 spawn/exit occupancy and camera obstacles use the engine API. Water navigation,
 the unloaded-tile limit and the globe's height sampling remain game rules.
@@ -1197,8 +1241,8 @@ GPU queue (about 1.7 ms a part), and the scene's two full transform walks
 cost 6–7 ms each with nine Paris tiles resident.
 On 5 October, with the installed relief and both fixes merged into `main`,
 the offline Rivoli gallery run reached play in 1.64 s and mounted all nine
-tiles in 2.33 s. The generator is version 27; batching compares every material
-property, including textures, rather than only its name and paint.
+tiles in 2.33 s, with the generator at version 27; batching compares every
+material property, including textures, rather than only its name and paint.
 
 Later measurements: Le Fourchêne hypermarket at 60 fps; the canopy tile at
 60 fps (+0.8 ms scene update); a 600-frame Vannes home run at 0.750 ms/frame
@@ -1218,6 +1262,12 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
   are furnished (no upper floors, stairs or lifts); landmark interiors are not
   generated; no sorted glass pass. The Atlas building palettes are not yet
   re-derived as measured albedos.
+- **Water from the air**: past the resident tiles, the far relief draws the
+  sea as whole cells, so a coast far away is a staircase of squares; a tile
+  cooked offline before its observations arrive takes Natural Earth's coarse
+  coast and can show a flat square of sand at sea until OSM answers.
+- **Landmarks**: their stone, concrete and brick finishes use the façade
+  sheets, which carry a window in every bay.
 - **Streets**: municipal road polygons (e.g. Paris) are not integrated;
   inferred sidewalk widths need not match the survey; crossing ramps and
   islands are not modelled; tunnels are skipped. Outside the measured Paris

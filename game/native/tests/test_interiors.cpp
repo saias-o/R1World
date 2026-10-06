@@ -183,3 +183,42 @@ TEST(Interior, garage_forecourt_cars_are_synthesized_only_on_clear_ground) {
     auto road=way(44,{plan.point(-30,-5),plan.point(30,-5),plan.point(30,-10),plan.point(-30,-10)},{{"highway","service"},{"width","6"}});
     osm.roads.push_back(road);CHECK(plans()[0]["exteriorVehicles"].empty());
 }
+TEST(Interior, a_door_above_the_ground_is_reached_by_steps_of_the_place) {
+    auto p=room("home");p.approach=9.1;p.stairBase=8.9;p.steps=5;p.region="PARIS";
+    const auto parts=buildInteriorShell(p);
+    const MeshPart* stairs=nullptr;
+    for(const auto& part:parts)if(part.name=="Entrance stairs")stairs=&part;
+    CHECK(stairs&&!stairs->mesh.empty());
+    CHECK(stairs->material.name=="Stone entrance steps");
+    // Photographed stone at its real size, never a facade sheet with its window.
+    CHECK(!stairs->material.baseColorTexture.empty());
+    CHECK(stairs->material.baseColorTexture.find("_and_window_")==std::string::npos);
+    // A tread at every riser's height, all facing up, none above the door.
+    std::set<long> treads;double top=-1e9,outmost=0;
+    for(size_t i=0;i<stairs->mesh.indices.size();i+=3) {
+        const P3 a=stairs->mesh.positions[stairs->mesh.indices[i]],b=stairs->mesh.positions[stairs->mesh.indices[i+1]],
+                 c=stairs->mesh.positions[stairs->mesh.indices[i+2]];
+        const P3 n=faceNormal(a,b,c);
+        if(n.y>.99)treads.insert(std::lround(a.y*100));
+        top=std::max({top,a.y,b.y,c.y});outmost=std::min({outmost,a.z,b.z,c.z});
+        // Sides face sideways, risers and nosings out of the door.
+        if(std::abs(n.y)<.01&&std::abs(n.x)<.01)CHECK(n.z<0);
+        if(std::abs(n.y)<.01&&std::abs(n.z)<.01)CHECK(n.x*((a.x+b.x+c.x)/3)>0);
+    }
+    CHECK((treads==std::set<long>{1000,982,964,946,928}));
+    NEAR(top,10.,1e-9);
+    NEAR(outmost,-(InteriorPlan::stairRun(5)+.03),1e-9);
+    // The walked slope lies inside the flight, under every tread.
+    const double run=p.approachRun();
+    for(double v=0;v<=run;v+=.01) {
+        const double slope=10-(10-9.1)*v/run;
+        const int tread=v<=InteriorPlan::kLanding?0:int(std::ceil((v-InteriorPlan::kLanding)/InteriorPlan::kTread-1e-9));
+        CHECK(slope<=10-tread*.18+1e-9);
+    }
+    // Commercial doors and other places get concrete; no steps, no flight.
+    p.recipe="garage";CHECK(buildEntranceStairs(p).material.name=="Concrete entrance steps");
+    p.recipe="home";p.region="TOKYO";CHECK(buildEntranceStairs(p).material.name=="Concrete entrance steps");
+    p.steps=0;for(const auto& part:buildInteriorShell(p))CHECK(part.name!="Entrance stairs");
+    // The plan carries its flight through the manifest.
+    p.steps=5;const auto back=InteriorPlan::read(p.json());CHECK(back.steps==5&&back.stairBase==8.9);
+}

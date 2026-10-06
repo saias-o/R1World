@@ -4,6 +4,7 @@
 #include "mesh.hpp"
 #include "osm.hpp"
 #include "polygons.hpp"
+#include <algorithm>
 #include <functional>
 #include <optional>
 
@@ -17,6 +18,16 @@ struct InteriorPlan {
     Ring ring;
     P2 door, along, inward;
     double width = 2.4, floor = 0, ceiling = 3.6, approach = 0;
+    // A door above the ground outside is reached by a flight of `steps`
+    // risers down to `approach` (0: a gentle ramp to the ground 4 m out).
+    // `stairBase` is the lowest ground under the flight, where it is founded.
+    int steps = 0;
+    double stairBase = 0;
+    // The landing before the door, then one tread per lower riser.
+    static constexpr double kLanding = .6, kTread = .3, kRiser = .18;
+    static double stairRun(int steps) { return kLanding + std::max(0, steps - 1) * kTread; }
+    // How far out the way to the door meets the ground.
+    double approachRun() const { return steps > 0 ? stairRun(steps) : 4.0; }
     // A supermarket mapped inside a mall (Carrefour in Le Fourchêne): its
     // measured position. The floor nearer to it than to the door is its
     // sales floor; the rest stays the gallery.
@@ -58,6 +69,9 @@ bool chooseRetailPortal(InteriorPlan& plan,const std::vector<P2>& targets,
                         const std::function<bool(size_t)>& eligible = {},double* offset = nullptr);
 InteriorLayout layoutInterior(const InteriorPlan& plan);
 std::vector<MeshPart> buildInteriorShell(const InteriorPlan& plan);
+// The flight before the door, stone where masonry is the regional tradition
+// and concrete elsewhere and for commercial buildings; empty without steps.
+MeshPart buildEntranceStairs(const InteriorPlan& plan);
 // Furniture is generated once per prototype and instanced by the runtime.
 std::string interiorFixtureKey(const InteriorFixture& fixture);
 std::vector<MeshPart> buildInteriorFixture(InteriorFixture fixture);
