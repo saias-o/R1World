@@ -33,6 +33,9 @@ struct GrassCover {
     std::array<double, 6> uvFromEngine{};
     int coverSize = 0;
     std::vector<uint32_t> cover;    // RGBA8, r the low byte: sRGB colour, density
+    // Of the tile, the share drawn grassy, and of that the share laid over
+    // or built on: what the manifest says of it.
+    double grassy = 0, laid = 0;
     bool empty() const { return cover.empty(); }
 };
 

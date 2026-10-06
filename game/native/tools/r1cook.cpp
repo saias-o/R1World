@@ -133,6 +133,7 @@ int main(int argc, char** argv) {
             line["predicted"] = cooked.manifest["predicted"];
             line["bridges"] = cooked.manifest["bridges"];
             line["elevationSource"] = cooked.manifest["elevationSource"];
+            line["grass"] = cooked.manifest["grass"];
             line["peaks"] = cooked.manifest["peaks"];
             nlohmann::json parts = nlohmann::json::array();
             for (const auto& p : cooked.parts)

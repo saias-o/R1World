@@ -579,6 +579,7 @@ CookedTile cookTile(const Observations& in) {
         {"region", profile.name}, {"regionTier", profile.tier}, {"climate", climate},
         {"osmQueryVersion", osm.queryVersion},
         {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats}}},
+        {"grass", {{"grassy", pyround(out.grass.grassy, 4)}, {"laidOver", pyround(out.grass.laid, 4)}}},
         {"peaks", peakReport},
         {"water", pack ? pack->water : cells.rows()}, {"decks", works.decks},
         {"dryStreets", pack || ocean ? nlohmann::json::array() : dryStreets(streets.ground, cells, anchor)}, {"boats", boats}, {"harbour", harbour.json()},

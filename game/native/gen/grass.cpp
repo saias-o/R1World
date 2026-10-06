@@ -110,6 +110,8 @@ GrassCover grassCover(const TerrainGrid& grid,
             any = true;
         }
     if (!any) return GrassCover{};
+    size_t grassyTexels = 0;
+    for (uint32_t c : out.cover) grassyTexels += c != 0u;
 
     // Nothing grows under what is laid on the ground.
     const ToTexels texels{out.uvFromEngine, size};
@@ -141,8 +143,11 @@ GrassCover grassCover(const TerrainGrid& grid,
         for (const P2& p : r) ring.push_back(texels.at(p.x, p.y));
         fill(covered, size, {ring});
     }
+    size_t laidTexels = 0;
     for (size_t k = 0; k < covered.size(); ++k)
-        if (covered[k]) out.cover[k] = 0u;
+        if (covered[k] && out.cover[k]) { out.cover[k] = 0u; ++laidTexels; }
+    out.grassy = double(grassyTexels) / double(out.cover.size());
+    out.laid = double(laidTexels) / double(grassyTexels);
 
     out.groundSamples = n;
     out.coverSize = size;
