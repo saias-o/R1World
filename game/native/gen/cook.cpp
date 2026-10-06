@@ -12,6 +12,7 @@
 #include "seaice.hpp"
 #include "streets.hpp"
 #include "terrain.hpp"
+#include "grass.hpp"
 #include "waterways.hpp"
 #include "retail.hpp"
 #include "fuel.hpp"
@@ -335,8 +336,9 @@ CookedTile cookTile(const Observations& in) {
         if (name == "water") return name;
         return name + coldSuffix(y, elevations.sample(x, y), climate);
     };
+    TerrainGrid drawnGround;
     auto terrain = buildTerrain(bounds, elevations, anchor, classify,
-                                [&](int r, int c, double h) { return cells.adjust(r, c, h); });
+                                [&](int r, int c, double h) { return cells.adjust(r, c, h); }, &drawnGround);
     std::vector<MeshPart> terrainParts;
     std::map<std::string, int> groundStats;
     for (auto& [name, mesh] : terrain) {
@@ -475,6 +477,13 @@ CookedTile cookTile(const Observations& in) {
         nature.stats = {{"revision", 3}, {"placed", 0}};
     } else {
         out.parts = std::move(parts);
+        // Grass where the ground is drawn grassy, under nothing laid on it.
+        std::vector<const MeshPart*> laid;
+        for (const MeshPart& p : out.parts)
+            if (p.name.rfind("Ground \xE2\x80\x94 ", 0) != 0) laid.push_back(&p);
+        out.grass = grassCover(
+            drawnGround, [&](const std::string& cls) { return groundFamily(cls, profile.ground.name, climate); },
+            [&](const std::string& cls) { return groundSwatch(cls, profile).color; }, laid, footprints);
         if (!inlandMesh.empty()) {
             auto water = seaNode(bounds, anchor, "Inland water");
             water["amplitude"] = 0.045;

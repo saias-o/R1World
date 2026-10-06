@@ -72,7 +72,8 @@ SNOW_LEVEL = 0.85
 # one storey up, whatever their exact size in a given region.
 BAY_WIDTH = 3.1
 STOREY_HEIGHT = 2.9
-SHEET_PIXELS = 512
+SHEET_PIXELS = 1024  # the colour, where a window's bars are read
+MAP_PIXELS = 512     # normal, roughness and height
 # Wall area of a sheet averages to this per channel; the factor is albedo / it.
 WALL_LEVEL = 0.75
 
@@ -152,6 +153,16 @@ _SOURCES_SPEC = {
 }
 
 KINDS = {name: spec[0] for name, spec in _SOURCES_SPEC.items()}
+
+# The window each wall family is drawn with (`r1.windows.MODULES`): the tall
+# window with its surround in plaster, stone and brick; the bare opening in
+# timber, earth and siding; two casements in concrete.
+WINDOW_OF = {
+    "render": "small", "render_rough": "small", "stone": "small",
+    "brick_red": "small", "brick_dark": "small", "brick_buff": "small",
+    "earth": "plain", "siding": "plain", "timber": "plain",
+    "concrete": "wide", "concrete_panel": "wide",
+}
 
 
 # ── the runtime half: the table and the materials ──────────────────────────
@@ -316,6 +327,51 @@ def _mr(rough):
     return out
 
 
+# ── relief (parallax occlusion mapping, engine MaterialDesc::heightId) ─────
+# The height a surface is drawn with, 1 its outermost point, 0 `depth` metres
+# behind it. Nothing new is downloaded: a scan's relief is integrated from its
+# own normal map, and a sheet's window is cut at the measures it is painted at.
+#
+# Which laid surfaces get relief: those whose joints a pedestrian sees sunk.
+RELIEF_STREETS = {"pavement": 0.012, "cobbles": 0.025, "step_stone": 0.008}
+# Walls: the masonry's own relief, then the kit's window set into it.
+WALL_DEPTH = 0.36      # metres from the outermost sill to the deepest glazing bar
+WALL_FACE = 0.55       # the wall plane, as a height: the kit's window reaches 18 cm behind it
+WALL_RELIEF = 0.05     # the masonry's relief either side of it: under 2 cm
+GLASS_ROUGHNESS = 0.06 # float glass: the sky is seen in it, sharp
+ROOM_ALBEDO = 0.03     # a room seen through a window by day: little comes back out
+RELIEF_HIGHPASS = 1.0 / 16.0  # cycles per pixel below which relief fades
+
+
+def _relief(normal):
+    """Height, zero mean and unit peak, whose gradient is the normal map's:
+    the least-squares integral (Frankot and Chellappa), exact on a texture
+    that tiles, as every scan here does."""
+    import numpy as np
+    n = normal.astype(np.float64) / 127.5 - 1.0
+    nz = np.maximum(n[..., 2], 0.2)
+    # OpenGL normal maps: +y up the image, which is -row.
+    p, q = -n[..., 0] / nz, n[..., 1] / nz
+    rows, cols = p.shape
+    wy = np.fft.fftfreq(rows)[:, None] * 2.0 * np.pi
+    wx = np.fft.fftfreq(cols)[None, :] * 2.0 * np.pi
+    denom = wx * wx + wy * wy
+    denom[0, 0] = 1.0
+    spectrum = (-1j * wx * np.fft.fft2(p) - 1j * wy * np.fft.fft2(q)) / denom
+    # A scan's slow undulation is the photograph's lighting as much as its
+    # relief, and it would drown the joints: long wavelengths fade out.
+    cutoff = 2.0 * np.pi * RELIEF_HIGHPASS
+    spectrum *= 1.0 - np.exp(-denom / (cutoff * cutoff))
+    h = np.real(np.fft.ifft2(spectrum))
+    h -= h.mean()
+    return np.clip(h / max(np.quantile(np.abs(h), 0.99), 1e-6), -1.0, 1.0)
+
+
+def _save_height(path: Path, height) -> str:
+    import numpy as np
+    return _save(path, (np.clip(height, 0.0, 1.0) * 255 + 0.5).astype(np.uint8), "L")
+
+
 def _bake_tile(name: str, albedo, normal, rough, level: float) -> dict:
     import numpy as np
     linear, level, clipped = _normalise(_to_linear(albedo), level)
@@ -326,15 +382,18 @@ def _bake_tile(name: str, albedo, normal, rough, level: float) -> dict:
         "normal": _save(SURFACE_ROOT / f"{name}_normal.jpg", normal, "RGB"),
         "mr": _save(SURFACE_ROOT / f"{name}_mr.jpg", _mr(rough), "RGB"),
         "clipped": round(clipped, 4),
+        **({"height": _save_height(SURFACE_ROOT / f"{name}_height.jpg", 0.5 + 0.5 * _relief(normal)),
+            "depth": RELIEF_STREETS[name]} if name in RELIEF_STREETS else {}),
     }
 
 
 def _bake_facade(name: str, albedo, normal, rough, size_m: float) -> dict:
     """One bay by one storey: the material tiled a whole number of times, with
-    the window of the old generic sheet on top of it. The file says so
+    a window of the facade kit (`r1.windows`) set into it. The file says so
     (`<family>_and_window_*`): a sheet is a facade, never a plain material."""
     import numpy as np
     from PIL import Image
+    from . import windows
     n = SHEET_PIXELS
     # The same count both ways, so the scan keeps its aspect: a bay and a
     # storey are within 7% of square, whereas rounding each axis on its own
@@ -349,38 +408,47 @@ def _bake_facade(name: str, albedo, normal, rough, size_m: float) -> dict:
         out = np.tile(tile, reps)
         return np.asarray(Image.fromarray(out, mode).resize((n, n), Image.LANCZOS))
 
-    base = tiled((albedo * 255).astype(np.uint8), "RGB").astype(np.float64) / 255.0
-    nrm = tiled(normal, "RGB").copy()
-    rgh = tiled(rough, "L").copy()
+    def reduced(array):
+        return np.asarray(Image.fromarray(array).resize((MAP_PIXELS, MAP_PIXELS), Image.LANCZOS))
 
-    # The opening, in the old sheet's proportions (128 px): frame 36-92 across
-    # and 20-106 down, glazing inset by 4, a mullion and a transom, a sill.
-    s = n / 128.0
-    box = lambda x0, x1, y0, y1: (slice(int(y0 * s), int(y1 * s)), slice(int(x0 * s), int(x1 * s)))
-    wall = np.ones((n, n), dtype=bool)
-    wall[box(34, 94, 20, 109)] = False
-    wall[box(0, 128, 0, 3)] = False
+    base = tiled((albedo * 255).astype(np.uint8), "RGB").astype(np.float64) / 255.0
+    masonry_normal = tiled(normal, "RGB").astype(np.float64) / 127.5 - 1.0
+    masonry_rough = tiled(rough, "L").astype(np.float64) / 255.0
+
+    window = windows.layer(WINDOW_OF[name], n)
+    a = window["coverage"]
+    wall = a < 0.5
     linear, level, clipped = _normalise(_to_linear(base), WALL_LEVEL, wall)
-    flat = np.array([128, 128, 255], dtype=np.uint8)
-    paint = [
-        (box(0, 128, 0, 3), (0.55, 0.53, 0.50), 170),      # floor line
-        (box(36, 92, 20, 106), (0.40, 0.39, 0.36), 150),   # reveal
-        (box(40, 88, 24, 102), (0.025, 0.035, 0.045), 30),  # glazing
-        (box(43, 62, 27, 62), (0.05, 0.07, 0.08), 25),     # reflection
-        (box(62, 66, 24, 102), (0.72, 0.70, 0.66), 140),   # mullion
-        (box(40, 88, 63, 67), (0.72, 0.70, 0.66), 140),    # transom
-        (box(34, 94, 103, 109), (0.80, 0.78, 0.72), 150),  # sill
-    ]
-    for region, colour, r in paint:
-        linear[region] = colour
-        nrm[region] = flat
-        rgh[region] = r
+    # The window keeps the kit's own colours: a scanned frame and its glass,
+    # whose film of dirt lets the dark room behind it through.
+    pane = window["glass"] > 0.5
+    colour = window["color"].copy()
+    seen = window["opacity"][..., None]
+    colour[pane] = (colour * seen + ROOM_ALBEDO * (1.0 - seen))[pane]
+    linear = linear * (1.0 - a[..., None]) + colour * a[..., None]
+    nrm = masonry_normal * (1.0 - a[..., None]) + window["normal"] * a[..., None]
+    nrm /= np.maximum(np.linalg.norm(nrm, axis=-1, keepdims=True), 1e-6)
+    rgh = masonry_rough * (1.0 - a) + np.where(window["glass"] > 0.5, GLASS_ROUGHNESS, window["rough"]) * a
+    metal = window["metal"] * a
+    masonry_height = WALL_FACE + WALL_RELIEF * _relief(tiled(normal, "RGB"))
+    height = masonry_height * (1.0 - a) + (WALL_FACE + window["depth"] / WALL_DEPTH) * a
+
+    mr = np.zeros((n, n, 3), dtype=np.uint8)
+    mr[..., 0] = 255
+    mr[..., 1] = np.clip(rgh * 255 + 0.5, 0, 255).astype(np.uint8)
+    mr[..., 2] = np.clip(metal * 255 + 0.5, 0, 255).astype(np.uint8)
     return {
         "level": level,
         "albedo": _save(FACADE_ROOT / f"{name}_and_window_albedo.jpg",
                         (_to_srgb(linear) * 255 + 0.5).astype(np.uint8), "RGB"),
-        "normal": _save(FACADE_ROOT / f"{name}_and_window_normal.jpg", nrm, "RGB"),
-        "mr": _save(FACADE_ROOT / f"{name}_and_window_mr.jpg", _mr(rgh), "RGB"),
+        "normal": _save(FACADE_ROOT / f"{name}_and_window_normal.jpg",
+                        reduced(np.clip(nrm * 127.5 + 128.0, 0, 255).astype(np.uint8)), "RGB"),
+        "mr": _save(FACADE_ROOT / f"{name}_and_window_mr.jpg", reduced(mr), "RGB"),
+        "height": _save_height(FACADE_ROOT / f"{name}_and_window_height.jpg",
+                               np.asarray(Image.fromarray(np.clip(height, 0, 1).astype(np.float32))
+                                          .resize((MAP_PIXELS, MAP_PIXELS), Image.LANCZOS))),
+        "depth": WALL_DEPTH,
+        "window": windows.MODULES[WINDOW_OF[name]],
         "clipped": round(clipped, 4),
         "repeats": [across, up],
     }

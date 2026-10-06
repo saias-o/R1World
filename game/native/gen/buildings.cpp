@@ -290,10 +290,15 @@ namespace {
 // ── mesh buckets: one mesh per swatch, not one per building ─────────────────
 struct MeshBook {
     UvMode mode = UvMode::None;
+    UV repeat{1.0, 1.0};
     std::map<std::string, std::pair<Swatch, Mesh>> meshes;
     Mesh& mesh(const Swatch& s) {
         auto it = meshes.find(s.name);
-        if (it == meshes.end()) it = meshes.emplace(s.name, std::make_pair(s, Mesh(mode))).first;
+        if (it == meshes.end()) {
+            Mesh m(mode);
+            m.facadeRepeat = repeat;
+            it = meshes.emplace(s.name, std::make_pair(s, std::move(m))).first;
+        }
         return it->second.second;
     }
     void parts(std::vector<MeshPart>& out, const std::string& prefix, bool doubleSided, const MaterialFor& materials) {
@@ -657,6 +662,12 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
     MeshBook walls, foundations, roofs;
     ShopfrontBook shopfronts;
     roofs.mode = roofMaterials ? UvMode::Slope : UvMode::None;
+    // What a wall is given without UVs -- a gable, a parapet, a steeple --
+    // still shows its sheet at a bay and a storey, never one texel of it.
+    if (wallMaterials) {
+        walls.mode = UvMode::Facade;
+        walls.repeat = {profile.bayWidth, profile.storeyHeight};
+    }
     Mesh trim, glass;
     for (size_t owner = 0; owner < planned.size(); ++owner) {
         const Planned& b = planned[owner];
@@ -743,7 +754,10 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             if(interior&&retailInterior(interior->recipe)) {
                 foundation();
                 const double low=interior->ceiling-b.ground;
-                if(g.wallHeight>low)face(wallMesh,*frame,0.,low,frame->length,g.wallHeight);
+                // Above the shop, the storeys the building has, windows and all.
+                const double bays=std::max(1.0,double(pyround(frame->length/profile.bayWidth)));
+                const std::pair<double,double> scale{bays/frame->length,g.storeys/std::max(1e-3,g.wallHeight)};
+                if(g.wallHeight>low)face(wallMesh,*frame,0.,low,frame->length,g.wallHeight,0.,&scale);
                 continue;
             }
             if(interior&&e==interior->edge) {

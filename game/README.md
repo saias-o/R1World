@@ -426,6 +426,50 @@ Pass family names to rebuild only those families, preserving the others, for
 example `python -m r1.surfaces cliff`. The cliff scan is Poly Haven's
 `rock_face_03`, a 27 m wall, separate from the existing 2 m rocky ground.
 
+### Windows, relief and variation
+
+A sheet's window is no longer painted. `r1/windows.py` fetches Poly Haven's
+*Modular Urban Apartments Facade* (CC0, pinned in
+`data/source-assets/models/`) and `r1/windows_blender.py` photographs three of
+its window modules through an orthographic camera framed on their wall module,
+once per map: colour, normal in the wall's frame, roughness and metalness,
+depth in front of the wall, and the glazing with its film of dirt (through
+which a dark room shows). `r1/surfaces.py` sets the window into each wall
+family's tiled scan -- the tall window with its surround in plaster, stone and
+brick, the bare opening in timber, earth and siding, two casements in
+concrete -- at 1024² for the colour and 512² for the other maps. Rebuild with
+`python -m r1.windows` then `python -m r1.surfaces <wall families>`; Blender
+4.2 is needed, the photographs are cached in `cache/windows/`.
+
+Each sheet also has a height map: the masonry's relief integrated from its own
+normal map (high-passed, under 2 cm), the window 18 cm behind the wall and the
+sill standing out of it. The engine draws it as parallax occlusion mapping up
+close (`MaterialDesc::heightId`), so a window sits back in the wall seen along
+a street; cobbles, pavement slabs and steps have one too. The glazing reflects
+the sky (`MaterialDesc::environmentReflection`, 0.6 of it: from a street about
+half of what a window faces is the buildings across it), and nothing else on
+the sheet does. A wall a building gives no UVs to -- a gable, a parapet, the
+storeys above a shop -- still gets its sheet's bays and storeys (`UvMode::
+Facade`), so the floors above a Paris shop keep their windows.
+
+Every textured surface varies across itself (`MaterialDesc::variation`,
+`gen/palette.cpp`): natural ground warps so no two repeats line up and varies
+over 64, 32 and 16 m; asphalt and open surfaces warp less; anything with
+straight joints -- slabs, setts, bricks, planks, roof tiles -- never warps;
+roofs and facades vary in patches of wear. The mean stays the measured albedo.
+
+### Grass
+
+Close to the camera the ground grows grass blades, made by the engine in the
+vertex shader (`saida::GrassNode`). The cook gives each tile a field
+(`gen/grass.cpp`): its ground grid as drawn, and a 512² cover, about a metre a
+texel, whose density follows the family the ground is drawn with (lawn and
+meadow full, dry grass and savanna thinner, a wood's floor sparse) and whose
+colour is that family's measured albedo, so where the blades thin out at
+36 m the ground under them is the same colour. Nothing grows under a face laid
+within a metre of the ground (streets, pavements, car parks, quays, runways) or
+inside a building. The player and the car push the blades aside.
+
 ## Buildings
 
 ### The Atlas decides what the survey did not say

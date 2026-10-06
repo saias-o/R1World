@@ -13,6 +13,7 @@
 #include "scene/animation/Animator.hpp"
 #include "graphics/ResourceManager.hpp"
 #include "graphics/Material.hpp"
+#include "nodes/GrassNode.hpp"
 #include "nodes/CameraNode.hpp"
 #include "nodes/MeshNode.hpp"
 #include "nodes/LightNode.hpp"
@@ -428,6 +429,7 @@ struct Loaded {
     const json& data; Frame frame; const json& props; size_t nextProp=0;
     // The tile's own geometry goes up a few parts a frame (World::uploadParts).
     saida::Node* geography=nullptr; size_t nextPart=0;
+    saida::GrassNode* grass=nullptr;  // its blades, when its ground grows any
     Loaded(saida::Node* n,std::shared_ptr<const r1::ServedTile> s)
         :node(n),served(std::move(s)),data(served->cooked.manifest),
          frame(data.at("lon").get<double>(),data.at("lat").get<double>()),props(served->cooked.props){}
@@ -3336,6 +3338,10 @@ class World : public Rml::EventListener {
         saida::MaterialDesc d;
         d.baseColor=glm::vec4(m.color[0],m.color[1],m.color[2],m.color[3]);
         d.metallic=float(m.metallic);d.roughness=float(m.roughness);d.doubleSided=m.doubleSided;
+        d.variation={float(m.variation[0]),float(m.variation[1]),float(m.variation[2]),float(m.variation[3])};
+        d.normalStrength=float(m.normalStrength);
+        d.heightId=texture(m.heightTexture,false);d.parallaxDepth=float(m.parallaxDepth);
+        d.environmentReflection=float(m.environmentReflection);
         d.albedoId=texture(m.baseColorTexture,true);
         d.normalId=texture(m.normalTexture,false);
         d.metallicRoughnessId=texture(m.metallicRoughnessTexture,false);
@@ -3352,7 +3358,36 @@ class World : public Rml::EventListener {
             if(!sea)throw std::runtime_error("sea node refused by the scene loader");
             root->addChild(std::move(sea));
         } else root->createChild<saida::Node>("Geography");
+        if(!cooked.grass.empty())root->addChild(grassNode(cooked.grass));
         return root;
+    }
+    // The player and the car push the grass aside where they pass.
+    static constexpr float kWalkerBend=0.45f,kCarBend=1.6f;
+    void bendGrass() {
+        const auto at=[](saida::Node* n){return glm::vec3(n->worldTransform()[3]);};
+        const bool walking=player&&player->isActiveInHierarchy();
+        const bool driving=car&&car->isActiveInHierarchy();
+        for(auto& [key,t]:loaded) {
+            if(!t.grass)continue;
+            const glm::mat4 toLocal=glm::inverse(t.grass->worldTransform());
+            auto bender=[&](saida::Node* n,float radius){
+                return glm::vec4(glm::vec3(toLocal*glm::vec4(at(n),1.f)),radius);};
+            t.grass->benders[0]=walking?bender(player,kWalkerBend):glm::vec4(0.f);
+            t.grass->benders[1]=driving?bender(car,kCarBend):glm::vec4(0.f);
+        }
+    }
+    // The tile's grass blades (gen/grass), on its ground as drawn, in the
+    // tile's own frame: the engine makes them around the camera.
+    static std::unique_ptr<saida::GrassNode> grassNode(const r1::GrassCover& g) {
+        auto node=std::make_unique<saida::GrassNode>();
+        saida::GrassNode::Field f;
+        f.groundSamples=g.groundSamples;f.heights=g.heights;
+        const auto& m=g.uvFromEngine;
+        f.uvFromLocal=glm::mat3(glm::vec3(float(m[0]),float(m[3]),0.f),glm::vec3(float(m[1]),float(m[4]),0.f),
+                                glm::vec3(float(m[2]),float(m[5]),1.f));
+        f.coverSize=g.coverSize;f.cover=g.cover;
+        if(!node->setField(std::move(f)))throw std::runtime_error("grass field refused by the engine");
+        return node;
     }
     // A mount used to upload a whole tile in one frame -- 30 to 60 ms, the
     // hitch every new tile was felt as. Now the ground goes first, a few
@@ -4251,6 +4286,7 @@ class World : public Rml::EventListener {
                 count+=vertices;indices+=tileIndices;
                 checkStanding=true;
                 entry->second.geography=ptr->findByPath("Geography");
+                entry->second.grass=dynamic_cast<saida::GrassNode*>(ptr->findByPath("Grass"));
                 entry->second.footprints=std::any_cast<const PreparedTile&>(served->prepared).footprints;
                 // After the emplace, never before: the flow holds a pointer to
                 // the graph, and a graph built in a temporary would be moved
@@ -5317,7 +5353,7 @@ public:
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
         cost.props=timed([&]{streamProps(fast);});
         cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
-        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateCrowd(delta);updateSea(delta);});
+        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
         if((farPack.node!=nullptr)!=fogFar)applyWeather();

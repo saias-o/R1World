@@ -17,7 +17,10 @@ namespace r1 {
 
 struct UV { double u = 0, v = 0; };
 
-enum class UvMode { None, Planar, Slope };
+// How a triangle given no UVs gets them: none, the ground's (x, -z) metres,
+// metres across and up its own plane (Slope), or a facade sheet's bays and
+// storeys across and up it (Facade, `facadeRepeat` metres a repeat).
+enum class UvMode { None, Planar, Slope, Facade };
 
 struct Mesh {
     std::vector<P3> positions, normals;
@@ -27,6 +30,7 @@ struct Mesh {
     // meshes built vertex by vertex carry it (the weld does not keep it).
     std::vector<std::array<double, 3>> colors;
     UvMode uvMode = UvMode::None;
+    UV facadeRepeat{1.0, 1.0};
 
     explicit Mesh(UvMode mode = UvMode::None) : uvMode(mode) {}
     bool empty() const { return indices.empty(); }
@@ -78,6 +82,17 @@ struct Material {
     std::string baseColorTexture, normalTexture, metallicRoughnessTexture;
     // Mesh UVs are metres, or bays and storeys on walls; this makes them repeats.
     double uvScale = 1.0;
+    // The engine's surface variation (saida::SurfaceVariation), in repeats:
+    // warp, macro cells per repeat, macro albedo, macro slope. Zero: none.
+    std::array<double, 4> variation{};
+    double normalStrength = 1.0;
+    // Relief for parallax occlusion mapping: the height map, and how deep its
+    // black lies below its white, in repeats. Empty: drawn flat.
+    std::string heightTexture;
+    double parallaxDepth = 0.0;
+    // How much of the sky the material reflects (saida::MaterialDesc::
+    // environmentReflection): 1 on facade sheets, whose glazing shows it.
+    double environmentReflection = 0.0;
 
     bool operator==(const Material& other) const {
         return name == other.name && color == other.color &&
@@ -86,7 +101,9 @@ struct Material {
                baseColorTexture == other.baseColorTexture &&
                normalTexture == other.normalTexture &&
                metallicRoughnessTexture == other.metallicRoughnessTexture &&
-               uvScale == other.uvScale;
+               uvScale == other.uvScale && variation == other.variation &&
+               normalStrength == other.normalStrength && heightTexture == other.heightTexture &&
+               parallaxDepth == other.parallaxDepth && environmentReflection == other.environmentReflection;
     }
 };
 

@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <memory>
+#include <set>
 #include <stdexcept>
 
 namespace r1 {
@@ -379,6 +380,44 @@ std::string roofFamily(const std::string& swatchName) {
     return "tile_flat";
 }
 
+namespace {
+
+// How a family varies across a surface (saida::SurfaceVariation), in its own
+// repeats. A scan repeated over a square or a facade reads as wallpaper: the
+// warp shifts every repeat off the last, the macro noise lays the slow
+// patches of wear, damp and moss that no single scan holds. Its mean is zero,
+// so the measured albedo stays the average (CLAUDE.md rule 2).
+//  - Natural ground warps like the far rings' (terrain_material.glsl), and
+//    varies over 64 m, 32 m and 16 m.
+//  - Laid surfaces whose joints are straight lines -- slabs, setts, planks,
+//    bricks, roof tiles -- never warp: a bent joint is worse than a repeat.
+//  - A facade sheet is one bay by one storey: its patches span two bays.
+struct Variation { double warp, macroMetres, albedo, slope; };
+constexpr double kGroundWarp = 1.5;
+constexpr Variation kGroundVariation{kGroundWarp, 64.0, 0.30, 0.0};
+constexpr Variation kOpenStreetVariation{0.8, 24.0, 0.18, 0.0};
+constexpr Variation kJointedVariation{0.0, 24.0, 0.15, 0.0};
+constexpr Variation kRoofVariation{0.0, 8.0, 0.18, 0.0};
+constexpr double kSheetMacroBays = 2.0, kSheetAlbedo = 0.10;
+
+bool jointed(const std::string& family) {
+    static const std::set<std::string> laid = {"pavement", "cobbles", "deck", "step_stone", "ashlar",
+                                               "ashlar_rough", "ashlar_large", "brick_bond", "quay"};
+    return laid.count(family) > 0;
+}
+
+std::array<double, 4> variationOf(const std::string& family, const nlohmann::json& entry) {
+    const std::string kind = entry.at("kind").get<std::string>();
+    const double uvSize = entry.at("uvSize").get<double>();
+    if (kind == "wall") return {0.0, 1.0 / kSheetMacroBays, kSheetAlbedo, 0.0};
+    const Variation v = kind == "ground" ? kGroundVariation
+                        : kind == "roof" ? kRoofVariation
+                        : jointed(family) ? kJointedVariation : kOpenStreetVariation;
+    return {v.warp, uvSize / v.macroMetres, v.albedo, v.slope};
+}
+
+}  // namespace
+
 Material surfaceMaterial(const std::string& name, std::array<double, 3> color, double roughness,
                          const std::optional<std::string>& family, bool doubleSided) {
     Material m;
@@ -395,6 +434,22 @@ Material surfaceMaterial(const std::string& name, std::array<double, 3> color, d
     m.normalTexture = it->at("normal").get<std::string>();
     m.metallicRoughnessTexture = it->at("mr").get<std::string>();
     m.uvScale = 1.0 / it->at("uvSize").get<double>();
+    m.variation = variationOf(*family, *it);
+    if (it->contains("height")) {
+        // Depth in metres, as repeats: a wall's repeat is a bay and a storey.
+        const auto& bay = palette().surfaces.at("bay");
+        const double repeat = it->at("kind").get<std::string>() == "wall"
+                                  ? (bay.at(0).get<double>() + bay.at(1).get<double>()) / 2.0
+                                  : it->at("uvSize").get<double>();
+        m.heightTexture = it->at("height").get<std::string>();
+        m.parallaxDepth = it->at("depth").get<double>() / repeat;
+    }
+    // A facade's window is glass: it shows the sky (its roughness keeps the
+    // wall around it matt). From a street, about half of what a window faces
+    // is the street and the buildings across it, darker than the sky the
+    // engine reflects: the sky's share of the reflection.
+    constexpr double kStreetSkyShare = 0.6;
+    if (it->contains("window")) m.environmentReflection = kStreetSkyShare;
     return m;
 }
 

@@ -10,6 +10,7 @@
 #include "peaks.hpp"
 #include "seaice.hpp"
 #include "seams.hpp"
+#include "grass.hpp"
 #include "../minimap.hpp"
 
 #include <memory>
@@ -61,6 +62,8 @@ struct CookedTile {
     std::vector<MeshPart> parts;
     // For a tile that is all ocean, the sea node that replaces the ground.
     nlohmann::json ocean;
+    // Where grass blades grow on its ground (gen/grass); empty where none does.
+    GrassCover grass;
     // Scene nodes on shared assets: landmarks, plants, props, boats, containers.
     nlohmann::json props = nlohmann::json::array();
     // What `ready.json` said: the frame, the collision data, what was inferred.

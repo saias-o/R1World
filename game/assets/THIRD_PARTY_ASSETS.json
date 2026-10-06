@@ -227,11 +227,12 @@
       "author": "ambientCG (Lennart Demes)",
       "source": "https://ambientcg.com/view?id=WoodSiding009",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/siding_and_window_albedo.jpg",
         "assets/textures/facades/siding_and_window_mr.jpg",
-        "assets/textures/facades/siding_and_window_normal.jpg"
+        "assets/textures/facades/siding_and_window_normal.jpg",
+        "assets/textures/facades/siding_and_window_height.jpg"
       ]
     },
     {
@@ -263,14 +264,15 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/brick_wall_02",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window, and kept at a brick's size for monuments (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax, and kept at a brick's size for monuments (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/brick_red_and_window_albedo.jpg",
         "assets/textures/facades/brick_red_and_window_mr.jpg",
         "assets/textures/facades/brick_red_and_window_normal.jpg",
         "assets/textures/surfaces/brick_bond_albedo.jpg",
         "assets/textures/surfaces/brick_bond_mr.jpg",
-        "assets/textures/surfaces/brick_bond_normal.jpg"
+        "assets/textures/surfaces/brick_bond_normal.jpg",
+        "assets/textures/facades/brick_red_and_window_height.jpg"
       ]
     },
     {
@@ -302,11 +304,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/clay_plaster",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/earth_and_window_albedo.jpg",
         "assets/textures/facades/earth_and_window_mr.jpg",
-        "assets/textures/facades/earth_and_window_normal.jpg"
+        "assets/textures/facades/earth_and_window_normal.jpg",
+        "assets/textures/facades/earth_and_window_height.jpg"
       ]
     },
     {
@@ -338,14 +341,15 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/concrete",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window, and at its real size for quays and monuments (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax, and at its real size for quays and monuments (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/concrete_and_window_albedo.jpg",
         "assets/textures/facades/concrete_and_window_mr.jpg",
         "assets/textures/facades/concrete_and_window_normal.jpg",
         "assets/textures/surfaces/quay_albedo.jpg",
         "assets/textures/surfaces/quay_mr.jpg",
-        "assets/textures/surfaces/quay_normal.jpg"
+        "assets/textures/surfaces/quay_normal.jpg",
+        "assets/textures/facades/concrete_and_window_height.jpg"
       ]
     },
     {
@@ -353,11 +357,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/concrete_pavement",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py); a height map integrated from its normal map, for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/surfaces/pavement_albedo.jpg",
         "assets/textures/surfaces/pavement_mr.jpg",
-        "assets/textures/surfaces/pavement_normal.jpg"
+        "assets/textures/surfaces/pavement_normal.jpg",
+        "assets/textures/surfaces/pavement_height.jpg"
       ]
     },
     {
@@ -365,11 +370,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/concrete_wall_004",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/concrete_panel_and_window_albedo.jpg",
         "assets/textures/facades/concrete_panel_and_window_mr.jpg",
-        "assets/textures/facades/concrete_panel_and_window_normal.jpg"
+        "assets/textures/facades/concrete_panel_and_window_normal.jpg",
+        "assets/textures/facades/concrete_panel_and_window_height.jpg"
       ]
     },
     {
@@ -517,7 +523,8 @@
         "assets/textures/facades/render_and_window_albedo.jpg",
         "assets/textures/interiors/mineral_albedo.jpg",
         "assets/textures/facades/render_and_window_mr.jpg",
-        "assets/textures/facades/render_and_window_normal.jpg"
+        "assets/textures/facades/render_and_window_normal.jpg",
+        "assets/textures/facades/render_and_window_height.jpg"
       ]
     },
     {
@@ -525,11 +532,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/patterned_cobblestone",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py); a height map integrated from its normal map, for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/surfaces/cobbles_albedo.jpg",
         "assets/textures/surfaces/cobbles_mr.jpg",
-        "assets/textures/surfaces/cobbles_normal.jpg"
+        "assets/textures/surfaces/cobbles_normal.jpg",
+        "assets/textures/surfaces/cobbles_height.jpg"
       ]
     },
     {
@@ -537,11 +545,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/red_brick_03",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/brick_dark_and_window_albedo.jpg",
         "assets/textures/facades/brick_dark_and_window_mr.jpg",
-        "assets/textures/facades/brick_dark_and_window_normal.jpg"
+        "assets/textures/facades/brick_dark_and_window_normal.jpg",
+        "assets/textures/facades/brick_dark_and_window_height.jpg"
       ]
     },
     {
@@ -645,11 +654,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/weathered_plank_siding",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/timber_and_window_albedo.jpg",
         "assets/textures/facades/timber_and_window_mr.jpg",
-        "assets/textures/facades/timber_and_window_normal.jpg"
+        "assets/textures/facades/timber_and_window_normal.jpg",
+        "assets/textures/facades/timber_and_window_height.jpg"
       ]
     },
     {
@@ -657,11 +667,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/white_plaster_02",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/render_rough_and_window_albedo.jpg",
         "assets/textures/facades/render_rough_and_window_mr.jpg",
-        "assets/textures/facades/render_rough_and_window_normal.jpg"
+        "assets/textures/facades/render_rough_and_window_normal.jpg",
+        "assets/textures/facades/render_rough_and_window_height.jpg"
       ]
     },
     {
@@ -669,11 +680,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/white_sandstone_blocks_02",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/stone_and_window_albedo.jpg",
         "assets/textures/facades/stone_and_window_mr.jpg",
-        "assets/textures/facades/stone_and_window_normal.jpg"
+        "assets/textures/facades/stone_and_window_normal.jpg",
+        "assets/textures/facades/stone_and_window_height.jpg"
       ]
     },
     {
@@ -717,11 +729,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/marble_rock_02",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized (r1/surfaces.py); worn by entrance steps and the marble of monuments",
+      "modified": "Colour normalised to the palette albedo, resized (r1/surfaces.py); worn by entrance steps and the marble of monuments; a height map integrated from its normal map, for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/surfaces/step_stone_albedo.jpg",
         "assets/textures/surfaces/step_stone_mr.jpg",
-        "assets/textures/surfaces/step_stone_normal.jpg"
+        "assets/textures/surfaces/step_stone_normal.jpg",
+        "assets/textures/surfaces/step_stone_height.jpg"
       ]
     },
     {
@@ -741,11 +754,12 @@
       "author": "Poly Haven",
       "source": "https://polyhaven.com/a/yellow_bricks",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
       "files": [
         "assets/textures/facades/brick_buff_and_window_albedo.jpg",
         "assets/textures/facades/brick_buff_and_window_mr.jpg",
-        "assets/textures/facades/brick_buff_and_window_normal.jpg"
+        "assets/textures/facades/brick_buff_and_window_normal.jpg",
+        "assets/textures/facades/brick_buff_and_window_height.jpg"
       ]
     },
     {
@@ -836,6 +850,59 @@
         "assets/textures/surfaces/cliff_normal.jpg": "41d28a5390dbb8fe76eba399df52f68f8cfd04122258e8a4ecdf940531b6e58c",
         "assets/textures/surfaces/cliff_mr.jpg": "348a0664ee1586c3a3bcee7f445b0753579ff8e958d93094da8fc84c73b32a0c"
       }
+    },
+    {
+      "name": "Modular Urban Apartments Facade (window modules)",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com/a/modular_urban_apartments_facade",
+      "license": "CC0 1.0",
+      "modified": "Window modules photographed orthographically into colour, normal, roughness, metalness and depth maps, and set into every wall family's bay sheet (r1/windows.py, r1/surfaces.py)",
+      "files": [
+        "assets/textures/facades/siding_and_window_albedo.jpg",
+        "assets/textures/facades/siding_and_window_normal.jpg",
+        "assets/textures/facades/siding_and_window_mr.jpg",
+        "assets/textures/facades/siding_and_window_height.jpg",
+        "assets/textures/facades/brick_red_and_window_albedo.jpg",
+        "assets/textures/facades/brick_red_and_window_normal.jpg",
+        "assets/textures/facades/brick_red_and_window_mr.jpg",
+        "assets/textures/facades/brick_red_and_window_height.jpg",
+        "assets/textures/facades/earth_and_window_albedo.jpg",
+        "assets/textures/facades/earth_and_window_normal.jpg",
+        "assets/textures/facades/earth_and_window_mr.jpg",
+        "assets/textures/facades/earth_and_window_height.jpg",
+        "assets/textures/facades/concrete_and_window_albedo.jpg",
+        "assets/textures/facades/concrete_and_window_normal.jpg",
+        "assets/textures/facades/concrete_and_window_mr.jpg",
+        "assets/textures/facades/concrete_and_window_height.jpg",
+        "assets/textures/facades/concrete_panel_and_window_albedo.jpg",
+        "assets/textures/facades/concrete_panel_and_window_normal.jpg",
+        "assets/textures/facades/concrete_panel_and_window_mr.jpg",
+        "assets/textures/facades/concrete_panel_and_window_height.jpg",
+        "assets/textures/facades/render_and_window_albedo.jpg",
+        "assets/textures/facades/render_and_window_normal.jpg",
+        "assets/textures/facades/render_and_window_mr.jpg",
+        "assets/textures/facades/render_and_window_height.jpg",
+        "assets/textures/facades/brick_dark_and_window_albedo.jpg",
+        "assets/textures/facades/brick_dark_and_window_normal.jpg",
+        "assets/textures/facades/brick_dark_and_window_mr.jpg",
+        "assets/textures/facades/brick_dark_and_window_height.jpg",
+        "assets/textures/facades/timber_and_window_albedo.jpg",
+        "assets/textures/facades/timber_and_window_normal.jpg",
+        "assets/textures/facades/timber_and_window_mr.jpg",
+        "assets/textures/facades/timber_and_window_height.jpg",
+        "assets/textures/facades/render_rough_and_window_albedo.jpg",
+        "assets/textures/facades/render_rough_and_window_normal.jpg",
+        "assets/textures/facades/render_rough_and_window_mr.jpg",
+        "assets/textures/facades/render_rough_and_window_height.jpg",
+        "assets/textures/facades/stone_and_window_albedo.jpg",
+        "assets/textures/facades/stone_and_window_normal.jpg",
+        "assets/textures/facades/stone_and_window_mr.jpg",
+        "assets/textures/facades/stone_and_window_height.jpg",
+        "assets/textures/facades/brick_buff_and_window_albedo.jpg",
+        "assets/textures/facades/brick_buff_and_window_normal.jpg",
+        "assets/textures/facades/brick_buff_and_window_mr.jpg",
+        "assets/textures/facades/brick_buff_and_window_height.jpg"
+      ]
     }
   ]
 }

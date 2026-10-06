@@ -16,9 +16,10 @@ namespace {
 // "planar" projects on the ground plane, (x, -z): streets, where neighbouring
 // triangles on different slopes must continue one pattern. "slope" lays each
 // face out in its own frame, across the fall line and up it: roofs.
-void derivedUvs(UvMode mode, P3 n, const P3 p[3], UV out[3]) {
+void derivedUvs(UvMode mode, P3 n, const P3 p[3], UV out[3], UV repeat) {
     if (mode == UvMode::Planar || std::abs(n.y) > 0.999) {
-        for (int i = 0; i < 3; ++i) out[i] = {p[i].x, -p[i].z};
+        const UV r = mode == UvMode::Facade ? repeat : UV{1.0, 1.0};
+        for (int i = 0; i < 3; ++i) out[i] = {p[i].x / r.u, -p[i].z / r.v};
         return;
     }
     // From the normal as the weld key rounds it, so coplanar triangles whose
@@ -28,6 +29,12 @@ void derivedUvs(UvMode mode, P3 n, const P3 p[3], UV out[3]) {
     const double length = std::hypot(tx, tz);
     tx /= length; tz /= length;
     const double bx = n.y * tz, by = n.z * tx - n.x * tz, bz = -n.y * tx;
+    if (mode == UvMode::Facade) {
+        // A sheet runs down its v as the wall goes up, like `face` lays it.
+        for (int i = 0; i < 3; ++i)
+            out[i] = {pyround((p[i].x * tx + p[i].z * tz) / repeat.u, 5), pyround(-p[i].y / repeat.v, 5)};
+        return;
+    }
     for (int i = 0; i < 3; ++i)
         out[i] = {pyround(p[i].x * tx + p[i].z * tz, 5), pyround(p[i].x * bx + p[i].y * by + p[i].z * bz, 5)};
 }
@@ -53,7 +60,7 @@ void Mesh::addTriangle(P3 a, P3 b, P3 c, const UV* uvs) {
     const UV zero[3] = {};
     if (!uvs && uvMode != UvMode::None) {
         const P3 p[3] = {a, b, c};
-        derivedUvs(uvMode, n, p, derived);
+        derivedUvs(uvMode, n, p, derived, facadeRepeat);
         uvs = derived;
     }
     if (!uvs) uvs = zero;

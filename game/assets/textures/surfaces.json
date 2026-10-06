@@ -292,7 +292,9 @@
    "albedo": "assets/textures/surfaces/pavement_albedo.jpg",
    "normal": "assets/textures/surfaces/pavement_normal.jpg",
    "mr": "assets/textures/surfaces/pavement_mr.jpg",
-   "clipped": 0.0013
+   "clipped": 0.0013,
+   "height": "assets/textures/surfaces/pavement_height.jpg",
+   "depth": 0.012
   },
   "cobbles": {
    "kind": "street",
@@ -305,7 +307,9 @@
    "albedo": "assets/textures/surfaces/cobbles_albedo.jpg",
    "normal": "assets/textures/surfaces/cobbles_normal.jpg",
    "mr": "assets/textures/surfaces/cobbles_mr.jpg",
-   "clipped": 0.0034
+   "clipped": 0.0034,
+   "height": "assets/textures/surfaces/cobbles_height.jpg",
+   "depth": 0.025
   },
   "deck": {
    "kind": "street",
@@ -483,11 +487,14 @@
    "size": 2.0,
    "sizeMeasured": true,
    "uvSize": 1.0,
-   "level": 0.4457,
+   "level": 0.448,
    "albedo": "assets/textures/facades/brick_red_and_window_albedo.jpg",
    "normal": "assets/textures/facades/brick_red_and_window_normal.jpg",
    "mr": "assets/textures/facades/brick_red_and_window_mr.jpg",
-   "clipped": 0.0087,
+   "height": "assets/textures/facades/brick_red_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_02",
+   "clipped": 0.0115,
    "repeats": [
     2,
     2
@@ -500,11 +507,14 @@
    "size": 1.0,
    "sizeMeasured": true,
    "uvSize": 1.0,
-   "level": 0.3085,
+   "level": 0.2693,
    "albedo": "assets/textures/facades/brick_dark_and_window_albedo.jpg",
    "normal": "assets/textures/facades/brick_dark_and_window_normal.jpg",
    "mr": "assets/textures/facades/brick_dark_and_window_mr.jpg",
-   "clipped": 0.009,
+   "height": "assets/textures/facades/brick_dark_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_02",
+   "clipped": 0.0097,
    "repeats": [
     3,
     3
@@ -517,10 +527,13 @@
    "size": 2.0,
    "sizeMeasured": true,
    "uvSize": 1.0,
-   "level": 0.3947,
+   "level": 0.3773,
    "albedo": "assets/textures/facades/brick_buff_and_window_albedo.jpg",
    "normal": "assets/textures/facades/brick_buff_and_window_normal.jpg",
    "mr": "assets/textures/facades/brick_buff_and_window_mr.jpg",
+   "height": "assets/textures/facades/brick_buff_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_02",
    "clipped": 0.0096,
    "repeats": [
     2,
@@ -534,11 +547,14 @@
    "size": 2.0,
    "sizeMeasured": true,
    "uvSize": 1.0,
-   "level": 0.585,
+   "level": 0.552,
    "albedo": "assets/textures/facades/stone_and_window_albedo.jpg",
    "normal": "assets/textures/facades/stone_and_window_normal.jpg",
    "mr": "assets/textures/facades/stone_and_window_mr.jpg",
-   "clipped": 0.0103,
+   "height": "assets/textures/facades/stone_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_02",
+   "clipped": 0.0094,
    "repeats": [
     2,
     2
@@ -555,6 +571,9 @@
    "albedo": "assets/textures/facades/render_and_window_albedo.jpg",
    "normal": "assets/textures/facades/render_and_window_normal.jpg",
    "mr": "assets/textures/facades/render_and_window_mr.jpg",
+   "height": "assets/textures/facades/render_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_02",
    "clipped": 0.0,
    "repeats": [
     2,
@@ -572,7 +591,10 @@
    "albedo": "assets/textures/facades/render_rough_and_window_albedo.jpg",
    "normal": "assets/textures/facades/render_rough_and_window_normal.jpg",
    "mr": "assets/textures/facades/render_rough_and_window_mr.jpg",
-   "clipped": 0.0015,
+   "height": "assets/textures/facades/render_rough_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_02",
+   "clipped": 0.0072,
    "repeats": [
     3,
     3
@@ -589,7 +611,10 @@
    "albedo": "assets/textures/facades/earth_and_window_albedo.jpg",
    "normal": "assets/textures/facades/earth_and_window_normal.jpg",
    "mr": "assets/textures/facades/earth_and_window_mr.jpg",
-   "clipped": 0.0001,
+   "height": "assets/textures/facades/earth_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_03",
+   "clipped": 0.0003,
    "repeats": [
     2,
     2
@@ -602,11 +627,14 @@
    "size": 4.0,
    "sizeMeasured": true,
    "uvSize": 1.0,
-   "level": 0.521,
+   "level": 0.516,
    "albedo": "assets/textures/facades/concrete_and_window_albedo.jpg",
    "normal": "assets/textures/facades/concrete_and_window_normal.jpg",
    "mr": "assets/textures/facades/concrete_and_window_mr.jpg",
-   "clipped": 0.0132,
+   "height": "assets/textures/facades/concrete_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_large_03",
+   "clipped": 0.013,
    "repeats": [
     1,
     1
@@ -623,7 +651,10 @@
    "albedo": "assets/textures/facades/concrete_panel_and_window_albedo.jpg",
    "normal": "assets/textures/facades/concrete_panel_and_window_normal.jpg",
    "mr": "assets/textures/facades/concrete_panel_and_window_mr.jpg",
-   "clipped": 0.0004,
+   "height": "assets/textures/facades/concrete_panel_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_large_03",
+   "clipped": 0.0036,
    "repeats": [
     2,
     2
@@ -636,11 +667,14 @@
    "size": 1.2,
    "sizeMeasured": false,
    "uvSize": 1.0,
-   "level": 0.6203,
+   "level": 0.5952,
    "albedo": "assets/textures/facades/siding_and_window_albedo.jpg",
    "normal": "assets/textures/facades/siding_and_window_normal.jpg",
    "mr": "assets/textures/facades/siding_and_window_mr.jpg",
-   "clipped": 0.0082,
+   "height": "assets/textures/facades/siding_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_03",
+   "clipped": 0.0086,
    "repeats": [
     2,
     2
@@ -653,11 +687,14 @@
    "size": 1.57,
    "sizeMeasured": true,
    "uvSize": 1.0,
-   "level": 0.6173,
+   "level": 0.6117,
    "albedo": "assets/textures/facades/timber_and_window_albedo.jpg",
    "normal": "assets/textures/facades/timber_and_window_normal.jpg",
    "mr": "assets/textures/facades/timber_and_window_mr.jpg",
-   "clipped": 0.0062,
+   "height": "assets/textures/facades/timber_and_window_height.jpg",
+   "depth": 0.36,
+   "window": "window_centered_small_03",
+   "clipped": 0.0099,
    "repeats": [
     2,
     2
@@ -716,7 +753,9 @@
    "albedo": "assets/textures/surfaces/step_stone_albedo.jpg",
    "normal": "assets/textures/surfaces/step_stone_normal.jpg",
    "mr": "assets/textures/surfaces/step_stone_mr.jpg",
-   "clipped": 0.0
+   "clipped": 0.0,
+   "height": "assets/textures/surfaces/step_stone_height.jpg",
+   "depth": 0.008
   },
   "ashlar": {
    "kind": "street",

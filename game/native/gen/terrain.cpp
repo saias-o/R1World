@@ -13,7 +13,8 @@ double roadWidthOf(const std::string& highway) {
 
 std::map<std::string, Mesh> buildTerrain(const Bounds& b, const ElevationGrid& elevations, const Anchor& anchor,
                                          const std::function<std::string(double, double)>& classify,
-                                         const std::function<double(int, int, double)>& adjust) {
+                                         const std::function<double(int, int, double)>& adjust,
+                                         TerrainGrid* grid) {
     const int n = kTerrainMeshSize;
     std::vector<P3> points(size_t(n * n));
     std::vector<P2> coordinates(size_t(n * n));
@@ -28,9 +29,11 @@ std::map<std::string, Mesh> buildTerrain(const Bounds& b, const ElevationGrid& e
         }
     }
     std::map<std::string, Mesh> meshes;
+    if (grid) { grid->points = points; grid->classes.clear(); }
     auto meshFor = [&](P2 a, P2 bb, P2 c) -> Mesh& {
-        if (!classify) return meshes[""];
-        return meshes[classify((a.x + bb.x + c.x) / 3.0, (a.y + bb.y + c.y) / 3.0)];
+        const std::string name = classify ? classify((a.x + bb.x + c.x) / 3.0, (a.y + bb.y + c.y) / 3.0) : "";
+        if (grid) grid->classes.push_back(name);
+        return meshes[name];
     };
     auto uv = [](P3 p) { return UV{p.x, -p.z}; };
     for (int row = 0; row < n - 1; ++row)
