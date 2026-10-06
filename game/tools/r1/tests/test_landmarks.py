@@ -102,6 +102,26 @@ class Models(unittest.TestCase):
                     with self.subTest(slug=slug, finish=part.material.name):
                         self.assertTrue(uri.startswith("../../../assets/textures/"), uri)
 
+    def test_no_monument_wears_a_facade_sheet(self):
+        # A landmark's UVs are metres; a wall family is one bay and one
+        # storey with a window painted on, so it drew a window in every
+        # square metre of the pyramids. Masonry has its own families.
+        from r1 import surfaces
+        for slug, parts in self.parts.items():
+            for part in parts:
+                with self.subTest(slug=slug, finish=part.material.name):
+                    uri = part.material.base_color_texture or ""
+                    self.assertNotIn("/facades/", uri)
+                    self.assertNotIn("_and_window_", uri)
+        for landmark in LANDMARKS:
+            with sculpt.detail(0):
+                finishes = landmark.recipe().finishes.values()
+            for finish in finishes:
+                if finish.family is not None:
+                    with self.subTest(slug=landmark.slug, finish=finish.name):
+                        self.assertIn(finish.family, surfaces.KINDS)
+                        self.assertNotEqual(surfaces.KINDS[finish.family], "wall")
+
     def test_models_are_deterministic(self):
         again = landmarks.model_parts(BY_SLUG["st_basils_cathedral"])
         first = self.parts["st_basils_cathedral"]

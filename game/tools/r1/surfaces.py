@@ -30,6 +30,8 @@ snowline falls from 5 500 m in the tropics to sea level near 72°.
 **Walls are baked sheets.** A wall's UVs span one bay and one storey, so each
 wall family is baked into a sheet: its material tiled a whole number of times
 across a nominal bay, with the window opening of the old generic sheet on top.
+A sheet is therefore a facade and never a plain material: a monument, whose
+UVs are metres, takes a windowless masonry family (`ashlar`, `brick_bond`...).
 
 `python -m r1.surfaces` downloads (pinned), normalises and bakes everything
 into `assets/textures/surfaces/` and `assets/textures/facades/`, and writes
@@ -110,6 +112,19 @@ _SOURCES_SPEC = {
     "deck":             ("street", "polyhaven", "weathered_planks", 2.0),
     "riprap":           ("street", "polyhaven", "rock_boulder_dry", 1.8),
     "quay":             ("street", "polyhaven", "concrete", 4.0),
+    # ── entrance steps (gen/interiors.cpp): worn stone, without joints ─────
+    # that would cross a tread or a riser where no mason would cut one.
+    "step_stone":       ("street", "polyhaven", "marble_rock_02", 2.0),
+    # ── monuments (landmarks.py): masonry at its real size, never a sheet ──
+    # A landmark's UVs are metres, so a wall family's sheet drew a window in
+    # every square metre of the Eiffel Tower's footings. These are the same
+    # grade of scan without a window: sawn ashlar, rock-faced or weathered
+    # ashlar, the metre-high courses of a pyramid's core, and the scan that
+    # the `brick_red` sheet is baked from, kept at a brick's size.
+    "ashlar":           ("street", "polyhaven", "sandstone_blocks_08", 3.0),
+    "ashlar_rough":     ("street", "polyhaven", "sandstone_blocks_05", 3.0),
+    "ashlar_large":     ("street", "polyhaven", "large_sandstone_blocks_01", 3.0),
+    "brick_bond":       ("street", "polyhaven", "brick_wall_02", 2.0),
     # ── roofs ────────────────────────────────────────────────────────────────
     "tile_canal":       ("roof", "polyhaven", "clay_roof_tiles_02", 2.5),
     "tile_flat":        ("roof", "polyhaven", "roof_09", 4.0),
@@ -316,7 +331,8 @@ def _bake_tile(name: str, albedo, normal, rough, level: float) -> dict:
 
 def _bake_facade(name: str, albedo, normal, rough, size_m: float) -> dict:
     """One bay by one storey: the material tiled a whole number of times, with
-    the window of the old generic sheet on top of it."""
+    the window of the old generic sheet on top of it. The file says so
+    (`<family>_and_window_*`): a sheet is a facade, never a plain material."""
     import numpy as np
     from PIL import Image
     n = SHEET_PIXELS
@@ -361,10 +377,10 @@ def _bake_facade(name: str, albedo, normal, rough, size_m: float) -> dict:
         rgh[region] = r
     return {
         "level": level,
-        "albedo": _save(FACADE_ROOT / f"{name}_albedo.jpg",
+        "albedo": _save(FACADE_ROOT / f"{name}_and_window_albedo.jpg",
                         (_to_srgb(linear) * 255 + 0.5).astype(np.uint8), "RGB"),
-        "normal": _save(FACADE_ROOT / f"{name}_normal.jpg", nrm, "RGB"),
-        "mr": _save(FACADE_ROOT / f"{name}_mr.jpg", _mr(rgh), "RGB"),
+        "normal": _save(FACADE_ROOT / f"{name}_and_window_normal.jpg", nrm, "RGB"),
+        "mr": _save(FACADE_ROOT / f"{name}_and_window_mr.jpg", _mr(rgh), "RGB"),
         "clipped": round(clipped, 4),
         "repeats": [across, up],
     }

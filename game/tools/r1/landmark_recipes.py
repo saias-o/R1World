@@ -251,7 +251,7 @@ def eiffel_tower() -> Sculpt:
     for qx in (-1, 1):
         for qz in (-1, 1):
             c = 62.45 - 12.5
-            box(s, Finish("Eiffel pillar footing, limestone", (0.27, 0.25, 0.21), 0.9, family="stone"),
+            box(s, Finish("Eiffel pillar footing, limestone", (0.27, 0.25, 0.21), 0.9, family="ashlar"),
                 qx * c, -3.0, qz * c, 26.0, 4.0, 26.0)
     _eiffel_legs(s)
     _eiffel_arches(s)
@@ -406,8 +406,8 @@ def _doric_frieze(s: Sculpt, finish: Finish, width: float, depth: float, y0: flo
 # ── Statue of Liberty ───────────────────────────────────────────────────────
 
 VERDIGRIS = Finish("Copper, verdigris patina", (0.16, 0.29, 0.24), 0.7)
-STONY_CREEK = Finish("Stony Creek granite", (0.26, 0.22, 0.20), 0.85, family="stone")
-FORT_GRANITE = Finish("Fort Wood granite", (0.22, 0.21, 0.19), 0.9, family="stone")
+STONY_CREEK = Finish("Stony Creek granite", (0.26, 0.22, 0.20), 0.85, family="ashlar_rough")
+FORT_GRANITE = Finish("Fort Wood granite", (0.22, 0.21, 0.19), 0.9, family="ashlar_rough")
 
 
 def statue_of_liberty() -> Sculpt:
@@ -486,7 +486,7 @@ def statue_of_liberty() -> Sculpt:
 
 # ── Big Ben (Elizabeth Tower) ───────────────────────────────────────────────
 
-ANSTON = Finish("Anston limestone", (0.30, 0.27, 0.20), 0.9, family="stone")
+ANSTON = Finish("Anston limestone", (0.30, 0.27, 0.20), 0.9, family="ashlar")
 CLOCK_DIAL = Finish("Pot opal glass dial", (0.34, 0.33, 0.29), 0.3)
 CAST_IRON = Finish("Painted cast iron", (0.05, 0.06, 0.075), 0.5)
 
@@ -559,8 +559,8 @@ def big_ben() -> Sculpt:
 
 # ── Colosseum ───────────────────────────────────────────────────────────────
 
-TRAVERTINE = Finish("Tivoli travertine", (0.30, 0.26, 0.19), 0.9, family="stone")
-ROMAN_BRICK = Finish("Roman brick and tufa", (0.21, 0.12, 0.08), 0.9, family="brick_red")
+TRAVERTINE = Finish("Tivoli travertine", (0.30, 0.26, 0.19), 0.9, family="ashlar_rough")
+ROMAN_BRICK = Finish("Roman brick and tufa", (0.21, 0.12, 0.08), 0.9, family="brick_bond")
 ARENA_DECK = Finish("Arena floor, oak boards", (0.19, 0.13, 0.08), 0.8, family="deck")
 
 
@@ -692,9 +692,9 @@ def _quad(outer, inner):
 
 # ── Taj Mahal ───────────────────────────────────────────────────────────────
 
-MAKRANA = Finish("Makrana marble", (0.36, 0.35, 0.32), 0.45, family="stone")
-MAKRANA_SHADE = Finish("Makrana marble, in shade", (0.25, 0.24, 0.22), 0.5, family="stone")
-RED_SANDSTONE = Finish("Red sandstone", (0.24, 0.10, 0.07), 0.85, family="stone")
+MAKRANA = Finish("Makrana marble", (0.36, 0.35, 0.32), 0.45, family="step_stone")
+MAKRANA_SHADE = Finish("Makrana marble, in shade", (0.25, 0.24, 0.22), 0.5, family="step_stone")
+RED_SANDSTONE = Finish("Red sandstone", (0.24, 0.10, 0.07), 0.85, family="ashlar")
 INLAY = Finish("Black marble calligraphy inlay", (0.03, 0.03, 0.03), 0.3)
 
 
@@ -799,8 +799,8 @@ def taj_mahal() -> Sculpt:
 
 # ── the pyramids of Giza ────────────────────────────────────────────────────
 
-GIZA_CORE = Finish("Giza limestone core blocks", (0.30, 0.24, 0.16), 0.95, family="stone")
-TURA_CASING = Finish("Tura limestone casing", (0.33, 0.29, 0.21), 0.85, family="stone")
+GIZA_CORE = Finish("Giza limestone core blocks", (0.30, 0.24, 0.16), 0.95, family="ashlar_large")
+TURA_CASING = Finish("Tura limestone casing", (0.33, 0.29, 0.21), 0.85, family="step_stone")
 
 
 def _pyramid(base: float, apex: float, top: float, courses: int,
@@ -887,7 +887,7 @@ def _robe(s: Sculpt, finish: Finish, sections, folds: int, depth: float, top_fol
 # ── Christ the Redeemer ─────────────────────────────────────────────────────
 
 SOAPSTONE = Finish("Soapstone mosaic tesserae", (0.30, 0.30, 0.28), 0.7)
-PALE_CONCRETE = Finish("Rendered concrete", (0.27, 0.26, 0.24), 0.9, family="concrete")
+PALE_CONCRETE = Finish("Rendered concrete", (0.27, 0.26, 0.24), 0.9, family="quay")
 
 
 def christ_the_redeemer() -> Sculpt:
@@ -926,7 +926,7 @@ def christ_the_redeemer() -> Sculpt:
 # ── Sydney Opera House ──────────────────────────────────────────────────────
 
 SHELL_TILE = Finish("Glazed chevron tiles", (0.33, 0.32, 0.28), 0.3, double_sided=True)
-TARANA = Finish("Tarana granite", (0.22, 0.14, 0.10), 0.85, family="stone")
+TARANA = Finish("Tarana granite", (0.22, 0.14, 0.10), 0.85, family="ashlar")
 SHELL_RIB = Finish("Matte buff lid tiles", (0.27, 0.25, 0.21), 0.7)
 BRONZE_GLASS = Finish("Topaz glass, bronze mullions", (0.05, 0.045, 0.04), 0.15,
                       double_sided=True)
@@ -1057,7 +1057,7 @@ def burj_khalifa() -> Sculpt:
 
 # ── Empire State Building ───────────────────────────────────────────────────
 
-INDIANA = Finish("Indiana limestone, aluminium spandrels", (0.30, 0.28, 0.24), 0.8, family="stone")
+INDIANA = Finish("Indiana limestone, aluminium spandrels", (0.30, 0.28, 0.24), 0.8, family="ashlar")
 
 
 def _notched(width: float, depth: float, notch: float):
@@ -1107,8 +1107,8 @@ def empire_state_building() -> Sculpt:
 
 # ── Leaning Tower of Pisa ───────────────────────────────────────────────────
 
-PISA_MARBLE = Finish("San Giuliano marble", (0.35, 0.33, 0.29), 0.7, family="stone")
-PISA_SHADE = Finish("San Giuliano marble, in shade", (0.22, 0.21, 0.19), 0.8, family="stone")
+PISA_MARBLE = Finish("San Giuliano marble", (0.35, 0.33, 0.29), 0.7, family="step_stone")
+PISA_SHADE = Finish("San Giuliano marble, in shade", (0.22, 0.21, 0.19), 0.8, family="step_stone")
 
 
 def leaning_tower() -> Sculpt:
@@ -1153,7 +1153,7 @@ def leaning_tower() -> Sculpt:
 
 # ── Arc de Triomphe ─────────────────────────────────────────────────────────
 
-PARIS_STONE = Finish("Château-Landon limestone", (0.33, 0.30, 0.24), 0.9, family="stone")
+PARIS_STONE = Finish("Château-Landon limestone", (0.33, 0.30, 0.24), 0.9, family="ashlar")
 
 
 def arc_de_triomphe() -> Sculpt:
@@ -1311,7 +1311,7 @@ def notre_dame() -> Sculpt:
 
 # ── Sagrada Família ─────────────────────────────────────────────────────────
 
-MONTJUIC = Finish("Montjuïc sandstone", (0.28, 0.24, 0.18), 0.9, family="stone")
+MONTJUIC = Finish("Montjuïc sandstone", (0.28, 0.24, 0.18), 0.9, family="ashlar_rough")
 MOSAIC = Finish("Venetian glass mosaic, gold and red", (0.34, 0.20, 0.08), 0.3)
 TRENCADIS = Finish("White Venetian glass and trencadís", (0.34, 0.34, 0.33), 0.25)
 CYPRESS = Finish("Green ceramic cypress", (0.05, 0.17, 0.07), 0.4)
@@ -1417,7 +1417,7 @@ def sagrada_familia() -> Sculpt:
 
 # ── Brandenburger Tor ───────────────────────────────────────────────────────
 
-ELBE = Finish("Elbe sandstone", (0.30, 0.27, 0.20), 0.9, family="stone")
+ELBE = Finish("Elbe sandstone", (0.30, 0.27, 0.20), 0.9, family="ashlar")
 
 
 def brandenburg_gate() -> Sculpt:
@@ -1550,7 +1550,7 @@ def st_peters_basilica() -> Sculpt:
 
 # ── St Basil's Cathedral ────────────────────────────────────────────────────
 
-RED_BRICK = Finish("Red brick", (0.24, 0.075, 0.05), 0.85, family="brick_red")
+RED_BRICK = Finish("Red brick", (0.24, 0.075, 0.05), 0.85, family="brick_bond")
 WHITE_TRIM = Finish("White limestone trim", (0.33, 0.32, 0.29), 0.8)
 TENT = Finish("Glazed tent tiles", (0.25, 0.27, 0.21), 0.5)
 ONION = {
@@ -1651,7 +1651,7 @@ def st_basils_cathedral() -> Sculpt:
 
 # ── Parthenon ───────────────────────────────────────────────────────────────
 
-PENTELIC = Finish("Pentelic marble, weathered", (0.33, 0.28, 0.21), 0.85, family="stone")
+PENTELIC = Finish("Pentelic marble, weathered", (0.33, 0.28, 0.21), 0.85, family="step_stone")
 
 
 def _doric(s: Sculpt, x: float, z: float, y0: float, height: float) -> None:
@@ -1701,7 +1701,7 @@ def parthenon() -> Sculpt:
 AVIATION_ORANGE = Finish("International orange paint", (0.52, 0.09, 0.02), 0.6)
 AVIATION_WHITE = Finish("White paint", (0.33, 0.33, 0.32), 0.6)
 DECK = Finish("Observation deck cladding", (0.26, 0.27, 0.28), 0.5, metallic=0.3)
-FOOT_TOWN = Finish("Foot Town cladding", (0.27, 0.27, 0.26), 0.8, family="concrete_panel")
+FOOT_TOWN = Finish("Foot Town cladding", (0.27, 0.27, 0.26), 0.8, family="quay")
 
 # The aviation bands, white between these heights and orange elsewhere.
 _TOKYO_WHITE = ((95.0, 110.0), (175.0, 190.0), (212.0, 226.0), (253.0, 270.0), (290.0, 305.0))
