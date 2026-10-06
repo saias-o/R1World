@@ -12,7 +12,7 @@
         },
         "10013366607930000696": {
             "hash": 7073655531894829955,
-            "path": "assets/textures/facades/brick_red_albedo.jpg",
+            "path": "assets/textures/facades/brick_red_and_window_albedo.jpg",
             "type": "Texture"
         },
         "10019608746895110490": {
@@ -27,7 +27,7 @@
         },
         "10048449252355454706": {
             "hash": 4629684667053892055,
-            "path": "assets/textures/facades/timber_normal.jpg",
+            "path": "assets/textures/facades/timber_and_window_normal.jpg",
             "type": "Texture"
         },
         "1005401490129366739": {
@@ -124,6 +124,11 @@
             "hash": 13146620994693010913,
             "path": "assets/models/signs/town/glyph_0034-r1.glb",
             "type": "Mesh"
+        },
+        "10263003468891614813": {
+            "hash": 558819998232094400,
+            "path": "assets/textures/surfaces/step_stone_albedo.jpg",
+            "type": "Texture"
         },
         "10295903038732875915": {
             "hash": 1489895728009659588,
@@ -612,7 +617,7 @@
         },
         "1142104804982393000": {
             "hash": 14226532417854634959,
-            "path": "assets/textures/facades/render_mr.jpg",
+            "path": "assets/textures/facades/render_and_window_mr.jpg",
             "type": "Texture"
         },
         "11429058891080532431": {
@@ -812,7 +817,7 @@
         },
         "1186708753548117409": {
             "hash": 2678215517298379653,
-            "path": "assets/textures/facades/concrete_panel_mr.jpg",
+            "path": "assets/textures/facades/concrete_panel_and_window_mr.jpg",
             "type": "Texture"
         },
         "11876677704199919599": {
@@ -916,7 +921,7 @@
             "type": "Unknown"
         },
         "12144190595864778274": {
-            "hash": 10359212561974956840,
+            "hash": 10261050640128765424,
             "path": "assets/world/landmarks/sydney_opera_house-r3.glb",
             "type": "Mesh"
         },
@@ -937,7 +942,7 @@
         },
         "12190100396979270698": {
             "hash": 6793497951419645721,
-            "path": "assets/textures/facades/concrete_panel_albedo.jpg",
+            "path": "assets/textures/facades/concrete_panel_and_window_albedo.jpg",
             "type": "Texture"
         },
         "12196288667028506666": {
@@ -1042,7 +1047,7 @@
         },
         "12328019574957421701": {
             "hash": 9339828496823619462,
-            "path": "assets/textures/facades/brick_red_normal.jpg",
+            "path": "assets/textures/facades/brick_red_and_window_normal.jpg",
             "type": "Texture"
         },
         "12353146997401426821": {
@@ -1132,11 +1137,11 @@
         },
         "12626698960083496154": {
             "hash": 13309360296643590621,
-            "path": "assets/textures/facades/render_rough_albedo.jpg",
+            "path": "assets/textures/facades/render_rough_and_window_albedo.jpg",
             "type": "Texture"
         },
         "12627523040984944437": {
-            "hash": 10809450871686237702,
+            "hash": 4095298847183952012,
             "path": "assets/world/landmarks/empire_state_building-r3.glb",
             "type": "Mesh"
         },
@@ -1192,11 +1197,11 @@
         },
         "12763075176032404977": {
             "hash": 2160840037247510684,
-            "path": "assets/textures/facades/concrete_panel_normal.jpg",
+            "path": "assets/textures/facades/concrete_panel_and_window_normal.jpg",
             "type": "Texture"
         },
         "12766889262400015419": {
-            "hash": 10221821886969492108,
+            "hash": 12993755258095243199,
             "path": "assets/world/landmarks/pyramid_of_khafre-r3.glb",
             "type": "Mesh"
         },
@@ -1212,7 +1217,7 @@
         },
         "12790354790958849452": {
             "hash": 4482457429769433768,
-            "path": "assets/textures/facades/stone_normal.jpg",
+            "path": "assets/textures/facades/stone_and_window_normal.jpg",
             "type": "Texture"
         },
         "12796048582063600651": {
@@ -1351,7 +1356,7 @@
             "type": "Texture"
         },
         "13068997251858126156": {
-            "hash": 14472776135342671907,
+            "hash": 17836297272305255962,
             "path": "assets/world/landmarks/christ_the_redeemer-r3.glb",
             "type": "Mesh"
         },
@@ -1371,7 +1376,7 @@
             "type": "Mesh"
         },
         "13111794619578189054": {
-            "hash": 6272487676898454493,
+            "hash": 9543304102025874094,
             "path": "assets/world/landmarks/sagrada_familia-r3.glb",
             "type": "Mesh"
         },
@@ -1432,7 +1437,7 @@
         },
         "13286881622526078535": {
             "hash": 1856952299990876652,
-            "path": "assets/textures/facades/render_rough_mr.jpg",
+            "path": "assets/textures/facades/render_rough_and_window_mr.jpg",
             "type": "Texture"
         },
         "13304712182555719301": {
@@ -1461,7 +1466,7 @@
             "type": "Unknown"
         },
         "13364353098406619667": {
-            "hash": 3204986691722065743,
+            "hash": 7607613615124997358,
             "path": "assets/world/landmarks/leaning_tower_of_pisa-r3.glb",
             "type": "Mesh"
         },
@@ -1632,7 +1637,7 @@
         },
         "1376047023610803515": {
             "hash": 15100453451946097044,
-            "path": "assets/textures/facades/stone_albedo.jpg",
+            "path": "assets/textures/facades/stone_and_window_albedo.jpg",
             "type": "Texture"
         },
         "13763072129313637979": {
@@ -1827,7 +1832,7 @@
         },
         "14314225292672339883": {
             "hash": 15368889781494062867,
-            "path": "assets/textures/facades/brick_buff_albedo.jpg",
+            "path": "assets/textures/facades/brick_buff_and_window_albedo.jpg",
             "type": "Texture"
         },
         "14343802537393017810": {
@@ -1872,7 +1877,7 @@
         },
         "14491187732939635241": {
             "hash": 16466337340063904140,
-            "path": "assets/textures/facades/concrete_albedo.jpg",
+            "path": "assets/textures/facades/concrete_and_window_albedo.jpg",
             "type": "Texture"
         },
         "14521854439017818613": {
@@ -2227,7 +2232,7 @@
         },
         "15306120452523047330": {
             "hash": 17931892984775289801,
-            "path": "assets/textures/facades/timber_albedo.jpg",
+            "path": "assets/textures/facades/timber_and_window_albedo.jpg",
             "type": "Texture"
         },
         "15306671785340479064": {
@@ -2291,7 +2296,7 @@
             "type": "Mesh"
         },
         "15413087698998148951": {
-            "hash": 10043880840594438378,
+            "hash": 365330295805531905,
             "path": "assets/world/landmarks/brandenburg_gate-r3.glb",
             "type": "Mesh"
         },
@@ -2437,7 +2442,7 @@
         },
         "15784727134325099236": {
             "hash": 14674249759734331411,
-            "path": "assets/textures/facades/concrete_mr.jpg",
+            "path": "assets/textures/facades/concrete_and_window_mr.jpg",
             "type": "Texture"
         },
         "15791888498194818231": {
@@ -2682,7 +2687,7 @@
         },
         "16452394163001117220": {
             "hash": 11997953820596656837,
-            "path": "assets/textures/facades/brick_buff_mr.jpg",
+            "path": "assets/textures/facades/brick_buff_and_window_mr.jpg",
             "type": "Texture"
         },
         "16455620822867604554": {
@@ -2729,6 +2734,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-90_-140.r1relief",
             "type": "Unknown"
+        },
+        "16630863424071810685": {
+            "hash": 7710069683272314898,
+            "path": "assets/textures/surfaces/step_stone_normal.jpg",
+            "type": "Texture"
         },
         "16674097435083625614": {
             "hash": 654653369609063748,
@@ -2812,7 +2822,7 @@
         },
         "16940723734641318219": {
             "hash": 17450328844672430159,
-            "path": "assets/textures/facades/earth_mr.jpg",
+            "path": "assets/textures/facades/earth_and_window_mr.jpg",
             "type": "Texture"
         },
         "16974271610987079637": {
@@ -2846,7 +2856,7 @@
             "type": "Unknown"
         },
         "17084595504188701708": {
-            "hash": 18120353416103955508,
+            "hash": 485654311751158091,
             "path": "assets/world/landmarks/taj_mahal-r3.glb",
             "type": "Mesh"
         },
@@ -3132,12 +3142,12 @@
         },
         "1768263024899672070": {
             "hash": 5381730451797181041,
-            "path": "assets/textures/facades/render_normal.jpg",
+            "path": "assets/textures/facades/render_and_window_normal.jpg",
             "type": "Texture"
         },
         "17691392667013478571": {
             "hash": 2882360106915338937,
-            "path": "assets/textures/facades/brick_dark_albedo.jpg",
+            "path": "assets/textures/facades/brick_dark_and_window_albedo.jpg",
             "type": "Texture"
         },
         "17706538492136850522": {
@@ -3397,7 +3407,7 @@
         },
         "1851528684546447240": {
             "hash": 6858992088069327345,
-            "path": "assets/textures/facades/timber_mr.jpg",
+            "path": "assets/textures/facades/timber_and_window_mr.jpg",
             "type": "Texture"
         },
         "1858323375868795780": {
@@ -3406,7 +3416,7 @@
             "type": "Unknown"
         },
         "1873029730182051311": {
-            "hash": 14125863469650836342,
+            "hash": 6867839742766640036,
             "path": "assets/world/landmarks/st_basils_cathedral-r3.glb",
             "type": "Mesh"
         },
@@ -3456,7 +3466,7 @@
             "type": "Mesh"
         },
         "1956996305968822904": {
-            "hash": 13300163794532337650,
+            "hash": 18023889557059996111,
             "path": "assets/world/landmarks/arc_de_triomphe-r3.glb",
             "type": "Mesh"
         },
@@ -3542,7 +3552,7 @@
         },
         "2207497608524842625": {
             "hash": 18357485283247288005,
-            "path": "assets/textures/facades/render_rough_normal.jpg",
+            "path": "assets/textures/facades/render_rough_and_window_normal.jpg",
             "type": "Texture"
         },
         "2208109569057205543": {
@@ -3597,7 +3607,7 @@
         },
         "2335748679951839597": {
             "hash": 3749357259082498085,
-            "path": "assets/textures/facades/siding_albedo.jpg",
+            "path": "assets/textures/facades/siding_and_window_albedo.jpg",
             "type": "Texture"
         },
         "2337441145084154933": {
@@ -3642,7 +3652,7 @@
         },
         "2444937345355907243": {
             "hash": 14217257955108901957,
-            "path": "assets/textures/facades/brick_buff_normal.jpg",
+            "path": "assets/textures/facades/brick_buff_and_window_normal.jpg",
             "type": "Texture"
         },
         "2459620238376868989": {
@@ -3836,7 +3846,7 @@
             "type": "Unknown"
         },
         "2962791567303176859": {
-            "hash": 9724498509277945914,
+            "hash": 17840066827552890271,
             "path": "assets/world/landmarks/notre_dame_de_paris-r3.glb",
             "type": "Mesh"
         },
@@ -3892,7 +3902,7 @@
         },
         "3095467060135935995": {
             "hash": 8018319199023649198,
-            "path": "assets/textures/facades/brick_dark_mr.jpg",
+            "path": "assets/textures/facades/brick_dark_and_window_mr.jpg",
             "type": "Texture"
         },
         "312809506505446754": {
@@ -3942,7 +3952,7 @@
         },
         "328705249163148561": {
             "hash": 2364531665894016466,
-            "path": "assets/textures/facades/brick_dark_normal.jpg",
+            "path": "assets/textures/facades/brick_dark_and_window_normal.jpg",
             "type": "Texture"
         },
         "328775711072623409": {
@@ -3986,7 +3996,7 @@
             "type": "Unknown"
         },
         "3415922082190133732": {
-            "hash": 12810877391955314787,
+            "hash": 2635440812673159583,
             "path": "assets/world/landmarks/statue_of_liberty-r3.glb",
             "type": "Mesh"
         },
@@ -4147,7 +4157,7 @@
         },
         "3667988090912318240": {
             "hash": 15798168767394264932,
-            "path": "assets/textures/facades/siding_normal.jpg",
+            "path": "assets/textures/facades/siding_and_window_normal.jpg",
             "type": "Texture"
         },
         "3670681648856549972": {
@@ -4267,7 +4277,7 @@
         },
         "4073064183386803616": {
             "hash": 11131938107497164887,
-            "path": "assets/textures/facades/concrete_normal.jpg",
+            "path": "assets/textures/facades/concrete_and_window_normal.jpg",
             "type": "Texture"
         },
         "4083131862568003585": {
@@ -4696,7 +4706,7 @@
             "type": "Unknown"
         },
         "5111892054181493639": {
-            "hash": 6993375815180999364,
+            "hash": 2446804457691597341,
             "path": "assets/world/landmarks/pyramid_of_khufu-r3.glb",
             "type": "Mesh"
         },
@@ -4867,7 +4877,7 @@
         },
         "5503867232916445660": {
             "hash": 11625763690871136936,
-            "path": "assets/textures/facades/brick_red_mr.jpg",
+            "path": "assets/textures/facades/brick_red_and_window_mr.jpg",
             "type": "Texture"
         },
         "5519191464120588383": {
@@ -5021,7 +5031,7 @@
             "type": "Mesh"
         },
         "5966913870909260549": {
-            "hash": 1018330929592724949,
+            "hash": 14300155157235559044,
             "path": "assets/world/landmarks/parthenon-r3.glb",
             "type": "Mesh"
         },
@@ -5041,7 +5051,7 @@
             "type": "Texture"
         },
         "6027825936430180015": {
-            "hash": 14178196335545174928,
+            "hash": 6469019153772365400,
             "path": "assets/world/landmarks/eiffel_tower-r3.glb",
             "type": "Mesh"
         },
@@ -5142,7 +5152,7 @@
         },
         "6319452198478534878": {
             "hash": 6474124744609684219,
-            "path": "assets/textures/facades/siding_mr.jpg",
+            "path": "assets/textures/facades/siding_and_window_mr.jpg",
             "type": "Texture"
         },
         "6335441319951437662": {
@@ -5169,6 +5179,11 @@
             "hash": 2621904415713090900,
             "path": "assets/world/relief/20_-100.r1relief",
             "type": "Unknown"
+        },
+        "6444126781774617665": {
+            "hash": 15414511520792343231,
+            "path": "assets/textures/surfaces/step_stone_mr.jpg",
+            "type": "Texture"
         },
         "6499054439455032256": {
             "hash": 1474878172710831004,
@@ -5376,7 +5391,7 @@
             "type": "Unknown"
         },
         "6895047409412459049": {
-            "hash": 13304284152338211735,
+            "hash": 9298459513487323212,
             "path": "assets/world/landmarks/st_peters_basilica-r3.glb",
             "type": "Mesh"
         },
@@ -5617,12 +5632,12 @@
         },
         "7483397835349037867": {
             "hash": 4655535784606540344,
-            "path": "assets/textures/facades/render_albedo.jpg",
+            "path": "assets/textures/facades/render_and_window_albedo.jpg",
             "type": "Texture"
         },
         "7485864737716574759": {
             "hash": 7702914113075337547,
-            "path": "assets/textures/facades/stone_mr.jpg",
+            "path": "assets/textures/facades/stone_and_window_mr.jpg",
             "type": "Texture"
         },
         "7510292782636393000": {
@@ -5641,7 +5656,7 @@
             "type": "Mesh"
         },
         "7537605783923696026": {
-            "hash": 4042441954015626084,
+            "hash": 2021712797805907641,
             "path": "assets/world/landmarks/colosseum-r3.glb",
             "type": "Mesh"
         },
@@ -5662,7 +5677,7 @@
         },
         "7593384123924276489": {
             "hash": 5025363001738875168,
-            "path": "assets/textures/facades/earth_albedo.jpg",
+            "path": "assets/textures/facades/earth_and_window_albedo.jpg",
             "type": "Texture"
         },
         "7606222232532918883": {
@@ -5826,7 +5841,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 14930361659836068015,
+            "hash": 5676739957337100324,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -5982,7 +5997,7 @@
         },
         "8461370359445157452": {
             "hash": 14272083766030083516,
-            "path": "assets/textures/facades/earth_normal.jpg",
+            "path": "assets/textures/facades/earth_and_window_normal.jpg",
             "type": "Texture"
         },
         "846471967566852225": {
@@ -6171,7 +6186,7 @@
             "type": "Texture"
         },
         "8892943375755858906": {
-            "hash": 623887583112166685,
+            "hash": 6099436400408244270,
             "path": "assets/world/landmarks/tokyo_tower-r3.glb",
             "type": "Mesh"
         },
@@ -6361,7 +6376,7 @@
             "type": "Unknown"
         },
         "9362403766653960405": {
-            "hash": 6241860449834878068,
+            "hash": 2681365329367243886,
             "path": "assets/world/landmarks/big_ben-r3.glb",
             "type": "Mesh"
         },
@@ -6476,7 +6491,7 @@
             "type": "Unknown"
         },
         "9614193751727879334": {
-            "hash": 2865732032586941819,
+            "hash": 7206118511475262861,
             "path": "assets/world/landmarks/pyramid_of_menkaure-r3.glb",
             "type": "Mesh"
         },
@@ -6511,7 +6526,7 @@
             "type": "Mesh"
         },
         "9707553953933687028": {
-            "hash": 7965406105297669169,
+            "hash": 4400440835695138763,
             "path": "assets/textures/surfaces.json",
             "type": "Unknown"
         },

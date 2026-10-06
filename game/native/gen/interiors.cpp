@@ -3,6 +3,7 @@
 #include "clip.hpp"
 #include <algorithm>
 #include <cctype>
+#include <set>
 
 namespace r1 {
 P2 InteriorPlan::point(double u,double v) const { return {door.x+along.x*u+inward.x*v,door.y+along.y*u+inward.y*v}; }
@@ -15,7 +16,7 @@ nlohmann::json InteriorPlan::json() const {
         {"useSource",useSource},{"region",region},{"doorStyle",doorStyle},{"storeysFurnished",1},
         {"exteriorVehicles",cars},{"vehicleSource",exteriorVehicles.empty()?"none":"synthesized:clear-forecourt"},
         {"ring",polygon},{"door",{door.x,door.y}},{"along",{along.x,along.y}},
-        {"inward",{inward.x,inward.y}},{"width",width},{"floor",floor},{"ceiling",ceiling},{"approach",approach},
+        {"inward",{inward.x,inward.y}},{"width",width},{"floor",floor},{"ceiling",ceiling},{"approach",approach},{"steps",steps},{"stairBase",stairBase},
         {"anchor",anchor?nlohmann::json{anchor->x,anchor->y}:nlohmann::json()},{"anchorName",anchorName},
         {"anchorSource",anchor?"measured:tenant-node":"none"}};
 }
@@ -26,6 +27,7 @@ InteriorPlan InteriorPlan::read(const nlohmann::json& j) {
     p.door={j.at("door")[0],j.at("door")[1]};p.along={j.at("along")[0],j.at("along")[1]};
     p.inward={j.at("inward")[0],j.at("inward")[1]};p.width=j.at("width");p.floor=j.at("floor");
     p.ceiling=j.at("ceiling");p.approach=j.at("approach");
+    p.steps=j.value("steps",0);p.stairBase=j.value("stairBase",p.approach);
     if(j.contains("anchor")&&j["anchor"].is_array())p.anchor=P2{j["anchor"][0],j["anchor"][1]};
     p.anchorName=j.value("anchorName","");p.useSource=j.value("useSource","inferred:building");
     p.region=j.value("region","");p.doorStyle=j.value("doorStyle","sliding");
@@ -299,7 +301,11 @@ std::vector<MeshPart> buildInteriorShell(const InteriorPlan& p) {
         floor.addUpTriangle({a.x,p.floor,a.y},{b.x,p.floor,b.y},{c.x,p.floor,c.y});
         ceiling.addTriangle({a.x,p.ceiling,a.y},{b.x,p.ceiling,b.y},{c.x,p.ceiling,c.y});
     }
-    auto a=p.point(-p.width/2-.4,0),b=p.point(p.width/2+.4,0),c=p.point(p.width/2+.4,-4),d=p.point(-p.width/2-.4,-4);
+    // The way out to the ground: walked as a slope, and drawn as one only
+    // where it is gentle. Under a flight it lies inside the steps, below
+    // every tread (the landing is deeper than a tread), and only collides.
+    const double run=p.approachRun();
+    auto a=p.point(-p.width/2-.4,0),b=p.point(p.width/2+.4,0),c=p.point(p.width/2+.4,-run),d=p.point(-p.width/2-.4,-run);
     floor.addUpQuad({a.x,p.floor,a.y},{b.x,p.floor,b.y},{c.x,p.approach,c.y},{d.x,p.approach,d.y});
     double lo=1e9,hi=-1e9,back=0;
     for(auto q:p.ring){q=p.local(q);lo=std::min(lo,q.x);hi=std::max(hi,q.x);back=std::max(back,q.y);}
@@ -338,11 +344,71 @@ std::vector<MeshPart> buildInteriorShell(const InteriorPlan& p) {
     auto mat=mineral("Polished mineral floor",{.23,.235,.22,1},.4);
     if(p.recipe=="home")mat=surfaceMaterial("Residential timber floor",{.25,.18,.105},.76,"deck",true);
     if(p.recipe=="garage"||p.recipe=="warehouse")mat=mineral("Workshop concrete floor",{.13,.135,.13,1},.9);
-    return {{"Interior floor and accessible threshold",std::move(floor),mat},
+    // The first three parts collide (world.cpp); the stairs, last, are seen.
+    std::vector<MeshPart> parts{{"Interior floor and accessible threshold",std::move(floor),mat},
         {"Interior ceiling",std::move(ceiling),plain("Acoustic ceiling",{.30,.30,.28,1},.95)},
         {"Interior lining",std::move(lining),plain("Interior plaster",{.26,.265,.25,1},.9)},
         {"Interior surface joints",std::move(joints),plain("Joints",{.12,.125,.12,1})},
         {"Interior linear luminaires",std::move(lights),plain("Light diffuser",{.7,.68,.6,1},.9)}};
+    if(p.steps>0)parts.push_back(buildEntranceStairs(p));
+    return parts;
+}
+namespace {
+// Regions whose doorsteps are cut stone: the masonry traditions of Europe
+// and the Mediterranean, and the brownstone stoops of Manhattan.
+const std::set<std::string> kStoneSteps={"PARIS","CHAMONIX","LONDON","AMSTERDAM","BARCELONA","ROME","ISTANBUL",
+    "TUNIS","MANHATTAN","ALPINE","IBERIA","ITALY","BRITISH_ISLES","LOW_COUNTRIES","FRANCE","CENTRAL_EUROPE",
+    "BALKANS_AEGEAN","MAGHREB_SAHARA","MIDDLE_EAST"};
+}
+MeshPart buildEntranceStairs(const InteriorPlan& p) {
+    Mesh m(UvMode::Slope);
+    const bool stone=kStoneSteps.count(p.region)&&!retailInterior(p.recipe)&&p.recipe!="garage"&&p.recipe!="warehouse";
+    // Measured albedos (CLAUDE.md 2): limestone slabs and cast concrete, at
+    // their real size. Never a wall family: those are facade sheets, a
+    // window baked into every bay (`*_and_window_*`).
+    Material material=stone?surfaceMaterial("Stone entrance steps",{.30,.285,.25},.82,"step_stone")
+                           :surfaceMaterial("Concrete entrance steps",{.20,.20,.19},.9,"quay");
+    if(p.steps<=0)return {"Entrance stairs",std::move(m),material};
+    const int n=p.steps;
+    const double half=p.width/2+.4,rise=(p.floor-p.approach)/n,base=std::min(p.stairBase,p.approach)-.25;
+    const double nose=.03,lip=.04;
+    // Engine point at (u along the facade, v inward, height y).
+    auto at=[&](double u,double v,double y){const P2 q=p.point(u,v);return P3{q.x,y,q.y};};
+    // edge(i): the outer edge of tread i (0 the landing); level(i): its height.
+    auto edge=[&](int i){return -(InteriorPlan::kLanding+i*InteriorPlan::kTread);};
+    auto level=[&](int i){return p.floor-i*rise;};
+    // Each face is turned to look away from the inside of the flight.
+    const P2 o=p.point(0,0),inU=p.point(1,0),inV=p.point(0,1);
+    const P2 du{inU.x-o.x,inU.y-o.y},dv{inV.x-o.x,inV.y-o.y};
+    auto face=[&](P3 a,P3 b,P3 c,P3 d,P3 out) {
+        const P3 nrm=faceNormal(a,b,c);
+        if(nrm.x*out.x+nrm.y*out.y+nrm.z*out.z<0){std::swap(b,d);}
+        m.addQuad(a,b,c,d);
+    };
+    auto dir=[&](double u,double v,double y){return P3{du.x*u+dv.x*v,y,du.y*u+dv.y*v};};
+    // The flanks: the stepped profile down to the founded base, in (v, y).
+    Ring profile{{0,p.floor}};
+    for(int i=0;i<n;++i){profile.push_back({edge(i),level(i)});profile.push_back({edge(i),i+1<n?level(i+1):base});}
+    profile.push_back({0,base});
+    for(double side:{-1.,1.})
+        for(auto t:triangulate(profile)) {
+            P3 v[3];for(int k=0;k<3;++k)v[k]=at(side*half,profile[t[k]].x,profile[t[k]].y);
+            const P3 nrm=faceNormal(v[0],v[1],v[2]),out=dir(side,0,0);
+            if(nrm.x*out.x+nrm.z*out.z<0)std::swap(v[1],v[2]);
+            m.addTriangle(v[0],v[1],v[2]);
+        }
+    for(int i=0;i<n;++i) {
+        const double front=edge(i)-nose,back=i?edge(i-1):0.,y=level(i),below=i+1<n?level(i+1):base;
+        // The tread, its nosing just proud of the riser below.
+        face(at(-half,front,y),at(half,front,y),at(half,back,y),at(-half,back,y),dir(0,0,1));
+        face(at(-half,front,y-lip),at(half,front,y-lip),at(half,front,y),at(-half,front,y),dir(0,-1,0));
+        face(at(-half,edge(i),y-lip),at(half,edge(i),y-lip),at(half,front,y-lip),at(-half,front,y-lip),dir(0,0,-1));
+        for(double side:{-1.,1.})
+            face(at(side*half,edge(i),y-lip),at(side*half,front,y-lip),at(side*half,front,y),at(side*half,edge(i),y),dir(side,0,0));
+        // The riser.
+        face(at(-half,edge(i),below),at(half,edge(i),below),at(half,edge(i),y-lip),at(-half,edge(i),y-lip),dir(0,-1,0));
+    }
+    return {"Entrance stairs",std::move(m),material};
 }
 double slideDoor(double opening,bool near,double dt) {
     return std::clamp(opening+(near?1.6:-.7)*std::max(0.,dt),0.,1.);
