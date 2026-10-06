@@ -66,7 +66,7 @@
             "type": "Unknown"
         },
         "10170943427483150826": {
-            "hash": 9777566183018153596,
+            "hash": 14193058543278758170,
             "path": "assets/models/vehicles/truck.glb",
             "type": "Mesh"
         },
@@ -791,7 +791,7 @@
             "type": "Unknown"
         },
         "11791384038718943201": {
-            "hash": 10848907647775899530,
+            "hash": 14821462033174897000,
             "path": "assets/models/vehicles/sport.glb",
             "type": "Mesh"
         },
@@ -926,7 +926,7 @@
             "type": "Mesh"
         },
         "12145262407510918066": {
-            "hash": 2697630829648436591,
+            "hash": 17871523184603896301,
             "path": "assets/models/vehicles/suv.glb",
             "type": "Mesh"
         },
@@ -1731,7 +1731,7 @@
             "type": "Texture"
         },
         "13967513879255252191": {
-            "hash": 15683231368321291683,
+            "hash": 5395964765067811425,
             "path": "assets/models/vehicles/sport_far.glb",
             "type": "Mesh"
         },
@@ -1891,7 +1891,7 @@
             "type": "Unknown"
         },
         "14545802220005290627": {
-            "hash": 5047536361014655765,
+            "hash": 1968472009841641245,
             "path": "assets/models/vehicles/suv_far.glb",
             "type": "Mesh"
         },
@@ -2146,7 +2146,7 @@
             "type": "Unknown"
         },
         "15144374929398895871": {
-            "hash": 5468161483455873345,
+            "hash": 15782923976263947021,
             "path": "assets/models/vehicles/bus_far.glb",
             "type": "Mesh"
         },
@@ -2181,7 +2181,7 @@
             "type": "Unknown"
         },
         "15217891279703186154": {
-            "hash": 9579563085499224295,
+            "hash": 7019873690094452953,
             "path": "assets/models/vehicles/sedan.glb",
             "type": "Mesh"
         },
@@ -2986,7 +2986,7 @@
             "type": "Unknown"
         },
         "17401933841249509415": {
-            "hash": 16521662471742416674,
+            "hash": 17835279069351043481,
             "path": "assets/models/vehicles/bus.glb",
             "type": "Mesh"
         },
@@ -4006,7 +4006,7 @@
             "type": "Texture"
         },
         "3436111168663500509": {
-            "hash": 18113239854937659589,
+            "hash": 3598268740041298346,
             "path": "assets/models/vehicles/city_far.glb",
             "type": "Mesh"
         },
@@ -4371,7 +4371,7 @@
             "type": "Unknown"
         },
         "4264951910420144180": {
-            "hash": 16625870238365112939,
+            "hash": 10272221303051664836,
             "path": "assets/models/vehicles/offroad_far.glb",
             "type": "Mesh"
         },
@@ -4796,7 +4796,7 @@
             "type": "Texture"
         },
         "5324012288260385109": {
-            "hash": 15354494868974831352,
+            "hash": 7026819921113122905,
             "path": "assets/models/vehicles/offroad.glb",
             "type": "Mesh"
         },
@@ -4816,7 +4816,7 @@
             "type": "Texture"
         },
         "534362875456379031": {
-            "hash": 6710731624180534199,
+            "hash": 15844030591417074297,
             "path": "assets/models/vehicles/sedan_far.glb",
             "type": "Mesh"
         },
@@ -5226,7 +5226,7 @@
             "type": "Unknown"
         },
         "6567061633911533649": {
-            "hash": 185552426849558654,
+            "hash": 11238822847193575853,
             "path": "assets/models/vehicles/truck_far.glb",
             "type": "Mesh"
         },
@@ -5371,7 +5371,7 @@
             "type": "Texture"
         },
         "6821025511995140612": {
-            "hash": 2265367145347524118,
+            "hash": 15267399594292815723,
             "path": "assets/models/vehicles/city.glb",
             "type": "Mesh"
         },
