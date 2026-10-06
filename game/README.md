@@ -460,13 +460,14 @@ roofs and facades vary in patches of wear. The mean stays the measured albedo.
 
 ### Grass
 
-Close to the camera the ground grows grass blades, made by the engine in the
-vertex shader (`saida::GrassNode`). The cook gives each tile a field
-(`gen/grass.cpp`): its ground grid as drawn, and a 512² cover, about a metre a
-texel, whose density follows the family the ground is drawn with (lawn and
-meadow full, dry grass and savanna thinner, a wood's floor sparse) and whose
-colour is that family's measured albedo, so where the blades thin out at
-36 m the ground under them is the same colour. Nothing grows under a face laid
+Out to 70 m the ground grows knee-high grass, tufts of blades made by the
+engine in the vertex shader (`saida::GrassNode`, its defaults), with gusts
+running across it. The cook gives each tile a field (`gen/grass.cpp`): its
+ground grid as drawn, and a 512² cover, about a metre a texel, whose density
+follows the family the ground is drawn with (lawn and meadow full, fields of
+crops nearly so, marsh, dry grass and savanna thinner, a wood's floor sparse)
+and whose colour is that family's measured albedo -- straw on farmland -- so
+where the blades thin out the ground under them is the same colour. Nothing grows under a face laid
 within a metre of the ground (streets, pavements, car parks, quays, runways) or
 inside a building. The player and the car push the blades aside.
 

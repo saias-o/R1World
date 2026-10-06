@@ -8,12 +8,14 @@ namespace r1 {
 
 namespace {
 
-// Of the ground drawn as a family, the share grown over by blades: lawns and
-// meadows close, dry grass and savanna thinner, the floor of a wood sparse.
+// Of the ground drawn as a family, the share grown over by tufts: lawns and
+// meadows close; fields of crops and stubble nearly so, in the field's own
+// straw colour; marsh reeds, dry grass and savanna thinner; the floor of a
+// wood sparse.
 const std::map<std::string, double> kGrassy = {
-    {"grass", 1.0}, {"grass_lush", 1.0}, {"grass_dry", 0.75}, {"savanna", 0.6},
-    {"forest_temperate", 0.25}, {"forest_boreal", 0.2}, {"forest_tropical", 0.3},
-    {"tropical_ground", 0.45}, {"frost", 0.35},
+    {"grass", 1.0}, {"grass_lush", 1.0}, {"farmland", 0.85}, {"grass_dry", 0.75}, {"mud", 0.6},
+    {"savanna", 0.6}, {"tropical_ground", 0.45}, {"frost", 0.35}, {"forest_tropical", 0.3},
+    {"forest_temperate", 0.25}, {"forest_boreal", 0.2},
 };
 
 uint8_t srgbByte(double linear) {
