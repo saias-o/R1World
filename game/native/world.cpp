@@ -3143,7 +3143,9 @@ class World : public Rml::EventListener {
     }
     static void vehicleLod(saida::Node& node) {
         auto* lod=node.addBehaviour<saida::LODGroupBehaviour>();
-        lod->setLevels({{"Near",.055f},{"Far",0.f}});
+        // Full source detail is for close cars. Switch by projected size,
+        // keeping long vehicles detailed farther away, with engine hysteresis.
+        lod->setLevels({{"Near",.16f},{"Far",0.f}});
     }
     void buildTrafficPrototype() {
         std::ifstream input(game/"assets/models/vehicles/fleet.json");

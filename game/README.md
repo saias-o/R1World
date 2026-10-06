@@ -1166,6 +1166,10 @@ interiors are removed. Paint, dark glazing, alloy wheels, mirrors and rubber
 have distinct opaque metallic/roughness materials; detail textures ship inside
 the GLBs. `assets/models/vehicles/fleet.json` counts the actual exported vertex
 seams and both resident LODs (about 72k shared vertices for the whole fleet).
+The engine switches to the distance mesh below about one fifth of the screen
+height (coverage threshold 0.16),
+with hysteresis; a nearby car keeps its full mesh, and distant traffic does
+not keep drawing tens of thousands of triangles per compact.
 The engine now binds the selected HDR sky to the PBR shader; previously a
 descriptor rebuild replaced it with white, flattening every reflection. Diffuse
 sky light remains supplied by the solar ambient, avoiding a second diffuse wash.

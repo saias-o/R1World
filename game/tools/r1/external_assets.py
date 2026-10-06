@@ -1,4 +1,4 @@
-"""Fetch the small, redistributable CC0 asset set R1World ships.
+"""Fetch the small, redistributable asset set R1World ships.
 
 Downloads are authoring inputs only.  The game ships the extracted models and
 textures, so playing the exported build never depends on a third-party server.
