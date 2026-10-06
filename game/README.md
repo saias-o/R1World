@@ -8,6 +8,10 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
+Documentation reviewed on 6 October 2026. The current generator is v29;
+the validation records below are dated observations, not a claim that every
+location or target machine is qualified.
+
 ## Playing
 
 ```powershell
@@ -241,6 +245,9 @@ tile independently:
   simplified tile (Natural Earth land/sea, installed relief, no streets), labelled
   **Hors ligne : terrain simplifié** and `offlineApproximation: true`.
   Flat ground remains the last resort where no usable relief is installed.
+  Pending airport data no longer suppresses terrain or OSM upgrades; an empty
+  airport response clears its pending flag. Tile uploads are ordered by distance
+  from the player, so the spawn tile comes first.
 - **Mounting**: terrain, buildings and collision first; trees and street
   objects follow on the main thread within a soft 2 ms per-frame budget. Logs
   carry `[World streaming] go_to_play_ms` and `mount_ms`; each `mounted` line
@@ -1093,8 +1100,9 @@ The complete build on 5 October 2026 contains 22 856 land cells and weighs
 858 961 885 bytes (859 MB, 819 MiB). Every pack and all 2 347 763 572 height
 samples were decoded successfully before installation. Latitude edges share
 the northern cell's edge curve, so grids of different widths join continuously.
-Final validation after merging all branches: 235 generator tests, 110 Python
-tests and 90 engine tests passed; all nine offline reference captures passed.
+Validation of the installed-relief integration on 5 October: 235 generator
+tests, 110 Python tests and 90 engine tests passed; all nine offline reference
+captures passed.
 Offline walking/driving passed in Santiago and Paris, and Theix's retail check
 passed entry, collisions, exit, eviction and regeneration.
 
@@ -1178,10 +1186,22 @@ vehicles are drawn at **0.8** of their size (`kVehicleScale`), the player's
 call made looking at them; dimensions are scaled with them so doors, cameras
 and gaps agree.
 
-Tile mesh uploads run nearest to the player first. An arriving terrain or OSM
-observation is published even while airport data is pending; an empty airport
-response clears that pending flag. The delayed-ground regression in `r1test
-Service` holds this case, and mount failures include the tile key in the log.
+### Validation recorded on 6 October
+
+The integrated code passed 250 generator cases, 115 Python cases and 91
+engine CTest cases. Native red/blue
+environment captures and material sidedness checks passed. The Vannes-to-Paris
+offline smoke passed walking, driving, traffic takeover and respawn; the
+close car capture showed the restored sky reflections. These results are in
+`generated/spawn-vehicle-main-*-tests.log`, `generated/pbr-engine-main-ctest.log`
+and `generated/pbr-*-main-test.log` locally. The final optimized build completed
+with `Play.ps1 -BuildOnly`. This documentation review records those existing
+results; it does not constitute another test run.
+
+The subsequent full reference gallery did **not** complete: Grenoble refused
+`v29_27038_26176` at 124 952 vertices. The earlier nine-view gallery result
+belongs to the 5 October integration and does not certify the current v29
+generator. Web and headset rendering were not validated for the PBR fix.
 
 ### The traffic
 
@@ -1324,6 +1344,15 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
 
 ## Known limits
 
+- **Dense spawn tiles**: Grenoble's `v29_27038_26176` exceeds the 120 000-vertex
+  tile limit (124 952 total; 46 041 in embankments). It remains unmounted even
+  though surrounding tiles can load. This is a separate geometry-budget issue
+  from the fixed pending-airport upgrade bug. The 6 October diagnostic is in
+  `cache/sessions/2692d72965094d67865fb59d5cbd36ab/game.log` locally.
+- **Cars**: paint and metal now reflect the HDR sky, but glazing is opaque,
+  there is no automotive clearcoat layer, and the reflection source is the sky,
+  not nearby buildings. An automotive clearcoat and local reflection solution
+  remain work for the renderer.
 - **The streets and buildings end at about 800 m**: past the nine resident
   tiles only the relief is drawn, to the horizon. A summit OSM does not survey
   stays as rounded as the elevation model has it, and the far relief does not
@@ -1370,7 +1399,9 @@ Open-Meteo (CC BY 4.0); sea ice from NOAA CoastWatch/PolarWatch (Metop-C
 ASCAT); canopy from Meta and WRI's High Resolution Canopy Height Maps
 (CC BY 4.0); shipping density from the World Bank's Global Shipping Traffic
 Density (CC BY 4.0). The people are Microsoft Rocketbox avatars and motion
-capture (MIT, `assets/licenses/Microsoft-Rocketbox-MIT.txt`). The selection map
+capture (MIT, `assets/licenses/Microsoft-Rocketbox-MIT.txt`). The road vehicles
+are by Ruff and Scopia / Space Mushrooms,
+CC BY 3.0 (`assets/licenses/Road-vehicles-CC-BY-3.0.txt`). The selection map
 and offline coastline are Natural Earth (public domain). Asset provenance and
 checksums are in `assets/THIRD_PARTY_ASSETS.json`, and attribution is visible
 in game.

@@ -4,6 +4,7 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
+État relu le 6 octobre 2026, après intégration des voitures et du correctif PBR.
 Le détail de ce qui est fait et mesuré est dans `game/README.md`.
 
 **Deux critères priment sur tous les autres, et ils sont en tension :**
@@ -126,9 +127,10 @@ tuile dit lequel a répondu.
 
 Les données dérivées d'OSM sont soumises à l'ODbL, avec attribution visible en
 jeu. Aucune source `CC BY-NC`. Les assets sont **CC0** (Poly Haven, ambientCG,
-Kenney) ou dessinés par le projet, avec une exception : les personnages sont
-Microsoft Rocketbox, **MIT**, notice conservée (`assets/licenses/`) et crédit en
-jeu, faute d'humains scannés et riggés en CC0. Tous sont normalisés avant
+Kenney) ou dessinés par le projet, avec deux exceptions : les personnages sont
+Microsoft Rocketbox, **MIT**, et les sept véhicules routiers de Ruff et
+Scopia / Space Mushrooms sont **CC BY 3.0**. Les notices sont conservées
+(`assets/licenses/`) et les auteurs crédités en jeu. Tous sont normalisés avant
 d'entrer : échelle métrique, albédos mesurés, un asset non conforme n'entre pas.
 
 ---
@@ -192,7 +194,11 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
 - **Sols et matières** : terrain partitionné par classe (`native/gen/terrain.cpp`),
   habillé de textures photographiées CC0 à leur taille réelle
   (`r1/surfaces.py` les prépare) ; la texture apporte le détail, la palette
-  garde l'albédo mesuré. L'eau bloque la marche.
+  garde l'albédo mesuré. Les fenêtres sont photographiées depuis des modules
+  Poly Haven ; relief en parallax mapping, reflets du ciel dans les vitrages
+  et variation des surfaces cassent la répétition. L'eau bloque la marche.
+  Les sols herbeux portent des touffes animées jusqu'à 70 m, exclues des rues,
+  parkings et bâtiments ; le manifeste compte leur couverture (`gen/grass.cpp`).
 - **Mobilier et végétation** : props OSM posés comme nœuds de scène
   (`native/gen/scatter.cpp`). Églises et mosquées reçoivent une flèche ou un
   minaret générés depuis l'emprise.
@@ -224,7 +230,11 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   (`native/gen/bridges.cpp`). On y marche et on y roule, dessus comme dessous.
 - **Voiture et circulation** : `F` pour monter/descendre, n'importe quelle voiture
   se prend ; trafic sur le graphe OSM, `maxspeed` tagué d'abord. Véhicules
-  dessinés à 0,8 de leur taille, comme les personnes.
+  dessinés à 0,8 de leur taille, comme les personnes. Sept modèles GLB sous
+  CC BY 3.0 remplacent la flotte simplifiée : géométrie visible source non
+  décimée de près, LOD réduit au loin, matériaux distincts pour peinture,
+  vitrage, pneus et métal. Le moteur conserve désormais le ciel HDR dans le
+  descripteur PBR ; ses reflets ne retombent plus sur une texture blanche.
 - **Personnes et foule** : le joueur et la foule sont des scans riggés Rocketbox
   (`r1/humans.py`), clips de capture de mouvement reciblés, deux niveaux de
   détail, dessinés à 0,8. `native/gen/crowd.cpp` cuit où l'on marche (trottoirs,
@@ -316,6 +326,8 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
 - **Cache hors ligne** : un lieu déjà visité ne touche plus le réseau ; une
   réponse à une ancienne question Overpass est cuite telle quelle, et ce qui
   lui manque arrive en couche séparée (`kOsmQueryVersion`, `kOsmBaseVersion`).
+  Les mises à jour du sol et d'OSM ne sont plus bloquées par des données
+  d'aéroport en attente, et le téléversement commence par la tuile du joueur.
 
 ---
 
@@ -325,6 +337,18 @@ Chacune garde les règles du projet : rien ne dégrade un asset existant
 (`CLAUDE.md` §1), les couleurs sont des albédos, tout ce qui est inféré le dit
 dans le manifeste (I5), et le coût se compte contre l'arène et le CPU de la
 machine de référence (I4).
+
+### Fiabilité et fluidité — priorité immédiate
+- **Tuile dense de Grenoble** : `v29_27038_26176` est refusée à 124 952 sommets
+  pour un plafond de 120 000 ; les remblais seuls en prennent 46 041.
+  Réduire la géométrie superflue des ouvrages en conservant leurs emprises et
+  leurs collisions. Le correctif de chargement lié aux aéroports ne résout pas
+  ce dépassement distinct, constaté le 6 octobre.
+- **Streaming sans pics de frame** : décodage des assets en tâche de fond et
+  uploads GPU incrémentaux dans le moteur ; mesurer ensuite sur i5 / GTX 1060.
+  Les mesures actuelles sur RTX 4070 ne qualifient pas cette machine cible.
+- **Voitures et circulation** : améliorer la peinture et les reflets de près,
+  puis le comportement aux feux et face aux piétons, avec un coût borné.
 
 ### Animals update
 - **Beaucoup d'animaux, adaptés à l'endroit** : l'espèce découle du biome, de

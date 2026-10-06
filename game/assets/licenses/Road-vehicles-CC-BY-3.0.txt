@@ -15,6 +15,7 @@ Each original archive includes LICENSE.TXT.
 
 R1World modifications: removed vehicle logos and hidden interiors, converted
 centimetres to metres and OBJ to glTF, assigned opaque metallic/roughness PBR
-materials, retained UV detail, reduced geometry for two LODs, added wheel pivots.
+materials, retained UV detail and source visible geometry without decimation
+for the near LOD, reduced geometry only for the far LOD, added wheel pivots.
 Source archives and their SHA-256 hashes are retained in data/source-assets/vehicles.
 No endorsement by the authors is implied.
