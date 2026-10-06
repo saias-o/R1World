@@ -1,148 +1,174 @@
 {
-  "author": "R1World",
-  "license": "CC0-1.0",
-  "source": "game/tools/r1/vehicle_fleet.py",
-  "description": "Original generic vehicles; no brands, logos or registration numbers.",
-  "totalVertices": 27732,
+  "description": "Licensed realistic road vehicles; opaque PBR, original curved silhouettes and UV detail, two LODs.",
+  "source": "game/tools/r1/vehicle_imports.py",
+  "totalVertices": 72054,
   "vehicles": [
     {
       "name": "city",
-      "length": 3.6,
-      "width": 1.94,
-      "height": 1.5,
-      "wheelbase": 2.38,
-      "wheelRadius": 0.285,
+      "author": "Ruff",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/fordFocus.zip",
+      "sourceSha256": "a286bdb7284781c0f9f82dd6a034a4558364e7a17b7a80ea27f0c93d50e73613",
+      "length": 4.358160552978516,
+      "width": 2.044751052856445,
+      "height": 1.550704574584961,
+      "wheelbase": 2.762080192565918,
+      "wheelRadius": 0.3536932244896889,
       "near": {
         "path": "assets/models/vehicles/city.glb",
-        "vertices": 2826,
-        "triangles": 2922,
-        "drawTriangles": 3678
+        "vertices": 26243,
+        "triangles": 45862,
+        "drawTriangles": 45862
       },
       "far": {
         "path": "assets/models/vehicles/city_far.glb",
-        "vertices": 952,
-        "triangles": 838,
-        "drawTriangles": 1102
+        "vertices": 2352,
+        "triangles": 1535,
+        "drawTriangles": 1535
       }
     },
     {
       "name": "sedan",
-      "length": 4.55,
-      "width": 2.08,
-      "height": 1.44,
-      "wheelbase": 2.7,
-      "wheelRadius": 0.315,
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/break.zip",
+      "sourceSha256": "e4917daa734b6dd0a0c6583943233c002298147fb6d4ed7ea93b1474a1d0dc30",
+      "length": 4.5725498962402344,
+      "width": 2.0037800598144533,
+      "height": 1.554450064301491,
+      "wheelbase": 2.6141799688339233,
+      "wheelRadius": 0.32544010877609253,
       "near": {
         "path": "assets/models/vehicles/sedan.glb",
-        "vertices": 2867,
-        "triangles": 2978,
-        "drawTriangles": 3734
+        "vertices": 5158,
+        "triangles": 5954,
+        "drawTriangles": 5954
       },
       "far": {
         "path": "assets/models/vehicles/sedan_far.glb",
-        "vertices": 927,
-        "triangles": 838,
-        "drawTriangles": 1102
+        "vertices": 1325,
+        "triangles": 914,
+        "drawTriangles": 914
       }
     },
     {
       "name": "suv",
-      "length": 4.58,
-      "width": 2.16,
-      "height": 1.7,
-      "wheelbase": 2.72,
-      "wheelRadius": 0.355,
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/suv2.zip",
+      "sourceSha256": "4091b8ad7722e598322f71a72c4f1172ffccd3703d05fe27678ab5760c93cc13",
+      "length": 4.272039947509766,
+      "width": 2.0923199462890625,
+      "height": 1.7619300413131713,
+      "wheelbase": 2.5383800268173218,
+      "wheelRadius": 0.36069007217884064,
       "near": {
         "path": "assets/models/vehicles/suv.glb",
-        "vertices": 3012,
-        "triangles": 3058,
-        "drawTriangles": 3814
+        "vertices": 4044,
+        "triangles": 4684,
+        "drawTriangles": 4684
       },
       "far": {
         "path": "assets/models/vehicles/suv_far.glb",
-        "vertices": 1028,
-        "triangles": 894,
-        "drawTriangles": 1158
+        "vertices": 1097,
+        "triangles": 702,
+        "drawTriangles": 702
       }
     },
     {
       "name": "offroad",
-      "length": 4.18,
-      "width": 2.13,
-      "height": 1.89,
-      "wheelbase": 2.46,
-      "wheelRadius": 0.39,
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/4x4.zip",
+      "sourceSha256": "ddcf6ec0e3cbebe488f4bb619a6288ab88c5a93b53f7d6c6baf25f2ce29d1b53",
+      "length": 3.8155899047851562,
+      "width": 1.8635800170898438,
+      "height": 1.9425499725341797,
+      "wheelbase": 2.3138400316238403,
+      "wheelRadius": 0.38041506707668304,
       "near": {
         "path": "assets/models/vehicles/offroad.glb",
-        "vertices": 3012,
-        "triangles": 3058,
-        "drawTriangles": 3814
+        "vertices": 4511,
+        "triangles": 4957,
+        "drawTriangles": 4957
       },
       "far": {
         "path": "assets/models/vehicles/offroad_far.glb",
-        "vertices": 1028,
-        "triangles": 894,
-        "drawTriangles": 1158
+        "vertices": 1092,
+        "triangles": 695,
+        "drawTriangles": 695
       }
     },
     {
       "name": "sport",
-      "length": 4.42,
-      "width": 2.19,
-      "height": 1.22,
-      "wheelbase": 2.61,
-      "wheelRadius": 0.325,
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/sportive.zip",
+      "sourceSha256": "adf80d08e3314e463f0a452f18e902cc8f579ff86f022e02a1c144c0cbbc7316",
+      "length": 4.4777700805664065,
+      "width": 2.1015199279785155,
+      "height": 1.2801101303100586,
+      "wheelbase": 2.6824499368667603,
+      "wheelRadius": 0.3198601007461548,
       "near": {
         "path": "assets/models/vehicles/sport.glb",
-        "vertices": 2583,
-        "triangles": 2698,
-        "drawTriangles": 3454
+        "vertices": 3080,
+        "triangles": 3558,
+        "drawTriangles": 3558
       },
       "far": {
         "path": "assets/models/vehicles/sport_far.glb",
-        "vertices": 883,
-        "triangles": 782,
-        "drawTriangles": 1046
+        "vertices": 632,
+        "triangles": 466,
+        "drawTriangles": 466
       }
     },
     {
       "name": "truck",
-      "length": 7.1,
-      "width": 2.62,
-      "height": 3.18,
-      "wheelbase": 4.2,
-      "wheelRadius": 0.46,
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/truck.zip",
+      "sourceSha256": "48c18d9715756ce5f503eb97706ee4af2fde1b064a85b9ca61ffed7bcc3c92e6",
+      "length": 6.300365905761719,
+      "width": 2.7180630493164064,
+      "height": 3.399590301513672,
+      "wheelbase": 3.50140643119812,
+      "wheelRadius": 0.5219477415084839,
       "near": {
         "path": "assets/models/vehicles/truck.glb",
-        "vertices": 2756,
-        "triangles": 2786,
-        "drawTriangles": 3542
+        "vertices": 9558,
+        "triangles": 10224,
+        "drawTriangles": 10224
       },
       "far": {
         "path": "assets/models/vehicles/truck_far.glb",
-        "vertices": 956,
-        "triangles": 822,
-        "drawTriangles": 1086
+        "vertices": 1812,
+        "triangles": 1266,
+        "drawTriangles": 1266
       }
     },
     {
       "name": "bus",
-      "length": 10.5,
-      "width": 2.7800000000000002,
-      "height": 3.05,
-      "wheelbase": 5.3,
-      "wheelRadius": 0.47,
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/cityBus.zip",
+      "sourceSha256": "d7c529dc0f5ff8898a0d29272ba4c1110259a717d08e814985acaeb3dbde8186",
+      "length": 12.1917626953125,
+      "width": 3.030810012817383,
+      "height": 3.019849853515625,
+      "wheelbase": 6.1241137981414795,
+      "wheelRadius": 0.5222448706626892,
       "near": {
         "path": "assets/models/vehicles/bus.glb",
-        "vertices": 3725,
-        "triangles": 4062,
-        "drawTriangles": 4818
+        "vertices": 9003,
+        "triangles": 10104,
+        "drawTriangles": 10104
       },
       "far": {
         "path": "assets/models/vehicles/bus_far.glb",
-        "vertices": 1177,
-        "triangles": 1118,
-        "drawTriangles": 1382
+        "vertices": 2147,
+        "triangles": 1611,
+        "drawTriangles": 1611
       }
     }
   ]

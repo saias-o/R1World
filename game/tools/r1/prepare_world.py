@@ -115,7 +115,10 @@ def main():
                  clearColor=[round(c,4) for c in sun.horizon_color],giEnabled=False,
                  fogEnabled=True,fogColor=[round(c,4) for c in sun.horizon_color],
                  fogStart=160,fogDensity=FOG_DENSITY,
-                 iblEnabled=False,aoEnabled=True,bloomEnabled=False,postProcessing=True,
+                 # Ambient already comes from the solar/weather model. Keep
+                 # the HDR sky's specular term for paint, glazing and metals.
+                 iblEnabled=True,iblDiffuseIntensity=0.,iblSpecularIntensity=1.,
+                 aoEnabled=True,bloomEnabled=False,postProcessing=True,
                  changeRenderingAtLoad=True,
                  # The first frame's sky, from the same series and the same
                  # rules `sun_cycle.js` then applies every frame (`r1/skies.py`).

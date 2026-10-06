@@ -1,9 +1,7 @@
-"""Original, unbranded road vehicles, authored in metres. No downloaded assets.
+"""Fleet paths and mesh authoring helpers shared with the aircraft builder.
 
-Run `python -m r1.vehicle_fleet` from game/tools. Geometry is deliberately spent
-on wheel arches, cabin profiles and tyres. Far meshes omit trim and use 8-sided
-wheels. Both levels share opaque PBR materials (no sorted glass draw calls).
-The manifest counts exported vertices, including normal/material seams.
+The default build imports the licensed vehicle sources (vehicle_imports.py).
+The old procedural build function is retained as an authoring reference only.
 """
 from __future__ import annotations
 
@@ -28,13 +26,16 @@ SPECS = {
 }
 
 MATERIALS = [
-    ("paint", (.18, .22, .26), .32, .28),
+    # Metallic flake paint, polished alloy, dielectric glazing and matte
+    # rubber respond separately to direct light and the HDR sky reflection.
+    ("paint", (.18, .22, .26), .35, .18),
     ("rubber", (.018, .021, .024), 0., .84),
-    ("glass", (.026, .044, .059), .25, .16),
-    ("alloy", (.28, .30, .32), .85, .27),
-    ("headlamp", (.56, .60, .59), .35, .18),
-    ("taillamp", (.24, .009, .006), .15, .24),
-    ("indicator", (.40, .16, .012), .1, .3),
+    ("glass", (.026, .044, .059), 0., .08),
+    ("alloy", (.56, .59, .62), .95, .16),
+    ("headlamp", (.56, .60, .59), .15, .12),
+    ("taillamp", (.24, .009, .006), 0., .18),
+    ("indicator", (.40, .16, .012), 0., .2),
+    ("mirror", (.83, .85, .87), 1., .06),
 ]
 
 
@@ -127,7 +128,7 @@ class GLB:
         self.doc['bufferViews'].append({'buffer':0,'byteOffset':len(self.binary),'byteLength':len(raw)})
         self.binary.extend(raw)
         result={'bufferView':view,'componentType':kind,'count':len(values)//components,
-                'type':{1:'SCALAR',3:'VEC3'}[components]}
+                'type':{1:'SCALAR',2:'VEC2',3:'VEC3'}[components]}
         if bounds:
             result['min']=[min(values[i::components]) for i in range(components)]
             result['max']=[max(values[i::components]) for i in range(components)]
@@ -307,17 +308,8 @@ def build(name,far=False):
 
 
 def main():
-    ROOT.mkdir(parents=True,exist_ok=True)
-    fleet=[]
-    for name,spec in SPECS.items():
-        near,far=build(name),build(name,True)
-        fleet.append({'name':name,'length':spec[0],'width':spec[1]+.28,'height':spec[2],
-                      'wheelbase':spec[3],'wheelRadius':spec[4],'near':near,'far':far})
-    manifest={'author':'R1World','license':'CC0-1.0','source':'game/tools/r1/vehicle_fleet.py',
-              'description':'Original generic vehicles; no brands, logos or registration numbers.',
-              'totalVertices':sum(v[l]['vertices'] for v in fleet for l in ('near','far')),'vehicles':fleet}
-    (ROOT/'fleet.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
-    print(json.dumps(manifest,indent=2))
+    from .vehicle_imports import main as import_fleet
+    import_fleet()
 
 
 if __name__=='__main__':main()

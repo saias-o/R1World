@@ -1,0 +1,20 @@
+Road vehicle models — Creative Commons Attribution 3.0 Unported
+License: https://creativecommons.org/licenses/by/3.0/
+
+Compact (city.glb, city_far.glb): "Ford Focus" by Ruff.
+Original: https://www.blendswap.com/blends/view/76275
+Author: https://www.blendswap.com/users/view/Ruff
+Redistributed by Sweet Home 3D, with the original license in fordFocus.zip.
+
+Estate, SUV, off-road vehicle, sports car, truck and city bus:
+Scopia Visual Interfaces Systems, s.l. (https://www.scopia.es) and
+Space Mushrooms / Sweet Home 3D (https://www.sweethome3d.com).
+Sources: break.zip, suv2.zip, 4x4.zip, sportive.zip, truck.zip, cityBus.zip
+from https://www.sweethome3d.com/free-3d-models/ (Scopia collection).
+Each original archive includes LICENSE.TXT.
+
+R1World modifications: removed vehicle logos and hidden interiors, converted
+centimetres to metres and OBJ to glTF, assigned opaque metallic/roughness PBR
+materials, retained UV detail, reduced geometry for two LODs, added wheel pivots.
+Source archives and their SHA-256 hashes are retained in data/source-assets/vehicles.
+No endorsement by the authors is implied.

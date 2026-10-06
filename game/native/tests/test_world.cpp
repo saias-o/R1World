@@ -686,6 +686,59 @@ TEST(Service, cached_streets_appear_before_relief_and_remain_after_it_arrives) {
     CHECK(!upgraded->cooked.minimap.roads.empty());
 }
 
+TEST(Service, pending_airports_never_suppress_the_spawn_ground_upgrade) {
+    const Tile t = tileAt(5.0, 45.0);
+    const std::string root = placeVisitedAt(kOsmBaseVersion, t, "-aero-ground-upgrade");
+    const std::string groundPath = root + "/cache/world/" + t.key() + "/ground-elevation.json";
+    fs::remove(groundPath);
+    std::promise<void> releaseGround, releaseAero;
+    const auto groundReady = releaseGround.get_future().share();
+    const auto aeroReady = releaseAero.get_future().share();
+    WorldService::Options options;
+    options.gameRoot = root;
+    options.threads = 1;
+    options.quickGround = [](const Tile&) -> std::pair<ElevationGrid, std::string> {
+        throw SourceUnavailable("no quick relief in this test");
+    };
+    options.fetchAero = [aeroReady](const Bounds&, const std::string& path) {
+        aeroReady.wait();
+        fs::create_directories(fs::path(path).parent_path());
+        std::ofstream(path) << R"({"elements":[]})";
+    };
+    options.fetchGround = [groundReady, groundPath](const Tile& tile) {
+        groundReady.wait();
+        const Bounds b = tile.bounds();
+        nlohmann::json doc = {{"bounds", {{"south", b.south}, {"west", b.west}, {"north", b.north}, {"east", b.east}}},
+                              {"size", 2}, {"values", {{75.0, 75.0}, {75.0, 75.0}}}, {"source", "spawn survey"}};
+        std::ofstream(groundPath) << doc.dump();
+        return std::pair{ElevationGrid{b, 2, {75.0, 75.0, 75.0, 75.0}}, std::string("spawn survey")};
+    };
+    WorldService service(std::move(options));
+    service.want({t}, {});
+    const auto first = waitForTile(service, t);
+    releaseGround.set_value();
+    const auto ground = first ? waitForTile(service, t, first->serial) : nullptr;
+    releaseAero.set_value();
+    CHECK(first && ground);
+    CHECK(first->cooked.manifest["airportsPending"].get<bool>());
+    CHECK(first->cooked.manifest["groundPending"].get<bool>());
+    CHECK(ground->cooked.manifest["airportsPending"].get<bool>());
+    CHECK(!ground->cooked.manifest["groundPending"].get<bool>());
+    CHECK(ground->cooked.manifest["elevationSource"] == "spawn survey");
+    CHECK(!ground->cooked.minimap.roads.empty());
+    // Seam notifications may publish another ground-only cook before the
+    // aero download lands. Wait for that observation, not merely any serial.
+    std::shared_ptr<const ServedTile> complete;
+    for (int i = 0; i < 200; ++i) {
+        complete = service.find(t);
+        if (complete && !complete->cooked.manifest["airportsPending"].get<bool>()) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    }
+    CHECK(complete);
+    CHECK(!complete->cooked.manifest["airportsPending"].get<bool>());
+    CHECK(complete->cooked.manifest["elevationSource"] == "spawn survey");
+}
+
 TEST(Service, installed_ground_is_not_cached_and_yields_to_the_fine_survey) {
     const Tile t = tileAt(5.5, 45.5);
     const std::string root = placeVisitedAt(kOsmQueryVersion, t, "-installed-relief");
