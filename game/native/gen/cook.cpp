@@ -535,6 +535,8 @@ CookedTile cookTile(const Observations& in) {
     }
     // What the player walks on: the pack's own surface where the sea is frozen.
     const ElevationGrid& walked = pack ? pack->grid : elevations;
+    nlohmann::json digJson = nlohmann::json::array();
+    for (const GradePlan::Carve& c : grades.carves) digJson.push_back({c.at.x, c.at.y, c.radius});
     nlohmann::json elevationRows = nlohmann::json::array();
     for (int r = 0; r < walked.size; ++r) {
         nlohmann::json row = nlohmann::json::array();
@@ -559,6 +561,12 @@ CookedTile cookTile(const Observations& in) {
         {"source", std::string(in.offline ? "Natural Earth 1:110m; " : "OpenStreetMap; ") + in.elevationSource},
         {"elevationSource", in.elevationSource}, {"offlineApproximation", in.offline || in.groundPending},
         {"groundPending", in.groundPending},
+        // What joining the neighbours' ground moved: a measurement moved toward
+        // a better or an equal one (gen/seams), said rather than hidden.
+        {"groundSeams", {{"largestShiftM", pyround(in.seams.largestShift, 3)}, {"neighboursKnown", in.seams.neighbours}}},
+        // Where the ground was dug under a bridge (lon, lat, radius m): each tile
+        // solves its bridges on its own window, so two tiles may dig a seam differently.
+        {"groundDigs", digJson},
         {"region", profile.name}, {"regionTier", profile.tier}, {"climate", climate},
         {"osmQueryVersion", osm.queryVersion},
         {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats}}},

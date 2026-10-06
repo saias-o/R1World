@@ -102,6 +102,7 @@ constexpr double kCarReach=4.5;         // m -- how close you stand to open the 
 constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refused out loud
 constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for water
 constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
+constexpr double kCarKerb=.3;           // m above the ground a street surface is still driven onto
 // The player's height is read from assets/models/humans/humans.json, drawn
 // at its `scale`; the head stays this fraction of it clear of the water.
 constexpr double kSwimHeadAbove=.33;
@@ -1614,16 +1615,24 @@ class World : public Rml::EventListener {
         return best;
     }
     double terrainHeight(const Loaded& tile,double x,double y) const {
+        double deck=0;if(onDeck(tile,x,y,&deck))return deck;
+        return gridHeight(tile,x,y);
+    }
+    // The tile's own ground grid, decks aside; clamped to the tile.
+    static double gridHeight(const Loaded& tile,double x,double y) {
         const Loaded* t=&tile;
-        double deck=0;if(onDeck(*t,x,y,&deck))return deck;
         const int n=t->gridSize;
         double u=std::clamp((wrap(x)-t->west)/(t->east-t->west),0.,1.)*(n-1);
         double v=std::clamp((y-t->south)/(t->north-t->south),0.,1.)*(n-1);
         int ix=std::min(n-2,int(u)),iy=std::min(n-2,int(v));u-=ix;v-=iy;
         const float* g=t->elevation.data();
         const size_t low=size_t(iy)*size_t(n),high=low+size_t(n);
-        return (double(g[low+size_t(ix)])*(1-u)+double(g[low+size_t(ix)+1])*u)*(1-v)
-              +(double(g[high+size_t(ix)])*(1-u)+double(g[high+size_t(ix)+1])*u)*v;
+        // The two triangles the ground is drawn and collided with (gen/terrain
+        // buildTerrain: south-west to north-east diagonal), never a bilinear
+        // patch: on an embankment the two disagree by decimetres, and a car
+        // riding the patch met the drawn ground as an obstacle nobody could see.
+        const double sw=g[low+size_t(ix)],se=g[low+size_t(ix)+1],nw=g[high+size_t(ix)],ne=g[high+size_t(ix)+1];
+        return u>=v?sw*(1-u)+se*(u-v)+ne*v:sw*(1-v)+ne*u+nw*(v-u);
     }
     // The tile's water grid and fully oceanic tiles must answer the same
     // question for walkers, cars and boats. Piers remain dry walkable decks.
@@ -1719,6 +1728,18 @@ class World : public Rml::EventListener {
     // it asks the question that has an answer.
     double groundAt(double x,double y,double fallback) {
         return tile(x,y)?height(x,y,fallback):fallback;
+    }
+    // What the wheels roll on: the ground, or the street laid on it -- the
+    // carriageway 6 cm up, a path or a pavement 21 cm (gen/streets). Asked of
+    // the collision the engine holds, since that is what `blocked` meets: a car
+    // riding the bare terrain under a path met the path as an obstacle.
+    double drivenGround(double x,double y,double fallback) {
+        const double ground=groundAt(x,y,fallback);
+        auto* physics=engine.sceneTree().world().physics();if(!physics)return ground;
+        const glm::vec3 start(origin.local(ecef(x,y,ground+kCarKerb)));
+        const auto hit=physics->raycast(start,{0,-1,0},float(kCarKerb+.1),obstacleFilter());
+        if(!hit.hit||hit.normal.y<.7f)return ground;
+        return std::max(ground,ground+kCarKerb-double(hit.distance));
     }
     // Yaw, then the slope the wheels are actually standing on. Measured off the
     // terrain grid over the car's own wheelbase and track rather than inferred
@@ -1964,6 +1985,7 @@ class World : public Rml::EventListener {
 
     // Why the car last stopped against something, for whoever reads the log.
     std::string carStop="nothing";
+    std::string carStopSaid; // the obstacle the journal last named, cleared once the car moves on
     bool parkingCar=false;
     double carDistance() const {
         return glm::length(ecef(lon,lat,alt)-ecef(carLon,carLat,carAlt));
@@ -2084,15 +2106,24 @@ class World : public Rml::EventListener {
         if(onWater(next.x,next.y,alt)){carStop="water";sinkCar(next.x,next.y);return;}
         // Arcade handling keeps geographic pose; obstacle detection is a Jolt
         // query along the travelled step, including the streamed traffic bodies.
+        // Each step is tested standing on the ground it reaches, not at the
+        // altitude the car left: up a ramp, the old altitude is inside it.
         const double length=std::abs(carSpeed)*dt;
         const int steps=std::max(1,int(std::ceil(length/.25)));
+        double level=alt;
         for(int i=1;i<=steps;++i) {const double d=length*i/steps;
             const auto q=onward(lon,lat,sin(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1),
                                             cos(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1));
-            if(blocked(q.x,q.y,alt)) {carStop="an obstacle ("+obstacleName(q.x,q.y,alt)+")";carSpeed=0;
+            level=drivenGround(q.x,q.y,level);
+            if(blocked(q.x,q.y,level)) {
+                const std::string stop="an obstacle ("+obstacleName(q.x,q.y,level)+")";
+                // Once per obstacle, not once per frame the throttle is held.
+                if(stop!=carStopSaid)saida::Log::info("[World car] stopped by ",stop," at ",q.x,", ",q.y," level ",level);
+                carStop=carStopSaid=stop;carSpeed=0;
                 text("stream-status","Obstacle — la voiture s'arrête.");return;}
         }
-        lon=next.x;lat=next.y;alt=groundAt(lon,lat,alt);
+        lon=next.x;lat=next.y;alt=drivenGround(lon,lat,level);
+        carStopSaid.clear();
         carLon=lon;carLat=lat;carAlt=alt;
         request(lon,lat);
     }
@@ -5082,6 +5113,80 @@ public:
         saida::Log::info("[World E2E] trunks solid in ",checked," tiles");
         return true;
     }
+    // The height the walk and the car follow is the ground drawn and collided
+    // with. A patch that disagreed by 30 cm stopped the car on open grass.
+    // Coastal tiles are left out: the sea's levelling (gen/harbours
+    // Cells::adjust) moves the drawn ground and not the manifest's grid.
+    bool groundMatchesDrawing() {
+        auto* physics=engine.sceneTree().world().physics();if(!physics)return true;
+        const Loaded* t=tile(lon,lat);if(!t||t->ocean)return true;
+        if(std::find(t->water.begin(),t->water.end(),uint8_t(2))!=t->water.end()) {
+            saida::Log::info("[World E2E] ground check skipped: the tile meets the sea");return true;
+        }
+        double worst=0;size_t samples=0;
+        for(int i=1;i<16;++i)for(int j=1;j<16;++j) {
+            const double x=t->west+(t->east-t->west)*i/16.,y=t->south+(t->north-t->south)*j/16.;
+            const double h=terrainHeight(*t,x,y);
+            const auto hit=physics->raycast(glm::vec3(origin.local(ecef(x,y,h+2.))),{0,-1,0},4.f,obstacleFilter());
+            if(!hit.hit)continue;
+            auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body));
+            if(!node||node->name().rfind("Ground",0)!=0)continue; // a street, a roof or a trunk is above it
+            worst=std::max(worst,std::abs(double(hit.point.y)-origin.local(ecef(x,y,h)).y));++samples;
+        }
+        if(worst>.05) {
+            saida::Log::error("[World E2E] FAIL ground: the height followed is ",worst,
+                              " m off the ground drawn (",samples," samples)");
+            return false;
+        }
+        saida::Log::info("[World E2E] ground followed within ",worst," m of the ground drawn (",samples," samples)");
+        return true;
+    }
+    // Two tiles meet where their ground meets (gen/seams): a step at an edge
+    // stopped the car on a bare field. Well under the 0.28 m the car meets as
+    // an obstacle, with room for what smoothing a staggered seam leaves on a
+    // quay wall. Tiles meeting the sea are left out, as above, and the ground
+    // dug under a bridge is measured apart: each tile solves its bridges on
+    // its own window (gen/bridges), so a dig on a seam may differ by a little.
+    bool seamsClosed() {
+        auto coastal=[](const Loaded& t){return t.ocean||std::find(t.water.begin(),t.water.end(),uint8_t(2))!=t.water.end();};
+        // A dug node bends the ground out to the next node, a grid step away.
+        auto dug=[](const Loaded& t,double x,double y){
+            const double step=(t.north-t.south)*kMetresPerDegree/std::max(1,t.gridSize-1);
+            for(const auto& d:t.data.value("groundDigs",json::array()))
+                if(std::hypot((x-d[0].get<double>())*kMetresPerDegree*std::cos(y*rad),(y-d[1].get<double>())*kMetresPerDegree)<d[2].get<double>()+step)return true;
+            return false;
+        };
+        double worst=0,worstDug=0;std::string where;size_t seams=0;
+        for(const auto& [ka,a]:loaded)for(const auto& [kb,b]:loaded) {
+            if(&a==&b||a.gridSize<2||b.gridSize<2||coastal(a)||coastal(b))continue;
+            const bool rows=std::abs(a.north-b.south)<1e-9,sides=std::abs(a.east-b.west)<1e-9&&std::abs(a.south-b.south)<1e-9;
+            if(!rows&&!sides)continue;
+            const double from=rows?std::max(a.west,b.west):a.south,to=rows?std::min(a.east,b.east):a.north;
+            if(to-from<1e-9)continue;
+            ++seams;
+            for(int k=0;k<=200;++k) {
+                const double s=from+(to-from)*k/200.,x=rows?s:a.east,y=rows?a.north:s;
+                const double step=std::abs(gridHeight(a,x,y)-gridHeight(b,x,y));
+                if(dug(a,x,y)||dug(b,x,y)){worstDug=std::max(worstDug,step);continue;}
+                if(step>worst) {
+                    worst=step;
+                    auto said=[](const Loaded& t){return t.data.value("elevationSource",std::string())+", moved "+
+                                                         t.data.value("groundSeams",json::object()).dump();};
+                    where=ka+" ("+said(a)+") | "+kb+" ("+said(b)+") at "+std::to_string(x)+", "+std::to_string(y);
+                }
+            }
+        }
+        if(worst>.15) {
+            saida::Log::error("[World E2E] FAIL seams: a ",worst," m step between ",where," (",seams," seams)");
+            return false;
+        }
+        if(worstDug>kCarKerb) {
+            saida::Log::error("[World E2E] FAIL seams: a ",worstDug," m step under a bridge dug differently by two tiles");
+            return false;
+        }
+        saida::Log::info("[World E2E] ",seams," seams closed within ",worst," m; under a dug bridge, within ",worstDug," m");
+        return true;
+    }
     // True when the smoke has just failed on a refused body.
     bool checkPhysics() {
         auto* physics=engine.sceneTree().world().physics();
@@ -5572,7 +5677,7 @@ public:
             }
             saida::Log::info("[World E2E] player run/jump/landing/follow passed, distance=",followDistance);
             sayBodies();
-            if(!trunksSolid()){testFailed=true;engine.sceneTree().quit();return;}
+            if(!trunksSolid()||!groundMatchesDrawing()||!seamsClosed()){testFailed=true;engine.sceneTree().quit();return;}
             // A neighbourhood that asked for people and shows none is the
             // failure; a moor at night that asked for none is not one.
             if(bodiesRefused>0||feetRefused) {

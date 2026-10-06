@@ -10,6 +10,7 @@
 // output is one JSON line per tile: what came out, and how long it took.
 #include "gen/cook.hpp"
 #include "gen/palette.hpp"
+#include "gen/relief.hpp"
 #include "gen/sources.hpp"
 
 #include <chrono>
@@ -102,8 +103,20 @@ int main(int argc, char** argv) {
             in.peaks = store.peaks(tile, *in.osm, &in.peaksSource);
             in.airportsPending = line.value("airportsPending", false);
             line["parseMs"] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - parseStart).count();
-            in.elevations = ground->first;
-            in.around = store.groundAround(tile);
+            // Joined to the neighbours' ground as the game joins it (gen/seams),
+            // from what is cached: the survey on disk, else the installed layer.
+            r1::JoinedGround joined = r1::joinedGround(tile, {ground->first, r1::groundRank(ground->second)},
+                [&](const r1::Tile& t) -> std::optional<r1::RankedGround> {
+                    try {
+                        if (auto g = store.ground(t)) return r1::RankedGround{g->first, r1::groundRank(g->second)};
+                        if (auto g = r1::installedGround(t.bounds(), game)) return r1::RankedGround{*g, r1::groundRank(r1::kInstalledReliefSource)};
+                    } catch (const std::exception&) {
+                    }
+                    return std::nullopt;
+                });
+            in.elevations = std::move(joined.own);
+            in.around = std::move(joined.around);
+            in.seams = joined.seams;
             if (const auto path = store.osmPath(tile, shared)) in.osmExtent = store.regionOf(tile, shared, *path);
             in.elevationSource = ground->second;
             in.targetVertices = tileTarget;

@@ -1,5 +1,7 @@
 #include "service.hpp"
 
+#include "relief.hpp"
+#include "seams.hpp"
 #include "sources.hpp"
 
 #include <algorithm>
@@ -350,6 +352,51 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         return store.tileFolder(tile) + "/ground-elevation.json";
     }
 
+    // Tiles whose ground is joined to `changed`'s (gen/seams): the same row's
+    // two neighbours and the rows above and below along its width.
+    static bool sharesSeams(const Tile& tile, const Tile& changed) {
+        if (tile == changed || std::abs(tile.row - changed.row) > 1) return false;
+        const Bounds a = tile.bounds(), b = changed.bounds();
+        const double margin = (a.east - a.west) * 0.5;
+        return b.east >= a.west - margin && b.west <= a.east + margin;
+    }
+    // Under `lock`. A tile's relief changed: its cooked neighbours are cooked
+    // again on it, or the seam they share keeps the step it had.
+    void groundChanged(const Tile& tile, const std::string& what) {
+        const std::string source = "seam:" + tile.key() + ":" + what;
+        bool any = false;
+        for (const Tile& t : wanted) {
+            if (!cooked.count(t) || !sharesSeams(t, tile)) continue;
+            awaiting[t].insert(source);
+            any = true;
+        }
+        if (any) landed.insert(source);
+    }
+
+    // A neighbour's relief exactly as that neighbour is cooked on it (`observe`):
+    // its survey on disk, else its quick sample, else the installed layer.
+    std::optional<RankedGround> neighbourGround(const Tile& tile) {
+        std::optional<std::pair<ElevationGrid, std::string>> g;
+        try {
+            g = store.ground(tile);
+        } catch (const std::exception&) {
+            // Unreadable: the neighbour cannot be cooked on it either.
+        }
+        if (!g) {
+            std::lock_guard<std::mutex> guard(lock);
+            auto quick = quickGrounds.find(tile);
+            if (quick != quickGrounds.end()) g = quick->second;
+        }
+        if (!g) {
+            try {
+                if (auto installed = installedGround(tile.bounds(), store.root())) g = std::make_pair(std::move(*installed), std::string(kInstalledReliefSource));
+            } catch (const std::exception&) {
+            }
+        }
+        if (!g) return std::nullopt;
+        return RankedGround{std::move(g->first), groundRank(g->second)};
+    }
+
     // Publish a quick terrain sample first; the surveyed ground can take much
     // longer and must not hold back streets or the minimap.
     bool downloadGround(const Tile& tile) {
@@ -370,6 +417,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                         if (std::find(self->wanted.begin(), self->wanted.end(), tile) != self->wanted.end()) {
                             self->quickGrounds[tile] = std::move(ground);
                             self->landed.insert(quick);
+                            self->groundChanged(tile, "quick");
                         }
                     }
                     self->wake.notify_all();
@@ -388,6 +436,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                         self->quickGrounds.erase(tile);
                         self->landed.insert(quick);
                         self->landed.insert(path);
+                        self->groundChanged(tile, "survey");
                     }
                     self->say("GROUND " + tile.key() + " ready");
                 } catch (const std::exception& e) {
@@ -548,7 +597,13 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             in.elevations = ElevationGrid{tile.bounds(), 2, {0.0, 0.0, 0.0, 0.0}};
             in.elevationSource = "temporary flat ground (relief pending)";
         }
-        in.around = store.groundAround(tile);
+        // Joined to the neighbours' ground at the edges, on the rule both
+        // sides apply (gen/seams).
+        JoinedGround joined = joinedGround(tile, {in.elevations, groundRank(in.elevationSource)},
+                                           [this](const Tile& t) { return neighbourGround(t); });
+        in.elevations = std::move(joined.own);
+        in.around = std::move(joined.around);
+        in.seams = joined.seams;
         in.seaIce = seaIceFor(tile, in.elevations, firstVisit);
         try {
             in.canopy = storedCanopy(store.root(), tile);

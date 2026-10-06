@@ -9,6 +9,7 @@
 #include "osm.hpp"
 #include "peaks.hpp"
 #include "seaice.hpp"
+#include "seams.hpp"
 #include "../minimap.hpp"
 
 #include <memory>
@@ -31,6 +32,8 @@ struct Observations {
     // sides (gen/bridges.hpp). Missing ones fall back to this tile's own.
     std::vector<ElevationGrid> around;
     std::string elevationSource;
+    // How far the ground was moved to meet the neighbours' (gen/seams).
+    SeamReport seams;
     bool offline = false;  // OSM missing: use Natural Earth's approximate coast
     bool groundPending = false;  // measured relief is still on its way
     size_t targetVertices = kTileVertexBudget;  // softer LOD target from the resident arena
