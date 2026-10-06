@@ -61,13 +61,9 @@ RoadNet::RoadNet(const std::vector<OsmWay>& roads, const Anchor& anchor, const B
         Way way;
         way.osm = &road;
         way.highway = highway;
-        std::string one;
-        for (char c : tagOr(road.tags, "oneway")) one += char(std::tolower((unsigned char)c));
         const std::string junction = tagOr(road.tags, "junction");
         way.roundabout = junction == "roundabout" || junction == "circular";
-        if (one == "yes" || one == "true" || one == "1") way.direction = 1;
-        else if (one == "-1" || one == "reverse") way.direction = -1;
-        else if (one.empty() && (way.roundabout || highway == "motorway" || highway == "motorway_link")) way.direction = 1;
+        way.direction = roadDirection(road.tags);
         way.bridge = taggedYes(road.tags, "bridge");
         way.tunnel = taggedYes(road.tags, "tunnel");
         way.link = highway.size() > 5 && highway.compare(highway.size() - 5, 5, "_link") == 0;

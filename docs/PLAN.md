@@ -4,7 +4,7 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 6 octobre 2026, après intégration des voitures et du correctif PBR.
+État relu le 6 octobre 2026, générateur v30 : voitures, correctif PBR et routes.
 Le détail de ce qui est fait et mesuré est dans `game/README.md`.
 
 **Deux critères priment sur tous les autres, et ils sont en tension :**
@@ -220,7 +220,16 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   sont dessinés là où ils ont été relevés.
 - **Rues** : chaque voie est recollée en une ligne avant d'être élargie, les
   virages et les jonctions sont arrondis, et une rue qui traverse le bord d'une
-  tuile est posée jusqu'à ce bord, sans trou (`native/gen/streets.cpp`, v28).
+  tuile est posée jusqu'à ce bord, sans trou (`native/gen/streets.cpp`). En v30,
+  les bretelles `*_link` sont carrossables ; les largeurs OSM priment, sinon
+  le nombre de voies et les accotements déterminent la chaussée. Les routes
+  rurales sans ces tags infèrent 6,5 m, les bretelles express à une voie 5 m.
+  Marquages des voies et rives, glissières métalliques avec ouvertures aux
+  raccordements, et terre-pleins herbeux entre chaussées parallèles sont
+  générés avec leur provenance inférée (`gen/road_details.cpp`). Les ouvrages
+  proches à la même altitude partagent un terre-plein ; les talus ne recouvrent
+  plus les plateformes routières voisines. La compilation v30 est faite,
+  son rendu à Theix et ses nouveaux cas de régression restent à vérifier.
   **Jamais d'eau sur une rue** : aucune eau dessinée sur la chaussée ou le
   trottoir, l'eau cachée (busée, couverte, souterraine) n'est pas dessinée, et
   les rues qui traversent une case d'eau sont sèches pour la marche et la
@@ -341,7 +350,8 @@ machine de référence (I4).
 ### Fiabilité et fluidité — priorité immédiate
 - **Tuile dense de Grenoble** : `v29_27038_26176` est refusée à 124 952 sommets
   pour un plafond de 120 000 ; les remblais seuls en prennent 46 041.
-  Réduire la géométrie superflue des ouvrages en conservant leurs emprises et
+  Requalifier cette tuile après les changements routiers v30 ; réduire si
+  nécessaire la géométrie superflue des ouvrages en conservant leurs emprises et
   leurs collisions. Le correctif de chargement lié aux aéroports ne résout pas
   ce dépassement distinct, constaté le 6 octobre.
 - **Streaming sans pics de frame** : décodage des assets en tâche de fond et

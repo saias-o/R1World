@@ -504,12 +504,7 @@ nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& 
             if (number > 0) { speed = number * (mph ? 0.44704 : 1 / 3.6); isMeasured = true; }
         }
         const double weight = classWeight.count(highway) ? classWeight.at(highway) : 1.0;
-        std::string one;
-        for (char c : tagOr(tags, "oneway")) one += char(std::tolower((unsigned char)c));
-        int direction = 0;
-        if (one == "yes" || one == "true" || one == "1") direction = 1;
-        else if (one == "-1" || one == "reverse") direction = -1;
-        else if (tagOr(tags, "junction") == "roundabout" || tagOr(tags, "junction") == "circular") direction = 1;
+        const int direction = roadDirection(tags);
         bool used = false;
         std::vector<P3> points;
         for (const P2& p : road.points) points.push_back(ground(p.x, p.y));

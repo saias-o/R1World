@@ -8,7 +8,7 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 6 October 2026. The current generator is v29;
+Documentation reviewed on 6 October 2026. The current generator is v30;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
 
@@ -549,13 +549,12 @@ Corcovado's surveyed summit raises ([Surveyed summits](#surveyed-summits)).
 
 Streets are polygon unions and differences (Clipper2) that connect
 intersections, remove overlapping sidewalks and cut out buildings; their tops
-are clipped to the same terrain triangles as the ground. The cook cuts every
-way into two-point segments; the streets join a way's segments back into one
-line, buffered with round joins, so a bend keeps its outer edge (a strip per
-segment left a notch at every bend, visible all over Paris). Where two ways
+are clipped to the same terrain triangles as the ground. Streets keep complete
+nearby axes, buffered with round joins, so a bend keeps its outer edge (a strip
+per segment left a notch at every bend, visible all over Paris). Where two ways
 meet end to end, or one ends on another, the ends are rounded too; a free end
-stays square. Streets are cut 30 m past the tile and only what lies inside it
-is laid, so a street crossing the edge meets its neighbour's without a gap.
+stays square. Only what lies inside the tile is laid; keeping the original
+axes also preserves the phase of dashed markings and posts across tile edges.
 They lie on the ground the terrain draws, sea-level adjustments included, and
 never under the sea that ground meets. Sidewalks rise 15 cm;
 widths and sides follow OSM where tagged, and inferred defaults are labelled in
@@ -563,6 +562,42 @@ the `streets` manifest. Separately mapped sidewalks are respected. Zebras are
 drawn only where OSM maps a marked crossing. Normals are shared, with a
 quantised weld key that removes floating-point duplicates without moving
 geometry.
+
+Generator v30 fixes two missing road classes: `unclassified` country roads
+used to fall back to 2.5 m, and `*_link` ramps were treated as pedestrian
+surfaces at that same width. Country roads and residential streets now infer
+6.5 m when no width or lane count is given. Every motor-road link is asphalt,
+participates in the road graph and shares the same width calculation as bridge
+decks, vegetation clearances and parking exclusions (`gen/road_profile.cpp`).
+An OSM `width` always wins; otherwise `lanes` (or directional lane counts) and
+hard shoulders determine the paved width. Expressway lanes infer 3.5 m each;
+a one-way single-lane ramp has a 0.5 m left and 1 m right strip, 5 m total.
+The cached Theix N165 observation contains these `trunk_link`, `lanes=1`,
+`oneway=yes` ways, plus two- and three-lane mainline sections.
+
+`gen/road_details.cpp` draws lane separators and edge lines on the actual
+road surface, ground or raised; `lane_markings=no` suppresses them. French
+defaults use T1 lane dashes (3/10 m) and T4 outside edge dashes (39/13 m) for
+divided expressways, with continuous inner/ramp edges. Country comes from OSM
+or the already bundled borders. At-grade intersections leave the lane markings
+open; overlapping entry/exit pavement interrupts the edge line and guardrail.
+Guardrails are folded galvanized steel beams and posts, inferred beside divided
+expressways unless a road tag forbids them. Bridges keep their existing parapets.
+The manifest separates tagged widths, lane counts and inferred markings/rails.
+
+Narrow gaps between parallel opposing expressways become inferred grass
+medians while retaining the mapped separation. Raised carriageways within
+0.75 m in height share an interpolated median instead of overlapping talus
+faces; embankment slopes are cut out of neighbouring road platforms. Roads
+at different bridge levels do not join their decks. These defaults follow
+[Cerema ICTAAL](https://dtrf.cerema.fr/pdf/pj/Dtrf/0008/Dtrf-0008477/DT9041.pdf)
+and the [IISR marking patterns](https://equipementsdelaroute.cerema.fr/IMG/pdf/IISR_7ePARTIE_VC_20151208_cle2c9c2c.pdf)
+as inference, not a survey of the existing road's equipment.
+
+The v30 road changes were compiled without executing tests. Regression cases
+for the Theix ramp profile, measured narrow widths, lane counts, raised paint
+and rail openings are in `native/tests/test_roads.cpp`; they are not recorded
+as passing. A new in-game Theix capture remains to validate the final picture.
 
 ### What the maps do not say: the predictive model
 
@@ -1200,8 +1235,8 @@ results; it does not constitute another test run.
 
 The subsequent full reference gallery did **not** complete: Grenoble refused
 `v29_27038_26176` at 124 952 vertices. The earlier nine-view gallery result
-belongs to the 5 October integration and does not certify the current v29
-generator. Web and headset rendering were not validated for the PBR fix.
+belongs to the 5 October integration and does not certify the later v29/v30
+generators. Web and headset rendering were not validated for the PBR fix.
 
 ### The traffic
 
@@ -1344,11 +1379,13 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
 
 ## Known limits
 
-- **Dense spawn tiles**: Grenoble's `v29_27038_26176` exceeds the 120 000-vertex
-  tile limit (124 952 total; 46 041 in embankments). It remains unmounted even
+- **Dense spawn tiles**: the v29 Grenoble capture refused `v29_27038_26176`
+  at the 120 000-vertex
+  tile limit (124 952 total; 46 041 in embankments). It remained unmounted even
   though surrounding tiles can load. This is a separate geometry-budget issue
   from the fixed pending-airport upgrade bug. The 6 October diagnostic is in
   `cache/sessions/2692d72965094d67865fb59d5cbd36ab/game.log` locally.
+  The v30 road changes have not requalified that tile or the full gallery.
 - **Cars**: paint and metal now reflect the HDR sky, but glazing is opaque,
   there is no automotive clearcoat layer, and the reflection source is the sky,
   not nearby buildings. An automotive clearcoat and local reflection solution
@@ -1371,7 +1408,10 @@ CPU asset decoding jobs and incremental GPU uploads remain to be done.
   sheets, which carry a window in every bay.
 - **Streets**: municipal road polygons (e.g. Paris) are not integrated;
   inferred sidewalk widths need not match the survey; crossing ramps and
-  islands are not modelled; tunnels are skipped. Outside the measured Paris
+  islands are not modelled; tunnels are skipped. Exact merge tapers, gore
+  chevrons, turn arrows and separately mapped barrier ways are not yet read.
+  Generated guardrails follow class defaults, not a complete equipment survey.
+  Outside the measured Paris
   sample, detail has had less visual verification.
 - **Traffic**: no traffic lights, no lane changing, no parked cars along the
   kerb, no collisions between traffic and the world beyond its lane; junction

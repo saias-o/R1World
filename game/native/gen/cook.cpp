@@ -79,15 +79,6 @@ std::vector<OsmWay> clipRoads(const std::vector<OsmWay>& roads, const Bounds& b)
     return out;
 }
 
-// How far past the tile a street is still cut for it: a carriageway and its
-// pavements that cross the edge, or run along it outside, reach in this far.
-constexpr double kStreetReach = 30.0;
-Bounds grown(const Bounds& b, double metres) {
-    const double dLat = metres / 111320.0;
-    const double dLon = metres / (111320.0 * std::max(0.01, std::cos((b.south + b.north) / 2 * kPi / 180.0)));
-    return {b.south - dLat, b.west - dLon, b.north + dLat, b.east + dLon};
-}
-
 // Where a street crosses a water cell, the street is dry: a cell is 25 m of
 // water or not, and a car on the quay must not sink with it. The pieces are
 // in the tile's frame, rings in even-odd, read before the water (world.cpp).
@@ -350,9 +341,10 @@ CookedTile cookTile(const Observations& in) {
     }
     const std::vector<OsmWay> roads = clipRoads(grades.roads, bounds);
     // The streets lie on the ground drawn, above the sea it meets.
-    StreetOutput streets = buildStreets(clipRoads(grades.roads, grown(bounds, kStreetReach)), osm.features, elevations,
+    StreetOutput streets = buildStreets(grades.roads, osm.features, elevations,
                                         anchor, footprints,
-                                        [&](int r, int c, double h) { return cells.roadLevel(r, c, h); });
+                                        [&](int r, int c, double h) { return cells.roadLevel(r, c, h); },fuelCountry);
+    streets.stats["countrySource"]=osm.country.empty()?"bundled borders":"OSM boundary (ISO3166-1)";
     std::vector<InteriorPlan> stores;
     for(const auto& p:built.interiors)if(retailInterior(p.recipe))stores.push_back(p);
     const ParkingOutput parking=buildRetailParking(osm,stores,footprints,elevations,anchor);
@@ -364,7 +356,7 @@ CookedTile cookTile(const Observations& in) {
     // (a river's assumed width, a canal's edge) is wrong where the road is.
     visibleInland = clip::subtract(visibleInland, streets.ground);
     if (!visibleInland.empty()) Drape(elevations, anchor).lay(visibleInland, 0.12, inlandMesh);
-    BridgeOutput bridges = buildBridges(grades, bounds, elevations, anchor);
+    BridgeOutput bridges = buildBridges(grades, bounds, elevations, anchor,fuelCountry);
     // Road centre lines in engine metres, so a bench faces its street.
     std::vector<Segment2> roadSegments;
     for (const OsmWay& w : roads) {

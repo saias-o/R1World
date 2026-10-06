@@ -5,7 +5,10 @@ namespace r1 {
 double roadWidthOf(const std::string& highway) {
     static const std::map<std::string, double> widths = {
         {"motorway", 13.0}, {"trunk", 11.0}, {"primary", 9.0}, {"secondary", 8.0}, {"tertiary", 7.0},
-        {"residential", 5.5}, {"living_street", 5.0}, {"service", 3.5}, {"pedestrian", 3.0},
+        {"residential", 6.5}, {"unclassified", 6.5}, {"road", 6.5},
+        {"motorway_link", 5.0}, {"trunk_link", 5.0}, {"primary_link", 6.5},
+        {"secondary_link", 6.5}, {"tertiary_link", 6.5},
+        {"living_street", 5.0}, {"service", 3.5}, {"pedestrian", 3.0},
         {"cycleway", 1.8}, {"footway", 1.5}, {"path", 1.2}, {"steps", 1.2}};
     auto it = widths.find(highway);
     return it == widths.end() ? 2.5 : it->second;

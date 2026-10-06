@@ -3,6 +3,7 @@
 #include "clip.hpp"
 #include "palette.hpp"
 #include "roadnet.hpp"
+#include "road_details.hpp"
 #include "streets.hpp"
 #include "terrain.hpp"
 
@@ -544,7 +545,8 @@ void facing(Mesh& mesh, P3 a, P3 b, P3 c, P3 d, P3 want) {
 }
 }  // namespace
 
-BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const ElevationGrid& carved, const Anchor& anchor) {
+BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const ElevationGrid& carved, const Anchor& anchor,
+                          const std::string& country) {
     Mesh road(UvMode::Planar), walk(UvMode::Planar), kerb, structure(UvMode::Slope), earth(UvMode::Slope);
     BridgeOutput out;
     auto owned = [&](P2 p) { return bounds.west <= p.x && p.x < bounds.east && bounds.south <= p.y && p.y < bounds.north; };
@@ -557,6 +559,49 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
     auto groundAt = [&](P2 exz) {
         const P3 geo = anchor.toGeodetic(exz.x, 0.0, exz.y);
         return groundPoint(geo.x, geo.y, carved, anchor).y;
+    };
+    std::vector<RoadAxis> neighbours;
+    struct Platform { int64_t id; clip::Paths64 footprint; double x0=1e300,x1=-1e300,z0=1e300,z1=-1e300,minY=1e300; };
+    std::vector<Platform> platforms;
+    for(const auto& way:plan.roads) {
+        RoadAxis axis;axis.id=way.id;axis.tags=way.tags;axis.bridge=taggedYes(way.tags,"bridge");
+        std::vector<P2> line;
+        Platform platform{way.id,{}};
+        const double half=roadWidth(way.tags)/2;
+        for(const auto& p:way.points) {
+            const auto point=anchor.toEngine(p.x,p.y,plan.levelAt(p).value_or(carved.sample(p.x,p.y)));
+            axis.points.push_back(point);line.push_back({point.x,point.z});
+            platform.x0=std::min(platform.x0,point.x-half);platform.x1=std::max(platform.x1,point.x+half);
+            platform.z0=std::min(platform.z0,point.z-half);platform.z1=std::max(platform.z1,point.z+half);
+            platform.minY=std::min(platform.minY,point.y);
+        }
+        if(line.size()>1 && !axis.bridge && isMotorway(tagOr(way.tags,"highway")) && !taggedYes(way.tags,"tunnel")) {
+            platform.footprint=clip::bufferLineRoundJoins(line,half+.15);
+            platforms.push_back(std::move(platform));
+        }
+        neighbours.push_back(std::move(axis));
+    }
+    auto earthFace=[&](int64_t own,P3 a,P3 b,P3 c,P3 d,P3 normal) {
+        const double x0=std::min({a.x,b.x,c.x,d.x}),x1=std::max({a.x,b.x,c.x,d.x});
+        const double z0=std::min({a.z,b.z,c.z,d.z}),z1=std::max({a.z,b.z,c.z,d.z});
+        const double y1=std::max({a.y,b.y,c.y,d.y});
+        clip::Paths64 exclusions;
+        for(const auto& p:platforms) {
+            if(p.id==own || p.x1<x0 || p.x0>x1 || p.z1<z0 || p.z0>z1 || p.minY>y1+.2)continue;
+            exclusions.insert(exclusions.end(),p.footprint.begin(),p.footprint.end());
+        }
+        if(exclusions.empty()){facing(earth,a,b,c,d,normal);return;}
+        exclusions=clip::unite(exclusions);
+        for(const auto& tri:{std::array<P3,3>{a,b,c},std::array<P3,3>{a,c,d}}) {
+            const P3 n=faceNormal(tri[0],tri[1],tri[2]);
+            if(std::abs(n.y)<1e-6){earth.addTriangle(tri[0],tri[1],tri[2]);continue;}
+            const clip::Paths64 shape{clip::kMetres.path({{tri[0].x,tri[0].z},{tri[1].x,tri[1].z},{tri[2].x,tri[2].z}})};
+            for(const auto& polygon:clip::polygons(clip::subtract(shape,exclusions)))
+                for(const auto& cut:clip::triangles(polygon)) {
+                    auto point=[&](P2 q){return P3{q.x,tri[0].y-(n.x*(q.x-tri[0].x)+n.z*(q.y-tri[0].z))/n.y,q.y};};
+                    earth.addUpTriangle(point(cut[0]),point(cut[1]),point(cut[2]));
+                }
+        }
     };
     std::vector<P2> under;
     std::vector<double> underHalf;
@@ -573,6 +618,7 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
         c.foot = footway(tagOr(run.tags, "highway"));
         c.half = roadWidth(run.tags) / 2;
         if (c.foot) c.band[0] = c.band[1] = 0.15;
+        else if (roadProfile(run.tags).express) c.band[0] = c.band[1] = 0;
         else
             for (const auto& [side, inferred] : sidewalkSides(run.tags)) {
                 const int s = side == "right" ? 0 : 1;
@@ -583,15 +629,17 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
     };
     // The axes of every deck, so decks mapped side by side -- a bridge drawn
     // as two carriageways and a footway -- are built as one.
-    struct DeckAxis { std::vector<P2> xz; double reach = 0; };
+    struct DeckAxis { std::vector<P2> xz; std::vector<double> y; double reach = 0; bool bridge=false, median=false; };
     std::vector<DeckAxis> decks(plan.runs.size());
     for (size_t r = 0; r < plan.runs.size(); ++r) {
-        if (!plan.runs[r].bridge) continue;
-        for (const P2& p : plan.runs[r].points) { const P3 e = anchor.toEngine(p.x, p.y, 0.0); decks[r].xz.push_back({e.x, e.z}); }
+        const auto& run=plan.runs[r];
+        const auto profile=roadProfile(run.tags);
+        decks[r].bridge=run.bridge;decks[r].median=profile.express && profile.direction && !profile.link;
+        for (size_t i=0;i<run.points.size();++i) { const P2& p=run.points[i];const P3 e = anchor.toEngine(p.x, p.y, run.levels[i]); decks[r].xz.push_back({e.x, e.z});decks[r].y.push_back(e.y); }
         const Section c = sectionOf(plan.runs[r]);
         decks[r].reach = c.half + std::max(c.band[0], c.band[1]);
     }
-    int piers = 0, abutments = 0, pieces = 0, joinedSides = 0;
+    int piers = 0, abutments = 0, pieces = 0, joinedSides = 0, medianSides=0;
     for (size_t r = 0; r < plan.runs.size(); ++r) {
         const RaisedRun& run = plan.runs[r];
         const size_t n = run.points.size();
@@ -629,15 +677,17 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
         // Where another deck runs alongside, the two are one deck: the gap is
         // decked over, and neither has a parapet or a cornice on that side.
         std::vector<double> reach[2] = {std::vector<double>(n, outer[0]), std::vector<double>(n, outer[1])};
+        std::vector<double> middleHeight[2]={std::vector<double>(n),std::vector<double>(n)};
         std::vector<char> joined[2] = {std::vector<char>(n, 0), std::vector<char>(n, 0)};
-        if (run.bridge)
+        if (run.bridge || decks[r].median)
             for (size_t i = 0; i < n; ++i)
                 for (int s = 0; s < 2; ++s) {
                     const double sign = s == 0 ? 1.0 : -1.0;
                     const P2 o{axis[i].x, axis[i].z}, d{right[i].x * sign, right[i].y * sign};
-                    double nearest = 1e300, other = 0;
+                    double nearest = 1e300, other = 0,otherHeight=0;
                     for (size_t q = 0; q < decks.size(); ++q) {
                         if (q == r || decks[q].xz.size() < 2) continue;
+                        if(decks[q].bridge!=run.bridge || (!run.bridge && !decks[q].median))continue;
                         const auto& line = decks[q].xz;
                         for (size_t k = 0; k + 1 < line.size(); ++k) {
                             const P2 a = line[k], e{line[k + 1].x - a.x, line[k + 1].y - a.y};
@@ -646,16 +696,22 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
                             const double t = ((a.x - o.x) * e.y - (a.y - o.y) * e.x) / den;
                             const double u = ((a.x - o.x) * d.y - (a.y - o.y) * d.x) / den;
                             if (u < 0 || u > 1 || t <= 0.1 || t >= nearest) continue;
+                            const double length=std::hypot(e.x,e.y);
+                            if(length<.01 || std::abs((e.x*dir[std::min(i,n-2)].x+e.y*dir[std::min(i,n-2)].y)/length)<.94)continue;
+                            const double height=decks[q].y[k]+(decks[q].y[k+1]-decks[q].y[k])*u;
+                            if(std::abs(height-axis[i].y)>(run.bridge?1.5:.75))continue;
                             nearest = t;
                             other = decks[q].reach;
+                            otherHeight=height;
                         }
                     }
                     const double gap = nearest - outer[s] - other;
-                    if (gap < 8.0) {
+                    if (gap >= (run.bridge?-.5:.25) && gap < (run.bridge?8.0:12.0)) {
                         joined[s][i] = 1;
                         // Past the middle of the gap by a hand's width: the
                         // two fills overlap, and nobody falls between decks.
                         reach[s][i] = outer[s] + std::max(0.0, gap / 2) + 0.25;
+                        middleHeight[s][i]=(axis[i].y+otherHeight)/2;
                     }
                 }
         // An embankment's slope meets the ground where 2 in 3 down from the
@@ -676,7 +732,7 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
         // Each side's edge: past the parapet, the fill to a neighbour deck, or
         // an embankment's shoulder.
         auto edge = [&](int s, size_t k) {
-            return run.bridge ? reach[s][k] + (joined[s][k] ? 0.0 : parapetWidth) : outer[s] + 0.6;
+            return run.bridge ? reach[s][k] + (joined[s][k] ? 0.0 : parapetWidth) : joined[s][k]?reach[s][k]:outer[s]+0.6;
         };
         for (size_t i = 0; i + 1 < n; ++i) {
             const size_t j = i + 1;
@@ -709,6 +765,13 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
                     facing(structure, at(i, sign * o, top), at(j, sign * o, top), at(j, sign * o, .06 + parapet), at(i, sign * o, .06 + parapet), inward);
                     structure.addUpQuad(at(i, sign * o, .06 + parapet), at(i, sign * p, .06 + parapet), at(j, sign * p, .06 + parapet), at(j, sign * o, .06 + parapet));
                     facing(structure, at(i, sign * p, -thickness), at(j, sign * p, -thickness), at(j, sign * p, .06 + parapet), at(i, sign * p, .06 + parapet), outward);
+                } else if(joined[s][i] && joined[s][j]) {
+                    // Opposing carriageways at the same level share one median:
+                    // no two overlapping triangular embankments in the gap.
+                    P3 mi=at(i,sign*reach[s][i],0),mj=at(j,sign*reach[s][j],0);
+                    mi.y=middleHeight[s][i];mj.y=middleHeight[s][j];
+                    earth.addUpQuad(at(i,sign*outer[s],0),mi,mj,at(j,sign*outer[s],0));
+                    ++medianSides;
                 } else {
                     // The shoulder, then the slope down to the ground.
                     const double shoulder = outer[s] + 0.6;
@@ -717,7 +780,7 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
                     const P3 ti = at(i, sign * shoulder, 0), tj = at(j, sign * shoulder, 0);
                     const P3 bi = toe(i, s, shoulder), bj = toe(j, s, shoulder);
                     if (ti.y - bi.y > 0.02 || tj.y - bj.y > 0.02)
-                        facing(earth, ti, tj, bj, bi, {outward.x, 0.7, outward.z});
+                        earthFace(run.way,ti,tj,bj,bi,{outward.x,0.7,outward.z});
                 }
             }
             if (run.bridge)
@@ -787,6 +850,17 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
     out.stats["piers"] = piers;
     out.stats["abutments"] = abutments;
     out.stats["deckSidesJoined"] = joinedSides;
+    out.stats["sharedMedianSides"]=medianSides;
+    std::vector<RoadAxis> detailAxes;
+    for(const auto& run:plan.runs) {
+        RoadAxis axis;axis.id=run.way;axis.tags=run.tags;axis.bridge=run.bridge;
+        for(size_t i=0;i<run.points.size();++i)axis.points.push_back(anchor.toEngine(run.points[i].x,run.points[i].y,run.levels[i]));
+        detailAxes.push_back(std::move(axis));
+    }
+    const Drape drape(carved,anchor);
+    auto details=buildRoadDetails(detailAxes,{drape.outline()},{},nullptr,country,neighbours);
+    for(auto& p:details.parts)out.parts.push_back(std::move(p));
+    out.stats["details"]=details.stats;
     return out;
 }
 

@@ -17,6 +17,17 @@ bool isMotorway(const std::string& highway);
 // A length tag in metres, or `fallback` when absent or absurd (0 < n <= 50).
 double lengthTag(const std::string* value, double fallback);
 double roadWidth(const Tags& tags);
+// Shared by ground streets, bridges, markings and traffic. Width is paved
+// width; the lane area excludes the inferred/tagged hard shoulders.
+struct RoadProfile {
+    int lanes = 1, direction = 0;
+    double width = 0, leftShoulder = 0, rightShoulder = 0;
+    bool express = false, link = false, widthTagged = false, lanesTagged = false;
+    double travelWidth() const { return width - leftShoulder - rightShoulder; }
+    double laneCentre() const { return (leftShoulder - rightShoulder) / 2; }
+};
+RoadProfile roadProfile(const Tags& tags);
+int roadDirection(const Tags& tags);
 // The sides ("left", "right") a road has a sidewalk on, and whether that is
 // inferred (an urban street with no `sidewalk` tag) rather than tagged.
 std::vector<std::pair<std::string, bool>> sidewalkSides(const Tags& tags);
@@ -59,6 +70,7 @@ struct StreetOutput {
 StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<OsmNode>& features,
                           const ElevationGrid& elevations, const Anchor& anchor,
                           const std::vector<Ring>& footprints,
-                          const std::function<double(int, int, double)>& adjust = {});
+                          const std::function<double(int, int, double)>& adjust = {},
+                          const std::string& country = {});
 
 }  // namespace r1

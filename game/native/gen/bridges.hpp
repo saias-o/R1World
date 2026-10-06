@@ -28,7 +28,7 @@
 
 namespace r1 {
 
-constexpr int kBridgeRevision = 1;
+constexpr int kBridgeRevision = 2;
 
 // The ground bridges are solved on: the tile's own relief and, past its
 // edges, its neighbours', so both sides of a tile boundary solve alike.
@@ -91,6 +91,6 @@ struct BridgeOutput {
 };
 
 BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const ElevationGrid& carved,
-                          const Anchor& anchor);
+                          const Anchor& anchor, const std::string& country = {});
 
 }  // namespace r1
