@@ -1104,12 +1104,35 @@ come back.
 
 ### The fleet
 
-`r1/vehicle_fleet.py` authors seven unbranded vehicles in metres — city car,
-saloon, SUV, off-roader, sports car, lorry, bus — with near and far models
-(`assets/models/vehicles/fleet.json`, 27 732 vertices in all). People and road
+`r1/vehicle_imports.py` converts seven licensed source vehicles to GLB — compact,
+estate, SUV, off-roader, sports car, lorry, bus. The near models retain the source
+geometry and normals **without decimation**; only distance models are reduced.
+The source ZIPs and SHA-256 hashes are pinned in `data/source-assets/vehicles`,
+so rebuilding needs Blender 4.2, not a live asset server:
+
+```powershell
+cd game/tools
+python -m r1.vehicle_imports
+```
+
+Ruff's compact and the Scopia / Space Mushrooms vehicles are CC BY 3.0, credited
+in the menu and `assets/licenses/Road-vehicles-CC-BY-3.0.txt`. Logos and hidden
+interiors are removed. Paint, dark glazing, alloy wheels, mirrors and rubber
+have distinct opaque metallic/roughness materials; detail textures ship inside
+the GLBs. `assets/models/vehicles/fleet.json` counts the actual exported vertex
+seams and both resident LODs (about 72k shared vertices for the whole fleet).
+The engine now binds the selected HDR sky to the PBR shader; previously a
+descriptor rebuild replaced it with white, flattening every reflection. Diffuse
+sky light remains supplied by the solar ambient, avoiding a second diffuse wash.
+People and road
 vehicles are drawn at **0.8** of their size (`kVehicleScale`), the player's
 call made looking at them; dimensions are scaled with them so doors, cameras
 and gaps agree.
+
+Tile mesh uploads run nearest to the player first. An arriving terrain or OSM
+observation is published even while airport data is pending; an empty airport
+response clears that pending flag. The delayed-ground regression in `r1test
+Service` holds this case, and mount failures include the tile key in the log.
 
 ### The traffic
 

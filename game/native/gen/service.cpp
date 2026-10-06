@@ -270,7 +270,8 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                     if (retail) {
                         self->store.fetchRetail(region,path);
                     } else if (aero) {
-                        self->store.fetchAero(region, path);
+                        if (self->options.fetchAero) self->options.fetchAero(region, path);
+                        else self->store.fetchAero(region, path);
                     } else {
                         if (self->options.fetchOsm) self->options.fetchOsm(region, path);
                         else self->store.fetchOsm(region, path);
@@ -637,19 +638,9 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             return;
         }
         std::lock_guard<std::mutex> guard(lock);
-        // The aero layer landed and there is nothing aeronautical here: the
-        // tile the game has mounted is already right, and mounting it again
-        // would only be a flash for nothing.
-        const auto previous = cooked.find(tile);
-        auto relevant = [](const CookedTile& t) {
-            const auto a = t.manifest.find("airports");
-            return a != t.manifest.end() && a->value("relevant", false);
-        };
-        if (upgrade && previous != cooked.end() && previous->second->cooked.manifest.value("airportsPending", false) &&
-            served->cooked.manifest.at("retail")==previous->second->cooked.manifest.at("retail") &&
-            served->cooked.manifest.at("interiors")==previous->second->cooked.manifest.at("interiors") &&
-            !relevant(served->cooked) && !relevant(previous->second->cooked))
-            return;
+        // Every landed observation must be published. An empty aero layer
+        // still clears airportsPending; while it was pending, a new terrain,
+        // OSM or canopy observation may have changed the tile as well.
         served->serial = ++serial;
         const bool approximate = served->cooked.manifest.value("offlineApproximation", false);
         const bool osmPending = served->cooked.manifest.value("provisional", false);

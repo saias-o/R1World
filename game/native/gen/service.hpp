@@ -43,6 +43,7 @@ public:
         bool fetchCanopy = false;
         // Optional source overrides for deterministic streaming tests.
         std::function<void(const Bounds&, const std::string&)> fetchOsm;
+        std::function<void(const Bounds&, const std::string&)> fetchAero;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> quickGround;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> fetchGround;
     };

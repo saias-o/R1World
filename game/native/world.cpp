@@ -3360,7 +3360,10 @@ class World : public Rml::EventListener {
     // Physics follows each uploaded mesh; arrivals wait for its first sync.
     void uploadParts() {
         const auto start=std::chrono::steady_clock::now();
-        for(auto& [key,t]:loaded) {
+        const auto priority=orderedNearby((pending||warming)?pickLon:lon,(pending||warming)?pickLat:lat);
+        for(const auto tile:priority) {
+            auto found=loaded.find(tile.key());if(found==loaded.end())continue;
+            const auto& key=found->first;auto& t=found->second;
             if(!t.geography)continue;
             const auto& parts=std::any_cast<const PreparedTile&>(t.served->prepared).parts;
             while(t.nextPart<parts.size()) {
@@ -4269,7 +4272,11 @@ class World : public Rml::EventListener {
                                  arena.largestFreeVertices,"v/",arena.largestFreeIndices,"i)",
                                  " cook_ms=",served->cooked.cookMs," since_go_ms=",
                                  msSince(goStarted));
-            }catch(const std::exception& e){text("status",std::string("Tuile indisponible : ")+e.what());}
+            }catch(const std::exception& e){
+                text("status",std::string("Tuile indisponible : ")+e.what());
+                saida::Log::error("[World streaming] mount failed for ",t.key(),": ",e.what());
+                if(smoke){testFailed=true;engine.sceneTree().quit();return;}
+            }
             // Mounting is cheap now that the parts go up over the next frames;
             // several tiles fit in one tick, as long as the tick stays short.
             if(msSince(tick)>=kMountTickMs)break;
@@ -5615,6 +5622,16 @@ public:
                 size_t plants=0;for(auto& [key,t]:loaded)plants+=t.vegetation.size();
                 saida::Log::info("[World nature] resident plants=",plants," shared static prototypes=",naturePrototypes.size());
                 saida::Log::info("[World traffic] resident cars=",trafficLive()," of ",trafficWanted()," asked for");
+                const auto& rendering=engine.sceneTree().world().settings();
+                saida::Log::info("[World PBR] ibl=",rendering.iblEnabled," specular=",rendering.iblSpecularIntensity,
+                                 " sky=",rendering.skyboxTexture," exposure=",rendering.skyboxExposure);
+                car->traverse([&](saida::Node& n,const glm::mat4&){
+                    if(n.material()&&n.name().rfind("paint-",0)==0) {
+                        const auto& m=n.material()->desc();
+                        saida::Log::info("[World PBR] ",n.name()," metallic=",m.metallic," roughness=",m.roughness,
+                                         " type=",int(m.type)," rgb=",m.baseColor.r,",",m.baseColor.g,",",m.baseColor.b);
+                    }
+                });
                 captureQueued=true;engine.captureFrameThenExit(worldCapture);
             }
         }

@@ -1,0 +1,37 @@
+{
+  "fordFocus": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/fordFocus.zip",
+    "sha256": "a286bdb7284781c0f9f82dd6a034a4558364e7a17b7a80ea27f0c93d50e73613",
+    "license": "CC-BY-3.0"
+  },
+  "break": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/break.zip",
+    "sha256": "e4917daa734b6dd0a0c6583943233c002298147fb6d4ed7ea93b1474a1d0dc30",
+    "license": "CC-BY-3.0"
+  },
+  "suv2": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/suv2.zip",
+    "sha256": "4091b8ad7722e598322f71a72c4f1172ffccd3703d05fe27678ab5760c93cc13",
+    "license": "CC-BY-3.0"
+  },
+  "4x4": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/4x4.zip",
+    "sha256": "ddcf6ec0e3cbebe488f4bb619a6288ab88c5a93b53f7d6c6baf25f2ce29d1b53",
+    "license": "CC-BY-3.0"
+  },
+  "sportive": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/sportive.zip",
+    "sha256": "adf80d08e3314e463f0a452f18e902cc8f579ff86f022e02a1c144c0cbbc7316",
+    "license": "CC-BY-3.0"
+  },
+  "truck": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/truck.zip",
+    "sha256": "48c18d9715756ce5f503eb97706ee4af2fde1b064a85b9ca61ffed7bcc3c92e6",
+    "license": "CC-BY-3.0"
+  },
+  "cityBus": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/cityBus.zip",
+    "sha256": "d7c529dc0f5ff8898a0d29272ba4c1110259a717d08e814985acaeb3dbde8186",
+    "license": "CC-BY-3.0"
+  }
+}

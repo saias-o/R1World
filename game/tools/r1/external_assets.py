@@ -17,6 +17,7 @@ from pathlib import Path
 
 from . import skies
 from .normalize import repaint_kit_model
+from .vehicle_imports import provenance_records as vehicle_provenance
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -123,7 +124,7 @@ PROP_MODELS = (
 )
 
 
-# Road vehicles are authored by vehicle_fleet.py and shared across the world.
+# Road vehicles are imported from pinned licensed sources and shared across the world.
 
 
 
@@ -355,7 +356,7 @@ def extract_props() -> tuple[str, ...]:
 
 
 def extract_vehicles() -> tuple[str, ...]:
-    """Regenerate the original fleet; no network or modeller is required."""
+    """Bake pinned licensed sources with Blender; no runtime downloads."""
     from . import vehicle_fleet
     vehicle_fleet.main()
     return tuple(vehicle_fleet.model(n,far) for n in vehicle_fleet.SPECS for far in (False,True))
@@ -665,15 +666,7 @@ Crediting Kenney is appreciated and is not required.
                 "extractedFrom": [kit.target.name for kit in PROP_KITS],
                 "files": list(props),
             },
-            {
-                # Original shared road vehicles, with both levels of detail.
-                "name": "R1World original road fleet",
-                "author": "R1World",
-                "source": "game/tools/r1/vehicle_fleet.py",
-                "license": "CC0 1.0",
-                "generatedBy": "game/tools/r1/vehicle_fleet.py",
-                "files": list(vehicles),
-            },
+            *vehicle_provenance(),
             {
                 # Original aircraft for airports and military bases, both levels.
                 "name": "R1World original aircraft",

@@ -585,7 +585,9 @@ function refreshSun() {
     scene.setSetting("fogScaleHeight", AEROSOL_SCALE_HEIGHT);
     scene.setSetting("fogRayleigh", RAYLEIGH);
     scene.setSetting("fogRayleighScaleHeight", PRESSURE_SCALE_HEIGHT);
-    scene.setSetting("iblDiffuseIntensity", sky.iblIntensity);
+    // Ambient above supplies the diffuse sky light. The HDR environment
+    // supplies view-dependent PBR reflections without a second diffuse wash.
+    scene.setSetting("iblDiffuseIntensity", 0);
     scene.setSetting("iblSpecularIntensity", sky.iblIntensity);
 
     const dome = skyState(light, sky.horizonColor);

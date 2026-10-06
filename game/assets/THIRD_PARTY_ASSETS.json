@@ -749,14 +749,27 @@
       ]
     },
     {
-      "name": "R1World original road fleet",
-      "author": "R1World",
-      "source": "game/tools/r1/vehicle_fleet.py",
-      "license": "CC0 1.0",
-      "generatedBy": "game/tools/r1/vehicle_fleet.py",
+      "name": "Road vehicles — Ruff",
+      "author": "Ruff",
+      "source": "https://www.blendswap.com/blends/view/76275",
+      "license": "CC BY 3.0",
+      "licenseFile": "assets/licenses/Road-vehicles-CC-BY-3.0.txt",
+      "generatedBy": "game/tools/r1/vehicle_imports.py",
+      "modifications": "Converted to metres and glTF; unbranded, opaque PBR materials, reduced geometry LODs, independent wheel pivots; source shading and UV detail retained.",
       "files": [
         "assets/models/vehicles/city.glb",
-        "assets/models/vehicles/city_far.glb",
+        "assets/models/vehicles/city_far.glb"
+      ]
+    },
+    {
+      "name": "Road vehicles — Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "source": "https://www.sweethome3d.com/free-3d-models/",
+      "license": "CC BY 3.0",
+      "licenseFile": "assets/licenses/Road-vehicles-CC-BY-3.0.txt",
+      "generatedBy": "game/tools/r1/vehicle_imports.py",
+      "modifications": "Converted to metres and glTF; unbranded, opaque PBR materials, reduced geometry LODs, independent wheel pivots; source shading and UV detail retained.",
+      "files": [
         "assets/models/vehicles/sedan.glb",
         "assets/models/vehicles/sedan_far.glb",
         "assets/models/vehicles/suv.glb",
