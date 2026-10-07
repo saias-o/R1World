@@ -79,7 +79,10 @@ def main():
                           WORLD_TURBIDITY, solar.PEAK_INTENSITY)
     sky = skies.sky_state(sun)
     scene["children"] = [
+        # The Sun as a lens sees it: ghosts and a diffraction star wherever it
+        # is on screen, both measured against what hides it (SPEC §4.1).
         node("LightNode","Sun",groups=["sun"],lightType=0,castShadows=True,
+             lensFlare=True,sunStar=True,
              color=[round(c,4) for c in sun.color],
              intensity=round(sun.intensity,4),
              direction=[round(c,6) for c in sun.direction],

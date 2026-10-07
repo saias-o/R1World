@@ -4131,6 +4131,13 @@ class World : public Rml::EventListener {
                 saida::TerrainRingsNode::Layer layer;
                 layer.albedo={float(swatches[i].color[0]),float(swatches[i].color[1]),float(swatches[i].color[2])};
                 layer.roughness=float(swatches[i].roughness);
+                if(i==r1::FarLayers::kWater) {
+                    layer.water=true;
+                    layer.albedo={.01f,.07f,.11f};
+                    layer.roughness=.05f;
+                    layer.waveAmplitude=.12f;
+                    layer.wavelength=9.0f;
+                }
                 if(!surfaces[i].baseColorTexture.empty())layer.material=material(surfaces[i]);
                 layer.textureScale=float(surfaces[i].uvScale);
                 layer.macroSize=i==r1::FarLayers::kForest?kForestMacroMetres:kGroundMacroMetres;

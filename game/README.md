@@ -950,19 +950,21 @@ not; the streets crossing a water cell are published in the manifest
 car on a quay never sinks. Bridges are not streets on the ground: the river
 under them stays water.
 
-**How the water is drawn** (Saida's `WaterNode`, realistic style). Seen from an
-aircraft, the sea used to read as tiles: five wave trains on headings in
-37-degree steps with a 1.87 wavelength ratio closed into a lattice, short
-trains aliased on the 4.4 m grid into a regular moiré, and a float hash tore
-the ripples along lattice lines. Now the trains fan around the wind at
-irregular offsets with an irrational wavelength ratio, so their sum never
-repeats; the mesh carries only the trains it has eight vertices for, and the
-fragment shader draws every train and ripple as normals, each faded once a
-pixel outgrows it. What a pixel cannot show becomes roughness, so a far sea is
-a broad glitter path under the Sun; gusts hundreds of metres across vary the
-ripples and the gloss, and the noise hash is integer, exact on every platform.
-ALU only, no texture or binding added: the same cost class on desktop, mobile
-and the Web (the WGSL translation is validated with `naga`).
+**How the water is drawn** (Saida's `WaterNode`, realistic style). The engine
+uses continuous world-space waves, gradient-noise ripples, filtered sun highlights
+and reflections of the current sky. Foam is evaluated per pixel, so it does not
+expose the water mesh's triangles. Large procedural patches concentrate their
+vertices around the camera; mapped river/lake coverage meshes stay fixed.
+Beyond resident tiles, the far relief's water layer now uses the same shader,
+with the sea's 0.12 m amplitude and 9 m wavelength, instead of opaque blue terrain.
+The coarse classification of distant coasts is still a separate limitation.
+
+The engine's `waveType` selects swell, wind sea or chop; `waveIntensity` controls
+the overall agitation (0 is still, 1 is the default, up to 3), `windAngle` sets
+the heading and `gustStrength` varies wave groups and wind patches over time.
+These controls are available in the WaterNode inspector and scripting; R1World
+currently uses the default wind sea, not a weather-driven sea-state simulation.
+The reflection source is the sky; local buildings/boats are not reflected.
 
 ## Airports and aircraft
 

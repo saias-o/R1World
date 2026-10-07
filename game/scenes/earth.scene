@@ -34,6 +34,8 @@
         ],
         "lightType": 0,
         "castShadows": true,
+        "lensFlare": true,
+        "sunStar": true,
         "color": [
           1.0,
           0.9454,
