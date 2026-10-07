@@ -17,7 +17,7 @@ struct Street {
     ElevationGrid grid{{-0.001, -0.001, 0.001, 0.001}, 2, {0.0, 0.0, 0.0, 0.0}};
     std::vector<OsmWay> roads = {way(1, {{-0.0009, 0.0}, {0.0009, 0.0}}, {{"highway", "residential"}, {"width", "6"}})};
     std::vector<OsmNode> features;
-    std::vector<OsmWay> buildingWays = {way(9, {{0.0, 0.0001}}, {{"building", "house"}})};
+    std::vector<OsmWay> buildingWays = {way(9, {{0.0, 0.0001}}, {{"building", "apartments"}, {"building:levels", "2"}})};
     std::vector<Ring> footprints;
     nlohmann::json props = nlohmann::json::array();
     nlohmann::json cook() {
@@ -117,6 +117,23 @@ TEST(Crowd, compact_housing_and_apartments_raise_local_demand) {
     CHECK(crowd.live() > 0);
     for (const auto& walker : crowd.walkers())
         if (walker.alive && walker.link >= 0) CHECK(graph.links[walker.link].demand > 0);
+}
+TEST(Crowd, dispersed_houses_do_not_fill_a_country_road) {
+    Street s;
+    s.buildingWays.clear();
+    for (int i = 0; i < 4; ++i)
+        s.buildingWays.push_back(way(100+i, {{-.0008+i*.0005,.00015}}, {{"building","house"}}));
+    CHECK(s.cook()["people"].get<int>() <= 1);
+}
+TEST(Crowd, only_the_local_share_of_walkers_is_simulated) {
+    WalkGraph g;
+    g.people = 20;
+    g.nodes = {{-500,0,0,{}}, {500,0,0,{}}};
+    g.links = {{0,1,false,1000,1}};
+    NEAR(g.populationNear(0,0,100),4,1e-9);
+    NEAR(g.populationNear(500,0,100),2,1e-9);
+    NEAR(g.populationNear(0,101,100),0,1e-9);
+    NEAR(g.populationNear(0,0,1000),20,1e-9);
 }
 TEST(Crowd, shops_and_stops_bring_people_up_to_a_ceiling) {
     Street quiet, busy;

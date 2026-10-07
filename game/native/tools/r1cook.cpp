@@ -148,6 +148,9 @@ int main(int argc, char** argv) {
                                            {"lanes", cooked.manifest["traffic"]["lanes"].size()},
                                            {"cars", cooked.manifest["traffic"]["cars"]}};
             line["manifest"]["footprints"] = cooked.manifest["footprints"].size();
+            const auto& crowd = cooked.manifest["crowd"];
+            line["manifest"]["crowd"] = {{"people",crowd["people"]}, {"inputs",crowd["inputs"]},
+                                            {"nodes",crowd["nodes"].size()}, {"links",crowd["links"].size()}};
             if (!glb.empty()) {
                 const auto bytes = r1::writeGlb(cooked.parts);
                 std::ofstream f(glb + "/" + tile.key() + ".glb", std::ios::binary);

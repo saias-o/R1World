@@ -30,7 +30,8 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // canopy says a tree stands, and each tree cell the survey left empty gets
 // one, at the canopy's measured height; low cells get shrubs.
 Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, const GroundAt& ground,
-                   int budget = 320, const Canopy* canopy = nullptr);
+                   int budget = 320, const Canopy* canopy = nullptr,
+                   const std::vector<OsmWay>* roadside = nullptr);
 
 // The tile's lane graph in engine metres, and how busy it should be.
 nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& ground, int buildings,

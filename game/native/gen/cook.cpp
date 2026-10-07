@@ -339,11 +339,13 @@ CookedTile cookTile(const Observations& in) {
                                 surfaceMaterial(swatch.name, swatch.color, swatch.roughness,
                                                 groundFamily(name, profile.ground.name, climate))});
     }
-    const std::vector<OsmWay> roads = clipRoads(grades.roads, bounds);
+    const auto roadside = contextualRoads(grades.roads, osm.buildings, anchor);
+    const std::vector<OsmWay> roads = clipRoads(roadside, bounds);
     // The streets lie on the ground drawn, above the sea it meets.
-    StreetOutput streets = buildStreets(grades.roads, osm.features, elevations,
+    StreetOutput streets = buildStreets(roadside, osm.features, elevations,
                                         anchor, footprints,
-                                        [&](int r, int c, double h) { return cells.roadLevel(r, c, h); },fuelCountry);
+                                        [&](int r, int c, double h) { return cells.roadLevel(r, c, h); },fuelCountry,
+                                        sea ? clip::unite(inland,projectWater(sea->region,anchor)) : inland);
     streets.stats["countrySource"]=osm.country.empty()?"bundled borders":"OSM boundary (ISO3166-1)";
     std::vector<InteriorPlan> stores;
     for(const auto& p:built.interiors)if(retailInterior(p.recipe))stores.push_back(p);
@@ -503,7 +505,7 @@ CookedTile cookTile(const Observations& in) {
         // Measured canopy places real trees; the budget must hold a tile's
         // trees, not a sample of them (see kMeasuredNatureBudget).
         nature = planNature(osm, tile, anchor, ground, in.canopy ? kMeasuredNatureBudget : 320,
-                            in.canopy ? &*in.canopy : nullptr);
+                            in.canopy ? &*in.canopy : nullptr, &roadside);
         // The signs were placed on the surveyed ground: they stand on the dug
         // one, or on the embankment beside them.
         for (auto& n : predicted.nodes) {

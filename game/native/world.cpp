@@ -456,6 +456,7 @@ struct Loaded {
     // The people on its pavements (gen/crowd.hpp): the same shape as the
     // traffic, for the same reason -- the crowd points at the graph.
     r1::WalkGraph walks; r1::Crowd crowd;
+    double crowdEyeX=1e9,crowdEyeZ=1e9,crowdLocalPopulation=0;
     std::vector<Person> people;           // keyed by walker slot, pooled
     std::vector<size_t> humanKinds;       // stable avatar per slot in this country
     // The manifest unpacked once at mount, because a frame cannot afford to
@@ -838,11 +839,15 @@ class World : public Rml::EventListener {
             if(found==loaded.end())continue;
             Loaded& l=found->second;
             if(l.walks.links.empty())continue;
-            const size_t share=std::min<size_t>(size_t(std::lround(l.walks.people*factor)),remaining);
+            const glm::dvec3 eye=cameraTileLocal(l);
+            if(std::hypot(eye.x-l.crowdEyeX,eye.z-l.crowdEyeZ)>=8.) {
+                l.crowdEyeX=eye.x;l.crowdEyeZ=eye.z;
+                l.crowdLocalPopulation=l.walks.populationNear(eye.x,eye.z,r1::Crowd::kSpawnFar);
+            }
+            const size_t share=std::min<size_t>(size_t(std::lround(l.crowdLocalPopulation*factor)),remaining);
             remaining-=share;
             l.crowd.setPopulation(int(share));
             r1::Crowd::Scene scene;
-            const glm::dvec3 eye=cameraTileLocal(l);
             scene.eyeX=eye.x;scene.eyeZ=eye.z;
             const glm::vec3 ahead=camera->transform().rotation*glm::vec3(0,0,-1);
             const glm::dvec3 look=glm::transpose(l.frame.basis)*origin.basis*glm::dvec3(ahead.x,ahead.y,ahead.z);

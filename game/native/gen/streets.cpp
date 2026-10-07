@@ -3,6 +3,7 @@
 #include "clip.hpp"
 #include "palette.hpp"
 #include "road_details.hpp"
+#include "spatial.hpp"
 #include "terrain.hpp"
 
 #include <algorithm>
@@ -75,13 +76,67 @@ struct EdgeIndex {
 }  // namespace
 
 std::vector<std::pair<std::string, bool>> sidewalkSides(const Tags& tags) {
-    const std::string general = tagOr(tags, "sidewalk");
+    const std::string general = tagOr(tags, "sidewalk:both", tagOr(tags, "sidewalk"));
     std::vector<std::pair<std::string, bool>> out;
     for (const char* side : {"left", "right"}) {
         const std::string tagged = tagOr(tags, (std::string("sidewalk:") + side).c_str(), general);
         if (tagged == "no" || tagged == "none" || tagged == "separate") continue;
         if (tagged == "yes" || tagged == "both" || tagged == side) out.push_back({side, false});
-        else if (tagged.empty() && kUrban.count(tagOr(tags, "highway"))) out.push_back({side, true});
+        else if (tagged.empty() && kUrban.count(tagOr(tags, "highway")) &&
+                 tagOr(tags, "r1:roadside") != "rural" && tagOr(tags, "lit") != "no" &&
+                 tagOr(tags, "maxspeed:type").find("rural") == std::string::npos)
+            out.push_back({side, true});
+    }
+    return out;
+}
+
+std::vector<OsmWay> contextualRoads(const std::vector<OsmWay>& roads,
+                                  const std::vector<OsmWay>& buildings, const Anchor& anchor) {
+    struct Frontage { P2 centre; double mass; };
+    std::vector<Frontage> frontage;
+    BoxIndex index(64.0);
+    for (const auto& b : buildings) {
+        const auto kind = tagOr(b.tags, "building");
+        if (b.points.size() < 3 || kind == "garage" || kind == "garages" || kind == "shed" ||
+            kind == "barn" || kind == "farm_auxiliary" || kind == "roof") continue;
+        Ring ring;
+        P2 centre{};
+        const size_t count = b.closed() ? b.points.size() - 1 : b.points.size();
+        for (size_t i = 0; i < count; ++i) {
+            const auto p = anchor.toEngine(b.points[i].x, b.points[i].y, 0);
+            ring.push_back({p.x, p.z}); centre.x += p.x; centre.y += p.z;
+        }
+        centre.x /= count; centre.y /= count;
+        const double floors = lengthTag(tag(b.tags, "building:levels"), 1);
+        const double mass = std::clamp(std::abs(polygonArea(ring)) * floors / 160.0, 1.0, 12.0);
+        index.add(frontage.size(), {centre.x, centre.y, centre.x, centre.y});
+        frontage.push_back({centre, mass});
+    }
+    std::vector<OsmWay> out;
+    for (const auto& road : roads) {
+        if (!isMotorway(tagOr(road.tags, "highway")) || road.points.size() < 2 ||
+            taggedYes(road.tags, "bridge") || taggedYes(road.tags, "tunnel") || has(road.tags, "r1:raised")) {
+            out.push_back(road); continue;
+        }
+        // One context per OSM segment, sampled every 40 m. Long rural ways
+        // can enter a village without paving their whole length.
+        for (size_t i = 1; i < road.points.size(); ++i) {
+            const P2 a = road.points[i-1], b = road.points[i];
+            const P3 ea = anchor.toEngine(a.x, a.y, 0), eb = anchor.toEngine(b.x, b.y, 0);
+            const int steps = std::max(1, int(std::ceil(std::hypot(eb.x-ea.x, eb.z-ea.z)/40.0)));
+            for (int s = 0; s < steps; ++s) {
+                const double t = (s + .5) / steps;
+                const P2 p{ea.x+(eb.x-ea.x)*t, ea.z+(eb.z-ea.z)*t};
+                double mass = 0;
+                for (size_t j : index.near(Box{p.x,p.y,p.x,p.y}.grown(60)))
+                    if (dist(p, frontage[j].centre) < 60) mass += frontage[j].mass;
+                OsmWay piece{road.id, {}, road.tags};
+                piece.points = {{a.x+(b.x-a.x)*s/steps, a.y+(b.y-a.y)*s/steps},
+                                {a.x+(b.x-a.x)*(s+1)/steps, a.y+(b.y-a.y)*(s+1)/steps}};
+                piece.tags["r1:roadside"] = mass >= 9 ? "urban" : "rural";
+                out.push_back(std::move(piece));
+            }
+        }
     }
     return out;
 }
@@ -219,7 +274,8 @@ void Drape::lay(const clip::Paths64& region, double lift, Mesh& mesh) const {
 
 StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<OsmNode>& features,
                           const ElevationGrid& elevations, const Anchor& anchor, const std::vector<Ring>& footprints,
-                          const std::function<double(int, int, double)>& adjust, const std::string& country) {
+                          const std::function<double(int, int, double)>& adjust, const std::string& country,
+                          const clip::Paths64& vergeExclusions) {
     using clip::Paths64;
     int sidewalkTagged = 0, sidewalkInferred = 0, zebras = 0, widthsTagged = 0, widthsInferred = 0, graded = 0;
     // A way comes cut into its segments, and a strip per segment left a
@@ -228,6 +284,11 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
     struct Line { const OsmWay* way; std::vector<P2> points; };
     std::vector<Line> axes;
     const Drape drape(elevations, anchor, adjust);
+    const auto& region = profileFor(anchor.lon,anchor.lat);
+    const auto climate = climateAt(region.climate,anchor.lat);
+    const bool grassyVerge = climate != "arid" && climate != "polar" &&
+        coldSuffix(anchor.lat,elevations.sample(anchor.lon,anchor.lat),climate).empty();
+    const auto vergeFamily = groundFamily("grass",region.ground.name,climate).value_or("grass");
     const Paths64 tile{drape.outline()};
     double tileX0=1e300,tileX1=-1e300,tileZ0=1e300,tileZ1=-1e300;
     for(const auto& p:tile.front()){const auto q=clip::kMetres.back(p);tileX0=std::min(tileX0,q.x);tileX1=std::max(tileX1,q.x);tileZ0=std::min(tileZ0,q.y);tileZ1=std::max(tileZ1,q.y);}
@@ -275,7 +336,8 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         }
         into.push_back(clip::kMetres.path(cap));
     };
-    Paths64 roadPolys, cobblePolys, walkPolys;
+    Paths64 roadPolys, cobblePolys, walkPolys, gravelPolys, vergePolys;
+    int softSides = 0;
     struct MotorLine { int64_t id; std::vector<P2> line; double half; };
     std::vector<MotorLine> motorLines;
     for (const Line& l : axes) {
@@ -292,7 +354,43 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         roundEnd(line, true, half, target);
         if (!motor) continue;
         motorLines.push_back({l.way->id, line, half});
-        for (const auto& [side, inferred] : sidewalkSides(tags)) {
+        const auto sidewalks = sidewalkSides(tags);
+        // A rural carriageway fades through worn aggregate into a grass
+        // verge. Two shared materials, no individual pebble/grass nodes.
+        const auto highway = tagOr(tags, "highway");
+        const bool rural = tagOr(tags, "r1:roadside") == "rural" || tagOr(tags, "lit") == "no" ||
+                           tagOr(tags, "maxspeed:type").find("rural") != std::string::npos;
+        if (rural && !roadProfile(tags).express && highway != "service" && highway != "living_street" &&
+            !kCobbled.count(tagOr(tags, "surface"))) {
+            std::vector<P2> samples;
+            for (size_t i = 1; i < line.size(); ++i) {
+                const int count = std::max(1, int(std::ceil(dist(line[i-1],line[i])/16.0)));
+                for (int s = i == 1 ? 0 : 1; s <= count; ++s) {
+                    const double t = double(s)/count;
+                    samples.push_back({line[i-1].x+(line[i].x-line[i-1].x)*t,
+                                       line[i-1].y+(line[i].y-line[i-1].y)*t});
+                }
+            }
+            for (const char* side : {"left", "right"}) {
+                if (std::any_of(sidewalks.begin(), sidewalks.end(), [&](const auto& s){return s.first == side;})) continue;
+                ++softSides;
+                const double sign = std::string(side) == "left" ? -1 : 1;
+                const auto unit = clip::offsetLine(samples, sign);
+                Ring gravel = samples, verge = samples;
+                for (size_t i = samples.size(); i-- > 0;) {
+                    const auto geo = anchor.toGeodetic(samples[i].x,0,samples[i].y);
+                    const double variation = .5 + .25*std::sin(geo.x*80000) + .25*std::sin(geo.y*95000);
+                    const P2 n{unit[i].x-samples[i].x,unit[i].y-samples[i].y};
+                    gravel.push_back({samples[i].x+n.x*(half+.35+.4*variation),
+                                      samples[i].y+n.y*(half+.35+.4*variation)});
+                    verge.push_back({samples[i].x+n.x*(half+1.7+1.0*variation),
+                                     samples[i].y+n.y*(half+1.7+1.0*variation)});
+                }
+                gravelPolys.push_back(clip::kMetres.path(gravel));
+                if (grassyVerge) vergePolys.push_back(clip::kMetres.path(verge));
+            }
+        }
+        for (const auto& [side, inferred] : sidewalks) {
             ++(inferred ? sidewalkInferred : sidewalkTagged);
             const double sw = lengthTag(tag(tags, ("sidewalk:" + side + ":width").c_str()),
                                         lengthTag(tag(tags, "sidewalk:width"), 1.8));
@@ -318,6 +416,10 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
     const Paths64 paving = clip::intersect(
         clip::subtract(clip::subtract(clip::subtract(clip::unite(walkPolys), asphalt), cobbles), buildings), tile);
     const Paths64 carriageway = clip::unite(asphalt, cobbles);
+    const Paths64 hard = clip::unite(carriageway, paving);
+    const Paths64 softBlocked = clip::unite(buildings, vergeExclusions);
+    const Paths64 gravel = clip::intersect(clip::subtract(clip::subtract(clip::unite(gravelPolys), hard), softBlocked), tile);
+    const Paths64 verges = clip::intersect(clip::subtract(clip::subtract(clip::subtract(clip::unite(vergePolys), hard), gravel), softBlocked), tile);
 
     // Zebra crossings, where OSM says they are painted.
     Paths64 stripes;
@@ -353,10 +455,12 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
     }
     const Paths64 paint = clip::intersect(clip::unite(stripes), asphalt);
 
-    Mesh roadMesh(UvMode::Planar), cobbleMesh(UvMode::Planar), walkMesh(UvMode::Planar), paintMesh, kerbMesh;
+    Mesh roadMesh(UvMode::Planar), cobbleMesh(UvMode::Planar), walkMesh(UvMode::Planar),
+         gravelMesh(UvMode::Planar), vergeMesh(UvMode::Planar), paintMesh, kerbMesh;
     struct Surface { const Paths64* region; Mesh* mesh; double lift; };
     const Surface surfaces[] = {{&asphalt, &roadMesh, 0.06}, {&cobbles, &cobbleMesh, 0.06},
-                                {&paving, &walkMesh, 0.21}, {&paint, &paintMesh, 0.075}};
+                                {&paving, &walkMesh, 0.21}, {&paint, &paintMesh, 0.075},
+                                {&gravel, &gravelMesh, 0.025}, {&verges, &vergeMesh, 0.018}};
     for (const Surface& s : surfaces) drape.lay(*s.region, s.lift, *s.mesh);
 
     // Kerbs only where pavement meets carriageway: the paving edges that lie
@@ -427,11 +531,15 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         }
 
     StreetOutput out;
-    out.ground = clip::unite(carriageway, paving);
+    out.ground = clip::unite(hard, clip::unite(gravel, verges));
     struct Spec { const char* name; Mesh* mesh; std::array<double, 3> color; const char* family; };
     const Spec specs[] = {{"Carriageway", &roadMesh, {0.10, 0.11, 0.12}, "asphalt"},
                           {"Cobbled carriageway", &cobbleMesh, {0.16, 0.155, 0.145}, "cobbles"},
                           {"Sidewalks", &walkMesh, {0.22, 0.215, 0.20}, "pavement"},
+                          {"Rural gravel shoulders", &gravelMesh, {0.20, 0.185, 0.155}, "terrace"},
+                          {"Rural grass verges", &vergeMesh,
+                           climate == "mediterranean" ? std::array<double,3>{0.19,0.17,0.085} : std::array<double,3>{0.16,0.20,0.085},
+                           vergeFamily.c_str()},
                           {"Kerbs", &kerbMesh, {0.26, 0.25, 0.23}, nullptr},
                           {"Surveyed zebra crossings", &paintMesh, {0.50, 0.49, 0.46}, nullptr}};
     for (const Spec& s : specs) {
@@ -460,6 +568,9 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
                  {"sidewalkAreaM2", pyround(clip::area(paving), 2)},
                  {"surfaceOverlapM2", pyround(clip::area(clip::intersect(asphalt, paving)), 6)}};
     out.stats["lanesTagged"]=lanesTagged;out.stats["linkWays"]=links;out.stats["details"]=details.stats;
+    out.stats["softRoadSidesInferred"] = softSides;
+    out.stats["gravelShoulderAreaM2"] = pyround(clip::area(gravel), 2);
+    out.stats["grassVergeAreaM2"] = pyround(clip::area(verges), 2);
     out.stats["widthPolicy"]="surveyed width, then OSM lanes and hard shoulders, then class defaults";
     return out;
 }

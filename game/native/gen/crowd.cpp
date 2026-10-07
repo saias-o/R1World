@@ -55,27 +55,7 @@ double segmentDistance(P2 p, P2 a, P2 b) {
     return std::hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dz));
 }
 
-std::vector<P2> offsetLine(const std::vector<P2>& line, double distance) {
-    std::vector<P2> out;
-    const size_t n = line.size();
-    for (size_t i = 0; i < n; ++i) {
-        auto normal = [&](size_t a, size_t b) {
-            const double dx = line[b].x - line[a].x, dz = line[b].y - line[a].y, l = std::max(1e-9, std::hypot(dx, dz));
-            return P2{-dz / l, dx / l};
-        };
-        P2 m = i == 0 ? normal(0, 1) : i == n - 1 ? normal(n - 2, n - 1) : [&] {
-            const P2 a = normal(i - 1, i), b = normal(i, i + 1);
-            P2 s{a.x + b.x, a.y + b.y};
-            const double l = std::hypot(s.x, s.y);
-            if (l < 1e-9) return a;
-            s = {s.x / l, s.y / l};
-            const double k = 1.0 / std::max(s.x * a.x + s.y * a.y, 0.5);
-            return P2{s.x * k, s.y * k};
-        }();
-        out.push_back({line[i].x + m.x * distance, line[i].y + m.y * distance});
-    }
-    return out;
-}
+
 }  // namespace
 
 double crowdHourFactor(double hour) {
@@ -138,7 +118,7 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
                                            lengthTag(tag(tags, "sidewalk:width"), 1.8));
             // Engine z points south: geographic left is the numeric right (streets.cpp).
             const double sign = side == "left" ? -1.0 : 1.0;
-            lines.push_back({offsetLine(line, sign * (half + width * 0.5)), false, true});
+            lines.push_back({clip::offsetLine(line, sign * (half + width * 0.5)), false, true});
         }
     }
     auto onCarriageway = [&](P2 p) {
@@ -317,7 +297,11 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
                 std::abs(other.p.x - source.p.x) < 50.0 && std::abs(other.p.y - source.p.y) < 50.0 &&
                 dist(other.p, source.p) < 50.0) ++neighbours;
         }
-        source.weight *= 1.0 + std::min(0.75, neighbours * 0.12);
+        // A household is not a person permanently outdoors. Dispersed
+        // houses support occasional walkers; compact blocks and apartments
+        // retain appreciably more activity.
+        const double outdoors = (source.weight >= 2 ? .35 : .06) + .018 * std::min(neighbours, 12);
+        source.weight *= outdoors * (1.0 + std::min(0.75, neighbours * 0.12));
     }
     constexpr double kActivityRadius = 80.0;
     int activeLinks = 0;
@@ -349,7 +333,7 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
         stops += h == "bus_stop";
         lights += h == "traffic_signals" || h == "crossing";
     }
-    const double asked = activeLinks == 0 ? 0.0 : homeMass * 0.7 + busyMass * 0.7;
+    const double asked = activeLinks == 0 ? 0.0 : homeMass + busyMass * 0.7;
     const int people = int(std::min<double>(kCrowdTileCeiling, pyround(asked)));
 
     nlohmann::json nodeList = nlohmann::json::array();
@@ -361,7 +345,27 @@ nlohmann::json buildWalkGraph(const std::vector<OsmWay>& roads, const std::vecto
                         {"buildings", buildings.size()},
                         {"activeLinks", activeLinks}, {"busStops", stops},
                         {"crossingsAndSignals", lights}, {"crossingsJoined", crossings}}},
-            {"inferred", "density from nearby homes, their levels and local building concentration, before the hour; paths from OSM sidewalks and footways"}};
+            {"inferred", "outdoor density from nearby households, their levels and local building concentration, before the hour; paths from OSM sidewalks and footways"}};
+}
+
+double WalkGraph::populationNear(double x, double z, double radius) const {
+    if (radius <= 0) return 0;
+    double total = 0, nearby = 0;
+    for (const auto& link : links) {
+        if (link.crossing || link.demand <= 0 || link.length <= 0) continue;
+        const auto& a = nodes[link.a]; const auto& b = nodes[link.b];
+        const double dx = b.x-a.x, dz = b.z-a.z;
+        const double length = std::hypot(dx,dz);
+        if (length <= 1e-9) continue;
+        const double along = ((x-a.x)*dx+(z-a.z)*dz)/length;
+        const double across = ((x-a.x)*dz-(z-a.z)*dx)/length;
+        const double mass = link.demand * length;
+        total += mass;
+        if (std::abs(across) >= radius) continue;
+        const double half = std::sqrt(radius*radius-across*across);
+        nearby += link.demand * std::max(0.0, std::min(length,along+half)-std::max(0.0,along-half));
+    }
+    return total > 0 ? people * nearby / total : 0;
 }
 
 // ── run time ────────────────────────────────────────────────────────────────

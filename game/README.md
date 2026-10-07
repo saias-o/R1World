@@ -8,7 +8,7 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 6 October 2026. The current generator is v30;
+Documentation reviewed on 7 October 2026. The current generator is v31;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
 
@@ -137,7 +137,7 @@ otherwise.
 ### The reference gallery
 
 A visual regression is the one no test sees (`CLAUDE.md` §1). `tools/gallery.py`
-takes the same nine pictures every time — same place, same camera and fixed
+takes the same ten pictures every time — same place, same camera and fixed
 weather, 1600 × 900. City views use 10:30 local solar time on 21 September;
 mountain views use the photograph's date, lens and aspect ratio. Each run records
 its UTC instant, cloud fraction, rain and visibility; old captures without that
@@ -152,6 +152,7 @@ as estimated, not a historical station observation:
 | `kyoto` | Higashiyama, Kyoto, towards the hills |
 | `vannes` | the port of Vannes from the place Gambetta |
 | `theix` | Theix: the fuel station, the car park and the Carrefour Market |
+| `lasne` | Croix de Lasné, towards Saint-Colombier: rural verges and quiet frontage |
 | `grenoble` | Grenoble, towards the Moucherotte and its limestone cliffs |
 | `lecap` | Cape Town, towards Table Mountain |
 | `rio` | Rio de Janeiro, the Corcovado from the Sugarloaf summit |
@@ -211,7 +212,7 @@ when it arrives. The service regression holds this upgrade with a delayed survey
 Tiles are metric latitude rings with no polar cutoff (`native/gen/common.hpp`):
 36 000 rows of 0.005° and `72 000 · cos(lat)` columns per row, so a tile is
 about 556 m on a side everywhere, keyed `v<version>_<row>_<col>`. The
-generator version is `kVersion` (29 today). Within 18 km of a pole the
+generator version is `kVersion` (31 today). Within 18 km of a pole the
 neighbourhood is the tiles nearest in metres, twelve at the pole.
 
 The player's position is WGS84; each tile owns its tangent frame, and the
@@ -563,6 +564,13 @@ drawn only where OSM maps a marked crossing. Normals are shared, with a
 quantised weld key that removes floating-point duplicates without moving
 geometry.
 
+Generator v31 samples nearby building frontage every 40 m to distinguish
+settled streets from rural roads. Explicit OSM sidewalk tags (including
+`sidewalk:both=separate`) override that inference. Rural sides without a
+sidewalk receive a narrow, varying aggregate shoulder and a low grass verge,
+clipped around other streets, buildings and water. Both are textured, draped
+surfaces sharing materials; their inferred areas are recorded in `streets`.
+
 Generator v30 fixes two missing road classes: `unclassified` country roads
 used to fall back to 2.5 m, and `*_link` ramps were treated as pedestrian
 surfaces at that same width. Country roads and residential streets now infer
@@ -738,7 +746,12 @@ in the background and cooks again when it lands.
 With the canopy, an inferred tree survives only in a tree cell, every empty
 tree cell gets a tree at the measured height (trunk clear of roads and roofs),
 every low cell a shrub; OSM trees keep their place. The budget is then 640
-trees per tile (320 without canopy). On the Theix periurban tile the frame
+woody plants per tile (trees and shrubs, 320 without canopy). Low vegetation
+uses the existing shrub model near the camera and foliage cards at distance.
+A surveyed low cell gets priority over inferred fill; spare capacity adds
+clusters instead of isolated miniature trees. Low garden planting below the
+survey's 1 m threshold is inferred beside rural homes, with entrance gaps,
+and recorded separately in `nature.bySource`. On the Theix periurban tile the frame
 stays at 60 fps (+0.8 ms scene update). The manifest's `nature.canopy` counts
 cells, trees placed and inferred trees removed. Trunk colliders are created
 when the tile mounts.
@@ -1295,8 +1308,10 @@ balanced between men and women: gameplay defaults, not population statistics.
   streets are drawn with, OSM footways, pedestrian streets, paths and steps,
   cut where they enter a building or a carriageway, loose ends joined across
   the road (where people cross), and two seats per placed bench.
-- **How many is inferred** from pavement, shops, offices, bus stops, crossings
-  and buildings, capped at 40 per tile, then scaled by the local solar hour
+- **How many is inferred** from homes and active buildings near the paths,
+  with a small outdoor share for dispersed households and larger shares for
+  compact housing/apartments. Demand is capped at 40 per tile; only the share
+  of demand within 110 m of the camera is simulated, then scaled by the local solar hour
   (nearly nobody before dawn, peaks at rush hours and lunch) and halved by rain
   or snow. 60 per neighbourhood, nearest tiles first.
 - **What they do**: walk on the right, choose a street at each junction,

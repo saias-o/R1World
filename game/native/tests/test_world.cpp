@@ -132,6 +132,53 @@ TEST(Streets, explicit_absence_prevents_a_sidewalk) {
     }
     CHECK(roadWidth({{"highway", "primary"}, {"width", "4.2"}}) == 4.2);
 }
+TEST(Streets, countryside_has_soft_edges_and_surveyed_sidewalks_still_win) {
+    Slope s;
+    const Tags rural{{"highway","tertiary"},{"r1:roadside","rural"},{"width","6"}};
+    auto out = s.streets({way(3,s.road.points,rural)});
+    CHECK(!part(out.parts,"Sidewalks") && !part(out.parts,"Kerbs"));
+    const auto* gravel = part(out.parts,"Rural gravel shoulders");
+    const auto* grass = part(out.parts,"Rural grass verges");
+    CHECK(gravel && grass);
+    for (const auto* p : {gravel,grass}) {
+        CHECK(!p->material.baseColorTexture.empty());
+        for (const auto& v : p->mesh.positions) CHECK(std::abs(v.z) >= 2.99);
+    }
+    NEAR(out.stats["sidewalkAreaM2"].get<double>(),0,1e-9);
+    auto tagged = rural; tagged["sidewalk:right"] = "yes";
+    out = s.streets({way(3,s.road.points,tagged)});
+    CHECK(part(out.parts,"Sidewalks") && part(out.parts,"Kerbs"));
+    CHECK(out.stats["softRoadSidesInferred"] == 1);
+    CHECK(sidewalkSides({{"highway","tertiary"},{"sidewalk:both","separate"}}).empty());
+}
+TEST(Streets, frontage_inference_distinguishes_villages_from_open_country) {
+    Slope s;
+    s.road.tags = {{"highway","tertiary"}};
+    auto roads = contextualRoads({s.road},{},s.anchor);
+    for (const auto& r : roads) CHECK(sidewalkSides(r.tags).empty());
+    std::vector<OsmWay> houses;
+    for (int i = 0; i < 12; ++i) {
+        const double x = -.0004 + i*.00007;
+        houses.push_back(way(100+i,{{x,.0001},{x+.00005,.0001},{x+.00005,.0002},{x,.0002},{x,.0001}},
+                             {{"building","house"}}));
+    }
+    roads = contextualRoads({s.road},houses,s.anchor);
+    bool village = false;
+    for (const auto& r : roads) village |= !sidewalkSides(r.tags).empty();
+    CHECK(village);
+    s.road.tags["sidewalk"] = "no";
+    for (const auto& r : contextualRoads({s.road},houses,s.anchor)) CHECK(sidewalkSides(r.tags).empty());
+}
+TEST(Streets, arid_roads_do_not_gain_green_lawns) {
+    Slope s;
+    s.anchor=Anchor::at(20,25);
+    s.grid.bounds={24.999,19.999,25.001,20.001};
+    s.road.points={{19.9995,25},{20.0005,25}};
+    s.road.tags={{"highway","tertiary"},{"r1:roadside","rural"}};
+    const auto out=s.streets({s.road});
+    CHECK(!part(out.parts,"Rural grass verges"));
+    CHECK(part(out.parts,"Rural gravel shoulders"));
+}
 TEST(Streets, no_roads_is_valid_empty_street_geometry) {
     Slope s;
     const auto out = s.streets({});
@@ -399,6 +446,29 @@ TEST(Nature, rural_roads_gain_trees_beyond_the_shoulder) {
                                         {centre.x - 0.001, centre.y + 0.00022}}, {{"building", "yes"}}));
     const auto settled = planNature(osm, tile, anchor, ground);
     CHECK(settled.stats["trees"].get<int>() < open.stats["trees"].get<int>());
+}
+TEST(Nature, low_garden_frontage_keeps_access_and_respects_the_canopy_threshold) {
+    const auto tile=tileAt(-2.71559,47.56272);
+    const auto c=tile.center();
+    const auto anchor=Anchor::at(c.x,c.y);
+    auto geo=[&](double x,double z){const auto p=anchor.toGeodetic(x,0,z);return P2{p.x,p.y};};
+    OsmData osm;
+    osm.roads.push_back(way(1,{geo(-100,0),geo(100,0)},{{"highway","tertiary"},{"width","6"},{"sidewalk","no"}}));
+    osm.buildings.push_back(way(2,{geo(-8,18),geo(8,18),geo(8,30),geo(-8,30),geo(-8,18)},{{"building","house"}}));
+    Canopy bare;bare.bounds=tile.bounds();
+    const auto ground=[&](double lo,double la){return anchor.toEngine(lo,la,0);};
+    const auto plants=planNature(osm,tile,anchor,ground,320,&bare);
+    int shrubs=0;
+    for(const auto& n:plants.nodes) {
+        if(n["name"].get<std::string>().find("inferred-low-garden-frontage")==std::string::npos)continue;
+        ++shrubs;
+        const auto& p=n["transform"]["position"];
+        CHECK(std::abs(p[0].get<double>())>=3.49); // entrance remains open
+        CHECK(p[2].get<double>()>5.9); // beyond the shoulder
+        CHECK(n["transform"]["scale"][1].get<double>()<1);
+    }
+    CHECK(shrubs>=4);
+    CHECK(planNature(osm,tile,anchor,ground,320,&bare).nodes==plants.nodes);
 }
 
 TEST(Traffic, a_street_is_two_lanes_and_a_one_way_is_one) {

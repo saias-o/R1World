@@ -11,6 +11,8 @@
 #include "clipper2/clipper.h"
 
 namespace r1::clip {
+// Offset vertices with bounded mitres; shared by walked axes and soft edges.
+std::vector<P2> offsetLine(const std::vector<P2>& line, double distance);
 
 using Clipper2Lib::Path64;
 using Clipper2Lib::Paths64;

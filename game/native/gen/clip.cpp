@@ -6,6 +6,29 @@ namespace r1::clip {
 
 using namespace Clipper2Lib;
 
+std::vector<P2> offsetLine(const std::vector<P2>& line, double distance) {
+    if (line.size() < 2) return line;
+    std::vector<P2> out;
+    const size_t n = line.size();
+    for (size_t i = 0; i < n; ++i) {
+        auto normal = [&](size_t a, size_t b) {
+            const double dx = line[b].x - line[a].x, dz = line[b].y - line[a].y, l = std::max(1e-9, std::hypot(dx, dz));
+            return P2{-dz / l, dx / l};
+        };
+        P2 m = i == 0 ? normal(0, 1) : i == n - 1 ? normal(n - 2, n - 1) : [&] {
+            const P2 a = normal(i - 1, i), b = normal(i, i + 1);
+            P2 s{a.x + b.x, a.y + b.y};
+            const double l = std::hypot(s.x, s.y);
+            if (l < 1e-9) return a;
+            s = {s.x / l, s.y / l};
+            const double k = 1.0 / std::max(s.x * a.x + s.y * a.y, 0.5);
+            return P2{s.x * k, s.y * k};
+        }();
+        out.push_back({line[i].x + m.x * distance, line[i].y + m.y * distance});
+    }
+    return out;
+}
+
 Path64 Grid::path(const std::vector<P2>& points) const {
     Path64 out;
     out.reserve(points.size());

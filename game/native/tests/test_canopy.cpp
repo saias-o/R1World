@@ -107,6 +107,16 @@ TEST(Canopy, measured_canopy_places_trees_and_removes_inferred_ones_where_it_see
         trees += kind == Canopy::Tree;
     }
     CHECK(trees > 40);
+    int shrubs = 0;
+    for (const auto& node : measured.nodes) {
+        if (std::find(node["groups"].begin(),node["groups"].end(),"shrub") == node["groups"].end()) continue;
+        ++shrubs;
+        CHECK(node["children"][1]["importedFrom"] == "assets/models/external/nature_selected/shrub.glb");
+        const auto& p = node["transform"]["position"];
+        const auto geo = anchor.toGeodetic(p[0],0,p[2]);
+        CHECK(canopy.classAt(geo.x,geo.y) == Canopy::Low);
+    }
+    CHECK(shrubs > 30 && measured.nodes.size() <= 640);
     // The same canopy gives the same trees.
     CHECK(planNature(osm, tile, anchor, ground, 640, &canopy).nodes == measured.nodes);
 }

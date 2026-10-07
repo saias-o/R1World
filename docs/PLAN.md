@@ -4,7 +4,7 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 6 octobre 2026, générateur v30 : voitures, correctif PBR et routes.
+État relu le 7 octobre 2026, générateur v31 : abords ruraux et fréquentation locale.
 Le détail de ce qui est fait et mesuré est dans `game/README.md`.
 
 **Deux critères priment sur tous les autres, et ils sont en tension :**

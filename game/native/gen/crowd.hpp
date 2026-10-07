@@ -24,7 +24,7 @@
 
 namespace r1 {
 
-constexpr int kCrowdRevision = 2;
+constexpr int kCrowdRevision = 3;
 // Most people a tile's content can ask for, before the hour is applied.
 constexpr int kCrowdTileCeiling = 40;
 // bench.glb's seat top, in the model's metres (measured on the model): a
@@ -51,6 +51,9 @@ struct WalkGraph {
     std::vector<Link> links;
     std::vector<Seat> seats;
     int people = 0;
+    // Share of the tile's demand inside the simulation radius. A whole
+    // village's walkers must not all gather within 110 m of the player.
+    double populationNear(double x, double z, double radius) const;
     static WalkGraph from(const nlohmann::json& crowd);
 };
 
