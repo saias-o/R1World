@@ -17,6 +17,7 @@
 #include "retail.hpp"
 #include "fuel.hpp"
 #include "spatial.hpp"
+#include "gardens.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -191,6 +192,17 @@ CookedTile cookTile(const Observations& in) {
     buildings.clear();for(auto& w:fuelWays)buildings.push_back(&w);
 
     const RegionProfile& profile = profileFor(center.x, center.y);
+    const ResidentialPlan residential = planResidential(osm, anchor);
+    std::map<int64_t,std::string> homeStyles;
+    for(const auto& h:residential.homes)homeStyles[h.id]=h.style->key;
+    for(auto& w:fuelWays)if(auto it=homeStyles.find(w.id);it!=homeStyles.end()) {
+        w.tags["r1:residential"]=it->second;
+        Ring r;for(auto p:w.points){auto q=anchor.toEngine(p.x,p.y,0);r.push_back({q.x,q.z});}
+        if(std::abs(polygonArea(r))<45)w.tags["r1:rural-annex"]="yes";
+    }
+    const bool denseResidentialCore=residential.homes.empty() && residential.stats.value("rejectedDense",0)>0;
+    const auto busShelters=denseResidentialCore ? nlohmann::json::array() :
+        classifyBusShelters(fuelWays,osm,anchor,residential.stats.value("country",std::string())=="FR");
     const std::string climate = climateAt(profile.climate, center.y);
     const MaterialFor wallMaterial = [](const Swatch& s, bool doubleSided) {
         return surfaceMaterial(s.name, s.color, s.roughness, wallFamily(s.name), doubleSided);
@@ -311,7 +323,9 @@ CookedTile cookTile(const Observations& in) {
         sea = seaGeometry(osm.coastlines, bounds, elevationAt, harbour.coastline);
     }
     const auto tidal = tidalWater(osm.landcover, osm.maritime);
-    const clip::Paths64 inland = inlandWaterRegion(osm.waterways, anchor);
+    const bool aridChannels=fuelCountry=="MA" && center.y<32.;
+    const clip::Paths64 inland = inlandWaterRegion(osm.waterways, anchor,aridChannels,osm.waterAreas);
+    const clip::Paths64 dryChannels=aridChannels?intermittentChannelRegion(osm.waterways,anchor):clip::Paths64{};
     const auto inlandAt = [&](double lon, double lat) {
         const P3 p = anchor.toEngine(lon, lat, 0.0);
         return clip::contains(inland, P2{p.x, p.z});
@@ -350,8 +364,13 @@ CookedTile cookTile(const Observations& in) {
     std::vector<InteriorPlan> stores;
     for(const auto& p:built.interiors)if(retailInterior(p.recipe))stores.push_back(p);
     const ParkingOutput parking=buildRetailParking(osm,stores,footprints,elevations,anchor);
+    const GardenOutput gardens=buildGardens(osm,residential,tile,anchor,elevations,streets.ground,
+        sea ? clip::unite(inland,projectWater(sea->region,anchor)) : inland);
     Mesh inlandMesh(UvMode::Planar);
-    clip::Paths64 visibleInland = inland;
+    const clip::Paths64 tileRegion=projectWater({clip::kDegrees.path({
+        {bounds.west,bounds.south},{bounds.east,bounds.south},
+        {bounds.east,bounds.north},{bounds.west,bounds.north}})},anchor);
+    clip::Paths64 visibleInland = clip::intersect(inland,tileRegion);
     if (sea) visibleInland = clip::subtract(visibleInland, projectWater(sea->region, anchor));
     if (tidal) visibleInland = clip::subtract(visibleInland, projectWater(*tidal, anchor));
     // No water is drawn over a street: what the water region says of a road
@@ -394,6 +413,13 @@ CookedTile cookTile(const Observations& in) {
         for (const MeshPart& p : airports.parts) parts.push_back(p);
         for (const MeshPart& p : parking.parts) parts.push_back(p);
         for (const MeshPart& p : totemParts) parts.push_back(p);
+        for (const MeshPart& p : gardens.parts) parts.push_back(p);
+        if(!dryChannels.empty()) {
+            Mesh bed(UvMode::Planar);
+            Drape(elevations,anchor).lay(clip::subtract(dryChannels,streets.ground),.045,bed);
+            if(!bed.empty())parts.push_back({"Intermittent dry riverbed",std::move(bed),
+                surfaceMaterial("Dry wadi gravel",{.25,.205,.15},.94,"rock")});
+        }
         return parts;
     };
     std::vector<MeshPart> parts = assemble(works.parts);
@@ -505,7 +531,7 @@ CookedTile cookTile(const Observations& in) {
         // Measured canopy places real trees; the budget must hold a tile's
         // trees, not a sample of them (see kMeasuredNatureBudget).
         nature = planNature(osm, tile, anchor, ground, in.canopy ? kMeasuredNatureBudget : 320,
-                            in.canopy ? &*in.canopy : nullptr, &roadside);
+                            in.canopy ? &*in.canopy : nullptr, &roadside, &residential, &gardens.drives);
         // The signs were placed on the surveyed ground: they stand on the dug
         // one, or on the embankment beside them.
         for (auto& n : predicted.nodes) {
@@ -583,6 +609,7 @@ CookedTile cookTile(const Observations& in) {
         {"landmarkRevision", kLandmarkRevision},
         {"landmarkReplacedWays", ocean ? nlohmann::json::array() : landmarks.replaced},
         {"nature", nature.stats}, {"streets", streets.stats},
+        {"residential", gardens.stats},
         {"predicted", ocean || pack ? nlohmann::json({{"revision", kPredictRevision}, {"signs", 0}}) : predicted.stats},
         {"bridges", bridges.stats}, {"raised", ocean || pack ? nlohmann::json::array() : bridges.raised}, {"traffic", laneGraph}, {"crowd", crowd},
         {"inference", built.stats.json()},
@@ -606,6 +633,7 @@ CookedTile cookTile(const Observations& in) {
     nlohmann::json lettering=built.lettering;
     for(const auto& l:totemLettering)lettering.push_back(l);
     out.manifest["lettering"]=lettering;
+    out.manifest["busShelters"]=busShelters;
     out.cookMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
     return out;
 }

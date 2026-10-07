@@ -14,6 +14,8 @@ namespace r1 {
 struct BuildingStats {
     int total = 0, rejected = 0, heightMeasured = 0, heightInferred = 0, roofTagged = 0, roofInferred = 0;
     int roofFlattened = 0, detailed = 0, partyWalls = 0, steeples = 0;
+    int busShelters = 0;
+    nlohmann::json ruralGabarits = nlohmann::json::array();
     std::map<std::string, int> shapes;
     nlohmann::json json() const;
 };

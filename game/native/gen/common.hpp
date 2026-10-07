@@ -170,7 +170,7 @@ inline PyRandom seeded(__int128 id, __int128 salt) { return PyRandom((id * 10000
 // raw observations already on disk.
 constexpr int kRows = 36000;
 constexpr double kStep = 180.0 / kRows;
-constexpr int kVersion = 31;  // 31: rural frontage, soft verges and local pedestrian density
+constexpr int kVersion = 35;  // 35: inland-water multipolygons, preserving islands
 // The version the Python worker wrote its caches under. Its raw observations
 // (osm.json, elevation) are reused, never its geometry.
 constexpr int kFirstVersion = 1;

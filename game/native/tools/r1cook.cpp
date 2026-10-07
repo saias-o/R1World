@@ -16,6 +16,7 @@
 #include <chrono>
 #include <cstdio>
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 
 int main(int argc, char** argv) {
@@ -36,6 +37,7 @@ int main(int argc, char** argv) {
     }
     try {
         r1::loadPalette(game);
+        if(!glb.empty())std::filesystem::create_directories(glb);
     } catch (const std::exception& e) {
         std::cerr << "PALETTE-FAILED " << e.what() << "\n";
         return 2;
@@ -131,6 +133,7 @@ int main(int argc, char** argv) {
             line["buildingGeometryLod"] = cooked.manifest["buildingGeometryLod"];
             line["buildings"] = cooked.manifest["buildings"];
             line["predicted"] = cooked.manifest["predicted"];
+            line["residential"] = cooked.manifest["residential"];
             line["bridges"] = cooked.manifest["bridges"];
             line["elevationSource"] = cooked.manifest["elevationSource"];
             line["grass"] = cooked.manifest["grass"];
@@ -142,7 +145,7 @@ int main(int argc, char** argv) {
             line["props"] = cooked.props.size();
             for (const char* k : {"streets", "inference", "props", "nature", "harbour", "ground", "water", "landmarks",
                                   "landmarkReplacedWays", "boats", "decks", "airports", "aircraft", "osmQueryVersion", "retail", "interiors",
-                                  "fuel", "lettering", "interiorStreaming"})
+                                  "fuel", "lettering", "interiorStreaming", "busShelters"})
                 line["manifest"][k] = cooked.manifest[k];
             line["manifest"]["traffic"] = {{"nodes", cooked.manifest["traffic"]["nodes"].size()},
                                            {"lanes", cooked.manifest["traffic"]["lanes"].size()},
@@ -159,6 +162,7 @@ int main(int argc, char** argv) {
                 s << cooked.props.dump();
                 std::ofstream r(glb + "/" + tile.key() + ".raised.json", std::ios::binary);
                 r << cooked.manifest["raised"].dump();
+                if(!f || !s || !r)throw std::runtime_error("Cannot write cooked geometry to "+glb);
             }
         } catch (const std::exception& e) {
             line["error"] = e.what();

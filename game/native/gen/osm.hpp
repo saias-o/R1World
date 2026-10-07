@@ -20,6 +20,12 @@ struct OsmNode {
     Tags tags;
 };
 
+struct OsmWaterArea {
+    int64_t id = 0; // OSM relation, separate from way ids
+    std::vector<std::vector<P2>> outers, inners;
+    Tags tags;
+};
+
 // The classified ways of one Overpass answer. Every list is sorted by id, so
 // what a tile keeps never depends on the order Overpass happened to send.
 struct OsmData {
@@ -27,6 +33,8 @@ struct OsmData {
     // Everything `aeroway` (runways, taxiways, aprons, helipads, stands) and
     // the closed ways that say an area is military (gen/airports.cpp).
     std::vector<OsmWay> aeroways, military;
+    std::vector<OsmWay> barriers;
+    std::vector<OsmWaterArea> waterAreas;
     std::vector<P2> trees;
     std::vector<OsmNode> features;
     // ISO 3166-1 alpha-2 of the country the neighbourhood's centre is in, as
@@ -36,6 +44,7 @@ struct OsmData {
     bool retailQueried = false;
     bool fuelQueried = false;
     bool interiorUsesQueried = false;
+    bool settlementsQueried = false;
 };
 
 // `layer`, when given, is a second answer read into the same data (the aero

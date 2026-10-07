@@ -1,6 +1,7 @@
 #include "osm.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
@@ -24,6 +25,46 @@ bool in(const std::string* value, std::initializer_list<const char*> set) {
     for (const char* s : set) if (*value == s) return true;
     return false;
 }
+
+// Join surveyed members by node id, including reversed fragments. An
+// incomplete ring is refused rather than closing across missing shoreline.
+std::optional<std::vector<std::vector<P2>>> waterRings(const nlohmann::json& relation,
+    const char* role, const std::unordered_map<int64_t, const nlohmann::json*>& ways,
+    const std::unordered_map<int64_t, P2>& nodes) {
+    std::map<int64_t, std::vector<int64_t>> remaining;
+    for (const auto& member : relation.at("members")) {
+        const std::string memberRole = member.value("role", std::string());
+        if (memberRole != role && !(memberRole.empty() && std::string(role)=="outer")) continue;
+        if (member.value("type", std::string()) != "way") return std::nullopt;
+        const int64_t id = member.at("ref").get<int64_t>();
+        const auto way = ways.find(id);
+        if (way == ways.end() || !way->second->contains("nodes")) return std::nullopt;
+        auto ids = way->second->at("nodes").get<std::vector<int64_t>>();
+        if (ids.size()<2) return std::nullopt;
+        for (int64_t node : ids) if (!nodes.count(node)) return std::nullopt;
+        remaining.emplace(id, std::move(ids));
+    }
+    std::vector<std::vector<P2>> rings;
+    while (!remaining.empty()) {
+        auto chain = std::move(remaining.begin()->second);
+        remaining.erase(remaining.begin());
+        while (chain.front()!=chain.back()) {
+            auto next = std::find_if(remaining.begin(),remaining.end(),[&](const auto& entry) {
+                return entry.second.front()==chain.back() || entry.second.back()==chain.back();
+            });
+            if (next==remaining.end()) return std::nullopt;
+            auto part=std::move(next->second);
+            remaining.erase(next);
+            if (part.front()!=chain.back()) std::reverse(part.begin(),part.end());
+            chain.insert(chain.end(),part.begin()+1,part.end());
+        }
+        if (chain.size()<4) return std::nullopt;
+        std::vector<P2> ring;
+        for (int64_t id : chain) ring.push_back(nodes.at(id));
+        rings.push_back(std::move(ring));
+    }
+    return rings;
+}
 }  // namespace
 
 OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer,const nlohmann::json* retail) {
@@ -32,8 +73,10 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
     out.retailQueried=out.queryVersion>=8 || retail;
     out.fuelQueried=out.queryVersion>=9 || (retail && retail->value("r1RetailVersion",1)>=2);
     out.interiorUsesQueried=out.queryVersion>=10 || (retail && retail->value("r1RetailVersion",1)>=3);
+    out.settlementsQueried=out.queryVersion>=13 || (retail && retail->value("r1RetailVersion",1)>=4);
     std::unordered_map<int64_t, P2> nodes;
     std::vector<const nlohmann::json*> rawWays;
+    std::map<int64_t, const nlohmann::json*> waterRelations;
     std::set<P2> trees;
     std::unordered_set<int64_t> featureIds, wayIds;
     for (const nlohmann::json* doc : {&document, layer, retail}) {
@@ -55,8 +98,25 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
                 if (out.country.empty()) out.country = tagOr(tags, "ISO3166-1", tagOr(tags, "ISO3166-1:alpha2"));
             } else if (type == "way") {
                 if (wayIds.insert(e.at("id").get<int64_t>()).second) rawWays.push_back(&e);
+            } else if (type == "relation") {
+                const Tags tags = readTags(e);
+                if (tagOr(tags,"type")=="multipolygon" &&
+                    (tagOr(tags,"natural")=="water" || has(tags,"water")))
+                    waterRelations.emplace(e.at("id").get<int64_t>(), &e);
             }
         }
+    }
+    std::unordered_map<int64_t,const nlohmann::json*> memberWays;
+    for (const auto* way : rawWays) memberWays.emplace(way->at("id").get<int64_t>(),way);
+    std::unordered_set<int64_t> waterMembers;
+    for (const auto& [id,relation] : waterRelations) {
+        if (!relation->contains("members")) continue;
+        auto outers=waterRings(*relation,"outer",memberWays,nodes);
+        auto inners=waterRings(*relation,"inner",memberWays,nodes);
+        if (!outers || outers->empty() || !inners) continue;
+        out.waterAreas.push_back({id,std::move(*outers),std::move(*inners),readTags(*relation)});
+        for (const auto& member : relation->at("members"))
+            if (member.value("type",std::string())=="way") waterMembers.insert(member.at("ref").get<int64_t>());
     }
     for (const auto* e : rawWays) {
         OsmWay way;
@@ -78,22 +138,24 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
             out.maritime.push_back(way);
         if (has(t, "building") && closed) out.buildings.push_back(way);
         if (has(t, "highway")) out.roads.push_back(way);
+        if (has(t, "barrier")) out.barriers.push_back(way);
         if (has(t, "aeroway")) out.aeroways.push_back(way);
         if (closed && (tagOr(t, "landuse") == "military" || has(t, "military"))) out.military.push_back(way);
         if ((in(tag(t, "landuse"), {"forest", "meadow", "grass", "village_green", "recreation_ground", "orchard"}) ||
              in(tag(t, "natural"), {"wood", "scrub", "grassland", "shrubbery", "wetland"}) ||
              in(tag(t, "leisure"), {"park", "garden"})) && closed)
             out.vegetation.push_back(way);
-        if (has(t, "waterway") || tagOr(t, "natural") == "water" || has(t, "water")) out.waterways.push_back(way);
+        const bool relationWater=waterMembers.count(way.id) && (tagOr(t,"natural")=="water" || has(t,"water"));
+        if (!relationWater && (has(t, "waterway") || tagOr(t, "natural") == "water" || has(t, "water"))) out.waterways.push_back(way);
         if (closed && !has(t, "building")) {
             bool cover = false;
             for (const char* k : kLandcoverKeys) cover |= has(t, k);
-            if (cover) out.landcover.push_back(way);
+            if (cover && !relationWater) out.landcover.push_back(way);
         }
     }
     auto byId = [](const auto& a, const auto& b) { return a.id < b.id; };
     for (auto* list : {&out.buildings, &out.roads, &out.vegetation, &out.waterways, &out.landcover,
-                       &out.treeRows, &out.coastlines, &out.maritime, &out.aeroways, &out.military})
+                       &out.treeRows, &out.coastlines, &out.maritime, &out.aeroways, &out.military, &out.barriers})
         std::stable_sort(list->begin(), list->end(), byId);
     std::stable_sort(out.features.begin(), out.features.end(), byId);
     out.trees.assign(trees.begin(), trees.end());

@@ -86,3 +86,74 @@ Ce relevé sur RTX 4070 ne qualifie pas la GTX 1060 cible.
 L'IBL conserve les projections du ciel en cache et ne prélève le second ciel
 dans le shader que pendant le fondu. Le préfiltrage GGX des reflets reste dans
 le backlog du moteur ; ses mipmaps ordinaires ne constituent pas ce filtrage.
+
+## Pavillons, jardins et arrêt de bus — générateur v32
+
+La passe résidentielle suit le pays des observations OSM, avec un repli sur
+les frontières embarquées, puis des paramètres d'Atlas propres aux pavillons
+français et à la Bretagne. Elle exige une faible couverture et masse bâties,
+un bâtiment privé de petite taille et un front donnant sur une rue locale.
+Les hauteurs, étages et toitures relevés gardent la priorité. Les blocs denses,
+bâtiments accolés et terrains publics/commerciaux excluent les jardins inférés.
+
+Les jardins comprennent une pelouse sans les hautes herbes environnantes,
+un accès en gravier de 3,3 m, du grillage vert et des portails à deux vantaux
+ouverts. Leurs surfaces suivent le relief et sont découpées autour des routes,
+bâtiments, eaux et voisins. Les façades larges ont priorité quand le budget
+est épuisé ; l'ordre cadastral OSM écartait auparavant le pavillon proche de
+la vue. Les fins de clôture respectent la largeur libre des portails mesurés.
+
+Il s'agit de fronts de jardin prédits, **pas de parcelles cadastrales exactes**.
+Le manifeste conserve les identifiants, règles, confiances et motifs de refus.
+Une limite OSM relevée supprime l'enclos supposé. La requête OSM v12 ajoute
+clôtures, murs, haies et entrées ; le cache local de cette validation reste
+v11 et ne contient donc pas encore ce relevé supplémentaire.
+
+L'empreinte `171539796`, 5,2 m² à proximité de l'arrêt Croix de Lasné
+`13378629126`, devient un abri de bus en bois ouvert avec banc et toit métal.
+La classification a une confiance de 0,7. Le poste Enedis `171539547`
+reste un local technique, sans confusion avec un abri ni gabarit d'habitation.
+
+### Contrôles et coût
+
+- 13 tests `Gardens` et 3 tests `BusShelters` passent.
+- Suite native : **277 réussis, 1 échec préexistant**, sur
+  `Bridges.two_carriageways_mapped_side_by_side_are_one_deck`, ligne 128.
+- Tuile centrale `v32_27512_23926` : 31 206 sommets, dont 16 777 pour
+  13 jardins ; cuisson moyenne de trois répétitions à 189,94 ms hors réseau.
+- Tuile voisine `v32_27512_23925` : 13 jardins, dont celui du pavillon
+  `171538604` visible dans la nouvelle capture.
+- Budget de la passe : 18 000 sommets par tuile, matériaux regroupés et
+  haies utilisant les modèles partagés. Le plafond global de 120 000 sommets
+  par tuile et le budget de végétation restent inchangés.
+- Capture `game/generated/lasne-gardens-frontage.png` : pelouse, grillage et
+  portails visibles depuis la route. Session
+  `game/cache/sessions/e7a3e6468fb345078d6ccbf79e44a8a9/game.log`.
+- Profil de cette capture, 600 images : 16,47 ms/image ; portée CPU
+  `Renderer/DrawFrame` 1,82 ms ; pic de chargement 428,60 ms. Mesure RTX 4070,
+  sans qualification de la GTX 1060 cible.
+- Test de fumée final hors réseau : **PASS**, marche de 92,36 m, saut,
+  conduite, freinage, sortie, prise d'une voiture du trafic et reprise du jeu.
+  Session `game/cache/sessions/29af9c0ade494ec1938ac0b98454aed6/game.log`.
+
+Deux tuiles périphériques de la capture restent provisoires faute d'OSM hors
+réseau. Les toitures des empreintes très irrégulières, les limites exactes de
+propriété et le feuillage restent des écarts visibles avec la photographie.
+
+### Paris préservé
+
+La nouvelle passe est désactivée dans le centre dense testé rue de Rivoli.
+La tuile `v32_27771_23994` ne reçoit ni jardin ni modification d'abri urbain.
+Comparaison de l'ancien pipeline et du pipeline actuel sur les mêmes données :
+110 428 sommets dans les deux cas et GLB **identiques octet par octet**, ainsi
+que les fichiers d'objets. Empreintes SHA-256 :
+
+```text
+GLB   4542FE9E30FB87E0D619B17D9A227A2053FE237AF035C518B1BC6C5B1028C659
+props A6EC30021AFAC2E6DB703F60EC3BE979FB0EDC77B24FFD8E44C9659FFD544668
+```
+
+Capture finale : `game/generated/paris-frontage-final.png`, session
+`game/cache/sessions/a441e7d2faac47ae92f4ce2062bdffd3/game.log`.
+Ce contrôle porte sur cette tuile centrale et les cas urbains de la suite,
+pas sur chaque quartier de Paris.

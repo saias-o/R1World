@@ -6,10 +6,12 @@
 
 #include "canopy.hpp"
 #include "palette.hpp"
+#include "clip.hpp"
 
 #include <functional>
 
 namespace r1 {
+struct ResidentialPlan;
 
 using GroundAt = std::function<P3(double, double)>;
 using Segment2 = std::pair<P2, P2>;
@@ -31,7 +33,9 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // one, at the canopy's measured height; low cells get shrubs.
 Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, const GroundAt& ground,
                    int budget = 320, const Canopy* canopy = nullptr,
-                   const std::vector<OsmWay>* roadside = nullptr);
+                   const std::vector<OsmWay>* roadside = nullptr,
+                   const ResidentialPlan* residential = nullptr,
+                   const clip::Paths64* driveways = nullptr);
 
 // The tile's lane graph in engine metres, and how busy it should be.
 nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& ground, int buildings,

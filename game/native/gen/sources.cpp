@@ -310,12 +310,16 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
     std::string query = R"([out:json][timeout:90];
 (
   way[building]{B};
+  way[barrier~"^(fence|wall|hedge)$"]{B};
+  node[barrier~"^(gate|entrance|lift_gate)$"]{B};
   way[highway]{B};
   way[landuse]{B};
   way[natural]{B};
   way[leisure~"park|garden|golf_course|pitch"]{B};
   way[waterway]{B};
   way[water]{B};
+  relation[type=multipolygon][natural=water]{W};
+  relation[type=multipolygon][water]{W};
   way[amenity=grave_yard]{B};
   way[amenity=parking]{B};
   way[shop]{B};
@@ -323,6 +327,7 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
   way[amenity=fuel]{B};
   node[amenity=fuel]{B};
   node[entrance]{B};
+  node[place~"^(city|town|village|hamlet)$"]{B};
   nwr[amenity~"^(police|school|kindergarten|college|university|hospital|clinic|doctors|prison|place_of_worship|townhall|courthouse|bank|fire_station|restaurant|cafe|bar|pub)$"]{B};
   nwr[office]{B};
   nwr[craft]{B};
@@ -472,7 +477,8 @@ nlohmann::json ObservationStore::fetchRetail(const Bounds& b,const std::string& 
     const std::string query="[out:json][timeout:45];(way[amenity=parking]"+box+";way[shop]"+box+
         ";node[shop]"+box+";node[entrance]"+box+";way[amenity=fuel]"+box+";node[amenity=fuel]"+box+
         ";nwr[amenity~\"^(police|school|kindergarten|college|university|hospital|clinic|doctors|prison|place_of_worship|townhall|courthouse|bank|fire_station|restaurant|cafe|bar|pub)$\"]"+box+
-        ";nwr[office]"+box+";nwr[craft]"+box+";node[military=gendarmerie]"+box+";);out body;>;out skel qt;";
+        ";nwr[office]"+box+";nwr[craft]"+box+";node[military=gendarmerie]"+box+
+        ";node[place~\"^(city|town|village|hamlet)$\"]"+box+";);out body;>;out skel qt;";
     std::string failures;
     for(int i:endpointOrder())try {
         auto doc=nlohmann::json::parse(net::requestJson(kOverpass[i],"data="+net::urlEncode(query),"application/x-www-form-urlencoded"));

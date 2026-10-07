@@ -94,6 +94,28 @@ struct PropKind {
     std::vector<std::pair<std::string, std::vector<std::string>>> tags;
 };
 
+// Residential priors are country-scoped, optionally refined by a region.
+// They only apply after the building/settlement eligibility checks; they are
+// not a replacement for the Atlas of an entire town.
+struct ResidentialStyle {
+    std::string key, country;
+    std::string enclosure = "wire", plotGround = "lawn";
+    bool villageRows = false;
+    bool architectureOnly = false;
+    std::optional<std::array<double, 4>> box;
+    double maxCoverage = .18, maxMass = 14, fenceHeight = 1.2;
+    double maxArea = 350;
+    double setback = 3, frontOffset = 2.1, lotPadding = 3.5, returns = 12, accessWidth = 3.3;
+    // Optional local facade proportions; unset values retain the regional Atlas.
+    std::optional<double> storeyHeight, groundHeight, eaves, parapet, bay, windowWidth, windowHeight, sill;
+    double pitchLow = 30, pitchHigh = 42;
+    std::vector<std::pair<int, double>> storeys;
+    std::vector<std::pair<std::string, double>> roofShapes;
+    std::vector<Swatch> roofs, walls;
+    std::optional<Swatch> trim;
+};
+RegionProfile residentialProfile(const RegionProfile& base, const ResidentialStyle& style);
+
 // One sign of `assets/world/signs.json` (tools/r1/signage.py): its model on
 // each mount ("rural": lower edge at 1 m, "urban": at 2.30 m), keyed by the
 // OSM `traffic_sign` code the predictive model proposes (gen/predict.cpp).
@@ -142,6 +164,7 @@ struct Palette {
     struct IceSwatch { Swatch swatch; std::string family; };
     std::map<std::string, IceSwatch> seaIce;
     std::vector<PropKind> props;
+    std::vector<ResidentialStyle> residential;
     std::map<std::string, SignModel> signs;
     std::map<std::string, TownSignKit> townSigns;  // by country
     std::map<std::string, TownSignKit> streetSigns;  // street-name blades, by country
@@ -156,6 +179,7 @@ struct Palette {
 // missing or unreadable (CLAUDE.md §3: a refusal says why).
 void loadPalette(const std::string& gameRoot);
 const Palette& palette();
+const ResidentialStyle* residentialStyle(const std::string& key);
 // The aircraft type called `name`, or nullptr.
 const AircraftType* aircraftType(const std::string& name);
 

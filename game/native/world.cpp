@@ -1073,6 +1073,9 @@ class World : public Rml::EventListener {
     // stands where the photographer stood, whatever this build's relief says
     // the ground there is (tools/gallery.py's reference views).
     std::optional<double> captureAltitude;
+    // Photo camera coordinates, independent of gameplay's safe spawn and
+    // keepStanding relocation. z is the eye's height above surveyed ground.
+    std::optional<std::array<double,3>> captureGeo;
     double captureWait=0,captureReport=0;
     std::string number(double n,int precision=6) {std::ostringstream s;s<<std::fixed<<std::setprecision(precision)<<n;return s.str();}
     // Every write re-lays and re-renders the whole interface -- the map is
@@ -4519,6 +4522,7 @@ public:
         inspectWeather=conditions;
     }
     void captureFromAltitude(double metres) {captureAltitude=metres;}
+    void captureAtGeography(std::array<double,3> camera) {captureGeo=camera;}
     void ProcessEvent(Rml::Event& event) override {
         auto id=event.GetCurrentElement()->GetId();
         const bool press=event.GetType()=="mousedown";
@@ -5601,6 +5605,18 @@ public:
                 if(captureAltitude)at.y+=float(*captureAltitude-alt);
                 glm::vec3 position=at+glm::vec3(captureView.position[0],captureView.position[1],captureView.position[2]);
                 glm::vec3 target=at+glm::vec3(captureView.target[0],captureView.target[1],captureView.target[2]);
+                if(captureGeo) {
+                    // A surveyed inspection camera may overlap the spawn.
+                    // Keep the player active for streaming, hide only its mesh.
+                    player->setVisible(false);
+                    const auto& geo=*captureGeo;
+                    const double eye=captureAltitude?*captureAltitude:height(geo[0],geo[1])+geo[2];
+                    Frame photo(geo[0],geo[1],eye);
+                    position=origin.local(photo.origin);
+                    const glm::dvec3 direction(captureView.target[0]-captureView.position[0],
+                        captureView.target[1]-captureView.position[1],captureView.target[2]-captureView.position[2]);
+                    target=origin.local(photo.origin+photo.basis*direction);
+                }
                 camera->transform().position=position;
                 camera->transform().rotation=glm::quatLookAt(glm::normalize(target-position),glm::vec3(0,1,0));
             }
@@ -5893,6 +5909,16 @@ int main(int argc,char** argv) {
             const double metres=std::stod(argv[i+1]);
             if(!std::isfinite(metres))throw std::runtime_error("Invalid --camera-altitude");
             world.captureFromAltitude(metres);
+        }
+        for(int i=1;i<argc;++i)if(std::string(argv[i])=="--camera-geo") {
+            if(i+3>=argc)throw std::runtime_error("--camera-geo requires longitude latitude eye-height-above-ground");
+            std::array<double,3> geo{std::stod(argv[i+1]),std::stod(argv[i+2]),std::stod(argv[i+3])};
+            if(!std::isfinite(geo[0])||!std::isfinite(geo[1])||!std::isfinite(geo[2])||
+               std::abs(geo[0])>180||std::abs(geo[1])>90||geo[2]<=0||geo[2]>10000)
+                throw std::runtime_error("Invalid --camera-geo coordinate or eye height");
+            if(!smoke||capture.pngPath.empty()||!view.set)throw std::runtime_error("--camera-geo requires --smoke, --screenshot and a capture viewpoint");
+            world.captureAtGeography(geo);
+            saida::Log::info("[World inspection] fixed camera longitude=",std::setprecision(12),geo[0]," latitude=",geo[1]," eye_agl_m=",geo[2]);
         }
         for(int i=1;i<argc;++i)if(std::string(argv[i])=="--weather") {
             if(i+3>=argc)throw std::runtime_error("--weather requires cloud fraction, rain mm/h and visibility metres");

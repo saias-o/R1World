@@ -650,6 +650,12 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             " osm_pending=" + std::to_string(int(osmPending)) + " ground_pending=" + std::to_string(int(groundPending)) + " cook_ms=" +
             std::to_string(int(served->cooked.cookMs)) + " total_ms=" +
             std::to_string(int(std::chrono::duration<double, std::milli>(Clock::now() - started).count())));
+        const auto& frontage=served->cooked.manifest.at("residential");
+        say("FRONTAGE " + tile.key() + " country=" + frontage.value("country",std::string()) +
+            " homes=" + std::to_string(frontage.value("eligibleHomes",0)) +
+            " gardens=" + std::to_string(frontage.value("inferredGardens",0)) +
+            " vertices=" + std::to_string(frontage.value("vertices",0)) +
+            " shelters=" + std::to_string(served->cooked.manifest.at("busShelters").size()));
         if (error.rfind(tile.key(), 0) == 0) error.clear();
         cooked[tile] = std::move(served);
         if (!approximate && !cooked[tile]->cooked.manifest.value("airportsPending", false)) failedUntil.erase(tile);

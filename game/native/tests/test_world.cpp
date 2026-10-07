@@ -304,6 +304,11 @@ TEST(Water, a_mapped_river_line_has_a_visible_width_without_mapped_banks) {
     const Anchor anchor = Anchor::at(2.35, 48.85);
     const P3 a = anchor.toGeodetic(-60, 0, 0), b = anchor.toGeodetic(60, 0, 0);
     const auto region = inlandWaterRegion({way(1, {{a.x, a.y}, {b.x, b.y}}, {{"waterway", "river"}})}, anchor);
+    const auto intermittent=way(3,{{a.x,a.y},{b.x,b.y}},{{"waterway","river"},{"intermittent","yes"}});
+    CHECK(inlandWaterRegion({intermittent},anchor,true).empty());
+    CHECK(!intermittentChannelRegion({intermittent},anchor).empty());
+    CHECK(!inlandWaterRegion({intermittent},anchor).empty());
+    CHECK(!inlandWaterRegion({way(1, {{a.x,a.y},{b.x,b.y}},{{"waterway","river"}})},anchor,true).empty());
     CHECK(clip::contains(region, P2{0, 10}));
     CHECK(!clip::contains(region, P2{0, 19}));
     const auto measured = inlandWaterRegion({way(2, {{a.x, a.y}, {b.x, b.y}},

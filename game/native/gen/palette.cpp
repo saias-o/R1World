@@ -47,6 +47,29 @@ void loadPalette(const std::string& gameRoot) {
     p->gameRoot = gameRoot;
     const auto atlas = readJsonFile(gameRoot + "/assets/world/atlas.json");
     p->surfaces = readJsonFile(gameRoot + "/assets/textures/surfaces.json");
+    for (const auto& j : atlas.value("residential", nlohmann::json::array())) {
+        ResidentialStyle s;
+        s.key = j.at("key"); s.country = j.at("country");
+        if (j.contains("box")) s.box = j.at("box").get<std::array<double,4>>();
+        s.maxCoverage = j.at("maxCoverage"); s.maxMass = j.at("maxMass");
+        s.fenceHeight = j.at("fenceHeight");
+        s.enclosure=j.value("enclosure",std::string("wire"));s.plotGround=j.value("plotGround",std::string("lawn"));
+        s.villageRows=j.value("villageRows",false);
+        s.architectureOnly=j.value("architectureOnly",false);s.maxArea=j.value("maxArea",350.);
+        s.setback=j.value("setback",3.);s.frontOffset=j.value("frontOffset",2.1);
+        s.lotPadding=j.value("lotPadding",3.5);s.returns=j.value("returns",12.);s.accessWidth=j.value("accessWidth",3.3);
+        auto optional=[&](const char* key,std::optional<double>& value){if(j.contains(key))value=j.at(key).get<double>();};
+        optional("storeyHeight",s.storeyHeight);optional("groundHeight",s.groundHeight);
+        optional("eaves",s.eaves);optional("parapet",s.parapet);optional("bay",s.bay);
+        optional("windowWidth",s.windowWidth);optional("windowHeight",s.windowHeight);optional("sill",s.sill);
+        s.pitchLow = j.at("roofPitch")[0]; s.pitchHigh = j.at("roofPitch")[1];
+        for (const auto& w : j.at("storeys")) s.storeys.push_back({w[0].get<int>(),w[1].get<double>()});
+        for (const auto& w : j.at("roofShapes")) s.roofShapes.push_back({w[0].get<std::string>(),w[1].get<double>()});
+        for (const auto& w : j.at("roofs")) s.roofs.push_back(swatchFrom(w));
+        for (const auto& w : j.value("walls",nlohmann::json::array())) s.walls.push_back(swatchFrom(w));
+        if(j.contains("trim"))s.trim=swatchFrom(j.at("trim"));
+        p->residential.push_back(std::move(s));
+    }
     for (const auto& j : atlas.at("profiles")) {
         RegionProfile r;
         r.key = j.at("key"); r.name = j.at("name"); r.tier = j.at("tier"); r.climate = j.at("climate");
@@ -150,6 +173,27 @@ void loadPalette(const std::string& gameRoot) {
 
 const AircraftType* aircraftType(const std::string& name) {
     for (const auto& a : palette().aircraft) if (a.name == name) return &a;
+    return nullptr;
+}
+
+RegionProfile residentialProfile(const RegionProfile& base,const ResidentialStyle& s) {
+    RegionProfile p=base;
+    p.storeyWeights=s.storeys;p.roofShapeWeights=s.roofShapes;
+    p.roofPitchLow=s.pitchLow;p.roofPitchHigh=s.pitchHigh;
+    if(s.storeyHeight)p.storeyHeight=*s.storeyHeight;
+    if(s.groundHeight)p.groundStoreyHeight=*s.groundHeight;
+    if(s.eaves)p.eaveOverhang=*s.eaves;
+    if(s.parapet)p.parapetHeight=*s.parapet;
+    if(s.bay)p.bayWidth=*s.bay;
+    if(s.windowWidth)p.windowWidth=*s.windowWidth;
+    if(s.windowHeight)p.windowHeight=*s.windowHeight;
+    if(s.sill)p.windowSill=*s.sill;
+    if(s.trim)p.trim=*s.trim;
+    return p;
+}
+
+const ResidentialStyle* residentialStyle(const std::string& key) {
+    for (const auto& s : palette().residential) if (s.key == key) return &s;
     return nullptr;
 }
 

@@ -8,7 +8,7 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 7 October 2026. The current generator is v31;
+Documentation reviewed on 7 October 2026. The current generator is v35;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
 
@@ -570,6 +570,59 @@ settled streets from rural roads. Explicit OSM sidewalk tags (including
 sidewalk receive a narrow, varying aggregate shoulder and a low grass verge,
 clipped around other streets, buildings and water. Both are textured, draped
 surfaces sharing materials; their inferred areas are recorded in `streets`.
+
+Generator v32 adds French detached-home priors in the Atlas `residential`
+entries, with a Brittany override for lower houses and slate roofs. Country
+uses the existing OSM/bundled jurisdiction rule; local coverage, building mass,
+attached footprints and public/commercial land uses gate the prediction.
+Mapped heights, storeys and roof tags still win. Dense street blocks keep their
+existing urban generation, including their bus shelters.
+
+Eligible homes receive an inferred front lawn, gravel approach, coated wire
+fence and open gate leaves. The approach stays clear of planting; lawns mask
+the surrounding tall grass. Roads, buildings, water and non-private land uses
+clip the plots; neighbouring homes limit their extent. Only the frontage and
+short returns are predicted, not a cadastral rear boundary. Wider visible
+frontages precede small ones when a tile exhausts its 18,000-vertex frontage
+budget. The absolute 120,000-vertex tile limit still applies. Geometry shares
+material batches; hedges reuse the existing shrub asset and woody-plant budget.
+
+OSM query v12 includes fences, walls, hedges and gate/entrance nodes. Mapped
+boundaries silence a guessed enclosure and preserve measured gate openings.
+Older observation caches remain usable; `residential.observationsQueried`
+reports their missing boundary query. The manifest records the rule, confidence,
+accepted plots and refusal reasons. Small untyped footprints beside French
+rural bus stops become open timber shelters with a bench; substations remain
+utility huts. Classification and dimensions remain inference where untagged.
+See [the Lasné and Paris validation](../docs/VALIDATION_LASNE.md).
+
+Generator v34 extends the low-rise priors to rural US homes (with a New England
+override), European Russian cottages, Anti-Atlas mineral courts and Japanese
+village houses. Historic Kiso valley rows have a bounded regional rule; observed
+city/town centres silence it. Compact village architecture never authorizes
+guessed gardens in dense blocks. Small untyped annexes beside eligible rural
+homes stay one storey. Orthogonal houses with joined wings receive pitched roofs
+over their actual wings; explicit flat roofs and the French/urban path remain
+unchanged. Surveyed dimensions still beat every prior.
+
+Tafraout's bounded small-town rule also covers low shop buildings, without
+inventing private gardens or changing public institutions and observed cities.
+Wadi ground, timber fences and stone boundaries use surface textures without
+baked facade windows. Geographic inspection captures hide the player's mesh
+when it overlaps the photo camera.
+
+OSM query v13 and civic layer v4 add settlement nodes. Old caches can be enriched
+without downloading their buildings again. Explicitly intermittent waterways
+in southern Morocco receive a dry gravel-bed hypothesis, rather than permanent
+swimming water; mapped permanent water is preserved. This does not model floods.
+
+`tools/capture_rural_references.py` replays four geolocated photo views with EXIF
+clocks and visually reconstructed weather. `--camera-geo <lon> <lat> <eye-AGL-m>`
+fixes the capture camera independently of safe-spawn relocation; it requires
+smoke capture and a viewpoint. Optical and bearing uncertainties are recorded,
+including the stitched Moroccan panorama. `tools/rural_comparison.py` builds the
+side-by-side review page. See [the registered rural study](../docs/VALIDATION_RURAL_REFERENCES.md)
+for locations, remaining visual gaps, budgets and the unchanged Paris geometry.
 
 Generator v30 fixes two missing road classes: `unclassified` country roads
 used to fall back to 2.5 m, and `*_link` ramps were treated as pedestrian
@@ -1460,3 +1513,5 @@ CC BY 3.0 (`assets/licenses/Road-vehicles-CC-BY-3.0.txt`). The selection map
 and offline coastline are Natural Earth (public domain). Asset provenance and
 checksums are in `assets/THIRD_PARTY_ASSETS.json`, and attribution is visible
 in game.
+
+Generator v35 reads inland-water multipolygons (OSM query v14), joins reversed shoreline members, preserves inner land rings and rejects incomplete rings. Kawaguchi relation 2313174 was refreshed from the official OSM API; the targeted check and offline capture passed. Water geometry is clipped to each resident tile, and inferred vegetation is excluded from the lake. Distant water beyond resident tiles still uses the coarse relief.

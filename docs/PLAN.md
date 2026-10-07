@@ -4,7 +4,9 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 7 octobre 2026, générateur v31 : abords ruraux et fréquentation locale.
+État relu le 7 octobre 2026, générateur v35 : pavillons français, jardins,
+clôtures, portails et abris de bus ruraux ; priors régionaux US/RU/MA/JP,
+toitures par ailes et villages compacts ; exclusion des centres denses.
 Le détail de ce qui est fait et mesuré est dans `game/README.md`.
 
 **Deux critères priment sur tous les autres, et ils sont en tension :**
@@ -359,6 +361,15 @@ machine de référence (I4).
   Les mesures actuelles sur RTX 4070 ne qualifient pas cette machine cible.
 - **Voitures et circulation** : améliorer la peinture et les reflets de près,
   puis le comportement aux feux et face aux piétons, avec un coût borné.
+
+### Végétation basse — à traiter plus tard
+
+- **Manque général de buissons dans le jeu**, constaté le 7 octobre lors des
+  comparaisons photographiques : ajouter arbustes, haies et massifs dans les
+  jardins, en bordure des routes et entre les bâtiments. Adapter leur densité
+  au climat, au pays et à l'usage du sol ; respecter les limites observées,
+  les accès, les centres urbains et les budgets d'instances/LOD. Vérifier aux
+  points GPS des photos, à heure et météo comparables, sans déplacer la caméra.
 
 ### Animals update
 - **Beaucoup d'animaux, adaptés à l'endroit** : l'espèce découle du biome, de
