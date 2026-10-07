@@ -3368,7 +3368,7 @@ class World : public Rml::EventListener {
             if(!sea)throw std::runtime_error("sea node refused by the scene loader");
             root->addChild(std::move(sea));
         } else root->createChild<saida::Node>("Geography");
-        if(!cooked.grass.empty())root->addChild(grassNode(cooked.grass));
+        if(!cooked.grass.empty())root->addChild(grassNode(cooked));
         return root;
     }
     // The player and the car push the grass aside where they pass.
@@ -3388,7 +3388,8 @@ class World : public Rml::EventListener {
     }
     // The tile's grass blades (gen/grass), on its ground as drawn, in the
     // tile's own frame: the engine makes them around the camera.
-    static std::unique_ptr<saida::GrassNode> grassNode(const r1::GrassCover& g) {
+    static std::unique_ptr<saida::GrassNode> grassNode(const r1::CookedTile& cooked) {
+        const r1::GrassCover& g=cooked.grass;
         auto node=std::make_unique<saida::GrassNode>();
         saida::GrassNode::Field f;
         f.groundSamples=g.groundSamples;f.heights=g.heights;
@@ -3396,6 +3397,12 @@ class World : public Rml::EventListener {
         f.uvFromLocal=glm::mat3(glm::vec3(float(m[0]),float(m[3]),0.f),glm::vec3(float(m[1]),float(m[4]),0.f),
                                 glm::vec3(float(m[2]),float(m[5]),1.f));
         f.coverSize=g.coverSize;f.cover=g.cover;
+        // The ground's texture coordinates are (x, -z) in repeats (gen/terrain):
+        // the blades carry its light and dark patches past where they end.
+        const float repeat=float(cooked.grassUvScale);
+        f.materialUvFromLocal=glm::mat3(glm::vec3(repeat,0.f,0.f),glm::vec3(0.f,-repeat,0.f),glm::vec3(0.f,0.f,1.f));
+        const auto& v=cooked.grassVariation;
+        f.variation=glm::vec4(float(v[0]),float(v[1]),float(v[2]),float(v[3]));
         if(!node->setField(std::move(f)))throw std::runtime_error("grass field refused by the engine");
         return node;
     }

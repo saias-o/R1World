@@ -36,6 +36,9 @@ struct GrassCover {
     // Of the tile, the share drawn grassy, and of that the share laid over
     // or built on: what the manifest says of it.
     double grassy = 0, laid = 0;
+    // The ground family most of the grass grows on: the material whose
+    // brightness variation the blades carry (saida::GrassNode::Field).
+    std::string family;
     bool empty() const { return cover.empty(); }
 };
 

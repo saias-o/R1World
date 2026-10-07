@@ -84,7 +84,7 @@ GrassCover grassCover(const TerrainGrid& grid,
     out.uvFromEngine = {ua, ub, -(ua * o.x + ub * o.z), va, vb, -(va * o.x + vb * o.z)};
 
     // Grass where the drawn ground is grassy, by the triangle under each texel.
-    struct Kind { double density; std::array<uint8_t, 3> colour; };
+    struct Kind { double density; std::array<uint8_t, 3> colour; std::string family; };
     std::map<std::string, Kind> kinds;
     auto kindOf = [&](const std::string& cls) -> const Kind& {
         auto it = kinds.find(cls);
@@ -92,8 +92,10 @@ GrassCover grassCover(const TerrainGrid& grid,
         const auto family = familyOf(cls);
         const double density = family ? grassDensity(*family) : 0.0;
         const auto c = density > 0.0 ? colourOf(cls) : std::array<double, 3>{};
-        return kinds.emplace(cls, Kind{density, {srgbByte(c[0]), srgbByte(c[1]), srgbByte(c[2])}}).first->second;
+        return kinds.emplace(cls, Kind{density, {srgbByte(c[0]), srgbByte(c[1]), srgbByte(c[2])},
+                                       family.value_or(std::string())}).first->second;
     };
+    std::map<std::string, size_t> texelsOf;
     const int size = kGrassCoverSize;
     out.cover.assign(size_t(size) * size, 0u);
     bool any = false;
@@ -104,12 +106,15 @@ GrassCover grassCover(const TerrainGrid& grid,
             const bool lower = u - col >= v - row;
             const Kind& k = kindOf(grid.classes[size_t(2 * (row * (n - 1) + col) + (lower ? 0 : 1))]);
             if (k.density <= 0.0) continue;
+            ++texelsOf[k.family];
             const uint32_t a = uint32_t(std::lround(k.density * 255.0));
             out.cover[size_t(j) * size + i] =
                 k.colour[0] | uint32_t(k.colour[1]) << 8 | uint32_t(k.colour[2]) << 16 | a << 24;
             any = true;
         }
     if (!any) return GrassCover{};
+    out.family = std::max_element(texelsOf.begin(), texelsOf.end(),
+                                  [](const auto& a, const auto& b) { return a.second < b.second; })->first;
     size_t grassyTexels = 0;
     for (uint32_t c : out.cover) grassyTexels += c != 0u;
 

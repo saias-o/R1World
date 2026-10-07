@@ -504,6 +504,11 @@ CookedTile cookTile(const Observations& in) {
         out.grass = grassCover(
             drawnGround, [&](const std::string& cls) { return groundFamily(cls, profile.ground.name, climate); },
             [&](const std::string& cls) { return groundSwatch(cls, profile).color; }, laid, footprints);
+        if (!out.grass.empty()) {
+            const Material ground = surfaceMaterial(out.grass.family, {0.0, 0.0, 0.0}, 1.0, out.grass.family);
+            out.grassUvScale = ground.uvScale;
+            out.grassVariation = ground.variation;
+        }
         if (!inlandMesh.empty()) {
             auto water = seaNode(bounds, anchor, "Inland water");
             water["amplitude"] = 0.045;

@@ -475,7 +475,13 @@ ground grid as drawn, and a 512² cover, about a metre a texel, whose density
 follows the family the ground is drawn with (lawn and meadow full, fields of
 crops nearly so, marsh, dry grass and savanna thinner, a wood's floor sparse)
 and whose colour is that family's measured albedo -- straw on farmland -- so
-where the blades thin out the ground under them is the same colour. Nothing grows under a face laid
+where the blades thin out the ground under them is the same colour. The blades
+carry the ground material's light and dark patches (its macro variation), and
+the engine shades them, away from the eye, exactly as that ground: at 40-80 m
+a capture with blades and one without measure the same, band for band, within
+3 %. Grassy ground is a canopy and is drawn matt (`palette.cpp`, `isCanopy`):
+Grass004's scan averages a roughness of 0.26, and at grazing angles it mirrored
+the sky, a pale blue band where the blades ended. Nothing grows under a face laid
 within a metre of the ground (streets, pavements, car parks, quays, runways) or
 inside a building. The player and the car push the blades aside.
 

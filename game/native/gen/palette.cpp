@@ -460,6 +460,15 @@ std::array<double, 4> variationOf(const std::string& family, const nlohmann::jso
     return {v.warp, uvSize / v.macroMetres, v.albedo, v.slope};
 }
 
+// Ground families that are vegetation, grown over by the grass blades
+// (gen/grass): drawn matt, whatever the scan's roughness says.
+bool isCanopy(const std::string& family) {
+    static const std::set<std::string> kCanopies = {
+        "grass", "grass_lush", "grass_dry", "farmland", "savanna",
+        "tropical_ground", "forest_temperate", "forest_boreal", "forest_tropical"};
+    return kCanopies.count(family) > 0;
+}
+
 }  // namespace
 
 Material surfaceMaterial(const std::string& name, std::array<double, 3> color, double roughness,
@@ -479,6 +488,12 @@ Material surfaceMaterial(const std::string& name, std::array<double, 3> color, d
     m.metallicRoughnessTexture = it->at("mr").get<std::string>();
     m.uvScale = 1.0 / it->at("uvSize").get<double>();
     m.variation = variationOf(*family, *it);
+    // A canopy is drawn matt. Seen from a walker's eye a meadow is a volume
+    // of blades, not the scanned surface: Grass004's roughness averages 0.26,
+    // and over a whole field it mirrored the sky at grazing angles -- a pale
+    // blue band where the engine's grass blades, matt, hand over to the
+    // ground. Its colour and relief stay; mud and frost keep their sheen.
+    if (isCanopy(*family)) m.metallicRoughnessTexture.clear();
     if (it->contains("height")) {
         // Depth in metres, as repeats: a wall's repeat is a bay and a storey.
         const auto& bay = palette().surfaces.at("bay");

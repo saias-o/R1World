@@ -64,6 +64,11 @@ struct CookedTile {
     nlohmann::json ocean;
     // Where grass blades grow on its ground (gen/grass); empty where none does.
     GrassCover grass;
+    // The ground material under it, whose variation the blades carry: its
+    // repeat (texture coordinates are engine (x, -z) times it) and its
+    // MaterialDesc::variation.
+    double grassUvScale = 1.0;
+    std::array<double, 4> grassVariation{};
     // Scene nodes on shared assets: landmarks, plants, props, boats, containers.
     nlohmann::json props = nlohmann::json::array();
     // What `ready.json` said: the frame, the collision data, what was inferred.
