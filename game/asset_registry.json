@@ -11,7 +11,7 @@
             "type": "Unknown"
         },
         "10013366607930000696": {
-            "hash": 7073655531894829955,
+            "hash": 14990577569822619878,
             "path": "assets/textures/facades/brick_red_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -26,7 +26,7 @@
             "type": "Texture"
         },
         "10048449252355454706": {
-            "hash": 4629684667053892055,
+            "hash": 17792398235756242539,
             "path": "assets/textures/facades/timber_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -230,6 +230,11 @@
             "path": "assets/models/signs/faces/fr_b14_110-normale-r1.png",
             "type": "Texture"
         },
+        "10529908963398766418": {
+            "hash": 5491274794886946543,
+            "path": "assets/textures/surfaces/ashlar_rough_mr.jpg",
+            "type": "Texture"
+        },
         "10541567253359498554": {
             "hash": 11746693866459931948,
             "path": "assets/world/relief/60_130.r1relief",
@@ -318,6 +323,11 @@
         "10715968586009378878": {
             "hash": 9090967675550982469,
             "path": "assets/textures/surfaces/tile_grey_normal.jpg",
+            "type": "Texture"
+        },
+        "10751261909316494661": {
+            "hash": 16211286240095569084,
+            "path": "assets/textures/surfaces/pavement_height.jpg",
             "type": "Texture"
         },
         "10769241307217563680": {
@@ -616,7 +626,7 @@
             "type": "Texture"
         },
         "1142104804982393000": {
-            "hash": 14226532417854634959,
+            "hash": 11262654665989634408,
             "path": "assets/textures/facades/render_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -816,7 +826,7 @@
             "type": "Unknown"
         },
         "1186708753548117409": {
-            "hash": 2678215517298379653,
+            "hash": 16962762212156253263,
             "path": "assets/textures/facades/concrete_panel_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -890,6 +900,11 @@
             "path": "assets/models/signs/street/blade_middle-r1.glb",
             "type": "Mesh"
         },
+        "12057630593147421748": {
+            "hash": 2198512553149548541,
+            "path": "assets/textures/surfaces/ashlar_large_normal.jpg",
+            "type": "Texture"
+        },
         "12074470290549512546": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/40_-170.r1relief",
@@ -921,7 +936,7 @@
             "type": "Unknown"
         },
         "12144190595864778274": {
-            "hash": 10261050640128765424,
+            "hash": 11507684366189117466,
             "path": "assets/world/landmarks/sydney_opera_house-r3.glb",
             "type": "Mesh"
         },
@@ -941,7 +956,7 @@
             "type": "Unknown"
         },
         "12190100396979270698": {
-            "hash": 6793497951419645721,
+            "hash": 16121396179834197687,
             "path": "assets/textures/facades/concrete_panel_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -1046,7 +1061,7 @@
             "type": "Mesh"
         },
         "12328019574957421701": {
-            "hash": 9339828496823619462,
+            "hash": 9852525103950565441,
             "path": "assets/textures/facades/brick_red_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -1136,12 +1151,12 @@
             "type": "Unknown"
         },
         "12626698960083496154": {
-            "hash": 13309360296643590621,
+            "hash": 6598753757969774290,
             "path": "assets/textures/facades/render_rough_and_window_albedo.jpg",
             "type": "Texture"
         },
         "12627523040984944437": {
-            "hash": 4095298847183952012,
+            "hash": 8078310695182113819,
             "path": "assets/world/landmarks/empire_state_building-r3.glb",
             "type": "Mesh"
         },
@@ -1196,12 +1211,12 @@
             "type": "Unknown"
         },
         "12763075176032404977": {
-            "hash": 2160840037247510684,
+            "hash": 4807836070172417068,
             "path": "assets/textures/facades/concrete_panel_and_window_normal.jpg",
             "type": "Texture"
         },
         "12766889262400015419": {
-            "hash": 12993755258095243199,
+            "hash": 1345305923524397089,
             "path": "assets/world/landmarks/pyramid_of_khafre-r3.glb",
             "type": "Mesh"
         },
@@ -1216,7 +1231,7 @@
             "type": "Unknown"
         },
         "12790354790958849452": {
-            "hash": 4482457429769433768,
+            "hash": 17951991677992259883,
             "path": "assets/textures/facades/stone_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -1356,7 +1371,7 @@
             "type": "Texture"
         },
         "13068997251858126156": {
-            "hash": 17836297272305255962,
+            "hash": 8776745714649270350,
             "path": "assets/world/landmarks/christ_the_redeemer-r3.glb",
             "type": "Mesh"
         },
@@ -1376,7 +1391,7 @@
             "type": "Mesh"
         },
         "13111794619578189054": {
-            "hash": 9543304102025874094,
+            "hash": 13026992073239969485,
             "path": "assets/world/landmarks/sagrada_familia-r3.glb",
             "type": "Mesh"
         },
@@ -1410,6 +1425,11 @@
             "path": "assets/world/relief/-90_-80.r1relief",
             "type": "Unknown"
         },
+        "1319833619723281696": {
+            "hash": 16797337113692523532,
+            "path": "assets/textures/facades/earth_and_window_height.jpg",
+            "type": "Texture"
+        },
         "13218949161719059758": {
             "hash": 10499384107617078218,
             "path": "assets/world/SOURCES.json",
@@ -1436,7 +1456,7 @@
             "type": "Unknown"
         },
         "13286881622526078535": {
-            "hash": 1856952299990876652,
+            "hash": 352519898602349115,
             "path": "assets/textures/facades/render_rough_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -1466,7 +1486,7 @@
             "type": "Unknown"
         },
         "13364353098406619667": {
-            "hash": 7607613615124997358,
+            "hash": 11894578862337842808,
             "path": "assets/world/landmarks/leaning_tower_of_pisa-r3.glb",
             "type": "Mesh"
         },
@@ -1636,7 +1656,7 @@
             "type": "Texture"
         },
         "1376047023610803515": {
-            "hash": 15100453451946097044,
+            "hash": 14951937052846670954,
             "path": "assets/textures/facades/stone_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -1831,7 +1851,7 @@
             "type": "Texture"
         },
         "14314225292672339883": {
-            "hash": 15368889781494062867,
+            "hash": 3463023072231840374,
             "path": "assets/textures/facades/brick_buff_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -1876,7 +1896,7 @@
             "type": "Unknown"
         },
         "14491187732939635241": {
-            "hash": 16466337340063904140,
+            "hash": 8913768863926802874,
             "path": "assets/textures/facades/concrete_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -1984,6 +2004,11 @@
             "hash": 10743553306427503192,
             "path": "assets/world/relief/40_140.r1relief",
             "type": "Unknown"
+        },
+        "14744395027540086224": {
+            "hash": 18084330745879347010,
+            "path": "assets/textures/facades/brick_dark_and_window_height.jpg",
+            "type": "Texture"
         },
         "1476205107630755768": {
             "hash": 11418214536529617692,
@@ -2231,7 +2256,7 @@
             "type": "Texture"
         },
         "15306120452523047330": {
-            "hash": 17931892984775289801,
+            "hash": 5898697651206467956,
             "path": "assets/textures/facades/timber_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -2270,13 +2295,18 @@
             "path": "assets/models/signs/street/glyph_0048-r1.glb",
             "type": "Mesh"
         },
+        "15372741562085959624": {
+            "hash": 1254139560270880073,
+            "path": "assets/textures/facades/siding_and_window_height.jpg",
+            "type": "Texture"
+        },
         "15373741830460035101": {
             "hash": 9491143354054416575,
             "path": "assets/models/signs/us_r1-1+us_r1-3p-rural-r1.glb",
             "type": "Mesh"
         },
         "15374812747493576515": {
-            "hash": 6723276661686199723,
+            "hash": 14205963879563817699,
             "path": "assets/world/landmarks/landmarks.json",
             "type": "Unknown"
         },
@@ -2296,7 +2326,7 @@
             "type": "Mesh"
         },
         "15413087698998148951": {
-            "hash": 365330295805531905,
+            "hash": 14336913261275836615,
             "path": "assets/world/landmarks/brandenburg_gate-r3.glb",
             "type": "Mesh"
         },
@@ -2441,7 +2471,7 @@
             "type": "Texture"
         },
         "15784727134325099236": {
-            "hash": 14674249759734331411,
+            "hash": 14499667375773929429,
             "path": "assets/textures/facades/concrete_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -2686,7 +2716,7 @@
             "type": "Unknown"
         },
         "16452394163001117220": {
-            "hash": 11997953820596656837,
+            "hash": 13767306177086702285,
             "path": "assets/textures/facades/brick_buff_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -2725,6 +2755,11 @@
             "path": "assets/world/relief/30_-90.r1relief",
             "type": "Unknown"
         },
+        "16625114746732838976": {
+            "hash": 3286447338322618783,
+            "path": "assets/textures/surfaces/brick_bond_mr.jpg",
+            "type": "Texture"
+        },
         "16625814420988036407": {
             "hash": 4590530117392917427,
             "path": "assets/world/landmarks/far.json",
@@ -2754,6 +2789,11 @@
             "hash": 14645428192044392861,
             "path": "assets/world/relief/0_-70.r1relief",
             "type": "Unknown"
+        },
+        "16715886687615770783": {
+            "hash": 629618220209869389,
+            "path": "assets/textures/surfaces/brick_bond_albedo.jpg",
+            "type": "Texture"
         },
         "16738308117648534659": {
             "hash": 18109605500962710275,
@@ -2821,7 +2861,7 @@
             "type": "Unknown"
         },
         "16940723734641318219": {
-            "hash": 17450328844672430159,
+            "hash": 4923618129979238862,
             "path": "assets/textures/facades/earth_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -2856,7 +2896,7 @@
             "type": "Unknown"
         },
         "17084595504188701708": {
-            "hash": 485654311751158091,
+            "hash": 9348168032699231869,
             "path": "assets/world/landmarks/taj_mahal-r3.glb",
             "type": "Mesh"
         },
@@ -2943,6 +2983,11 @@
         "17251775343475410708": {
             "hash": 11282967632070341689,
             "path": "assets/textures/surfaces/quay_normal.jpg",
+            "type": "Texture"
+        },
+        "17261841780197958680": {
+            "hash": 5765808655947500619,
+            "path": "assets/textures/surfaces/cobbles_height.jpg",
             "type": "Texture"
         },
         "17264216592761584775": {
@@ -3141,12 +3186,12 @@
             "type": "Unknown"
         },
         "1768263024899672070": {
-            "hash": 5381730451797181041,
+            "hash": 14682041126306606678,
             "path": "assets/textures/facades/render_and_window_normal.jpg",
             "type": "Texture"
         },
         "17691392667013478571": {
-            "hash": 2882360106915338937,
+            "hash": 6459815654061645351,
             "path": "assets/textures/facades/brick_dark_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -3224,6 +3269,11 @@
             "hash": 10267684790975774446,
             "path": "assets/models/aircraft/bizjet_far.glb",
             "type": "Mesh"
+        },
+        "17934044105923719352": {
+            "hash": 9914223118866550852,
+            "path": "assets/textures/surfaces/ashlar_large_mr.jpg",
+            "type": "Texture"
         },
         "17934182607346071158": {
             "hash": 6271810807875847883,
@@ -3355,6 +3405,11 @@
             "path": "assets/world/relief/60_170.r1relief",
             "type": "Unknown"
         },
+        "18307313801099331477": {
+            "hash": 8693983998706247357,
+            "path": "assets/textures/surfaces/step_stone_height.jpg",
+            "type": "Texture"
+        },
         "18315190416860295361": {
             "hash": 16673332415060304257,
             "path": "assets/textures/surfaces/grass_dry_albedo.jpg",
@@ -3379,6 +3434,11 @@
             "hash": 7371221168014878065,
             "path": "assets/models/signs/us_r2-1_75-rural-r1.glb",
             "type": "Mesh"
+        },
+        "1839474347090319528": {
+            "hash": 17569828897999375375,
+            "path": "assets/textures/surfaces/brick_bond_normal.jpg",
+            "type": "Texture"
         },
         "18403989519910844840": {
             "hash": 9728279739758500432,
@@ -3406,7 +3466,7 @@
             "type": "Unknown"
         },
         "1851528684546447240": {
-            "hash": 6858992088069327345,
+            "hash": 7507147146552056994,
             "path": "assets/textures/facades/timber_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -3416,7 +3476,7 @@
             "type": "Unknown"
         },
         "1873029730182051311": {
-            "hash": 6867839742766640036,
+            "hash": 930675618160583043,
             "path": "assets/world/landmarks/st_basils_cathedral-r3.glb",
             "type": "Mesh"
         },
@@ -3466,7 +3526,7 @@
             "type": "Mesh"
         },
         "1956996305968822904": {
-            "hash": 18023889557059996111,
+            "hash": 14739521975738580188,
             "path": "assets/world/landmarks/arc_de_triomphe-r3.glb",
             "type": "Mesh"
         },
@@ -3551,7 +3611,7 @@
             "type": "Texture"
         },
         "2207497608524842625": {
-            "hash": 18357485283247288005,
+            "hash": 1163977737764585413,
             "path": "assets/textures/facades/render_rough_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -3574,6 +3634,11 @@
             "hash": 327331608015659268,
             "path": "assets/world/relief/-30_-40.r1relief",
             "type": "Unknown"
+        },
+        "2266788302552090952": {
+            "hash": 8102519273950972221,
+            "path": "assets/textures/surfaces/ashlar_rough_albedo.jpg",
+            "type": "Texture"
         },
         "2281047134823865316": {
             "hash": 6271810807875847883,
@@ -3606,7 +3671,7 @@
             "type": "Mesh"
         },
         "2335748679951839597": {
-            "hash": 3749357259082498085,
+            "hash": 15152739102907154194,
             "path": "assets/textures/facades/siding_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -3651,7 +3716,7 @@
             "type": "Mesh"
         },
         "2444937345355907243": {
-            "hash": 14217257955108901957,
+            "hash": 4655253126256283109,
             "path": "assets/textures/facades/brick_buff_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -3710,10 +3775,20 @@
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_diff_1k.jpg",
             "type": "Texture"
         },
+        "2602737661161441885": {
+            "hash": 6781230314710595671,
+            "path": "assets/licenses/Road-vehicles-CC-BY-3.0.txt",
+            "type": "Unknown"
+        },
         "2606656358282053895": {
             "hash": 10350745848097048193,
             "path": "assets/models/signs/town/glyph_0038-r1.glb",
             "type": "Mesh"
+        },
+        "2615887771588414601": {
+            "hash": 7732647561163670734,
+            "path": "assets/textures/surfaces/ashlar_large_albedo.jpg",
+            "type": "Texture"
         },
         "2622813391412591926": {
             "hash": 6271810807875847883,
@@ -3771,7 +3846,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 5827517926609620265,
+            "hash": 14656304109476871937,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },
@@ -3846,7 +3921,7 @@
             "type": "Unknown"
         },
         "2962791567303176859": {
-            "hash": 17840066827552890271,
+            "hash": 13491183949331328811,
             "path": "assets/world/landmarks/notre_dame_de_paris-r3.glb",
             "type": "Mesh"
         },
@@ -3901,7 +3976,7 @@
             "type": "Unknown"
         },
         "3095467060135935995": {
-            "hash": 8018319199023649198,
+            "hash": 28824445510811233,
             "path": "assets/textures/facades/brick_dark_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -3951,7 +4026,7 @@
             "type": "Texture"
         },
         "328705249163148561": {
-            "hash": 2364531665894016466,
+            "hash": 17691799645500514251,
             "path": "assets/textures/facades/brick_dark_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -3964,6 +4039,11 @@
             "hash": 12829324014278246702,
             "path": "assets/models/signs/town/glyph_0049-r1.glb",
             "type": "Mesh"
+        },
+        "3303965962839193956": {
+            "hash": 7025206355911740457,
+            "path": "assets/textures/facades/render_and_window_height.jpg",
+            "type": "Texture"
         },
         "3376173103220870612": {
             "hash": 13958972529778434561,
@@ -3996,7 +4076,7 @@
             "type": "Unknown"
         },
         "3415922082190133732": {
-            "hash": 2635440812673159583,
+            "hash": 13550769648036494929,
             "path": "assets/world/landmarks/statue_of_liberty-r3.glb",
             "type": "Mesh"
         },
@@ -4156,7 +4236,7 @@
             "type": "Texture"
         },
         "3667988090912318240": {
-            "hash": 15798168767394264932,
+            "hash": 3276191648729528295,
             "path": "assets/textures/facades/siding_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -4184,6 +4264,11 @@
             "hash": 14057876712946856394,
             "path": "assets/world/relief/-70_110.r1relief",
             "type": "Unknown"
+        },
+        "3731369635218982890": {
+            "hash": 13334933446818467285,
+            "path": "assets/textures/facades/concrete_panel_and_window_height.jpg",
+            "type": "Texture"
         },
         "3752522462855092985": {
             "hash": 15223555387667516680,
@@ -4276,7 +4361,7 @@
             "type": "Mesh"
         },
         "4073064183386803616": {
-            "hash": 11131938107497164887,
+            "hash": 9265101596798860608,
             "path": "assets/textures/facades/concrete_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -4295,6 +4380,11 @@
             "path": "assets/world/relief/60_-60.r1relief",
             "type": "Unknown"
         },
+        "4101135746363219467": {
+            "hash": 13867520206079939795,
+            "path": "assets/textures/surfaces/ashlar_rough_normal.jpg",
+            "type": "Texture"
+        },
         "4115531111567777651": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/40_-150.r1relief",
@@ -4309,6 +4399,11 @@
             "hash": 8493750319776251352,
             "path": "assets/world/relief/-40_-90.r1relief",
             "type": "Unknown"
+        },
+        "4140710115285068718": {
+            "hash": 13883742350091745592,
+            "path": "assets/textures/surfaces/ashlar_mr.jpg",
+            "type": "Texture"
         },
         "414178416894724734": {
             "hash": 10464662091219399383,
@@ -4429,6 +4524,11 @@
             "hash": 6723701887166965717,
             "path": "assets/models/signs/town/glyph_0041-r1.glb",
             "type": "Mesh"
+        },
+        "4439555139739229952": {
+            "hash": 14100243417195587362,
+            "path": "assets/textures/facades/stone_and_window_height.jpg",
+            "type": "Texture"
         },
         "4450752962977456044": {
             "hash": 4147212969547669327,
@@ -4700,13 +4800,18 @@
             "path": "assets/world/relief/80_110.r1relief",
             "type": "Unknown"
         },
+        "508706331315757587": {
+            "hash": 7212113240552767805,
+            "path": "assets/textures/facades/timber_and_window_height.jpg",
+            "type": "Texture"
+        },
         "5087532717512380950": {
             "hash": 13306713225261102849,
             "path": "assets/world/relief/20_-120.r1relief",
             "type": "Unknown"
         },
         "5111892054181493639": {
-            "hash": 2446804457691597341,
+            "hash": 12097986237366844188,
             "path": "assets/world/landmarks/pyramid_of_khufu-r3.glb",
             "type": "Mesh"
         },
@@ -4876,7 +4981,7 @@
             "type": "Mesh"
         },
         "5503867232916445660": {
-            "hash": 11625763690871136936,
+            "hash": 9469133258818868807,
             "path": "assets/textures/facades/brick_red_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -5031,7 +5136,7 @@
             "type": "Mesh"
         },
         "5966913870909260549": {
-            "hash": 14300155157235559044,
+            "hash": 12009982065741483329,
             "path": "assets/world/landmarks/parthenon-r3.glb",
             "type": "Mesh"
         },
@@ -5051,7 +5156,7 @@
             "type": "Texture"
         },
         "6027825936430180015": {
-            "hash": 6469019153772365400,
+            "hash": 16576238631210332810,
             "path": "assets/world/landmarks/eiffel_tower-r3.glb",
             "type": "Mesh"
         },
@@ -5140,6 +5245,11 @@
             "path": "assets/world/relief/-80_0.r1relief",
             "type": "Unknown"
         },
+        "629383613856984867": {
+            "hash": 6901260812157938631,
+            "path": "assets/textures/facades/render_rough_and_window_height.jpg",
+            "type": "Texture"
+        },
         "6304903127560850729": {
             "hash": 8692982547488684294,
             "path": "assets/world/relief/-80_50.r1relief",
@@ -5151,7 +5261,7 @@
             "type": "Texture"
         },
         "6319452198478534878": {
-            "hash": 6474124744609684219,
+            "hash": 14388886779483175281,
             "path": "assets/textures/facades/siding_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -5194,6 +5304,11 @@
             "hash": 3213072550597173871,
             "path": "assets/world/relief/-20_50.r1relief",
             "type": "Unknown"
+        },
+        "6502546735826466753": {
+            "hash": 1833479127761012952,
+            "path": "assets/textures/facades/brick_red_and_window_height.jpg",
+            "type": "Texture"
         },
         "6519361308412369131": {
             "hash": 4046613771597991778,
@@ -5350,6 +5465,11 @@
             "path": "assets/world/relief/-90_-20.r1relief",
             "type": "Unknown"
         },
+        "677788925946414072": {
+            "hash": 16991040059929363354,
+            "path": "assets/textures/surfaces/ashlar_albedo.jpg",
+            "type": "Texture"
+        },
         "6784616716434482435": {
             "hash": 5596447220486624814,
             "path": "assets/models/external/kenney_boats/boat_speed_a.glb",
@@ -5391,7 +5511,7 @@
             "type": "Unknown"
         },
         "6895047409412459049": {
-            "hash": 9298459513487323212,
+            "hash": 16222530380133155766,
             "path": "assets/world/landmarks/st_peters_basilica-r3.glb",
             "type": "Mesh"
         },
@@ -5631,12 +5751,12 @@
             "type": "Texture"
         },
         "7483397835349037867": {
-            "hash": 4655535784606540344,
+            "hash": 11082705177856409739,
             "path": "assets/textures/facades/render_and_window_albedo.jpg",
             "type": "Texture"
         },
         "7485864737716574759": {
-            "hash": 7702914113075337547,
+            "hash": 580228939212876639,
             "path": "assets/textures/facades/stone_and_window_mr.jpg",
             "type": "Texture"
         },
@@ -5656,7 +5776,7 @@
             "type": "Mesh"
         },
         "7537605783923696026": {
-            "hash": 2021712797805907641,
+            "hash": 11014122575023185200,
             "path": "assets/world/landmarks/colosseum-r3.glb",
             "type": "Mesh"
         },
@@ -5676,7 +5796,7 @@
             "type": "Texture"
         },
         "7593384123924276489": {
-            "hash": 5025363001738875168,
+            "hash": 7058398662597618411,
             "path": "assets/textures/facades/earth_and_window_albedo.jpg",
             "type": "Texture"
         },
@@ -5841,7 +5961,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 5676739957337100324,
+            "hash": 17901672674023993102,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -5996,7 +6116,7 @@
             "type": "Unknown"
         },
         "8461370359445157452": {
-            "hash": 14272083766030083516,
+            "hash": 15459293932988380302,
             "path": "assets/textures/facades/earth_and_window_normal.jpg",
             "type": "Texture"
         },
@@ -6186,7 +6306,7 @@
             "type": "Texture"
         },
         "8892943375755858906": {
-            "hash": 6099436400408244270,
+            "hash": 6321506983206245999,
             "path": "assets/world/landmarks/tokyo_tower-r3.glb",
             "type": "Mesh"
         },
@@ -6258,6 +6378,11 @@
         "9098493949262752514": {
             "hash": 4635720359396822624,
             "path": "assets/textures/surfaces/savanna_albedo.jpg",
+            "type": "Texture"
+        },
+        "9111121330652352470": {
+            "hash": 14414267301332073462,
+            "path": "assets/textures/facades/concrete_and_window_height.jpg",
             "type": "Texture"
         },
         "9111420001524366654": {
@@ -6376,7 +6501,7 @@
             "type": "Unknown"
         },
         "9362403766653960405": {
-            "hash": 2681365329367243886,
+            "hash": 3876234970742853486,
             "path": "assets/world/landmarks/big_ben-r3.glb",
             "type": "Mesh"
         },
@@ -6399,6 +6524,11 @@
             "hash": 14323712943977677655,
             "path": "assets/world/relief/10_160.r1relief",
             "type": "Unknown"
+        },
+        "93988917292697662": {
+            "hash": 6105479200662417302,
+            "path": "assets/textures/surfaces/ashlar_normal.jpg",
+            "type": "Texture"
         },
         "9399389486306077453": {
             "hash": 6757389260662637226,
@@ -6450,6 +6580,11 @@
             "path": "assets/world/relief/70_150.r1relief",
             "type": "Unknown"
         },
+        "9519909961953568870": {
+            "hash": 17203702334297691746,
+            "path": "assets/textures/facades/brick_buff_and_window_height.jpg",
+            "type": "Texture"
+        },
         "9531899325394617047": {
             "hash": 9138481336586677878,
             "path": "assets/models/humans/female_adult_11.glb",
@@ -6491,7 +6626,7 @@
             "type": "Unknown"
         },
         "9614193751727879334": {
-            "hash": 7206118511475262861,
+            "hash": 5679103516147648979,
             "path": "assets/world/landmarks/pyramid_of_menkaure-r3.glb",
             "type": "Mesh"
         },
@@ -6526,12 +6661,12 @@
             "type": "Mesh"
         },
         "9707553953933687028": {
-            "hash": 4400440835695138763,
+            "hash": 4268342893281983007,
             "path": "assets/textures/surfaces.json",
             "type": "Unknown"
         },
         "9745547955817295292": {
-            "hash": 12302353562836936383,
+            "hash": 11259993345530569467,
             "path": "assets/models/vehicles/fleet.json",
             "type": "Unknown"
         },
