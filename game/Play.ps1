@@ -143,6 +143,13 @@ function Write-Response([string]$path, [string[]]$arguments) {
     [IO.File]::WriteAllLines($path, [string[]]$lines)
 }
 
+# Parallel compile jobs: bounded by memory (about 1.5 GB per g++), never more
+# than 4 by default. Every core at once on a 7 GB machine starved the display
+# driver (bugcheck 0x116, VIDEO_TDR_FAILURE). R1_BUILD_JOBS overrides.
+$ramGB = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB
+$buildJobs = [Math]::Max(1, [Math]::Min([Math]::Min(4, [Environment]::ProcessorCount), [int][Math]::Floor($ramGB / 1.5)))
+if ($env:R1_BUILD_JOBS) { $buildJobs = [Math]::Max(1, [int]$env:R1_BUILD_JOBS) }
+
 function Start-Compiler([string]$response, [string]$errors) {
     $p = Start-Process -FilePath $compiler -ArgumentList ('"@' + $response + '"') -WorkingDirectory $engineBuild `
         -NoNewWindow -PassThru -RedirectStandardError $errors
@@ -174,7 +181,7 @@ function Invoke-Build([bool]$everything) {
     $compiled = $queue.Count
     $running = @()
     $failed = @()
-    $slots = [Math]::Max(1, [Environment]::ProcessorCount)
+    $slots = $buildJobs
     while ($queue.Count -gt 0 -or $running.Count -gt 0) {
         while ($queue.Count -gt 0 -and $running.Count -lt $slots) {
             $job = $queue.Dequeue()
@@ -229,7 +236,7 @@ function Update-Engine {
     $tmp = Join-Path $engineBuild 'tmp'
     New-Item -ItemType Directory -Force -Path $tmp | Out-Null
     $env:TMP = $tmp; $env:TEMP = $tmp
-    $output = & $cmake --build $engineBuild --target SaidaEngineRuntime --parallel 2>&1 | ForEach-Object { "$_" }
+    $output = & $cmake --build $engineBuild --target SaidaEngineRuntime --parallel $buildJobs 2>&1 | ForEach-Object { "$_" }
     if ($LASTEXITCODE -ne 0) {
         $output | Select-String -Pattern 'error|FAILED' | Select-Object -First 20 | ForEach-Object { Write-Host $_.Line -ForegroundColor Red }
         throw "Compilation du moteur échouée"
