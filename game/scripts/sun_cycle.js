@@ -160,6 +160,18 @@ function setInspectionMode(enabled, unixSeconds) {
     inspectionMode = enabled;
     return true;
 }
+// The player's "Forcer l'heure" option (Options screen): the world held at one
+// instant, which the game computes from the hour asked for and the observer's
+// time zone, and moves whenever that zone changes. `null` follows the clock.
+// A capture's inspection instant still wins: it is what makes two builds
+// photograph the same light.
+let forcedUnix = null;
+function setForcedTime(unixSeconds) {
+    if (unixSeconds === null) { forcedUnix = null; return true; }
+    if (!Number.isFinite(unixSeconds)) return false;
+    forcedUnix = unixSeconds;
+    return true;
+}
 let clock = null;
 let lastLabel = "";
 // The pair of skies last handed to `scene.setSkybox`, so the textures are only
@@ -566,6 +578,7 @@ function compass(azimuth) {
 // ships and the Sun cannot disagree about the time.
 function gameTime() {
     if (inspectionMode) return inspectionUnix;
+    if (forcedUnix !== null) return forcedUnix;
     return EPOCH_UNIX + (Date.now() / 1000.0 - EPOCH_UNIX) * TIME_SCALE;
 }
 

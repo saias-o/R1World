@@ -411,3 +411,65 @@ class SunCycleObserverTests(unittest.TestCase):
         for case, js in zip(self.cases, self.actual):
             self.assertEqual(js["rejected"], [False, False, False])
             self._close(js["afterRejection"], js["elevation"], "elevation after refusal", case)
+
+
+# The Options screen's "Forcer l'heure à": the game hands the script one
+# instant and the whole model -- the clock the ships and the crowd read, and
+# the light -- stands at it until the game hands it `null` again. A capture's
+# inspection instant still wins over it.
+FORCED_HARNESS = r"""
+const fs = require("fs");
+const source = fs.readFileSync(process.argv[2], "utf8");
+const forced = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+const props = {};
+const node = { setProperty: () => true, setRotation: () => {} };
+const tree = { firstInGroup: () => null };
+new Function("exportProperty", "props", "node", "tree", source + "\n")(
+    (name, value) => { props[name] = value; }, props, node, tree);
+const m = new Function(
+    "exportProperty", "props", "node", "tree",
+    source + "\nreturn { setForcedTime, setInspectionMode, gameTime };\n"
+)(() => {}, props, node, tree);
+const out = {};
+out.realBefore = m.gameTime();
+out.refused = [m.setForcedTime(NaN), m.setForcedTime(Infinity), m.setForcedTime("14:00")];
+out.afterRefusal = m.gameTime();
+out.accepted = m.setForcedTime(forced);
+out.held = [m.gameTime(), m.gameTime()];
+m.setInspectionMode(true, forced + 3600);
+out.inspection = m.gameTime();
+m.setInspectionMode(false);
+out.cleared = m.setForcedTime(null);
+out.realAfter = m.gameTime();
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+class SunCycleForcedTimeTests(unittest.TestCase):
+    """`setForcedTime` holds the world at one instant and lets it go."""
+
+    def test_forced_instant_is_held_then_released(self) -> None:
+        node = _node()
+        if node is None:
+            self.skipTest("node is not installed; sun_cycle.js cannot be run")
+        forced = datetime(2026, 10, 7, 12, 0, tzinfo=timezone.utc).timestamp()
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "forced.js"
+            harness.write_text(FORCED_HARNESS, encoding="utf8")
+            payload = Path(tmp) / "forced.json"
+            payload.write_text(json.dumps(forced), encoding="utf8")
+            result = subprocess.run(
+                [node, str(harness), str(SCRIPT), str(payload)],
+                capture_output=True, text=True, check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = json.loads(result.stdout)
+        real = datetime.now(timezone.utc).timestamp()
+        self.assertLess(abs(out["realBefore"] - real), 60.0)
+        self.assertEqual(out["refused"], [False, False, False])
+        self.assertLess(abs(out["afterRefusal"] - real), 60.0, "a refused hour must change nothing")
+        self.assertTrue(out["accepted"])
+        self.assertEqual(out["held"], [forced, forced])
+        self.assertEqual(out["inspection"], forced + 3600, "a capture's instant wins")
+        self.assertTrue(out["cleared"])
+        self.assertLess(abs(out["realAfter"] - real), 60.0, "null gives the world back to the clock")

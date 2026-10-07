@@ -10,9 +10,20 @@
   <div id="city-lookup"><label for="city-query">VILLE OU COMMUNE</label><input id="city-query" type="text" placeholder="Rechercher une ville…"/></div>
   <div id="city-results"><div id="city-feedback"></div><button id="city-choice-0"></button><button id="city-choice-1"></button><button id="city-choice-2"></button><button id="city-choice-3"></button><button id="city-choice-4"></button></div>
   <div id="places"><button id="paris">Paris</button><button id="tokyo">Tokyo</button><button id="newyork">New York</button><button id="lawrence">Lawrence</button><button id="cape">Le Cap</button><button id="sydney">Sydney</button><button id="pole">Pôle Nord</button></div>
-  <div id="destination"><label>LATITUDE</label><input id="latitude" type="text" value="48.856600"/><label>LONGITUDE</label><input id="longitude" type="text" value="2.352200"/><button id="go">Go</button><button id="resume">Reprendre</button></div>
+  <div id="destination"><label>LATITUDE</label><input id="latitude" type="text" value="48.856600"/><label>LONGITUDE</label><input id="longitude" type="text" value="2.352200"/><button id="go">Go</button><button id="resume">Reprendre</button><button id="options">Options</button></div>
   <p id="status">Carte prête. Sélectionnez votre destination.</p>
   <div id="credits">Carte : Natural Earth · Bâtiments et routes : © OpenStreetMap · Recherche : Photon / OpenStreetMap · Relief : IGN RGE ALTI · Terrain Tiles (Mapzen ; USGS SRTM/3DEP/GMTED, NOAA ETOPO1, EU-DEM Copernicus, Geoscience Australia, Kartverket, LINZ, Environment Agency, INEGI, Gouvernement du Canada, DGM Österreich, ArcticDEM) · Copernicus DEM / Open-Meteo · Sommets : © OpenStreetMap · Météo : Open-Meteo · Banquise : NOAA PolarWatch (ASCAT) · Canopée : Meta & WRI (CC BY 4.0) · Personnages : Microsoft Rocketbox (MIT) · Véhicules adaptés : Ruff (Ford Focus, Blend Swap 76275), Scopia et Space Mushrooms / Sweet Home 3D (CC BY 3.0 ; sources et licence dans assets/licenses/Road-vehicles-CC-BY-3.0.txt)</div>
+ </div>
+ <div id="options-screen">
+  <div id="options-brand">R1<span>WORLD</span></div>
+  <h1>Options</h1>
+  <div id="forced-hour">
+   <label for="forced-time">FORCER L’HEURE À :</label><input id="forced-time" type="text" placeholder="HH:MM"/><button id="forced-apply">Appliquer</button><button id="forced-clear">Heure réelle</button>
+   <div id="forced-presets"><button id="forced-preset-8">08:00</button><button id="forced-preset-12">12:00</button><button id="forced-preset-17">17:00</button><button id="forced-preset-22">22:00</button></div>
+   <p id="forced-help">L’heure s’applique au monde entier, à l’heure locale de chaque lieu : 14:00 donne 14:00 à Paris comme à Tokyo. Le Soleil, le ciel, la foule et les navires suivent.</p>
+   <p id="options-status"></p>
+  </div>
+  <button id="options-back">Retour</button>
  </div>
  <div id="hud"><div id="coordinates"></div><div id="stream-status"></div><div id="local-conditions"></div><div id="controls">ZQSD / WASD : marcher ou conduire · Maj : courir · F : monter / descendre (voiture, bateau, avion, hélicoptère) · Espace : sauter, frein à main, cabrer ou monter · Souris : caméra · M / Échap : carte</div></div>
 </body>

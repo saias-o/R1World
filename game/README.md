@@ -1095,6 +1095,16 @@ The clock is the real UTC clock: arriving at night in Tokyo is night in Tokyo.
 The HUD shows the destination's civil time from Open-Meteo's time zone, or a
 labelled longitude estimate.
 
+**Options → Forcer l'heure à** holds the whole world at one hour of the local
+day: 14:00 is 14:00 on the HUD clock wherever the player goes (the place's
+zone, or the longitude estimate). The game turns that hour into an instant on
+the place's current day (`native/forced_time.hpp`) and hands it to
+`setForcedTime`; the Sun, the sky, the crowd and the ships all read that one
+clock, and time stops flowing until **Heure réelle** hands `null` back. A
+capture's `--at` still wins. The choice is kept in `cache/options.json`, which
+smoke tests and captures neither read nor write; a bad hour is refused on
+screen and in `game.log`.
+
 **The sky** is eleven Qwantani pure-sky HDRIs (Poly Haven, CC0), one sky
 photographed from before dawn to after dusk (`r1/skies.py`):
 

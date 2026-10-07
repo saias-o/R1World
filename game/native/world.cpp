@@ -49,6 +49,7 @@
 #include "gen/sources.hpp"
 #include "gen/service.hpp"
 #include "minimap.hpp"
+#include "forced_time.hpp"
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -1057,6 +1058,11 @@ class World : public Rml::EventListener {
     // first. --spawn2 makes the run do it.
     double hopLon=0,hopLat=0,hopWait=0; bool hopWanted=false,hopDone=false,hopArmed=false;
     saida::ScriptBehaviour* sunScript=nullptr; bool sunReported=false;
+    // Options screen. `forcedMinutes` is "Forcer l'heure à" (minutes after
+    // local midnight), kept in cache/options.json between runs; `forcedSent`
+    // is the instant last handed to the Sun, so the script is told only when
+    // the hour or the time zone under the player changes.
+    std::optional<int> forcedMinutes; std::optional<double> forcedSent; bool forcedSaid=false,optionsOpen=false;
     saida::CaptureRequest worldCapture;
     saida::runtime::CaptureViewpoint captureView;
     bool captureQueued=false;
@@ -1214,6 +1220,7 @@ class World : public Rml::EventListener {
     }
     void showMap(bool show) {
         menu=show;style("menu","display",show?"block":"none");style("hud","display",show?"none":"block");
+        optionsOpen=false;style("options-screen","display","none");
         minimapUi->setEnabled(!show);
         style("resume","display",playing?"inline-block":"none");
         engine.window().setCursorCaptured(!show);
@@ -1335,14 +1342,17 @@ class World : public Rml::EventListener {
     // the script keeps the beam, the ambient, the horizon and the two exposures
     // consistent with that place. Called wherever the floating origin is
     // rebased, which is every spawn and every 350 m walked.
-    bool tellSun() {
+    bool findSun() {
         if(!sunScript) {
             auto* node=engine.sceneTree().firstInGroup("sun");
             if(!node)return false;
             for(auto& b:node->behaviours())
                 if(auto* script=dynamic_cast<saida::ScriptBehaviour*>(b.get()))sunScript=script;
-            if(!sunScript)return false;
         }
+        return sunScript!=nullptr;
+    }
+    bool tellSun() {
+        if(!findSun())return false;
         nlohmann::json result;
         if(!worldCapture.pngPath.empty()) {
             if(sunScript->callExport("setInspectionMode",inspectAt?json::array({true,*inspectAt}):json::array({true}),result)
@@ -3003,14 +3013,101 @@ class World : public Rml::EventListener {
             drift->transform().position=glm::vec3(eye.x,feet.y+.3f,eye.z)-wind*.8f;
         } else if(drift)drift->setEnabled(false);
     }
+    // The offset the HUD clock reads: the place's zone when Open-Meteo gave
+    // one, otherwise the longitude's whole hours, labelled as an estimate.
+    int utcOffset(bool& known) {
+        known=localConditions()&&conditions.value("timeSource","")=="zone";
+        return known?conditions.value("utcOffsetSeconds",0):int(std::round(lon/15.))*3600;
+    }
     std::string localClock() {
         double unixSeconds=double(std::time(nullptr));gameTime(unixSeconds);
-        const bool known=localConditions()&&conditions.value("timeSource","")=="zone";
-        const int offset=known?conditions.value("utcOffsetSeconds",0):int(std::round(lon/15.))*3600;
+        bool known=false;const int offset=utcOffset(known);
         const std::time_t local=std::time_t(unixSeconds)+offset;
         std::tm parts{};gmtime_s(&parts,&local);
         std::ostringstream out;out<<std::put_time(&parts,"%H:%M");
-        return out.str()+(known?" · heure locale":" · fuseau estimé");
+        return out.str()+(known?" · heure locale":" · fuseau estimé")+(forcedMinutes?" (forcée)":"");
+    }
+    // "Forcer l'heure à" (Options). The hour is the one the HUD clock shows,
+    // so the instant depends on the zone under the player: it is recomputed
+    // every frame, and the Sun is told only when it moves -- a new zone, a
+    // new local day, or the option itself. With no forced hour the script
+    // follows the real clock, which is its own default.
+    void applyForcedTime() {
+        std::optional<double> wanted;
+        if(forcedMinutes) {
+            bool known=false;const int offset=utcOffset(known);
+            wanted=r1::forcedInstant(double(std::time(nullptr)),offset,*forcedMinutes);
+        }
+        if(wanted==forcedSent||!findSun())return;
+        json result;
+        const bool accepted=sunScript->callExport("setForcedTime",json::array({wanted?json(*wanted):json(nullptr)}),result)
+                ==saida::ScriptCallStatus::Succeeded&&result.is_boolean()&&result.get<bool>();
+        if(!accepted) {
+            if(!forcedSaid) {
+                saida::Log::error("[World options] scripts/sun_cycle.js refused setForcedTime(",
+                                  wanted?number(*wanted,0):std::string("null"),")");
+                sayForcedTime("Le Soleil a refusé l'heure forcée : voir game.log.");
+                forcedSaid=true;
+            }
+            return;
+        }
+        forcedSent=wanted;forcedSaid=false;
+    }
+    fs::path optionsFile() const {return game/"cache/options.json";}
+    // A test run neither reads nor rewrites the player's options: the smoke
+    // test and the gallery light the world by the clock or by --at.
+    bool testRun() const {return smoke||!worldCapture.pngPath.empty();}
+    void loadOptions() {
+        std::ifstream input(optionsFile());
+        if(!input)return;
+        if(testRun()){saida::Log::info("[World options] cache/options.json ignored by a test run");return;}
+        try {
+            const json options=json::parse(input);
+            const std::string typed=options.value("forcedTime",std::string());
+            if(typed.empty())return;
+            forcedMinutes=r1::parseClockTime(typed);
+            if(forcedMinutes)saida::Log::info("[World options] time forced to ",r1::formatClockTime(*forcedMinutes)," local");
+            else saida::Log::error("[World options] cache/options.json: forcedTime '",typed,"' is not HH:MM, ignored");
+        } catch(const std::exception& e) {
+            saida::Log::error("[World options] cache/options.json unreadable, ignored: ",e.what());
+        }
+    }
+    void saveOptions() {
+        if(testRun())return;
+        json options=json::object();
+        if(forcedMinutes)options["forcedTime"]=r1::formatClockTime(*forcedMinutes);
+        std::error_code ignored;fs::create_directories(optionsFile().parent_path(),ignored);
+        std::ofstream output(optionsFile());
+        if(!(output<<options.dump(2)<<"\n")) {
+            saida::Log::error("[World options] could not write ",optionsFile().string());
+            sayForcedTime("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
+        }
+    }
+    void sayForcedTime(const std::string& problem={}) {
+        if(!problem.empty()){text("options-status",problem);return;}
+        text("options-status",forcedMinutes
+            ?"Partout dans le monde, il est "+r1::formatClockTime(*forcedMinutes)+" à l'heure locale. Le temps ne s'écoule plus."
+            :"Heure réelle : chaque lieu est à son heure du moment.");
+    }
+    void showOptions(bool show) {
+        optionsOpen=show;
+        style("options-screen","display",show?"block":"none");
+        if(!show)return;
+        field("forced-time",forcedMinutes?r1::formatClockTime(*forcedMinutes):std::string());
+        sayForcedTime();
+    }
+    void forceTime(std::optional<int> minutes) {
+        forcedMinutes=minutes;forcedSaid=false;
+        saida::Log::info("[World options] ",minutes?"time forced to "+r1::formatClockTime(*minutes)+" local":std::string("real time"));
+        saveOptions();
+        sayForcedTime();
+        applyForcedTime();
+    }
+    void applyTypedTime() {
+        const std::string typed=value("forced-time");
+        if(const auto minutes=r1::parseClockTime(typed)){forceTime(minutes);field("forced-time",r1::formatClockTime(*minutes));return;}
+        saida::Log::info("[World options] refused forced time '",typed,"': not HH:MM between 00:00 and 23:59");
+        sayForcedTime("Heure invalide « "+typed+" » : écrivez HH:MM, de 00:00 à 23:59 (par exemple 14:00).");
     }
     std::string weatherLabel() {
         if(!localConditions())return "Météo locale indisponible";
@@ -4444,6 +4541,7 @@ public:
             zoneCountries=places.at("zones").get<std::map<std::string,std::string>>();
             countryNames=places.at("countries").get<std::map<std::string,std::string>>();
         }
+        loadOptions();
         player=e.sceneTree().firstInGroup("player");
         if(!player)throw std::runtime_error("Earth scene is missing the player");
         player->findBehavioursInChildren(animators);
@@ -4551,6 +4649,11 @@ public:
             field("city-query",std::string());showCityChoices({});
             warming=true;if(!smoke)request(pickLon,pickLat);
         } else if(id=="go")go();
+        else if(id=="options")showOptions(true);
+        else if(id=="options-back")showOptions(false);
+        else if(id=="forced-apply")applyTypedTime();
+        else if(id=="forced-clear"){forceTime(std::nullopt);field("forced-time",std::string());}
+        else if(id.rfind("forced-preset-",0)==0)forceTime(std::stoi(id.substr(14))*60);
         else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
         else if(id=="zoom-in")zoomMap(zoom*2);
         else if(id=="zoom-out")zoomMap(zoom/2);
@@ -4571,6 +4674,31 @@ public:
             if(places.count(id)){auto p=places.at(id);select(p.x,p.y);zoomMap(zoom);
                 field("city-query",std::string());showCityChoices({});
                 warming=true;request(pickLon,pickLat);}}
+    }
+    // The Options screen, as a player uses it: open it, force an hour, see the
+    // Sun take it, have a bad hour refused without losing the good one, go
+    // back to the real clock, close it. Presses only, like every other click.
+    bool smokeOptions() {
+        auto fail=[&](const std::string& why){
+            saida::Log::error("[World E2E] FAIL options: ",why);testFailed=true;engine.sceneTree().quit();return false;
+        };
+        testClick("options",false);
+        if(!optionsOpen)return fail("the Options press did not open the screen");
+        field("forced-time","14h30");testClick("forced-apply",false);
+        if(forcedMinutes!=14*60+30)return fail("14h30 was not read as 14:30");
+        double at=0;bool known=false;const int offset=utcOffset(known);
+        if(!gameTime(at)||std::abs(std::fmod(at+offset,86400.)-(14*3600.+1800.))>1.)
+            return fail("the Sun is not at 14:30 local (gameTime "+number(at,0)+", offset "+std::to_string(offset)+")");
+        field("forced-time","25:00");testClick("forced-apply",false);
+        if(forcedMinutes!=14*60+30)return fail("25:00 replaced the forced hour instead of being refused");
+        testClick("forced-preset-12",false);
+        if(forcedMinutes!=12*60)return fail("the 12:00 preset did not apply");
+        testClick("forced-clear",false);
+        if(forcedMinutes||forcedSent)return fail("Heure réelle did not give the Sun back to the clock");
+        testClick("options-back",false);
+        if(optionsOpen)return fail("Retour did not close the screen");
+        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored)");
+        return true;
     }
     // The driver's own two phases, kept out of update() so the flow reads:
     // walk, drive, then either teleport or finish.
@@ -5290,7 +5418,9 @@ public:
         if(generation!=ui->documentGeneration()||listeners.empty()) {
             generation=ui->documentGeneration();listeners.clear();
             for(auto id:{"map","go","resume","zoom-in","zoom-out","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
-                         "city-choice-0","city-choice-1","city-choice-2","city-choice-3","city-choice-4"})
+                         "city-choice-0","city-choice-1","city-choice-2","city-choice-3","city-choice-4",
+                         "options","options-back","forced-apply","forced-clear",
+                         "forced-preset-8","forced-preset-12","forced-preset-17","forced-preset-22"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
             if(!listeners.empty()) {
@@ -5329,10 +5459,14 @@ public:
                     testClick("go");
                     if(goCount!=2){saida::Log::error("[World E2E] FAIL Go press+release ran ",goCount," times");testFailed=true;engine.sceneTree().quit();return;}
                     saida::Log::info("[World E2E] map click and Go passed (press-only and press+release)");
+                    // Last: the screen it hides is still laid out over the menu
+                    // until the next frame, as after any menu change (hopArmed).
+                    if(!smokeOptions())return;
                 }
             }
         }
         clock+=delta;
+        applyForcedTime();
         updateCityLookup();
         if(menu&&zoom>1&&menuTiles.pump())renderMapTiles();
         if(smoke && pending && refused==tileAt(pickLon,pickLat).key()) {

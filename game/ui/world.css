@@ -32,6 +32,16 @@ input { display: inline-block; width: 150px; height: 28px; padding: 8px; backgro
 #resume { display: none; }
 #status { position: absolute; top: 817px; left: 48px; margin: 0; color: #d5f5a4; font-size: 16px; }
 #credits { position: absolute; top: 850px; left: 48px; right: 48px; font-size: 11px; color: #8da5b0; }
+#options-screen { display: none; position: absolute; width: 1440px; height: 900px; background-color: #0b1b25; }
+#options-brand { position: absolute; top: 26px; left: 48px; font-size: 26px; font-weight: bold; letter-spacing: 2px; }
+#options-brand span { color: #94bbae; }
+#forced-hour { position: absolute; top: 150px; left: 48px; width: 900px; padding: 22px 24px; background-color: #102834; }
+#forced-hour label { font-size: 14px; color: #d5f5a4; }
+#forced-time { width: 110px; }
+#forced-presets { margin-top: 16px; }
+#forced-help { margin: 18px 0 0 0; color: #a4b8bf; font-size: 15px; }
+#options-status { margin: 12px 0 0 0; color: #d5f5a4; font-size: 16px; }
+#options-back { position: absolute; top: 420px; left: 48px; }
 #hud { display: none; position: absolute; width: 1440px; height: 900px; }
 #coordinates { position: absolute; top: 28px; left: 32px; width: 580px; background-color: #142934; padding: 12px 18px; }
 #stream-status { position: absolute; top: 80px; left: 32px; width: 580px; background-color: #142934; padding: 8px 14px; font-size: 14px; }
