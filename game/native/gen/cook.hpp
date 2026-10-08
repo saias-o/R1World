@@ -17,7 +17,7 @@
 
 namespace r1 {
 
-// §3 I4: the budget is a contract. A tile past it is refused, never truncated.
+// Soft detail target and density trigger. The resident arena is the hard limit.
 constexpr size_t kTileVertexBudget = 120000;
 
 struct Observations {
@@ -81,7 +81,7 @@ struct CookedTile {
     double cookMs = 0;
 };
 
-// Throws on a tile that exceeds the budget, naming its parts.
+// Preserves surveyed geometry even when the soft density target is exceeded.
 CookedTile cookTile(const Observations& in);
 
 }  // namespace r1

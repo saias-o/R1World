@@ -102,8 +102,22 @@ générateur incrémente sa version (`kVersion`), jamais en silence.
 Machine de référence : **Core i5 4 cœurs, GTX 1060 6 Go, 1080p / 60 fps.** Sur
 i5, **c'est le CPU la ressource rare**, pas le GPU. L'arène de géométrie du
 moteur est fixée à **1 048 576 sommets** (`GeometryRegistry::kDefaultMaxVertices`)
-et tous les budgets de sommets en découlent (`CLAUDE.md` §5). Une tuile qui
-dépasse son budget est refusée, jamais tronquée, et le refus se dit.
+et tous les budgets de sommets en découlent (`CLAUDE.md` §5). **120 000 sommets
+est un seuil de dégradation, pas de refus** : au premier dépassement sur une
+tuile, tous ses arbres restent au LOD Far, sa foule est divisée par quatre et
+ses nouveaux intérieurs sont bloqués. La décision est conservée par rangée et
+colonne entre visites, redémarrages et versions du générateur. Une tuile de
+140 000 sommets reste visitable si l'arène résidente le permet ; seul le
+plafond global peut encore refuser de la géométrie, en disant pourquoi.
+
+La géométrie statique est contrôlée au montage, puis les instances de maillage
+visibles et activées de chaque tuile sont comptées à chaque frame, jusqu'au
+premier dépassement : arbres, véhicules, piétons et intérieurs compris. Ce
+compte conservateur précède le culling GPU. La foule est arrondie à l'entier
+inférieur après division par quatre ; les intérieurs déjà montés sont libérés.
+Les marqueurs immuables dans `game/cache/density-policy/<row>_<col>` conservent
+la décision indépendamment pour chaque tuile. Ils règlent la densité locale
+sans modifier les observations ni la géométrie déterministe du monde.
 
 ### I5 — Le jeu sait toujours ce qu'il ignore
 Chaque élément porte sa provenance : `mesuré`, `inféré` ou `synthétisé`. Ce qui
@@ -350,14 +364,15 @@ dans le manifeste (I5), et le coût se compte contre l'arène et le CPU de la
 machine de référence (I4).
 
 ### Fiabilité et fluidité — priorité immédiate
-- **Tuile dense de Grenoble** : `v29_27038_26176` est refusée à 124 952 sommets
-  pour un plafond de 120 000 ; les remblais seuls en prennent 46 041.
-  Requalifier cette tuile après les changements routiers v30 ; réduire si
-  nécessaire la géométrie superflue des ouvrages en conservant leurs emprises et
-  leurs collisions. Le correctif de chargement lié aux aéroports ne résout pas
-  ce dépassement distinct, constaté le 6 octobre.
+- **Densité par tuile** : règle permanente ci-dessus, à 120 000 sommets,
+  comptant aussi les instances visibles d'arbres et de foule. Le dépassement
+  ne supprime ni routes ni bâtiments. Grenoble est recuite à 135 010 sommets
+  sans le refus antérieur ; la qualification en jeu est décrite dans le README.
 - **Streaming sans pics de frame** : décodage des assets en tâche de fond et
-  uploads GPU incrémentaux dans le moteur ; mesurer ensuite sur i5 / GTX 1060.
+  uploads GPU incrémentaux intégrés dans le moteur, parcours Paris–Tunis validé.
+  Les transferts, mipmaps et compactages natifs ne vident plus la file GPU.
+  Traiter les allocations de textures et les enregistrements synchrones restants,
+  puis mesurer sur i5 / GTX 1060.
   Les mesures actuelles sur RTX 4070 ne qualifient pas cette machine cible.
 - **Voitures et circulation** : améliorer la peinture et les reflets de près,
   puis le comportement aux feux et face aux piétons, avec un coût borné.

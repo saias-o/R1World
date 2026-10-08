@@ -308,8 +308,10 @@ because the cache cannot tell it from genuinely empty countryside.
 Saida's `GeometryRegistry` arena is 1 048 576 vertices and 3 145 728 indices by
 default (configurable at engine startup). Tiles get 85% of
 `ResourceManager::geometryCapacity()` (`kTileGeometryShare`); the rest is for
-shared models. A single tile is bounded by `kTileVertexBudget` (120 000,
-`native/gen/cook.hpp`). A tile past either limit is **refused, not truncated**:
+shared models. `kTileVertexBudget` (120 000, `native/gen/cook.hpp`) is a soft
+generation target. The [density policy](../docs/PLAN.md) keeps dense tiles
+visitable. A neighbourhood past either resident arena
+limit is **refused, not truncated**:
 one log line names the tile and the arithmetic, the smoke test fails on that
 reason, and in play the spawn is cancelled with a sentence.
 
@@ -590,7 +592,7 @@ the surrounding tall grass. Roads, buildings, water and non-private land uses
 clip the plots; neighbouring homes limit their extent. Only the frontage and
 short returns are predicted, not a cadastral rear boundary. Wider visible
 frontages precede small ones when a tile exhausts its 18,000-vertex frontage
-budget. The absolute 120,000-vertex tile limit still applies. Geometry shares
+budget. The persistent 120,000-vertex density rule also applies. Geometry shares
 material batches; hedges reuse the existing shrub asset and woody-plant budget.
 
 OSM query v12 includes fences, walls, hedges and gate/entrance nodes. Mapped
@@ -1460,18 +1462,64 @@ material property, including textures, rather than only its name and paint.
 Later measurements: Le Fourchêne hypermarket at 60 fps; the canopy tile at
 60 fps (+0.8 ms scene update); a 600-frame Vannes home run at 0.750 ms/frame
 for `Physics/SceneStep`. These were taken on an RTX 4070 host, not on the
-reference i5 / GTX 1060. Full-tile imports can still exceed a 16.7 ms frame:
-CPU asset decoding jobs and incremental GPU uploads remain to be done.
+reference i5 / GTX 1060. The streaming contracts and remaining engine limits
+are documented in [Saida's specification](../engine/SPEC.md). Reference
+i5 / GTX 1060 qualification remains outstanding.
+
+On 8 October, consecutive optimized offline Paris captures on the RTX 4070
+host (`--spawn 2.3522 48.8566 --after-frames 5 --at 1791374400`) measured:
+
+| Scope | Before | After |
+|---|---:|---:|
+| Mean frame including the map/loading screen | 33.32 ms | 18.34 ms |
+| Frame p95 | 79.17 ms | 21.74 ms |
+| Worst frame | 164.96 ms | 137.99 ms |
+| Mean scene update | 6.45 ms | 2.24 ms |
+| Map/interface renders during capture | 41 | 7 |
+
+These are individual arrival captures, not a target-hardware benchmark. The
+game also stopped alternating its pending/offline status every frame. Streamed
+glTF instantiation peaked at 0.61 ms on the main thread; the bounded mesh pump
+peaked at 10.25 ms including its GPU wait. The two traces, `comparison.json`,
+logs and PNGs are in `generated/streaming-validation/`. Native engine validation
+passes 92 CTest cases and 98 GPU streaming checks; the Web player builds. The
+Paris-to-Tunis smoke passes walking, jumping, driving, takeover and teleport.
+Generator validation passes 289 cases, with two failures outside the changed
+code: the FarRelief forest material assertion and the side-by-side bridge deck
+assertion. The new Grenoble cook and persistent density regressions pass.
+
+The subsequent GPU transfer change, measured with the same Paris capture
+arguments, reduces main-thread upload work:
+
+| Scope | Before fences | After fences |
+|---|---:|---:|
+| Mesh pump mean / peak | 1.67 / 10.25 ms | 0.12 / 0.46 ms |
+| Texture finalization mean / peak | 1.68 / 12.06 ms | 0.46 / 2.39 ms |
+| Mean frame including loading | 18.34 ms | 18.22 ms |
+| Frame p95 | 21.74 ms | 21.63 ms |
+
+This is still one local arrival capture, not a guarantee of 60 fps. The startup
+frame peaks at 190.45 ms. The final Paris trace contains no upload/queue waits
+during its frames after moving the far landmarks to asynchronous loading.
+Grenoble retains one 0.40 ms legacy queue wait; its mesh pump peaks at 0.59 ms
+and texture finalization at 2.65 ms. Startup and texture allocation still hitch.
+Final verification passes 92 CTest cases, 119 GPU streaming checks, native
+runtime contracts, HDR/environment and sidedness pixel checks, and the Web
+player build. Paris/Grenoble captures and the Paris-to-Tunis driving/takeover/
+teleport smoke pass. Logs, PNGs and `gpu-final-comparison.json` are in the
+same local validation folder.
+
+Grenoble tile 27038/26176 recooks to 135,010 vertices and remains visitable.
+Offline Grenoble spawn/capture at (5.723786, 45.197956) and a fresh-process
+repeat both succeed; `cache/density-policy/27038_26176` records 135,010 vertices
+and the reduced policy. The logs and captures are in the same validation folder.
+The world's density rules are specified in [the project plan](../docs/PLAN.md).
 
 ## Known limits
 
-- **Dense spawn tiles**: the v29 Grenoble capture refused `v29_27038_26176`
-  at the 120 000-vertex
-  tile limit (124 952 total; 46 041 in embankments). It remained unmounted even
-  though surrounding tiles can load. This is a separate geometry-budget issue
-  from the fixed pending-airport upgrade bug. The 6 October diagnostic is in
-  `cache/sessions/2692d72965094d67865fb59d5cbd36ab/game.log` locally.
-  The v30 road changes have not requalified that tile or the full gallery.
+- **Dense neighbourhoods**: the 120,000-vertex per-tile refusal is removed;
+  the total resident vertex/index arena can still be exhausted. The density
+  policy reduces trees, people and interiors, not surveyed road structures.
 - **Cars**: paint and metal now reflect the HDR sky, but glazing is opaque,
   there is no automotive clearcoat layer, and the reflection source is the sky,
   not nearby buildings. An automotive clearcoat and local reflection solution

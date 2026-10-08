@@ -424,8 +424,8 @@ CookedTile cookTile(const Observations& in) {
     };
     std::vector<MeshPart> parts = assemble(works.parts);
     const size_t target = std::min(in.targetVertices, kTileVertexBudget);
-    // The target is a share of the resident neighbourhood, while 120k stays
-    // the absolute per-tile contract. Rebuild only the building meshes: their
+    // The target is a soft share of the resident neighbourhood, capped at the
+    // density trigger. Rebuild only the building meshes: their
     // footprints, street cut-outs and continuous terrain stay the same.
     for (BuildingLod lod : {BuildingLod::UnifiedBase, BuildingLod::SimpleRoofline}) {
         if (vertexCount(parts) + landmarks.vertices <= target) break;
@@ -435,19 +435,14 @@ CookedTile cookTile(const Observations& in) {
         parts = assemble(works.parts);
     }
     if (vertexCount(parts) + landmarks.vertices > kTileVertexBudget && harbour.piers) {
-        // The one detail given up before a tile is refused: the piles under
-        // the piers, said in the manifest (`pilesDropped`), never silent.
+        // Drop pier piles to help the resident arena. An over-target tile is
+        // still visitable; this reduction is recorded as `pilesDropped`.
         HarbourStats bare;
         works = buildWorks(osm.maritime, lightFeatures, ground, anchor, cells, bare, false);
         parts = assemble(works.parts);
         harbour.pilesDropped = true;
     }
     const size_t vertices = vertexCount(parts) + landmarks.vertices;
-    if (vertices > kTileVertexBudget) {
-        std::string detail;
-        for (const MeshPart& p : parts) detail += " " + p.name + "=" + std::to_string(p.mesh.vertexCount());
-        throw std::runtime_error("Tile exceeds geometry budget (" + std::to_string(vertices) + " vertices):" + detail);
-    }
     const bool ocean = in.offline
         ? (sea && sea->area() >= (bounds.east - bounds.west) * (bounds.north - bounds.south) * (1 - 1e-9))
         : [&] {
@@ -459,8 +454,6 @@ CookedTile cookTile(const Observations& in) {
     std::optional<IceTile> pack;
     if (ocean && in.seaIce && in.seaIce->any(bounds)) {
         pack = buildIceTile(tile, anchor, *in.seaIce);
-        if (vertexCount(pack->parts) > kTileVertexBudget)
-            throw std::runtime_error("Sea-ice tile exceeds geometry budget (" + std::to_string(vertexCount(pack->parts)) + " vertices)");
     }
     int triangles = 0, inferred = 0;
     for (const auto& [name, n] : groundStats) {
@@ -590,7 +583,7 @@ CookedTile cookTile(const Observations& in) {
         {"vertices", pack ? vertexCount(pack->parts) : ocean ? 0 : vertices},
         // The arena holds indices too (three for every vertex it holds): a
         // finely gridded tile reaches that limit before the vertex one.
-        {"indices", pack ? indexCount(pack->parts) : ocean ? 0 : indexCount(parts)},
+        {"indices", indexCount(out.parts)},
         {"buildings", buildings.size()}, {"surface", pack ? "sea-ice" : ocean ? "ocean" : "land"},
         {"source", std::string(in.offline ? "Natural Earth 1:110m; " : "OpenStreetMap; ") + in.elevationSource},
         {"elevationSource", in.elevationSource}, {"offlineApproximation", in.offline || in.groundPending},

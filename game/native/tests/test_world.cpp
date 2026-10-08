@@ -560,6 +560,15 @@ TEST(Cook, a_dense_paris_tile_fits_its_budget_and_says_what_it_inferred) {
           t.manifest["inference"]["count"].get<int>());
     CHECK(t.manifest["region"] == "Paris intra-muros");
 }
+TEST(Cook, grenoble_over_120k_keeps_its_surveyed_geometry_and_reports_indices) {
+    const auto tile=cookTile(paris(Tile{27038,26176}));
+    CHECK(tile.manifest.at("vertices").get<size_t>()>kTileVertexBudget);
+    CHECK(tile.manifest.at("footprints").size()>300);
+    CHECK(!tile.parts.empty());
+    size_t indices=0;for(const auto& part:tile.parts)indices+=part.mesh.indices.size();
+    CHECK(tile.manifest.at("indices").get<size_t>()==indices);
+    CHECK(tile.manifest.at("indices").get<size_t>()>0);
+}
 TEST(Cook, the_seine_has_visible_inland_water_and_swimmable_cells) {
     const CookedTile t = cookTile(paris(Tile{27770, 23997}));
     CHECK(!part(t.parts, "Inland water"));
