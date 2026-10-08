@@ -1509,6 +1509,37 @@ player build. Paris/Grenoble captures and the Paris-to-Tunis driving/takeover/
 teleport smoke pass. Logs, PNGs and `gpu-final-comparison.json` are in the
 same local validation folder.
 
+The next fluidity pass was checked with fresh local Paris/Grenoble captures on
+the same RTX 4070, offline data and pinned capture time:
+
+| Main-thread scope / capture | Before this pass | After this pass |
+|---|---:|---:|
+| Paris interface update peak | 77.52 ms | 1.68 ms |
+| Paris texture finalization peak | 3.86 ms | 0.40 ms |
+| Grenoble interface update peak | 67.34 ms | 1.85 ms |
+| Grenoble texture finalization peak | 2.56 ms | 1.48 ms |
+| Paris recorded arrival | 5.46 s | 5.14 s |
+| Grenoble recorded arrival | 4.54 s | 4.32 s |
+
+Environment projection no longer appears on the main thread in either arrival.
+These are individual captures including loading, scripted map interactions and
+PNG export, not target-hardware or sustained-60-fps benchmarks. In the final
+Paris/Grenoble traces, the worst frame is the terminal screenshot export;
+normal frame p95 remains about 21.5/21.7 ms. A profiler regression that attached
+cross-frame worker completions to the wrong frame is covered and corrected.
+The final Paris trace has no upload/queue waits during its frames; Grenoble
+retains one 0.17 ms synchronous upload wait.
+
+Verification passes 92 native CTest cases, 128 GPU streaming checks, 118 UI
+corpus checks, native runtime contracts and the Web player build. Asynchronous
+UI snapshots preserve the synchronous pixels, including transforms, clipping
+and released draw handles; exported native UI and HDR/environment pixel checks
+pass. Paris/Grenoble captures and Paris-to-Tunis walking, jumping, driving,
+takeover and teleport pass. Logs, PNGs, traces and
+`fluidity-final-comparison.json` are in `generated/streaming-validation/`.
+The engine contracts are in [SPEC.md](../engine/SPEC.md); remaining legacy
+registration and pipeline work is in [ROADMAP.md](../engine/ROADMAP.md).
+
 Grenoble tile 27038/26176 recooks to 135,010 vertices and remains visitable.
 Offline Grenoble spawn/capture at (5.723786, 45.197956) and a fresh-process
 repeat both succeed; `cache/density-policy/27038_26176` records 135,010 vertices

@@ -371,8 +371,12 @@ machine de référence (I4).
 - **Streaming sans pics de frame** : décodage des assets en tâche de fond et
   uploads GPU incrémentaux intégrés dans le moteur, parcours Paris–Tunis validé.
   Les transferts, mipmaps et compactages natifs ne vident plus la file GPU.
-  Traiter les allocations de textures et les enregistrements synchrones restants,
-  puis mesurer sur i5 / GTX 1060.
+  Les allocations de textures, la rasterisation des interfaces et le calcul
+  diffus du ciel passent aussi en tâche de fond dans le moteur ; transferts
+  de textures bornés, ressources conservées jusqu'à leur fin réelle.
+  Reste à traiter les enregistrements synchrones et la création des pipelines,
+  puis mesurer sur i5 / GTX 1060. Les contrats sont dans `engine/SPEC.md`,
+  les résultats de vérification dans `game/README.md`.
   Les mesures actuelles sur RTX 4070 ne qualifient pas cette machine cible.
 - **Voitures et circulation** : améliorer la peinture et les reflets de près,
   puis le comportement aux feux et face aux piétons, avec un coût borné.
