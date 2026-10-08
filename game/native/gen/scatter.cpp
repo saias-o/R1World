@@ -107,7 +107,7 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // ── vegetation ──────────────────────────────────────────────────────────────
 
 namespace {
-constexpr int kNatureRevision = 4;
+constexpr int kNatureRevision = 5;  // 5: a middle level between the tree and its card
 const std::string kCardDir = "assets/models/external/nature_cards";
 
 // Buildings, roads and water grown by a margin, asked "is this point in you".
@@ -541,8 +541,11 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
             const double k = 1.0 / sourceHeight(model);
             children.push_back({{"type", "Node"}, {"name", "Far"}, {"importedFrom", kCardDir + "/" + model + ".glb"},
                                 {"transform", {{"scale", {k, k, k}}}}});
-            if (model == "urban_tree")
+            // The middle level is the same tree, thinned (tools/r1/tree_lod.py).
+            if (model == "urban_tree") {
                 children.push_back({{"type", "Node"}, {"name", "Near"}, {"importedFrom", "assets/models/external/nature_selected/urban_tree.glb"}});
+                children.push_back({{"type", "Node"}, {"name", "Mid"}, {"importedFrom", "assets/models/external/nature_selected/urban_tree_mid.glb"}});
+            }
         }
         PyRandom yawRng = seeded(c.ident, 71);
         const bool hedge=has(c.tags,"r1:hedge");

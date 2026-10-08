@@ -2,6 +2,7 @@
 #include "gen/canopy.hpp"
 #include "gen/scatter.hpp"
 #include <filesystem>
+#include <set>
 using namespace r1;
 namespace {
 Canopy sample(const Tile& tile) {
@@ -105,6 +106,14 @@ TEST(Canopy, measured_canopy_places_trees_and_removes_inferred_ones_where_it_see
         const auto kind = canopy.classAt(g.x, g.y);
         CHECK(kind != Canopy::None);
         trees += kind == Canopy::Tree;
+        // A temperate street tree has three levels: its model, the same tree
+        // thinned, and its card -- never its card alone up close.
+        std::set<std::string> levels;
+        for (const auto& child : node["children"]) levels.insert(child["name"].get<std::string>() + "=" +
+            child["importedFrom"].get<std::string>());
+        CHECK(levels.count("Near=assets/models/external/nature_selected/urban_tree.glb"));
+        CHECK(levels.count("Mid=assets/models/external/nature_selected/urban_tree_mid.glb"));
+        CHECK(levels.count("Far=assets/models/external/nature_cards/urban_tree.glb"));
     }
     CHECK(trees > 40);
     int shrubs = 0;

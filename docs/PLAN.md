@@ -4,7 +4,8 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 7 octobre 2026, générateur v35 : pavillons français, jardins,
+État relu le 8 octobre 2026, générateur v36 : LOD intermédiaire des arbres,
+pavillons français, jardins,
 clôtures, portails et abris de bus ruraux ; priors régionaux US/RU/MA/JP,
 toitures par ailes et villages compacts ; exclusion des centres denses.
 Le détail de ce qui est fait et mesuré est dans `game/README.md`.
@@ -103,21 +104,32 @@ Machine de référence : **Core i5 4 cœurs, GTX 1060 6 Go, 1080p / 60 fps.** Su
 i5, **c'est le CPU la ressource rare**, pas le GPU. L'arène de géométrie du
 moteur est fixée à **1 048 576 sommets** (`GeometryRegistry::kDefaultMaxVertices`)
 et tous les budgets de sommets en découlent (`CLAUDE.md` §5). **120 000 sommets
-est un seuil de dégradation, pas de refus** : au premier dépassement sur une
-tuile, tous ses arbres restent au LOD Far, sa foule est divisée par quatre et
-ses nouveaux intérieurs sont bloqués. La décision est conservée par rangée et
-colonne entre visites, redémarrages et versions du générateur. Une tuile de
-140 000 sommets reste visitable si l'arène résidente le permet ; seul le
-plafond global peut encore refuser de la géométrie, en disant pourquoi.
+est un seuil de dégradation, pas de refus** : une tuile dont la géométrie propre
+le dépasse voit sa foule divisée par quatre et ses nouveaux intérieurs bloqués.
+La décision est conservée par rangée et colonne entre visites, redémarrages et
+versions du générateur. Une tuile de 140 000 sommets reste visitable si l'arène
+résidente le permet ; seul le plafond global peut encore refuser de la
+géométrie, en disant pourquoi.
 
-La géométrie statique est contrôlée au montage, puis les instances de maillage
-visibles et activées de chaque tuile sont comptées à chaque frame, jusqu'au
-premier dépassement : arbres, véhicules, piétons et intérieurs compris. Ce
-compte conservateur précède le culling GPU. La foule est arrondie à l'entier
-inférieur après division par quatre ; les intérieurs déjà montés sont libérés.
+Seule la géométrie de la tuile compte, au montage, telle que le manifeste la
+mesure. Les props et les arbres sont des nœuds sur des modèles partagés
+(`CLAUDE.md` §5) et n'entrent pas dans ce compte, et la règle ne touche jamais
+aux arbres (`CLAUDE.md` §1). Le 8 octobre, un compte par frame des instances
+visibles y ajoutait chaque arbre proche (11 000 à 28 000 sommets) : une douzaine
+d'arbres dépassait le seuil, et toutes les tuiles visitées avaient leurs arbres
+réduits à des cartes pour toujours. Ce compte est supprimé et ses marqueurs
+effacés. La foule est arrondie à l'entier inférieur après division par quatre.
 Les marqueurs immuables dans `game/cache/density-policy/<row>_<col>` conservent
 la décision indépendamment pour chaque tuile. Ils règlent la densité locale
 sans modifier les observations ni la géométrie déterministe du monde.
+
+Les arbres ont leurs propres niveaux de détail : le modèle, le même arbre
+éclairci (`tools/r1/tree_lod.py`, 4 000 triangles de couronne, 1 800 de
+branches, 160 de tronc, silhouette commune à 94 %) et sa carte. Un niveau se
+fond dans le suivant en une demi-seconde (fondu tramé de Saida). Le modèle complet est réservé aux arbres à
+moins de 15 m du joueur, environ un espacement de forêt et quart : quelques
+arbres, de l'ordre de cinq en forêt. Le niveau intermédiaire couvre le reste
+jusqu'à environ 250 m pour un arbre de 9 m ; la carte ne sert qu'au fond.
 
 ### I5 — Le jeu sait toujours ce qu'il ignore
 Chaque élément porte sa provenance : `mesuré`, `inféré` ou `synthétisé`. Ce qui
@@ -364,9 +376,9 @@ dans le manifeste (I5), et le coût se compte contre l'arène et le CPU de la
 machine de référence (I4).
 
 ### Fiabilité et fluidité — priorité immédiate
-- **Densité par tuile** : règle permanente ci-dessus, à 120 000 sommets,
-  comptant aussi les instances visibles d'arbres et de foule. Le dépassement
-  ne supprime ni routes ni bâtiments. Grenoble est recuite à 135 010 sommets
+- **Densité par tuile** : règle permanente ci-dessus, à 120 000 sommets de
+  géométrie de tuile. Le dépassement ne supprime ni routes, ni bâtiments, ni
+  arbres. Grenoble est recuite à 135 010 sommets
   sans le refus antérieur ; la qualification en jeu est décrite dans le README.
 - **Streaming sans pics de frame** : décodage des assets en tâche de fond et
   uploads GPU incrémentaux intégrés dans le moteur, parcours Paris–Tunis validé.
@@ -374,10 +386,25 @@ machine de référence (I4).
   Les allocations de textures, la rasterisation des interfaces et le calcul
   diffus du ciel passent aussi en tâche de fond dans le moteur ; transferts
   de textures bornés, ressources conservées jusqu'à leur fin réelle.
-  Reste à traiter les enregistrements synchrones et la création des pipelines,
-  puis mesurer sur i5 / GTX 1060. Les contrats sont dans `engine/SPEC.md`,
+  Les enseignes, intérieurs et glaces lointaines utilisent désormais les uploads
+  en file ; les intérieurs deviennent visibles et solides une fois prêts.
+  Les pipelines natifs sont construits par lots sur deux tâches au démarrage,
+  et le redimensionnement réutilise ceux du bloom. Les traces Paris, Grenoble
+  et Paris–Tunis ne contiennent plus d'attentes GPU de ces chemins.
+  Reste à mesurer sur i5 / GTX 1060. Les contrats sont dans `engine/SPEC.md`,
   les résultats de vérification dans `game/README.md`.
   Les mesures actuelles sur RTX 4070 ne qualifient pas cette machine cible.
+- **Reprise prévue le soir du 8 octobre 2026 sur le portable avec NVIDIA MX450**
+  (information donnée par l'utilisateur). Après récupération de `main`, relever
+  CPU, RAM, VRAM, résolution et alimentation secteur ; lancer une compilation
+  optimisée et les parcours Paris, Grenoble et Paris–Tunis, puis un intérieur
+  de maison. Comparer les traces de `game/generated/streaming-validation/`
+  si elles ont été transférées ; sinon refaire les captures avec `--profile`.
+  Vérifier les pics de frame, attentes GPU, pression mémoire et colliders à
+  l'arrivée. Le smoke maison de Tunis a révélé une boucle de republication
+  d'une vieille réponse OSM hors ligne, corrigée et couverte par un test de
+  service ; rejouer ce parcours en jeu. La MX450 est une validation portable
+  supplémentaire ; la qualification i5 / GTX 1060 reste ouverte.
 - **Voitures et circulation** : améliorer la peinture et les reflets de près,
   puis le comportement aux feux et face aux piétons, avec un coût borné.
 

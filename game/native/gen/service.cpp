@@ -275,6 +275,11 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                     } else {
                         if (self->options.fetchOsm) self->options.fetchOsm(region, path);
                         else self->store.fetchOsm(region, path);
+                        // A failed refresh can return the unchanged old answer.
+                        // It remains usable, but is not a landed observation:
+                        // publishing it repeatedly would tear down live tiles.
+                        if (self->store.queryVersion(path) < kOsmBaseVersion)
+                            throw SourceUnavailable("OSM update unavailable; keeping the cached answer");
                     }
                     {
                         std::lock_guard<std::mutex> guard(self->lock);

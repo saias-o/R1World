@@ -8,7 +8,7 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 7 October 2026. The current generator is v35;
+Documentation reviewed on 8 October 2026. The current generator is v36;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
 
@@ -1537,8 +1537,27 @@ and released draw handles; exported native UI and HDR/environment pixel checks
 pass. Paris/Grenoble captures and Paris-to-Tunis walking, jumping, driving,
 takeover and teleport pass. Logs, PNGs, traces and
 `fluidity-final-comparison.json` are in `generated/streaming-validation/`.
-The engine contracts are in [SPEC.md](../engine/SPEC.md); remaining legacy
-registration and pipeline work is in [ROADMAP.md](../engine/ROADMAP.md).
+The engine contracts are in [SPEC.md](../engine/SPEC.md); hardware qualification
+and remaining platform limits are in [ROADMAP.md](../engine/ROADMAP.md).
+
+The final 8 October streaming pass queues lettering, interior shells/furniture
+and distant ice. Interiors stay hidden with inactive colliders until all meshes
+are ready; an old ice pack remains visible until its replacement is ready.
+Native graphics pipelines build in joined batches with at most two lanes at
+startup; bloom resize reuses the pipelines. Optimized Paris, Grenoble and
+Paris-to-Tunis runs pass with zero `GPU/WaitUpload`, `GPU/WaitSingleTime`,
+synchronous `Resource/LoadGLTF` or pipeline construction scopes in their retained
+frame traces. The previous Paris-to-Tunis trace had 1,361 upload waits totalling
+105.07 ms. Verification passes 153 GPU streaming checks, the 92 native CTest
+cases (six rerun with a writable temporary directory), native runtime contracts
+and the Web build. Artifacts use the `legacy-final-` prefix in the same local,
+untracked validation folder. A failed offline OSM refresh now retains the old
+answer without repeatedly publishing it as an upgrade and remounting live tiles.
+The targeted service suite passes all eight cases, including this regression.
+The Tunis home smoke that exposed this needs an in-game rerun.
+The user plans to resume on a laptop with a NVIDIA MX450 on the evening of
+8 October; the portable validation checklist is recorded in `docs/PLAN.md`.
+Neither the RTX 4070 results nor this planned MX450 run qualify the i5 / GTX 1060.
 
 Grenoble tile 27038/26176 recooks to 135,010 vertices and remains visitable.
 Offline Grenoble spawn/capture at (5.723786, 45.197956) and a fresh-process
@@ -1550,7 +1569,10 @@ The world's density rules are specified in [the project plan](../docs/PLAN.md).
 
 - **Dense neighbourhoods**: the 120,000-vertex per-tile refusal is removed;
   the total resident vertex/index arena can still be exhausted. The density
-  policy reduces trees, people and interiors, not surveyed road structures.
+  policy reads the tile's own geometry and reduces people and interiors, never
+  trees or surveyed road structures. Street trees have three levels of detail:
+  the model, the same tree thinned by `tools/r1/tree_lod.py` (run it after
+  changing a tree model), and its card.
 - **Cars**: paint and metal now reflect the HDR sky, but glazing is opaque,
   there is no automotive clearcoat layer, and the reflection source is the sky,
   not nearby buildings. An automotive clearcoat and local reflection solution

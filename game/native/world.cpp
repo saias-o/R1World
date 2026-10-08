@@ -11,6 +11,7 @@
 #include "scene/SceneTree.hpp"
 #include "scene/SceneSerializer.hpp"
 #include "scene/GLTFLoader.hpp"
+#include "core/Profiler.hpp"
 #include "scene/animation/Animator.hpp"
 #include "graphics/ResourceManager.hpp"
 #include "graphics/Material.hpp"
@@ -179,6 +180,11 @@ constexpr size_t kAbandonedCars=6;
 // entrance whose room is not built is a closed door within kClosedDoorNear,
 // cleared beyond kClosedDoorFar.
 constexpr double kInteriorLoad=65.,kInteriorRelease=85.,kClosedDoorNear=90.,kClosedDoorFar=95.;
+// A tree shows its full model within this distance of the player, its middle
+// level beyond. Forest trees stand about 12 m apart (gen/scatter.cpp: the
+// inferred forest's spacing, the 11.6 m canopy cell), so a spacing and a
+// quarter holds the nearest few: pi * 15^2 / 12^2 is about five.
+constexpr double kTreeNearRadius=15.;
 constexpr size_t kInteriorRooms=2;
 
 struct Tile {
@@ -307,6 +313,9 @@ struct Plant {
     saida::Node* node=nullptr;
     bool grass=false;
     bool tree=false;
+    // A tree with a middle level: its full model is allowed only close by.
+    saida::LODGroupBehaviour* lod=nullptr;
+    bool close=false;
 };
 struct Footprint {
     std::vector<glm::dvec2> points;
@@ -322,7 +331,7 @@ struct LiveInterior {
     saida::Node* closedDoor=nullptr;
     r1::P2 low{1e30,1e30},high{-1e30,-1e30};
     double opening=0,hold=0;
-    bool refused=false;
+    bool refused=false,ready=false;
     bool contains(r1::P2 at) const {
         return at.x>=low.x&&at.x<=high.x&&at.y>=low.y&&at.y<=high.y&&r1::pointInPolygon(at,plan.ring);
     }
@@ -434,7 +443,7 @@ struct Loaded {
     // The cooked tile this was mounted from. Its manifest and its prop list
     // are read where they are, never copied.
     std::shared_ptr<const r1::ServedTile> served;
-    const json& data; Frame frame; const json& props; size_t nextProp=0;
+    const json& data; Frame frame; const json& props; size_t nextProp=0,nextLettering=0;
     // The tile's own geometry goes up a few parts a frame (World::uploadParts).
     saida::Node* geography=nullptr; size_t nextPart=0;
     std::vector<saida::Mesh*> partMeshes;
@@ -2435,7 +2444,7 @@ class World : public Rml::EventListener {
     // with its coverage so no baked plate shows, in `colour`, facing +Z.
     std::unique_ptr<saida::Node> lettering(const std::string& text,double width,double height,glm::vec3 colour) {
         auto letters=r1::facadeLettering(text,width,height);if(!letters)return nullptr;
-        auto sign=saida::SceneSerializer::nodeFromJson(letters->dump(),engine.resources());if(!sign)return nullptr;
+        auto sign=plantNode(*letters);if(!sign)return nullptr;
         saida::MaterialDesc desc;
         desc.baseColor={colour.x,colour.y,colour.z,1.f};
         desc.roughness=.55f;desc.alphaCutoff=.35f;
@@ -2450,9 +2459,14 @@ class World : public Rml::EventListener {
     }
     // A tile's own lettering: fuel canopies and totems (gen/fuel).
     void mountLettering(Loaded& t) {
+        const auto started=std::chrono::steady_clock::now();
         auto list=t.data.find("lettering");if(list==t.data.end())return;
-        for(const auto& entry:*list) {
+        while(t.nextLettering<list->size()) {
+            const auto& entry=(*list)[t.nextLettering];
             const std::string text=entry.at("text");
+            const auto letters=r1::facadeLettering(text,entry.at("width"),entry.at("height"));
+            if(letters&&!modelsReady(*letters))return;
+            ++t.nextLettering;
             const auto& c=entry.at("colour");
             auto sign=lettering(text,entry.at("width"),entry.at("height"),{float(c[0]),float(c[1]),float(c[2])});
             if(!sign){saida::Log::warn("[World lettering] font cannot spell: ",text);continue;}
@@ -2460,6 +2474,7 @@ class World : public Rml::EventListener {
             sign->transform().position={float(at[0]),float(at[1]),float(at[2])};
             sign->transform().rotation=glm::angleAxis(float(std::atan2(n[0].get<double>(),n[1].get<double>())),glm::vec3(0,1,0));
             t.node->addChild(std::move(sign));
+            if(msSince(started)>=kPropImportMs)return;
         }
     }
     void mountAircraft(Loaded& t) {
@@ -3472,7 +3487,10 @@ class World : public Rml::EventListener {
         auto root=std::make_unique<saida::Node>(key);
         const r1::CookedTile& cooked=served.cooked;
         if(!cooked.ocean.is_null()) {
-            auto sea=saida::SceneSerializer::nodeFromJson(cooked.ocean.dump(),engine.resources());
+            // Nothing is drawn under the open ocean: water that lets the
+            // background through would show the clear colour, not a sea bed.
+            auto ocean=cooked.ocean;ocean["transparency"]=0.0;
+            auto sea=saida::SceneSerializer::nodeFromJson(ocean.dump(),engine.resources());
             if(!sea)throw std::runtime_error("sea node refused by the scene loader");
             root->addChild(std::move(sea));
         } else root->createChild<saida::Node>("Geography");
@@ -3567,21 +3585,37 @@ class World : public Rml::EventListener {
           const auto q=t.frame.local(playerEcef);const r1::P2 at{q.x,q.z};
           for(auto& room:t.interiors) {
             const double distance=room.contains(at)?0:r1::dist(at,room.plan.door);
-            if(!room.node&&distance<kClosedDoorNear&&!room.closedDoor) {
+            if(room.node&&!room.ready) {
+                bool ready=true;
+                room.node->traverse([&](saida::Node& node,const glm::mat4&) {
+                    if(auto* mesh=node.mesh())ready=ready&&mesh->loaded();
+                });
+                if(ready) {
+                    room.ready=true;room.node->setEnabled(true);
+                    saida::Log::info("[World interiors] ready ",room.plan.name);
+                } else if(engine.resources().assetLoadsSettled()) {
+                    room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
+                    room.refused=true;released=true;
+                    saida::Log::error("[World interiors] geometry upload failed: ",room.plan.name);
+                    text("stream-status","Impossible de charger cet intérieur.");
+                    if(smoke){testFailed=true;engine.sceneTree().quit();return;}
+                }
+            }
+            if(!room.ready&&distance<kClosedDoorNear&&!room.closedDoor) {
                 const auto& p=room.plan;
                 room.closedDoor=boxCollider(*t.node,"Unloaded interior door",{float(p.width),2.5f,.10f},{0,1.25f,0});
                 room.closedDoor->transform().position={float(p.door.x),float(p.floor),float(p.door.y)};
                 room.closedDoor->transform().rotation=glm::angleAxis(float(-std::atan2(p.along.y,p.along.x)),glm::vec3(0,1,0));
             }
-            if(room.closedDoor&&(room.node||distance>kClosedDoorFar)) {room.closedDoor->queueFree();room.closedDoor=nullptr;}
+            if(room.closedDoor&&((room.node&&room.ready)||distance>kClosedDoorFar)) {room.closedDoor->queueFree();room.closedDoor=nullptr;}
             if(distance>kInteriorRelease)room.refused=false; // Retry a capacity refusal on a later visit.
             if(room.node&&distance>kInteriorRelease) {
                 room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
-                room.layout={};room.opening=0;released=true;
+                room.layout={};room.opening=0;room.ready=false;released=true;
             }
             if(room.node)++active;
             if(!t.reducedDensity&&!room.node&&!room.refused&&distance<kInteriorLoad)candidates.push_back({&t,&room,distance});
-            if(room.node) {
+            if(room.node&&room.ready) {
                 auto p=room.plan.local(at);
                 // Sensor on both sides, with a hold time and a wide safety zone.
                 const bool sensor=!driving&&!sailing&&!piloting&&std::abs(p.x)<room.plan.width/2+1.5&&std::abs(p.y)<3.5;
@@ -3610,11 +3644,16 @@ class World : public Rml::EventListener {
             }
             if(farthest) {
                 farthest->node->queueFree();farthest->node=nullptr;farthest->leaves[0]=farthest->leaves[1]=nullptr;
-                farthest->layout={};farthest->opening=0;--active;trim();
+                farthest->layout={};farthest->opening=0;farthest->ready=false;--active;trim();
             }
         }
         if(active>=kInteriorRooms||candidates.empty())return;
         auto& room=*candidates.front().room;auto& t=*candidates.front().tile;const auto& p=room.plan;
+        if(p.recipe!="home"&&p.recipe!="warehouse") {
+            const auto letters=r1::facadeLettering(p.name,3.,.75);
+            if(letters&&!modelsReady(*letters))return;
+        }
+        SAIDA_PROFILE_SCOPE("World/BuildInterior");
         room.layout=r1::layoutInterior(p);auto parts=r1::buildInteriorShell(p);auto door=r1::buildInteriorDoor(p);
         std::map<std::string,std::vector<r1::MeshPart>> furnishings;
         for(const auto& fixture:room.layout.fixtures) {
@@ -3632,7 +3671,8 @@ class World : public Rml::EventListener {
         auto root=std::make_unique<saida::Node>("Interior "+std::to_string(p.id));
         auto upload=[&](saida::Node& parent,const std::vector<r1::MeshPart>& list) {
             for(size_t i=0;i<list.size();++i)if(!list[i].mesh.empty()) {
-                auto up=uploadOf(list[i],i);auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(up.vertices,up.indices));
+                auto up=uploadOf(list[i],i);auto* mesh=engine.resources().getMesh(engine.resources().queueMemoryMesh(
+                    saida::prepareMesh({std::move(up.vertices),std::move(up.indices)})));
                 if(!mesh)throw std::runtime_error("interior mesh allocation refused");
                 auto node=std::make_unique<saida::MeshNode>(up.name,mesh,material(list[i].material));
                 // The existing opaque roof and exterior walls cast the room's
@@ -3653,9 +3693,10 @@ class World : public Rml::EventListener {
             std::map<std::string,std::vector<SharedPart>> prototypes;
             for(const auto& [key,prototype]:furnishings)for(size_t i=0;i<prototype.size();++i) {
                 if(prototype[i].mesh.empty())continue;
-                const auto up=uploadOf(prototype[i],i);
-                auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(
-                    "generated/interior-prototypes/v25/"+key+"/"+std::to_string(i),up.vertices,up.indices));
+                auto up=uploadOf(prototype[i],i);
+                auto* mesh=engine.resources().getMesh(engine.resources().queueMemoryMesh(
+                    saida::prepareMesh({std::move(up.vertices),std::move(up.indices)}),
+                    "generated/interior-prototypes/v25/"+key+"/"+std::to_string(i)));
                 if(!mesh)throw std::runtime_error("furniture prototype allocation refused");
                 prototypes[key].push_back({mesh,material(prototype[i].material),i==0||i==2});
             }
@@ -3733,9 +3774,9 @@ class World : public Rml::EventListener {
                 light->range=r1::retailInterior(p.recipe)?12.f:8.f;light->castShadows=false;
                 root->addChild(std::move(light));
             }
-            room.node=t.node->addChild(std::move(root));
-            if(room.closedDoor){room.closedDoor->queueFree();room.closedDoor=nullptr;}
-            saida::Log::info("[World interiors] loaded ",p.name," recipe=",p.recipe," vertices=",vertices,
+            root->setEnabled(false);
+            room.ready=false;room.node=t.node->addChild(std::move(root));
+            saida::Log::info("[World interiors] queued ",p.name," recipe=",p.recipe," vertices=",vertices,
                 " furniture_instances=",room.layout.fixtures.size()," prototypes=",furnishings.size());
         } catch(const std::exception& e) {
             root.reset();trim();
@@ -3774,7 +3815,7 @@ class World : public Rml::EventListener {
         const std::string recipe=std::getenv("R1WORLD_INTERIOR_SMOKE")?std::getenv("R1WORLD_INTERIOR_SMOKE"):"";
         for(auto& [key,t]:loaded)for(auto& r:t.interiors)
             if((retailTestId&&r.plan.id==retailTestId)||(!retailTestId&&r.node&&(recipe.empty()?r1::retailInterior(r.plan.recipe):r.plan.recipe==recipe))) {owner=&t;found=&r;break;}
-        if(!found)return;
+        if(!found||(found->node&&!found->ready))return;
         auto& r=*found;retailTestId=r.plan.id;
         double walkDepth=0;
         for(double v=.5;v<=12;v+=.5) {
@@ -4026,7 +4067,17 @@ class World : public Rml::EventListener {
         }
         if(node->isInGroup("vegetation") && node->findByPath("Near") && node->findByPath("Far")) {
             auto* lod = node->addBehaviour<saida::LODGroupBehaviour>();
-            lod->setLevels({{"Near", .06f}, {"Far", 0.f}});
+            // Coverage is the bounding sphere's projected diameter, squared
+            // (MeshLod.cpp). A tree with a middle level shows it out to 1% --
+            // about 250 m for a nine-metre tree at 60 degrees -- and its card
+            // only beyond, the background. Its full model is for the trees
+            // within kTreeNearRadius (`updateNature`), which cover far more
+            // than 10% even when small.
+            if(node->findByPath("Mid"))lod->setLevels({{"Near", .1f}, {"Mid", .01f}, {"Far", 0.f}});
+            else lod->setLevels({{"Near", .06f}, {"Far", 0.f}});
+            // A level dissolves into the next over half a second instead of
+            // swapping in one frame (Saida's screen-door cross-fade).
+            lod->setCrossFade(.5f);
         }
         return node;
     }
@@ -4037,54 +4088,18 @@ class World : public Rml::EventListener {
     void updateNature(double reach) {
         for(auto& [key,t]:loaded){
             const auto pos=t.frame.local(ecef(lon,lat,alt));
-            for(const Plant& plant:t.vegetation){
+            for(Plant& plant:t.vegetation){
                 const auto p=plant.node->transform().position;
                 double d=std::hypot(p.x-pos.x,p.z-pos.z);
                 plant.node->setVisible(d<(plant.grass?65:550)*reach);
-
+                if(plant.lod) {
+                    // Entered inside the radius, left a tenth beyond it, so
+                    // a tree at the edge does not flicker between two models.
+                    plant.close=d<kTreeNearRadius*(plant.close?1.1:1.);
+                    plant.lod->setFinestLevel(plant.close?0:1);
+                }
             }
         }
-    }
-    static size_t displayedVertices(const saida::Node& node) {
-        if(!node.enabled()||!node.visible())return 0;
-        size_t count=0;
-        if(node.mesh()) {
-            const auto* mesh=static_cast<const saida::MeshNode*>(&node);
-            if(mesh->meshEnabled()) {
-                auto* selected=mesh->meshForLod(mesh->activeLodIndex());
-                if(selected&&selected->loaded())count=selected->geometryAllocation().vertexCount;
-            }
-        }
-        for(const auto& child:node.children()) {
-            count+=displayedVertices(*child);
-            if(count>r1::DensityPolicy::kThreshold)break;
-        }
-        return count;
-    }
-    void reduceDensity(Loaded& tile) {
-        tile.reducedDensity=true;
-        for(const auto& plant:tile.vegetation)if(plant.tree) {
-            if(auto* lod=plant.node->getBehaviour<saida::LODGroupBehaviour>())lod->setLevels({{"Far",0.f}});
-            if(auto* nearNode=plant.node->findByPath("Near")) {nearNode->setVisible(false);nearNode->queueFree();}
-            if(auto* farNode=plant.node->findByPath("Far"))farNode->setVisible(true);
-        }
-        for(auto& room:tile.interiors)if(room.node) {
-            room.node->setVisible(false);
-            room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
-            room.layout={};room.opening=0;
-        }
-        saida::Log::warn("[World density] ",tile.served->cooked.tile.key(),
-            " permanently reduced: trees=Far crowd=1/4 interiors=blocked");
-    }
-    void checkDensity() {
-        bool changed=false;
-        for(auto& [key,tile]:loaded)if(!tile.reducedDensity) {
-            const size_t vertices=displayedVertices(*tile.node);
-            if(densityPolicy.observe(tile.served->cooked.tile,vertices)) {
-                reduceDensity(tile);changed=true;
-            }
-        }
-        if(changed)updateCrowd(0.f);
     }
     // ── landmarks seen from afar ─────────────────────────────────────────────
     //
@@ -4189,21 +4204,47 @@ class World : public Rml::EventListener {
     struct FarPack {
         saida::Node* node=nullptr; double lon=0,lat=0; size_t vertices=0;
         std::shared_ptr<const r1::SeaIce> ice;
-    } farPack;
+        bool refused=false;
+    } farPack,nextFarPack;
     void placeFarPack() {
-        if(!farPack.node)return;
-        const auto position=glm::vec3(origin.local(ecef(farPack.lon,farPack.lat,0.)));
-        const Frame own(farPack.lon,farPack.lat,0.);
+      for(auto* pack:{&farPack,&nextFarPack}) {
+        if(!pack->node)continue;
+        const auto position=glm::vec3(origin.local(ecef(pack->lon,pack->lat,0.)));
+        const Frame own(pack->lon,pack->lat,0.);
         const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*own.basis));
-        const auto turn=rotation*glm::inverse(farPack.node->transform().rotation);
-        engine.sceneTree().world().rebaseSubtree(*farPack.node,position-turn*farPack.node->transform().position,turn);
+        const auto turn=rotation*glm::inverse(pack->node->transform().rotation);
+        engine.sceneTree().world().rebaseSubtree(*pack->node,position-turn*pack->node->transform().position,turn);
+      }
     }
     void updateFarPack() {
         Loaded* here=playing&&!pending?tile(lon,lat):nullptr;
         const auto ice=here&&here->seaIce?here->served->cooked.seaIce:nullptr;
         if(!ice) {
+            if(nextFarPack.node){nextFarPack.node->queueFree();nextFarPack=FarPack{};}
             if(farPack.node){farPack.node->queueFree();farPack=FarPack{};saida::Log::info("[World ice] far pack taken down");}
             return;
+        }
+        if(nextFarPack.node) {
+            if(nextFarPack.ice!=ice||metresBetween(lon,lat,nextFarPack.lon,nextFarPack.lat)>=2000.) {
+                nextFarPack.node->queueFree();nextFarPack=FarPack{};
+            } else {
+                if(nextFarPack.refused)return;
+                bool ready=true;
+                nextFarPack.node->traverse([&](saida::Node& node,const glm::mat4&) {
+                    if(auto* mesh=node.mesh())ready=ready&&mesh->loaded();
+                });
+                if(!ready) {
+                    if(engine.resources().assetLoadsSettled()) {
+                        nextFarPack.refused=true;
+                        saida::Log::error("[World ice] far pack geometry upload failed");
+                        text("stream-status","Banquise lointaine indisponible : transfert de géométrie refusé.");
+                        if(smoke){testFailed=true;engine.sceneTree().quit();}
+                    }
+                    return;
+                }
+                if(farPack.node)farPack.node->queueFree();
+                farPack=nextFarPack;nextFarPack=FarPack{};farPack.node->setVisible(true);
+            }
         }
         if(farPack.node&&farPack.ice==ice&&metresBetween(lon,lat,farPack.lon,farPack.lat)<2000.)return;
         const auto started=std::chrono::steady_clock::now();
@@ -4211,14 +4252,18 @@ class World : public Rml::EventListener {
         auto root=std::make_unique<saida::Node>("far pack");
         size_t vertices=0;
         for(size_t i=0;i<parts.size();++i) {
-            const PartUpload up=uploadOf(parts[i],i);
-            auto* mesh=engine.resources().getMesh(engine.resources().registerMemoryMesh(up.vertices,up.indices));
+            PartUpload up=uploadOf(parts[i],i);
+            const auto count=up.vertices.size();
+            auto* mesh=engine.resources().getMesh(engine.resources().queueMemoryMesh(
+                saida::prepareMesh({std::move(up.vertices),std::move(up.indices)})));
             if(!mesh){saida::Log::warn("[World ice] the geometry arena refused ",parts[i].name);continue;}
             root->addChild(std::make_unique<saida::MeshNode>(parts[i].name,mesh,material(parts[i].material)));
-            vertices+=up.vertices.size();
+            vertices+=count;
         }
-        if(farPack.node)farPack.node->queueFree();
-        farPack=FarPack{engine.sceneTree().world().addChild(std::move(root)),lon,lat,vertices,ice};
+        // The old pack remains visible and owned until all replacement meshes
+        // are draw-ready; a hidden branch pins the new queued resources.
+        root->setVisible(false);
+        nextFarPack=FarPack{engine.sceneTree().world().addChild(std::move(root)),lon,lat,vertices,ice};
         placeFarPack();
         saida::Log::info("[World ice] far pack to ",r1::kFarPackRadius/1000.," km around ",lon,", ",lat,
                          ": ",vertices," vertices, ",ice->measured?"measured ":"inferred ",ice->date,
@@ -4405,6 +4450,14 @@ class World : public Rml::EventListener {
         for(auto t:ring) {
             auto it=loaded.find(t.key());if(it==loaded.end())continue;
             auto& l=it->second;
+            try { mountLettering(l); }
+            catch(const std::exception& e) {
+                l.nextLettering=l.data.value("lettering",json::array()).size();
+                saida::Log::error("[World lettering] ",t.key(),": ",e.what());
+                text("stream-status","Impossible de charger une enseigne.");
+                if(smoke){testFailed=true;engine.sceneTree().quit();return;}
+            }
+            if(msSince(start)>=kPropImportMs)return;
             while(l.nextProp<l.props.size()) {
                 if(roadside) {
                     const auto& doc=l.props[l.nextProp];
@@ -4413,18 +4466,15 @@ class World : public Rml::EventListener {
                 try {
                     auto doc=l.props[l.nextProp];
                     bool plant=doc.contains("groups")&&std::find(doc["groups"].begin(),doc["groups"].end(),"vegetation")!=doc["groups"].end();
-                    if(l.reducedDensity&&plant&&std::find(doc["groups"].begin(),doc["groups"].end(),"tree")!=doc["groups"].end()) {
-                        auto& children=doc["children"];
-                        children.erase(std::remove_if(children.begin(),children.end(),[](const auto& child){return child.value("name",std::string())=="Near";}),children.end());
-                    }
                     if(!modelsReady(doc))return;
-                    auto n=(plant||doc.contains("importedFrom"))?plantNode(doc):saida::SceneSerializer::nodeFromJson(doc.dump(),engine.resources());
+                    auto n=plantNode(doc);
                     if(!n)throw std::runtime_error("Object import failed");
                     if(plant) {
                         Plant entry;
                         entry.node=n.get();
                         entry.grass=n->isInGroup("grass");
                         entry.tree=n->isInGroup("tree");
+                        if(n->findByPath("Mid"))entry.lod=n->getBehaviour<saida::LODGroupBehaviour>();
                         l.vegetation.push_back(entry);
                         n->setVisible(false);
                     }
@@ -4468,7 +4518,7 @@ class World : public Rml::EventListener {
         size_t count=0,indices=0;
         for(auto& [k,t]:loaded)if(wanted.count(k)){count+=t.data.at("vertices").get<size_t>();indices+=t.data.value("indices",size_t(0));}
         // The far landmarks share the arena with the tiles (gen/landmarks.cpp).
-        count+=farVertices()+farPack.vertices;
+        count+=farVertices()+farPack.vertices+nextFarPack.vertices;
         const auto tick=std::chrono::steady_clock::now();
         for(auto t:want) {
             if(loaded.count(t.key()))continue;
@@ -4494,9 +4544,13 @@ class World : public Rml::EventListener {
                 const auto mountStarted=std::chrono::steady_clock::now();
                 auto* ptr=engine.sceneTree().world().addChild(buildTile(t.key(),*served));
                 auto [entry,inserted]=loaded.try_emplace(t.key(),ptr,served);
+                // The tile's own geometry, the one measure the budget is about.
+                // Props are scene nodes on shared models (CLAUDE.md rule 5):
+                // counting every visible tree's Near mesh put a dozen trees over
+                // 120 000 and sent every tile's trees to cards for good.
                 densityPolicy.observe(t.gen(),vertices);
                 entry->second.reducedDensity=densityPolicy.reduced(t.gen());
-                if(entry->second.reducedDensity)saida::Log::info("[World density] ",t.key()," trees=Far crowd=1/4 interiors=blocked");
+                if(entry->second.reducedDensity)saida::Log::info("[World density] ",t.key()," crowd=1/4 interiors=blocked");
                 ++minimapRevision;
                 // Counted at once: several tiles mount in one tick, and each
                 // must see the ones mounted before it.
@@ -4512,7 +4566,6 @@ class World : public Rml::EventListener {
                 readGraph(entry->second);
                 readCrowd(entry->second);
                 mountAircraft(entry->second);
-                mountLettering(entry->second);
                 placeTiles();
                 reparkIfCovered(t.key());
                 lastMountMs=msSince(mountStarted);
@@ -5614,7 +5667,6 @@ public:
         cost.props=timed([&]{streamProps(fast);});
         cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
         cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
-        checkDensity();
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
         if((farPack.node!=nullptr)!=fogFar)applyWeather();
@@ -5883,7 +5935,8 @@ public:
                 // several frames (uploadParts), and its props may be done first.
                 const auto& resident=i->second;
                 if(!resident.geography||resident.nextPart<std::any_cast<const PreparedTile&>(resident.served->prepared).parts.size())return false;
-                return resident.nextProp==resident.props.size();
+                return resident.nextProp==resident.props.size()&&
+                    resident.nextLettering==resident.data.value("lettering",json::array()).size();
             });
             // A capture that waits says what for, every ten seconds: otherwise
             // the only report is the smoke's data timeout, which blames the

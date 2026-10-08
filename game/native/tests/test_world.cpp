@@ -735,6 +735,26 @@ TEST(Service, a_visited_place_never_touches_the_network) {
     for (const auto& s : said->lines) CHECK_MSG(s.find("OFFLINE") == std::string::npos && s.find("FALLBACK") == std::string::npos, s);
 }
 
+TEST(Service, an_unchanged_stale_answer_is_not_published_as_an_upgrade) {
+    const Tile t = tileAt(5.0, 45.0);
+    WorldService::Options options;
+    options.gameRoot = placeVisitedAt(kOsmBaseVersion - 1, t, "-stale-refresh");
+    options.threads = 1;
+    auto attempted = std::make_shared<std::promise<void>>();
+    auto refreshed = attempted->get_future();
+    options.fetchOsm = [attempted](const Bounds&, const std::string&) { attempted->set_value(); };
+    options.fetchAero = [](const Bounds&, const std::string&) { throw SourceUnavailable("offline test"); };
+    WorldService service(std::move(options));
+    service.want({t}, {});
+    const auto first = waitForTile(service, t);
+    CHECK(first);
+    CHECK(refreshed.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    const auto retained = service.find(t);
+    CHECK(retained && retained->serial == first->serial);
+    CHECK(retained->cooked.manifest["buildings"].get<int>() == 1);
+}
+
 TEST(Service, cached_streets_appear_before_relief_and_remain_after_it_arrives) {
     const Tile t = tileAt(5.0, 45.0);
     const std::string root = placeVisitedAt(kOsmQueryVersion, t, "-relief-pending");

@@ -10,6 +10,9 @@ namespace r1 {
 
 // A local performance decision, independent of generator versions and observations.
 // Immutable per-tile markers survive recooks, evictions and future game sessions.
+// It reads a tile's own geometry only, and never touches its trees: they are
+// shared models outside the tile's budget, and cards in their place would
+// lower the world's best assets (CLAUDE.md rules 1 and 5).
 class DensityPolicy {
 public:
     static constexpr size_t kThreshold = 120000;
@@ -28,7 +31,7 @@ public:
         std::filesystem::create_directories(folder_);
         const auto id = identity(tile);
         std::ofstream marker(folder_ / id, std::ios::binary);
-        marker << "trees=far\ncrowd=0.25\nvertices=" << vertices << '\n';
+        marker << "crowd=0.25\ninteriors=blocked\nvertices=" << vertices << '\n';
         marker.flush();
         if (!marker) throw std::runtime_error("Cannot persist density policy for " + tile.key());
         reduced_.insert(id);

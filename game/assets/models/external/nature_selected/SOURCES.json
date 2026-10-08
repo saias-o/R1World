@@ -81,5 +81,23 @@
     },
     "normalizedHeight": 1,
     "vertices": 4911
+  },
+  {
+    "output": "urban_tree_mid.glb",
+    "derivedFrom": "urban_tree.glb",
+    "triangles": {
+      "crown merged_normal leaves_0": 4002,
+      "br_low_trunk_0": 1826,
+      "trunk_low_trunk_0": 160
+    },
+    "vertices": 10236,
+    "bytes": 3009044,
+    "attribution": {
+      "author": "Daniel (https://sketchfab.com/danielpetrov)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/realistic-tree-d989c0f801d847b9a74992ec4ddcfdfc",
+      "title": "Realistic Tree"
+    },
+    "method": "crown: whole cards kept by what they add to a dozen views, grown inside its reach; branches: Saida AutoLOD proxy (meshoptimizer + xatlas bake); trunk: rings to its neck, fork decimated, baked by AutoLOD --proxy-shape"
   }
 ]
