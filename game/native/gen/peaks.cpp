@@ -83,6 +83,7 @@ ElevationGrid raiseToPeaks(const ElevationGrid& grid, const std::vector<Peak>& p
     const Bounds& b = grid.bounds;
     const int n = kTerrainMeshSize;
     ElevationGrid out{b, n, {}};
+    out.southEdge = grid.southEdge; out.northEdge = grid.northEdge;
     out.values.reserve(size_t(n) * size_t(n));
     for (int row = 0; row < n; ++row)
         for (int col = 0; col < n; ++col)
@@ -125,6 +126,18 @@ ElevationGrid raiseToPeaks(const ElevationGrid& grid, const std::vector<Peak>& p
                 const double fade = (1.0 - s2) * (1.0 - s2);
                 const double lift = std::min(kPeakMaxRaise, std::max(0.0, dome - base[i]) * fade);
                 if (base[i] + lift > out.values[i]) out.values[i] = base[i] + lift;
+            }
+        }
+        for (auto* edge : {&out.southEdge, &out.northEdge}) {
+            const double lat = edge == &out.southEdge ? b.south : b.north;
+            const auto& source = edge == &out.southEdge ? grid.southEdge : grid.northEdge;
+            for (size_t i = 0; i < edge->size(); ++i) {
+                const double dx = ((*edge)[i].x - p.lon) * metresLon, dy = (lat - p.lat) * kMetresPerDegree;
+                const double d2 = dx * dx + dy * dy;
+                if (d2 >= kPeakReach * kPeakReach) continue;
+                const double dome = p.ele - d2 / (2.0 * kCrown), s2 = d2 / (kPeakReach * kPeakReach);
+                const double lift = std::min(kPeakMaxRaise, std::max(0.0, dome - source[i].y) * (1 - s2) * (1 - s2));
+                (*edge)[i].y = std::max((*edge)[i].y, source[i].y + lift);
             }
         }
         if (own && relief) raised.push_back({{"id", p.id}, {"name", p.name}, {"ele", p.ele}, {"relief", *relief},

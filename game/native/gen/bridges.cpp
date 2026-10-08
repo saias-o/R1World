@@ -518,19 +518,25 @@ ElevationGrid carvedGround(const ElevationGrid& grid, const GradePlan& plan) {
     ElevationGrid out{grid.bounds, n, {}};
     out.values.reserve(size_t(n * n));
     const double kx = kMetresPerDegree * std::cos(radians((grid.bounds.south + grid.bounds.north) / 2)), ky = kMetresPerDegree;
+    auto depth = [&](double lon, double lat) {
+        double dig = 0;
+        for (const GradePlan::Carve& c : plan.carves) {
+            const double d = std::hypot((lon - c.at.x) * kx, (lat - c.at.y) * ky);
+            if (d >= c.radius) continue;
+            const double core = c.radius * 0.35;
+            dig = std::max(dig, c.depth * (d <= core ? 1.0 : (c.radius - d) / (c.radius - core)));
+        }
+        return dig;
+    };
     for (int row = 0; row < n; ++row)
         for (int col = 0; col < n; ++col) {
             const double lon = grid.bounds.west + (grid.bounds.east - grid.bounds.west) * col / (n - 1);
             const double lat = grid.bounds.south + (grid.bounds.north - grid.bounds.south) * row / (n - 1);
-            double dig = 0;
-            for (const GradePlan::Carve& c : plan.carves) {
-                const double d = std::hypot((lon - c.at.x) * kx, (lat - c.at.y) * ky);
-                if (d >= c.radius) continue;
-                const double core = c.radius * 0.35;
-                dig = std::max(dig, c.depth * (d <= core ? 1.0 : (c.radius - d) / (c.radius - core)));
-            }
-            out.values.push_back(grid.sample(lon, lat) - dig);
+            out.values.push_back(grid.sample(lon, lat) - depth(lon, lat));
         }
+    out.southEdge = grid.southEdge; out.northEdge = grid.northEdge;
+    for (auto* edge : {&out.southEdge, &out.northEdge})
+        for (auto& p : *edge) p.y -= depth(p.x, edge == &out.southEdge ? grid.bounds.south : grid.bounds.north);
     return out;
 }
 

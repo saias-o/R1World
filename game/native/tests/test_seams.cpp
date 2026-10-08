@@ -47,10 +47,7 @@ struct World {
     double edge(const Tile& t, bool north, double lon) const {
         const ElevationGrid& g = stitched.at(t);
         const Bounds b = t.bounds();
-        const double u = std::clamp((lon - b.west) / (b.east - b.west), 0.0, 1.0) * (kTerrainMeshSize - 1);
-        const int i = std::min(kTerrainMeshSize - 2, int(u));
-        const int row = north ? kTerrainMeshSize - 1 : 0;
-        return g.at(row, i) * (1 - (u - i)) + g.at(row, i + 1) * (u - i);
+        return terrainElevation(lon, north ? b.north : b.south, g);
     }
     // The largest step along the seam between `low` and `high` (rows r, r+1).
     double rowStep(const Tile& low, const Tile& high) const {
@@ -136,4 +133,66 @@ TEST(Seams, a_tile_alone_keeps_its_ground_inside) {
     const ElevationGrid alone = stitchedGround(kHere, own, {});
     NEAR(alone.at(20, 20), own.grid.at(20, 20), 1e-9);
     CHECK(alone.size == kTerrainMeshSize);
+}
+
+TEST(Seams, steep_staggered_survey_edges_close) {
+    // Grenoble's steep relief exposed the residual left by smoothing and
+    // interpolating the common curve on two different regular lattices.
+    World w;
+    const Tile low{27038,26176}, high{27039,26174};
+    const double width = low.bounds().east - low.bounds().west;
+    for (int dr = -1; dr <= 2; ++dr) for (int dc = -2; dc <= 2; ++dc) {
+        const int row = low.row + dr;
+        const Tile t = tileAt(low.center().x + dc * width, -90.0 + (row + .5) * kStep);
+        auto g = sampled(t, 0);
+        for (auto& h : g.values) h *= 80;
+        w.raw[t] = {g, 5}; w.stitched[t] = g;
+    }
+    CHECK(w.rowStep(low, high) > 1);
+    w.stitchAll();
+    CHECK(w.rowStep(low, high) < 1e-6);
+    NEAR(w.stitched.at(low).at(20,20), w.raw.at(low).grid.at(20,20), 1e-9);
+    CHECK(w.stitched.at(low).northEdge.size() > kTerrainMeshSize);
+}
+
+TEST(Seams, refined_boundary_queries_follow_the_drawn_triangles) {
+    const Bounds b{45., 5., 45.005, 5.007};
+    ElevationGrid g{b, kTerrainMeshSize, std::vector<double>(kTerrainMeshSize*kTerrainMeshSize, 200.)};
+    const double step = (b.east-b.west)/(kTerrainMeshSize-1);
+    // A ridge between two regular vertices must be drawn and queried alike.
+    g.southEdge = {{b.west,200.},{b.west+.4*step,240.},{b.west+step,200.},{b.east,200.}};
+    g.northEdge = {{b.west,200.},{b.west+.6*step,260.},{b.west+step,200.},{b.east,200.}};
+    const Anchor anchor = Anchor::at(5.,45.);
+    TerrainGrid regular;
+    const auto meshes = buildTerrain(b,g,anchor,nullptr,nullptr,&regular);
+    const Mesh& mesh = meshes.at("");
+    CHECK(mesh.indices.size() == size_t(6*40*40+6));
+    CHECK(regular.classes.size() == size_t(2*40*40));
+    for (bool north : {false,true}) for (double u : {.1,.3,.5,.7,.9}) for (double inward : {0.,.1,.3,.6}) {
+        const double lon=b.west+u*step;
+        const double lat=north ? b.north-inward*(b.north-b.south)/40 : b.south+inward*(b.north-b.south)/40;
+        const P3 q=groundPoint(lon,lat,g,anchor);
+        bool found=false;
+        for (size_t i=0;i<mesh.indices.size();i+=3) {
+            const P3 a=mesh.positions[mesh.indices[i]],bb=mesh.positions[mesh.indices[i+1]],c=mesh.positions[mesh.indices[i+2]];
+            const double det=(bb.z-c.z)*(a.x-c.x)+(c.x-bb.x)*(a.z-c.z);
+            const double wa=((bb.z-c.z)*(q.x-c.x)+(c.x-bb.x)*(q.z-c.z))/det;
+            const double wb=((c.z-a.z)*(q.x-c.x)+(a.x-c.x)*(q.z-c.z))/det,wc=1-wa-wb;
+            if(wa < -1e-4 || wb < -1e-4 || wc < -1e-4)continue;
+            NEAR(q.y,wa*a.y+wb*bb.y+wc*c.y,.003);
+            found=true;break;
+        }
+        CHECK(found);
+        NEAR(terrainElevation(lon,lat,g),anchor.toGeodetic(q.x,q.y,q.z).z,.03);
+    }
+    NEAR(terrainElevation(b.west+.4*step,b.south,g),240.,1e-7);
+    NEAR(terrainElevation(b.west+.6*step,b.north,g),260.,1e-7);
+}
+
+TEST(Seams, shared_knots_work_with_a_sparse_neighbourhood_and_mixed_surveys) {
+    World w;
+    const Tile low{27038,26176}, high{27039,26174};
+    w.of(low,5,0.);w.of(high,4,4.);
+    w.stitchAll();
+    CHECK(w.rowStep(low,high) < 1e-6);
 }

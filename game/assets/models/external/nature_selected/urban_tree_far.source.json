@@ -1,0 +1,24 @@
+{
+  "output": "urban_tree_far.glb",
+  "derivedFrom": "urban_tree_mid.glb",
+  "sourceSha256": "25295fc7dc3bcbbde86842f8ee571b906596d4a5b2db3d69bc6adce72d05ba2f",
+  "columns": 8,
+  "rows": 5,
+  "resolution": 256,
+  "supersample": 2,
+  "vertices": 4,
+  "triangles": 2,
+  "extent": 1.07554030418396,
+  "pivot": [
+    0.0,
+    0.5000998377799988,
+    2.9802322387695312e-08
+  ],
+  "attribution": {
+    "author": "Daniel (https://sketchfab.com/danielpetrov)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/realistic-tree-d989c0f801d847b9a74992ec4ddcfdfc",
+    "title": "Realistic Tree"
+  },
+  "method": "multi-view orthographic Mid albedo/alpha; no baked sun; shared camera-facing quad with coarse live ambient/directional lighting"
+}

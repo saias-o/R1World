@@ -16,6 +16,7 @@
 #include "graphics/ResourceManager.hpp"
 #include "graphics/Material.hpp"
 #include "nodes/GrassNode.hpp"
+#include "nodes/WaterNode.hpp"
 #include "nodes/CameraNode.hpp"
 #include "nodes/MeshNode.hpp"
 #include "nodes/LightNode.hpp"
@@ -50,6 +51,7 @@
 #include "gen/far_relief.hpp"
 #include "gen/sources.hpp"
 #include "gen/service.hpp"
+#include "gen/terrain.hpp"
 #include "minimap.hpp"
 #include "forced_time.hpp"
 #include "density_policy.hpp"
@@ -448,7 +450,9 @@ struct Loaded {
     saida::Node* geography=nullptr; size_t nextPart=0;
     std::vector<saida::Mesh*> partMeshes;
     saida::GrassNode* grass=nullptr;  // its blades, when its ground grows any
+    std::vector<saida::WaterNode*> waters;
     bool reducedDensity=false;
+    std::chrono::steady_clock::time_point builtAt=std::chrono::steady_clock::now();
     Loaded(saida::Node* n,std::shared_ptr<const r1::ServedTile> s)
         :node(n),served(std::move(s)),data(served->cooked.manifest),
          frame(data.at("lon").get<double>(),data.at("lat").get<double>()),props(served->cooked.props){}
@@ -482,6 +486,7 @@ struct Loaded {
     // read JSON. See World::unpack.
     double west=0,east=0,south=0,north=0;
     int gridSize=0; std::vector<float> elevation;
+    r1::ElevationGrid groundGrid;
     // 0 land, 1 inland water, 2 sea-level water (see r1/harbours.Cells).
     int waterRows=0,waterCols=0; std::vector<uint8_t> water;
     bool ocean=false,seaIce=false;
@@ -654,6 +659,9 @@ class World : public Rml::EventListener {
     size_t smokeTrafficSeen=0; bool smokeTrafficMoved=false;
     uint64_t generation=0; std::vector<Rml::Element*> listeners;
     std::map<std::string,Loaded> loaded;
+    // A shown tile cooked again goes up here, hidden, while the old one is
+    // still drawn; the two trade places in one frame (World::promoteIncoming).
+    std::map<std::string,Loaded> incoming;
     std::map<std::string,std::string> zoneCountries,countryNames;
     uint64_t minimapRevision=0,minimapDrawnRevision=~uint64_t(0);
     double minimapLon=1e9,minimapLat=1e9;
@@ -1032,6 +1040,12 @@ class World : public Rml::EventListener {
     double pickLon=2.3522,pickLat=48.8566,zoom=1,mapCenterLon=2.3522,mapCenterLat=48.8566;
     MenuTileCache menuTiles;
     bool menu=true,playing=false,pending=false,warming=false,wasMenuKey=false;
+    bool performanceDebug=false,debugTraffic=true,debugGrass=true,debugWater=true,debugTrees=true;
+    saida::WebCanvasNode* performanceUi=nullptr;
+    bool performanceKeys[5]{};
+    double performanceSeconds=0; size_t performanceFrames=0;
+    static constexpr double kPerformanceRefreshSeconds=.5;
+    bool performanceSmoke=false; int performanceSmokePhase=0; double performanceSmokeWait=0;
     std::chrono::steady_clock::time_point goStarted;
     double lastMountMs=0;
     // How smooth the arrival was: frames over 33 ms in the ten seconds after
@@ -1077,6 +1091,7 @@ class World : public Rml::EventListener {
     // planet -- and it is the path a player takes every time after the
     // first. --spawn2 makes the run do it.
     double hopLon=0,hopLat=0,hopWait=0; bool hopWanted=false,hopDone=false,hopArmed=false;
+    std::optional<double> smokeArrivalHeading;
     saida::ScriptBehaviour* sunScript=nullptr; bool sunReported=false;
     // Options screen. `forcedMinutes` is "Forcer l'heure à" (minutes after
     // local midnight), kept in cache/options.json between runs; `forcedSent`
@@ -1242,8 +1257,165 @@ class World : public Rml::EventListener {
         menu=show;style("menu","display",show?"block":"none");style("hud","display",show?"none":"block");
         optionsOpen=false;style("options-screen","display","none");
         minimapUi->setEnabled(!show);
+        if(performanceUi)performanceUi->setEnabled(performanceDebug&&!show);
         style("resume","display",playing?"inline-block":"none");
         engine.window().setCursorCaptured(!show);
+    }
+    void resetPerformanceSample() {
+        performanceSeconds=0;performanceFrames=0;
+        if(performanceDebug)performanceText("debug-fps","FPS : mesure en cours…");
+    }
+    void performanceText(const std::string& id,const std::string& value) {
+        if(!performanceUi)return;
+        auto& previous=written["debug:"+id];
+        if(previous!=value&&performanceUi->setElementText(id,value))previous=value;
+    }
+    void placePerformanceCanvas() {
+        if(!performanceUi||!performanceDebug||menu)return;
+        const glm::vec2 scale=ui->screenSize()/glm::vec2(ui->width(),ui->height());
+        const glm::vec2 at=ui->screenPosition()+glm::vec2((1440.f-360.f-32.f)*scale.x,130.f*scale.y);
+        performanceUi->transform().position={at.x,at.y,0};
+        performanceUi->transform().scale={scale.x,scale.y,1};
+    }
+    void ensurePerformanceCanvas() {
+        if(performanceUi)return;
+        // A small independent texture avoids re-rendering the 1440x900 map/HUD
+        // twice a second. It is not even allocated until debug is first opened.
+        json doc={{"type","WebCanvasNode"},{"name","Performance debug"},{"width",360},{"height",218},
+            {"mode",0},{"url",(game/"ui/performance.html").string()},{"hotReload",false},
+            {"interactive",false},{"renderOrder",1002},{"enabled",false},
+            {"transform",{{"position",{32,130,0}},{"scale",{1,1,1}},{"rotation",{1,0,0,0}}}}};
+        auto canvas=saida::SceneSerializer::nodeFromJson(doc.dump(),engine.resources());
+        performanceUi=dynamic_cast<saida::WebCanvasNode*>(canvas.get());
+        if(!performanceUi||!performanceUi->lastLoadOk())throw std::runtime_error("Performance HUD failed to load");
+        engine.sceneTree().world().addChild(std::move(canvas));
+    }
+    void performanceStatus() {
+        performanceText("debug-traffic",std::string("V · Trafic routier : ")+(debugTraffic?"ON":"OFF"));
+        performanceText("debug-grass",std::string("Y · Herbe volumétrique : ")+(debugGrass?"ON":"OFF"));
+        performanceText("debug-water",std::string("M · Eau (WaterNode) : ")+(debugWater?"ON":"OFF"));
+        performanceText("debug-trees",std::string("T · Arbres : ")+(debugTrees?"ON":"OFF"));
+    }
+    void applyPerformanceTile(Loaded& tile) {
+        if(tile.grass)tile.grass->setEnabled(debugGrass);
+        for(auto* water:tile.waters)water->setEnabled(debugWater);
+        for(auto& plant:tile.vegetation)if(plant.tree)plant.node->setEnabled(debugTrees);
+        if(tile.trunks)tile.trunks->setEnabled(debugTrees);
+        for(size_t i=0;i<tile.cars.size();++i)
+            if(tile.cars[i])tile.cars[i]->setEnabled(trafficSlotLive(tile,i));
+    }
+    void handlePerformanceKeys(const bool (&keys)[5]) {
+        bool pressed[5];
+        for(size_t i=0;i<5;++i){pressed[i]=keys[i]&&!performanceKeys[i];performanceKeys[i]=keys[i];}
+        // Latch even in menus so typing, holding a key, or resuming cannot toggle.
+        if(!playing||menu)return;
+        bool changed=pressed[0];
+        if(pressed[0]) {
+            performanceDebug=!performanceDebug;
+            if(performanceDebug)ensurePerformanceCanvas();
+            if(performanceUi)performanceUi->setEnabled(performanceDebug);
+            if(!performanceDebug)debugTraffic=debugGrass=debugWater=debugTrees=true;
+        }
+        if(performanceDebug) {
+            if(pressed[1]){debugTraffic=!debugTraffic;changed=true;}
+            if(pressed[2]){debugGrass=!debugGrass;changed=true;}
+            if(pressed[3]){debugWater=!debugWater;changed=true;}
+            if(pressed[4]){debugTrees=!debugTrees;changed=true;}
+        }
+        if(!changed)return;
+        for(auto* tiles:{&loaded,&incoming})for(auto& [key,tile]:*tiles)applyPerformanceTile(tile);
+        performanceStatus();resetPerformanceSample();
+        saida::Log::info("[World debug] enabled=",performanceDebug," traffic=",debugTraffic,
+                         " grass=",debugGrass," water=",debugWater," trees=",debugTrees);
+    }
+    void samplePerformance(double seconds) {
+        if(!performanceDebug||!playing||menu){performanceSeconds=0;performanceFrames=0;return;}
+        if(seconds<=0||!std::isfinite(seconds))return;
+        performanceSeconds+=seconds;++performanceFrames;
+        if(performanceSeconds<kPerformanceRefreshSeconds)return;
+        // Whole-frame wall time includes GPU waits and pacing. Do not enable the
+        // full profiler or copy its scopes/history just to display two numbers.
+        performanceText("debug-fps",number(double(performanceFrames)/performanceSeconds,1)+" FPS · "+
+                         number(performanceSeconds*1000./double(performanceFrames),2)+" ms/image");
+        performanceSeconds=0;performanceFrames=0;
+    }
+    void pressPerformanceKey(size_t key) {
+        bool keys[5]{};handlePerformanceKeys(keys);
+        keys[key]=true;handlePerformanceKeys(keys);handlePerformanceKeys(keys);
+        keys[key]=false;handlePerformanceKeys(keys);
+    }
+    void runPerformanceSmoke(double dt) {
+        if(captureQueued)return;
+        performanceSmokeWait+=dt;
+        auto fail=[&](const char* reason){
+            saida::Log::error("[World debug E2E] FAIL ",reason);testFailed=true;engine.sceneTree().quit();
+        };
+        if(performanceSmokePhase==0) {
+            if(performanceSmokeWait<2.)return;
+            size_t trees=0,grass=0,water=0;
+            for(const auto& [key,t]:loaded) {
+                grass+=t.grass!=nullptr;water+=t.waters.size();
+                for(const auto& plant:t.vegetation)trees+=plant.tree;
+            }
+            if((!trees||!grass||!trafficLive())&&performanceSmokeWait<15.)return;
+            if(!trees||!grass||!trafficLive()){fail("fixture needs grass, trees and road traffic");return;}
+            saida::Log::info("[World debug E2E] fixture trees=",trees," grass=",grass," water=",water);
+            pressPerformanceKey(1);
+            if(!debugTraffic||performanceDebug){fail("V acted outside debug");return;}
+            pressPerformanceKey(0); // Held R is delivered twice by the helper.
+            if(!performanceDebug){fail("R did not toggle once while held");return;}
+            resetPerformanceSample();samplePerformance(.01);samplePerformance(.49);
+            if(written["debug:debug-fps"]!="4.0 FPS · 250.00 ms/image") {
+                fail("FPS did not count frames over elapsed wall time");return;
+            }
+            for(size_t key=1;key<5;++key)pressPerformanceKey(key);
+            performanceSmokePhase=1;performanceSmokeWait=0;return;
+        }
+        if(performanceSmokePhase==1) {
+            if(performanceSmokeWait<1.)return; // New props stream while switches are OFF.
+            for(auto* tiles:{&loaded,&incoming})for(const auto& [key,t]:*tiles) {
+                if(t.grass&&t.grass->enabled()){fail("grass stayed enabled");return;}
+                for(auto* water:t.waters)if(water->enabled()){fail("water stayed enabled");return;}
+                for(const auto& plant:t.vegetation)if(plant.tree&&plant.node->enabled()){fail("tree stayed enabled");return;}
+                if(t.trunks&&(t.trunks->enabled()||t.trunks->physicsWorld())){fail("tree collisions stayed enabled");return;}
+                for(auto* car:t.cars)if(car&&car->enabled()){fail("traffic car stayed enabled");return;}
+                const auto before=t.flow.agents();
+                updateTraffic(.05f);
+                const auto& after=t.flow.agents();
+                for(size_t i=0;i<before.size();++i)
+                    if(before[i].lane!=after[i].lane||before[i].s!=after[i].s||before[i].speed!=after[i].speed||
+                       before[i].seed!=after[i].seed||before[i].alive!=after[i].alive) {
+                        fail("traffic simulation continued while OFF");return;
+                    }
+            }
+            if(!engine.sceneTree().world().grassFields().empty()||!engine.sceneTree().world().waterNodes().empty()) {
+                fail("disabled grass/water still published to renderer");return;
+            }
+            pressPerformanceKey(2);
+            if(!debugGrass||debugTraffic||debugWater||debugTrees){fail("Y changed another switch");return;}
+            pressPerformanceKey(0);
+            if(performanceDebug||!debugGrass||!debugTraffic||!debugWater||!debugTrees||performanceUi->enabled()) {
+                fail("leaving debug did not restore normal play");return;
+            }
+            performanceSmokePhase=2;performanceSmokeWait=0;return;
+        }
+        if(performanceSmokePhase==2) {
+            if(performanceSmokeWait<1.)return;
+            if(!trafficLive()||engine.sceneTree().world().grassFields().empty()){fail("features did not resume");return;}
+            pressPerformanceKey(0);placePerformanceCanvas();
+            performanceSmokePhase=3;performanceSmokeWait=0;return;
+        }
+        if(performanceSmokeWait<1.)return;
+        if(!performanceUi->lastLoadOk()||written["debug:debug-fps"].find("ms/image")==std::string::npos) {
+            fail("FPS HUD did not render its sample");return;
+        }
+        saida::Log::info("[World debug E2E] PASS held keys, independent toggles, streamed nodes, physics removal, traffic pause/resume, FPS averaging and HUD");
+        if(const char* png=std::getenv("R1WORLD_DEBUG_SHOT")) {
+            if(!captureQueued) {
+                saida::CaptureRequest shot;shot.pngPath=png;shot.frame=15;
+                captureQueued=true;engine.captureFrameThenExit(shot);
+            }
+        } else engine.sceneTree().quit();
     }
     int mapZoomLevel() const {return std::clamp(int(std::lround(std::log2(zoom)))+2,3,19);}
     void renderMapTiles() {
@@ -1482,10 +1654,17 @@ class World : public Rml::EventListener {
         const auto& grid=tile.data.at("elevations");
         tile.gridSize=int(grid.size());
         tile.elevation.resize(size_t(tile.gridSize)*size_t(tile.gridSize));
+        tile.groundGrid = r1::ElevationGrid{{tile.south,tile.west,tile.north,tile.east},tile.gridSize,{}};
         for(int row=0;row<tile.gridSize;++row) {
             const auto& line=grid[size_t(row)];
-            for(int col=0;col<tile.gridSize;++col)
+            for(int col=0;col<tile.gridSize;++col) {
                 tile.elevation[size_t(row)*size_t(tile.gridSize)+size_t(col)]=float(line[size_t(col)]);
+                tile.groundGrid.values.push_back(line[size_t(col)].get<double>());
+            }
+        }
+        if(auto edges=tile.data.find("groundEdges");edges!=tile.data.end()) {
+            for(const auto& p:edges->at("south"))tile.groundGrid.southEdge.push_back({p[0],p[1]});
+            for(const auto& p:edges->at("north"))tile.groundGrid.northEdge.push_back({p[0],p[1]});
         }
         auto water=tile.data.find("water");
         if(water!=tile.data.end()&&water->is_array()&&!water->empty()) {
@@ -1664,6 +1843,8 @@ class World : public Rml::EventListener {
         const int n=t->gridSize;
         double u=std::clamp((wrap(x)-t->west)/(t->east-t->west),0.,1.)*(n-1);
         double v=std::clamp((y-t->south)/(t->north-t->south),0.,1.)*(n-1);
+        if((v<1&&!t->groundGrid.southEdge.empty())||(v>n-2&&!t->groundGrid.northEdge.empty()))
+            return r1::terrainElevation(wrap(x),y,t->groundGrid);
         int ix=std::min(n-2,int(u)),iy=std::min(n-2,int(v));u-=ix;v-=iy;
         const float* g=t->elevation.data();
         const size_t low=size_t(iy)*size_t(n),high=low+size_t(n);
@@ -3356,7 +3537,7 @@ class World : public Rml::EventListener {
         return tile.frame.local(origin.origin+origin.basis*glm::dvec3(p.x,p.y,p.z));
     }
     void updateTraffic(float delta) {
-        if(fleet.empty())return;
+        if(!debugTraffic||fleet.empty())return;
         // §5 again, from the other side: the whole neighbourhood shares one
         // fleet budget, and the tiles nearest the player spend it first --
         // `nearby` returns them in that order. Far tiles keep their graph and
@@ -3397,7 +3578,7 @@ class World : public Rml::EventListener {
     }
     bool trafficSlotLive(const Loaded& tile,size_t slot) const {
         const auto& agents=tile.flow.agents();
-        return slot<agents.size()&&agents[slot].alive;
+        return debugTraffic&&slot<agents.size()&&agents[slot].alive;
     }
     // Reuse each slot's graph; dormant slots retain resources without rendering.
     void syncTrafficNodes(Loaded& tile,float delta) {
@@ -3492,14 +3673,18 @@ class World : public Rml::EventListener {
             auto ocean=cooked.ocean;ocean["transparency"]=0.0;
             auto sea=saida::SceneSerializer::nodeFromJson(ocean.dump(),engine.resources());
             if(!sea)throw std::runtime_error("sea node refused by the scene loader");
+            sea->setEnabled(debugWater);
             root->addChild(std::move(sea));
         } else root->createChild<saida::Node>("Geography");
-        if(!cooked.grass.empty())root->addChild(grassNode(cooked));
+        if(!cooked.grass.empty()) {
+            auto grass=grassNode(cooked);grass->setEnabled(debugGrass);root->addChild(std::move(grass));
+        }
         return root;
     }
     // The player and the car push the grass aside where they pass.
     static constexpr float kWalkerBend=0.45f,kCarBend=1.6f;
     void bendGrass() {
+        if(!debugGrass)return;
         const auto at=[](saida::Node* n){return glm::vec3(n->worldTransform()[3]);};
         const bool walking=player&&player->isActiveInHierarchy();
         const bool driving=car&&car->isActiveInHierarchy();
@@ -3519,6 +3704,8 @@ class World : public Rml::EventListener {
         auto node=std::make_unique<saida::GrassNode>();
         saida::GrassNode::Field f;
         f.groundSamples=g.groundSamples;f.heights=g.heights;
+        for(const auto& p:g.southBoundary)f.southBoundary.push_back({p[0],p[1]});
+        for(const auto& p:g.northBoundary)f.northBoundary.push_back({p[0],p[1]});
         const auto& m=g.uvFromEngine;
         f.uvFromLocal=glm::mat3(glm::vec3(float(m[0]),float(m[3]),0.f),glm::vec3(float(m[1]),float(m[4]),0.f),
                                 glm::vec3(float(m[2]),float(m[5]),1.f));
@@ -3539,9 +3726,15 @@ class World : public Rml::EventListener {
     void uploadParts() {
         const auto start=std::chrono::steady_clock::now();
         const auto priority=orderedNearby((pending||warming)?pickLon:lon,(pending||warming)?pickLat:lat);
-        for(const auto tile:priority) {
-            auto found=loaded.find(tile.key());if(found==loaded.end())continue;
-            const auto& key=found->first;auto& t=found->second;
+        // A tile's replacement uploads right after it: the old one is shown
+        // until then, so it is the one standing in for it on screen.
+        std::vector<std::pair<const std::string*,Loaded*>> order;
+        for(const auto tile:priority)for(auto* tiles:{&loaded,&incoming}) {
+            auto found=tiles->find(tile.key());
+            if(found!=tiles->end())order.push_back({&found->first,&found->second});
+        }
+        for(auto [name,tile]:order) {
+            const auto& key=*name;auto& t=*tile;
             if(!t.geography)continue;
             const auto& parts=std::any_cast<const PreparedTile&>(t.served->prepared).parts;
             while(t.nextPart<parts.size()) {
@@ -3560,12 +3753,12 @@ class World : public Rml::EventListener {
         }
     }
     void placeTiles() {
-        for(auto& [key,t]:loaded) {
+        for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles) {
+            // Keep the precise destination: composing a translation from the
+            // old million-metre float pose loses centimetres at arrival.
             const auto position=glm::vec3(origin.local(t.frame.origin));
             const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*t.frame.basis));
-            const auto turn=rotation*glm::inverse(t.node->transform().rotation);
-            engine.sceneTree().world().rebaseSubtree(*t.node,
-                position-turn*t.node->transform().position,turn);
+            engine.sceneTree().world().rebaseSubtreeTo(*t.node,position,rotation);
         }
         for(auto& f:farLandmarks)if(f.node)placeFar(f);
         placeFarRelief();
@@ -3954,7 +4147,11 @@ class World : public Rml::EventListener {
     }
     std::unique_ptr<saida::Node> clonePlant(saida::Node& source) {
         std::unique_ptr<saida::Node> out;
-        if(source.mesh())out=std::make_unique<saida::MeshNode>(source.name(),source.mesh(),source.material());
+        if(source.mesh()){
+            auto mesh=std::make_unique<saida::MeshNode>(source.name(),source.mesh(),source.material());
+            if(auto* original=dynamic_cast<saida::MeshNode*>(&source))mesh->castShadows()=original->castShadows();
+            out=std::move(mesh);
+        }
         else out=std::make_unique<saida::Node>(source.name());
         out->transform()=source.transform();
         for(auto& child:source.children())out->addChild(clonePlant(*child));
@@ -3980,6 +4177,7 @@ class World : public Rml::EventListener {
         here.position=above.position+above.rotation*(above.scale*source.transform().position);
         if(source.mesh()) {
             auto mesh=std::make_unique<saida::MeshNode>(source.name(),source.mesh(),source.material());
+            if(auto* original=dynamic_cast<saida::MeshNode*>(&source))mesh->castShadows()=original->castShadows();
             mesh->transform()=here;
             out.push_back(std::move(mesh));
         }
@@ -3998,6 +4196,21 @@ class World : public Rml::EventListener {
             auto imported=std::make_unique<saida::Node>(fs::path(path).stem().string());
             if(!saida::GLTFLoader::instantiate(handle,*imported,engine.resources()))
                 throw std::runtime_error("Model instantiation failed: "+path);
+            if(path=="assets/models/external/nature_selected/urban_tree.glb"
+               ||path=="assets/models/external/nature_selected/urban_tree_mid.glb") {
+                // Keep the scanned leaf colours and gloss map, but give dry
+                // foliage a softer lobe, including its bright grazing angles.
+                // Applied once to shared prototypes, never per tree or frame.
+                constexpr float kDryLeafSpecularStrength=.25f;
+                imported->traverse([&](saida::Node& n,const glm::mat4&){
+                    auto* mesh=dynamic_cast<saida::MeshNode*>(&n);
+                    if(!mesh||!mesh->material())return;
+                    auto desc=mesh->material()->desc();
+                    if(desc.alphaCutoff<=0.f)return; // Bark keeps its authored material.
+                    desc.specularStrength*=kDryLeafSpecularStrength;
+                    mesh->setMaterial(engine.resources().getMaterial(desc));
+                });
+            }
             found=prototypes->addChild(std::move(imported));
             prototypeLoads.erase(path);
         }
@@ -4068,12 +4281,12 @@ class World : public Rml::EventListener {
         if(node->isInGroup("vegetation") && node->findByPath("Near") && node->findByPath("Far")) {
             auto* lod = node->addBehaviour<saida::LODGroupBehaviour>();
             // Coverage is the bounding sphere's projected diameter, squared
-            // (MeshLod.cpp). A tree with a middle level shows it out to 1% --
-            // about 250 m for a nine-metre tree at 60 degrees -- and its card
-            // only beyond, the background. Its full model is for the trees
+            // (MeshLod.cpp). Mid ends at 9%: roughly 80 m for a nine-metre
+            // tree at 60 degrees. Beyond it the Mid-derived view atlas retains
+            // its silhouette with one camera-facing quad. Full geometry is for
             // within kTreeNearRadius (`updateNature`), which cover far more
             // than 10% even when small.
-            if(node->findByPath("Mid"))lod->setLevels({{"Near", .1f}, {"Mid", .01f}, {"Far", 0.f}});
+            if(node->findByPath("Mid"))lod->setLevels({{"Near", .1f}, {"Mid", .09f}, {"Far", 0.f}});
             else lod->setLevels({{"Near", .06f}, {"Far", 0.f}});
             // A level dissolves into the next over half a second instead of
             // swapping in one frame (Saida's screen-door cross-fade).
@@ -4086,9 +4299,10 @@ class World : public Rml::EventListener {
     // is the cheapest of the plan's levers and the only one that costs nothing
     // when standing still.
     void updateNature(double reach) {
-        for(auto& [key,t]:loaded){
+        for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles){
             const auto pos=t.frame.local(ecef(lon,lat,alt));
             for(Plant& plant:t.vegetation){
+                if(plant.tree&&!debugTrees)continue;
                 const auto p=plant.node->transform().position;
                 double d=std::hypot(p.x-pos.x,p.z-pos.z);
                 plant.node->setVisible(d<(plant.grass?65:550)*reach);
@@ -4150,8 +4364,7 @@ class World : public Rml::EventListener {
         const auto position=glm::vec3(origin.local(ecef(f.lon,f.lat,f.alt)));
         const Frame own(f.lon,f.lat,f.alt);
         const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*own.basis));
-        const auto turn=rotation*glm::inverse(f.node->transform().rotation);
-        engine.sceneTree().world().rebaseSubtree(*f.node,position-turn*f.node->transform().position,turn);
+        engine.sceneTree().world().rebaseSubtreeTo(*f.node,position,rotation);
     }
     size_t farVertices() const {
         size_t n=0;
@@ -4212,8 +4425,7 @@ class World : public Rml::EventListener {
         const auto position=glm::vec3(origin.local(ecef(pack->lon,pack->lat,0.)));
         const Frame own(pack->lon,pack->lat,0.);
         const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*own.basis));
-        const auto turn=rotation*glm::inverse(pack->node->transform().rotation);
-        engine.sceneTree().world().rebaseSubtree(*pack->node,position-turn*pack->node->transform().position,turn);
+        engine.sceneTree().world().rebaseSubtreeTo(*pack->node,position,rotation);
       }
     }
     void updateFarPack() {
@@ -4305,8 +4517,7 @@ class World : public Rml::EventListener {
         const auto position=glm::vec3(origin.local(ecef(farRelief.lon,farRelief.lat,0.)));
         const Frame own(farRelief.lon,farRelief.lat,0.);
         const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(origin.basis)*own.basis));
-        const auto turn=rotation*glm::inverse(farRelief.node->transform().rotation);
-        engine.sceneTree().world().rebaseSubtree(*farRelief.node,position-turn*farRelief.node->transform().position,turn);
+        engine.sceneTree().world().rebaseSubtreeTo(*farRelief.node,position,rotation);
     }
     void updateFarRelief() {
         // Where it cannot be drawn: before a spawn, over the pack (whose own
@@ -4434,6 +4645,7 @@ class World : public Rml::EventListener {
         if(!l.trunks) {
             auto body=std::make_unique<saida::StaticBodyNode>();body->setName("Tree trunks");
             l.trunks=static_cast<saida::StaticBodyNode*>(l.node->addChild(std::move(body)));
+            l.trunks->setEnabled(debugTrees);
         }
         auto shape=std::make_unique<saida::CollisionShapeNode>();
         shape->shapeType=saida::CollisionShapeType::Box;shape->halfExtents={.23f,2.f,.23f};
@@ -4447,8 +4659,10 @@ class World : public Rml::EventListener {
         const auto start=std::chrono::steady_clock::now();
         // Scene/GPU APIs stay on the render thread. Yield between objects;
         // CPU model requests yield; node instantiation retains a soft budget.
-        for(auto t:ring) {
-            auto it=loaded.find(t.key());if(it==loaded.end())continue;
+        // A replacement gets its props while hidden, so its trees and signs
+        // are there the frame it is shown (World::promoteIncoming).
+        for(auto t:ring)for(auto* tiles:{&loaded,&incoming}) {
+            auto it=tiles->find(t.key());if(it==tiles->end())continue;
             auto& l=it->second;
             try { mountLettering(l); }
             catch(const std::exception& e) {
@@ -4469,11 +4683,15 @@ class World : public Rml::EventListener {
                     if(!modelsReady(doc))return;
                     auto n=plantNode(doc);
                     if(!n)throw std::runtime_error("Object import failed");
+                    if(auto* water=dynamic_cast<saida::WaterNode*>(n.get())) {
+                        l.waters.push_back(water);water->setEnabled(debugWater);
+                    }
                     if(plant) {
                         Plant entry;
                         entry.node=n.get();
                         entry.grass=n->isInGroup("grass");
                         entry.tree=n->isInGroup("tree");
+                        if(entry.tree)n->setEnabled(debugTrees);
                         if(n->findByPath("Mid"))entry.lod=n->getBehaviour<saida::LODGroupBehaviour>();
                         l.vegetation.push_back(entry);
                         n->setVisible(false);
@@ -4494,6 +4712,90 @@ class World : public Rml::EventListener {
             }
         }
     }
+    // The nodes the parts go up under (World::uploadParts).
+    static void shape(Loaded& tile) {
+        tile.geography=tile.node->findByPath("Geography");
+        tile.grass=dynamic_cast<saida::GrassNode*>(tile.node->findByPath("Grass"));
+        for(const auto& child:tile.node->children())
+            if(auto* water=dynamic_cast<saida::WaterNode*>(child.get()))tile.waters.push_back(water);
+    }
+    // Everything a tile in `loaded` does beyond being drawn: its density, its
+    // traffic and crowd, its aircraft. After the emplace, never before: the
+    // flow holds a pointer to the graph, and a graph built in a temporary
+    // would be moved out from under it.
+    void activate(const std::string& key,Loaded& tile) {
+        const r1::Tile gen=tile.served->cooked.tile;
+        // The tile's own geometry, the one measure the budget is about.
+        // Props are scene nodes on shared models (CLAUDE.md rule 5):
+        // counting every visible tree's Near mesh put a dozen trees over
+        // 120 000 and sent every tile's trees to cards for good.
+        densityPolicy.observe(gen,tile.data.at("vertices").get<size_t>());
+        tile.reducedDensity=densityPolicy.reduced(gen);
+        if(tile.reducedDensity)saida::Log::info("[World density] ",key," crowd=1/4 interiors=blocked");
+        ++minimapRevision;
+        checkStanding=true;
+        tile.footprints=std::any_cast<const PreparedTile&>(tile.served->prepared).footprints;
+        unpack(tile);
+        readGraph(tile);
+        readCrowd(tile);
+        mountAircraft(tile);
+        placeTiles();
+        reparkIfCovered(key);
+    }
+    // A replacement is shown once every part of its ground is draw-ready and
+    // solid, in the frame its predecessor is taken down: the street is never
+    // missing in between. Replacements go up together -- a tile's ground is
+    // joined to its neighbours' (gen/seams), so one swapped alone would meet
+    // the old version of the next one with a step -- unless the first ready
+    // has waited a second for the others. One that cannot get ready says why
+    // and is shown as it is rather than leaving the old version up for good.
+    static constexpr double kReplaceWaitMs=10000.,kBatchWaitMs=1000.;
+    bool replacementReady(const std::string& key,const Loaded& next) {
+        const auto& parts=std::any_cast<const PreparedTile&>(next.served->prepared).parts;
+        bool ready=!next.geography||next.nextPart>=parts.size();
+        for(auto* mesh:next.partMeshes)ready=ready&&mesh->loaded();
+        // As many of its props as the shown version has, or all of them.
+        const auto old=loaded.find(key);
+        const size_t letters=next.data.value("lettering",json::array()).size();
+        if(old!=loaded.end())
+            ready=ready&&next.nextProp>=std::min(old->second.nextProp,next.props.size())&&
+                  next.nextLettering>=std::min(old->second.nextLettering,letters);
+        auto* physics=engine.sceneTree().world().physics();
+        if(ready&&next.geography&&(!physics||physics->hasRoomForBody()))
+            for(const auto& child:next.geography->children())
+                if(auto* body=dynamic_cast<saida::CollisionObjectNode*>(child.get()))
+                    ready=ready&&!body->bodyId().IsInvalid();
+        return ready;
+    }
+    bool promoteIncoming() {
+        std::vector<std::string> due;bool holding=false;double longest=0;
+        for(const auto& [key,next]:incoming) {
+            const double waited=msSince(next.builtAt);
+            if(replacementReady(key,next)){due.push_back(key);longest=std::max(longest,waited);}
+            else if(waited>=kReplaceWaitMs) {
+                // A timed-out replacement is due too: otherwise a younger
+                // unready tile holds the batch forever and repeats this warning.
+                longest=std::max(longest,waited);
+                const auto& parts=std::any_cast<const PreparedTile&>(next.served->prepared).parts;
+                saida::Log::warn("[World streaming] ",key," replacement not draw-ready after ",
+                                 int(waited)," ms (parts ",next.nextPart,"/",parts.size(),", props ",
+                                 next.nextProp,"/",next.props.size(),"): shown as it is");
+                due.push_back(key);
+            } else holding=true;
+        }
+        if(due.empty()||(holding&&longest<kBatchWaitMs))return false;
+        for(const auto& key:due) {
+            const double waited=msSince(incoming.at(key).builtAt);
+            if(auto old=loaded.find(key);old!=loaded.end()){old->second.node->queueFree();loaded.erase(old);}
+            auto handle=incoming.extract(key);
+            handle.mapped().node->setVisible(true);
+            Loaded& tile=loaded.insert(std::move(handle)).position->second;
+            activate(key,tile);
+            saida::Log::info("[World streaming] replaced ",key," after ",int(waited)," ms cook_ms=",
+                             tile.served->cooked.cookMs);
+        }
+        return true;
+    }
     void stream() {
         double x=(pending||warming)?pickLon:lon,y=(pending||warming)?pickLat:lat;
         auto want=orderedNearby(x,y);std::set<std::string> wanted;for(auto t:want)wanted.insert(t.key());
@@ -4507,18 +4809,59 @@ class World : public Rml::EventListener {
         // model on the planet, inside 1 048 576.
         if(playing)keep.insert(tileAt(lon,lat).key());
         bool removed=false;
-        for(auto it=loaded.begin();it!=loaded.end();) {
-            // A tile the service cooked again -- offline first, then from real
-            // observations -- is taken down and mounted anew below.
-            const auto current=service->find(it->second.served->cooked.tile);
-            const bool stale=current&&current->serial!=it->second.served->serial;
-            if(!keep.count(it->first)||stale){it->second.node->queueFree();it=loaded.erase(it);removed=true;}else ++it;
+        auto stale=[&](const Loaded& t){
+            const auto current=service->find(t.served->cooked.tile);
+            return current&&current->serial!=t.served->serial;
+        };
+        for(auto* tiles:{&loaded,&incoming})for(auto it=tiles->begin();it!=tiles->end();) {
+            // A replacement cooked over again is dropped and started anew below.
+            if(!keep.count(it->first)||(tiles==&incoming&&stale(it->second)))
+                {it->second.node->queueFree();it=tiles->erase(it);removed=true;}else ++it;
         }
-        if(removed){++minimapRevision;trim();}
+        if(promoteIncoming())removed=true;
         size_t count=0,indices=0;
-        for(auto& [k,t]:loaded)if(wanted.count(k)){count+=t.data.at("vertices").get<size_t>();indices+=t.data.value("indices",size_t(0));}
+        for(auto* tiles:{&loaded,&incoming})for(auto& [k,t]:*tiles)if(wanted.count(k))
+            {count+=t.data.at("vertices").get<size_t>();indices+=t.data.value("indices",size_t(0));}
         // The far landmarks share the arena with the tiles (gen/landmarks.cpp).
         count+=farVertices()+farPack.vertices+nextFarPack.vertices;
+        bool started=false;
+        for(auto it=loaded.begin();it!=loaded.end();) {
+            // A tile the service cooked again -- offline first, then from real
+            // observations -- is replaced. Its new version goes up hidden while
+            // the old one is still drawn: taking the old one down first left
+            // its streets missing for the frames the new parts took to upload.
+            if(!stale(it->second)||incoming.count(it->first)){++it;continue;}
+            const auto current=service->find(it->second.served->cooked.tile);
+            const json& data=current->cooked.manifest;
+            const size_t vertices=data.at("vertices").get<size_t>(),tileIndices=data.value("indices",size_t(0));
+            if(count+vertices<=residentVertexBudget&&indices+tileIndices<=residentIndexBudget) {
+                try {
+                    auto* ptr=engine.sceneTree().world().addChild(buildTile(it->first,*current));
+                    ptr->setVisible(false);
+                    shape(incoming.try_emplace(it->first,ptr,current).first->second);
+                    count+=vertices;indices+=tileIndices;
+                    started=true;++it;
+                } catch(const std::exception& e) {
+                    // The mount below meets the same refusal and reports it.
+                    saida::Log::warn("[World streaming] replacement of ",it->first," refused: ",e.what());
+                    it->second.node->queueFree();it=loaded.erase(it);removed=true;
+                }
+            } else {
+                // Both versions do not fit side by side: the old one goes first
+                // and the tile is missing until the new one is up. Said, since
+                // it is seen.
+                saida::Log::info("[World streaming] ",it->first," replaced in place: ",count," + ",vertices,
+                                 " of ",residentVertexBudget," resident vertices, ",indices," + ",tileIndices,
+                                 " of ",residentIndexBudget," indices");
+                if(wanted.count(it->first)) {
+                    const auto& old=it->second.data;
+                    count-=old.at("vertices").get<size_t>();indices-=old.value("indices",size_t(0));
+                }
+                it->second.node->queueFree();it=loaded.erase(it);removed=true;
+            }
+        }
+        if(removed){++minimapRevision;trim();}
+        if(started)placeTiles();
         const auto tick=std::chrono::steady_clock::now();
         for(auto t:want) {
             if(loaded.count(t.key()))continue;
@@ -4544,30 +4887,11 @@ class World : public Rml::EventListener {
                 const auto mountStarted=std::chrono::steady_clock::now();
                 auto* ptr=engine.sceneTree().world().addChild(buildTile(t.key(),*served));
                 auto [entry,inserted]=loaded.try_emplace(t.key(),ptr,served);
-                // The tile's own geometry, the one measure the budget is about.
-                // Props are scene nodes on shared models (CLAUDE.md rule 5):
-                // counting every visible tree's Near mesh put a dozen trees over
-                // 120 000 and sent every tile's trees to cards for good.
-                densityPolicy.observe(t.gen(),vertices);
-                entry->second.reducedDensity=densityPolicy.reduced(t.gen());
-                if(entry->second.reducedDensity)saida::Log::info("[World density] ",t.key()," crowd=1/4 interiors=blocked");
-                ++minimapRevision;
+                shape(entry->second);
                 // Counted at once: several tiles mount in one tick, and each
                 // must see the ones mounted before it.
                 count+=vertices;indices+=tileIndices;
-                checkStanding=true;
-                entry->second.geography=ptr->findByPath("Geography");
-                entry->second.grass=dynamic_cast<saida::GrassNode*>(ptr->findByPath("Grass"));
-                entry->second.footprints=std::any_cast<const PreparedTile&>(served->prepared).footprints;
-                // After the emplace, never before: the flow holds a pointer to
-                // the graph, and a graph built in a temporary would be moved
-                // out from under it.
-                unpack(entry->second);
-                readGraph(entry->second);
-                readCrowd(entry->second);
-                mountAircraft(entry->second);
-                placeTiles();
-                reparkIfCovered(t.key());
+                activate(t.key(),entry->second);
                 lastMountMs=msSince(mountStarted);
                 const auto arena=engine.resources().geometryUsage();
                 saida::Log::info("[World streaming] mounted ",t.key()," mount_ms=",lastMountMs,
@@ -4632,6 +4956,9 @@ class World : public Rml::EventListener {
             jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
             // Teleporting leaves the current vehicle. A water arrival starts
             // swimming at the selected coordinate, including in the open sea.
+            // Carry the vehicle's view into the walking heading, just as a
+            // normal exit does: the camera and movement must share one yaw.
+            yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
             driving=false;swimming=waterSpawn;swimTime=0;swimLean=0;swimHeading=yaw;
             clearBoats();
             clearAircraft();
@@ -4648,6 +4975,14 @@ class World : public Rml::EventListener {
                 msSince(goStarted),
                 " resident=",loaded.size()," target=",want.size());
             if(smoke){
+                if(smokeArrivalHeading) {
+                    if(std::abs(wrap(yaw-*smokeArrivalHeading))>1e-6||lookYaw!=0||lookIdle!=0) {
+                        saida::Log::error("[World E2E] FAIL teleport retained a separate vehicle view heading");
+                        testFailed=true;engine.sceneTree().quit();return;
+                    }
+                    smokeArrivalHeading.reset();
+                    saida::Log::info("[World E2E] PASS vehicle side view becomes the walking heading after teleport");
+                }
                 // A test driver must choose a free direction, like a human:
                 // walking straight into the nearest real wall is not a failure.
                 double best=0;
@@ -4674,6 +5009,7 @@ class World : public Rml::EventListener {
     }
 public:
     World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),menuTiles(g),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
+        performanceSmoke=smoke&&std::getenv("R1WORLD_DEBUG_SMOKE");
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
         residentIndexBudget=size_t(double(e.resources().geometryCapacity().indices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
@@ -5401,6 +5737,13 @@ public:
     void smokeFinishPhase() {
         reportChurn("whole run");
         if(hopWanted&&!hopDone) {
+            // Arrive from the driver's seat while looking out of a side window.
+            // A stale lookYaw made forward walking go sideways after loading.
+            if(!driving&&carParked&&carDistance()<kCarReach)enterCar();
+            if(driving) {
+                lookYaw=90.;lookIdle=.4;
+                smokeArrivalHeading=wrap(yaw+lookYaw);
+            }
             // Teleport the way a player does: open the map, type the
             // destination, press Go. Nothing here reaches past the UI.
             hopDone=true;showMap(true);
@@ -5466,7 +5809,7 @@ public:
         if(std::find(t->water.begin(),t->water.end(),uint8_t(2))!=t->water.end()) {
             saida::Log::info("[World E2E] ground check skipped: the tile meets the sea");return true;
         }
-        double worst=0;size_t samples=0;
+        double worst=0,worstLon=0,worstLat=0,worstHeight=0;size_t samples=0;
         for(int i=1;i<16;++i)for(int j=1;j<16;++j) {
             const double x=t->west+(t->east-t->west)*i/16.,y=t->south+(t->north-t->south)*j/16.;
             const double h=terrainHeight(*t,x,y);
@@ -5474,11 +5817,14 @@ public:
             if(!hit.hit)continue;
             auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body));
             if(!node||node->name().rfind("Ground",0)!=0)continue; // a street, a roof or a trunk is above it
-            worst=std::max(worst,std::abs(double(hit.point.y)-origin.local(ecef(x,y,h)).y));++samples;
+            const double error=std::abs(double(hit.point.y)-origin.local(ecef(x,y,h)).y);
+            if(error>worst){worst=error;worstLon=x;worstLat=y;worstHeight=h;}++samples;
         }
         if(worst>.05) {
             saida::Log::error("[World E2E] FAIL ground: the height followed is ",worst,
-                              " m off the ground drawn (",samples," samples)");
+                              " m off the ground drawn (",samples," samples) at ",worstLon,",",worstLat,
+                              " followed=",worstHeight," grid=",gridHeight(*t,worstLon,worstLat),
+                              " onDeck=",onDeck(*t,worstLon,worstLat));
             return false;
         }
         saida::Log::info("[World E2E] ground followed within ",worst," m of the ground drawn (",samples," samples)");
@@ -5499,13 +5845,20 @@ public:
                 if(std::hypot((x-d[0].get<double>())*kMetresPerDegree*std::cos(y*rad),(y-d[1].get<double>())*kMetresPerDegree)<d[2].get<double>()+step)return true;
             return false;
         };
-        double worst=0,worstDug=0;std::string where;size_t seams=0;
+        // A tile whose next version is already cooked is on its way out: its
+        // ground was joined to neighbours that have since moved on.
+        auto leaving=[&](const std::string& key,const Loaded& t){
+            const auto current=service->find(t.served->cooked.tile);
+            return incoming.count(key)||(current&&current->serial!=t.served->serial);
+        };
+        double worst=0,worstDug=0;std::string where;size_t seams=0,changing=0;
         for(const auto& [ka,a]:loaded)for(const auto& [kb,b]:loaded) {
             if(&a==&b||a.gridSize<2||b.gridSize<2||coastal(a)||coastal(b))continue;
             const bool rows=std::abs(a.north-b.south)<1e-9,sides=std::abs(a.east-b.west)<1e-9&&std::abs(a.south-b.south)<1e-9;
             if(!rows&&!sides)continue;
             const double from=rows?std::max(a.west,b.west):a.south,to=rows?std::min(a.east,b.east):a.north;
             if(to-from<1e-9)continue;
+            if(leaving(ka,a)||leaving(kb,b)){++changing;continue;}
             ++seams;
             for(int k=0;k<=200;++k) {
                 const double s=from+(to-from)*k/200.,x=rows?s:a.east,y=rows?a.north:s;
@@ -5527,7 +5880,8 @@ public:
             saida::Log::error("[World E2E] FAIL seams: a ",worstDug," m step under a bridge dug differently by two tiles");
             return false;
         }
-        saida::Log::info("[World E2E] ",seams," seams closed within ",worst," m; under a dug bridge, within ",worstDug," m");
+        saida::Log::info("[World E2E] ",seams," seams closed within ",worst," m; under a dug bridge, within ",worstDug,
+                         " m; ",changing," pairs left out while a newer cook replaces one side");
         return true;
     }
     // True when the smoke has just failed on a refused body.
@@ -5543,6 +5897,8 @@ public:
     }
     void update(float delta) {
         const auto now=std::chrono::steady_clock::now();
+        const double frameSeconds=lastFrame.time_since_epoch().count()
+            ?std::chrono::duration<double>(now-lastFrame).count():0.;
         if(!arrivalSaid&&lastFrame.time_since_epoch().count()) {
             const double frameMs=std::chrono::duration<double,std::milli>(now-lastFrame).count();
             ++arrivalFrames;arrivalHitches+=frameMs>33.;arrivalWorst=std::max(arrivalWorst,frameMs);
@@ -5560,6 +5916,10 @@ public:
             }
         }
         lastFrame=now;
+        const auto& debugWindow=engine.window();
+        const bool debugKeys[]={debugWindow.keyDown(GLFW_KEY_R),debugWindow.keyDown(GLFW_KEY_V),
+            debugWindow.keyDown(GLFW_KEY_Y),debugWindow.keyDown(GLFW_KEY_M),debugWindow.keyDown(GLFW_KEY_T)};
+        samplePerformance(frameSeconds);handlePerformanceKeys(debugKeys);placePerformanceCanvas();
         cost=FrameCost{};
         if(checkPhysics())return;
         if(generation!=ui->documentGeneration()||listeners.empty()) {
@@ -5643,7 +6003,7 @@ public:
                 saida::Log::info("[World E2E] teleporting to ",hopLon,", ",hopLat);
             }
         }
-        bool key=engine.window().keyDown(GLFW_KEY_M)||engine.window().keyDown(GLFW_KEY_ESCAPE);
+        bool key=(!performanceDebug&&engine.window().keyDown(GLFW_KEY_M))||engine.window().keyDown(GLFW_KEY_ESCAPE);
         if(key&&!wasMenuKey){if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
         poll+=delta;hud+=delta;
         if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)cost.stream=timed([&]{stream();});}
@@ -5700,6 +6060,7 @@ public:
         double r=(w.keyDown(GLFW_KEY_D)?1.:0.)-(w.keyDown(GLFW_KEY_A)||w.keyDown(GLFW_KEY_Q)?1.:0.);
         if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
         if(retailTest())f=r=0;
+        if(performanceSmoke){f=r=0;smokeStarted=false;}
         if(smokeApproach) {
             auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
             yaw=std::atan2(to.x,-to.z)/rad;f=1;r=0;
@@ -6011,7 +6372,7 @@ public:
                 :swimming?" · À l'eau · ZQSD/WASD : nager · F : remonter à bord"
                 :nearestAircraft(standing,planeFar)?" · F : prendre l'appareil"
                 :nearestBoat(moored,boatFar)?" · F : prendre le bateau"
-                :(nearestCar(within,howFar)?" · F : monter dans la voiture":" · M : carte");
+                :(nearestCar(within,howFar)?" · F : monter dans la voiture":performanceDebug?" · Échap : carte":" · M : carte");
             const auto* currentTile=tile(lon,lat);
             if(currentTile&&currentTile->data.value("provisional",false))
                 mode+=" · Rues et bâtiments en route (OpenStreetMap)";
@@ -6030,6 +6391,7 @@ public:
                  +(fast?" · détail réduit à cette vitesse":"")
                  +(physicsRefused?" · collisions incomplètes : le monde physique est plein":""));
         }
+        if(performanceSmoke){runPerformanceSmoke(delta);return;}
         if(smokeWaterSpawn&&smokeWalk>1.5) {
             const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
             const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;

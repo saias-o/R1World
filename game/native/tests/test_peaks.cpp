@@ -33,6 +33,17 @@ TEST(Peaks, ele_is_read_only_as_metres) {
     CHECK(!parseElevation("12000"));
 }
 
+TEST(Peaks, shared_boundary_knots_keep_the_surveyed_raise) {
+    ElevationGrid base=flat(kRio,300.);
+    const double lon=kRio.center().x,lat=base.bounds.north;
+    base.northEdge={{base.bounds.west,300.},{lon,300.},{base.bounds.east,300.}};
+    const Peak peak{42,lon,lat,380.,"boundary summit"};
+    const auto raised=raiseToPeaks(base,{peak},{&base});
+    CHECK(raised.northEdge.size()==base.northEdge.size());
+    NEAR(raised.northEdge[1].y,380.,1e-8);
+    NEAR(raised.sample(lon,lat),380.,1e-8);
+}
+
 TEST(Peaks, the_summit_stands_at_its_surveyed_height) {
     nlohmann::json report;
     const ElevationGrid base = flat(kRio, 300.0);

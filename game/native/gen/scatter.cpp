@@ -107,7 +107,7 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // ── vegetation ──────────────────────────────────────────────────────────────
 
 namespace {
-constexpr int kNatureRevision = 5;  // 5: a middle level between the tree and its card
+constexpr int kNatureRevision = 6;  // 6: multi-view Far derived from the urban tree Mid
 const std::string kCardDir = "assets/models/external/nature_cards";
 
 // Buildings, roads and water grown by a margin, asked "is this point in you".
@@ -539,8 +539,12 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
                                 {"importedFrom","assets/models/external/nature_selected/shrub.glb"}});
         } else {
             const double k = 1.0 / sourceHeight(model);
-            children.push_back({{"type", "Node"}, {"name", "Far"}, {"importedFrom", kCardDir + "/" + model + ".glb"},
-                                {"transform", {{"scale", {k, k, k}}}}});
+            if(model == "urban_tree")
+                children.push_back({{"type", "Node"}, {"name", "Far"},
+                                    {"importedFrom", "assets/models/external/nature_selected/urban_tree_far.glb"}});
+            else
+                children.push_back({{"type", "Node"}, {"name", "Far"}, {"importedFrom", kCardDir + "/" + model + ".glb"},
+                                    {"transform", {{"scale", {k, k, k}}}}});
             // The middle level is the same tree, thinned (tools/r1/tree_lod.py).
             if (model == "urban_tree") {
                 children.push_back({{"type", "Node"}, {"name", "Near"}, {"importedFrom", "assets/models/external/nature_selected/urban_tree.glb"}});
@@ -561,7 +565,7 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
     out.stats = {{"revision", kNatureRevision}, {"placed", out.nodes.size()}, {"trees", trees}, {"shrubs", shrubs}, {"grassTufts", grasses},
                  {"heightsMeasured", heights}, {"modelSelection", reasons}, {"bySource", sources}, {"byModel", models},
                  {"rejectedOverlap", rejected}, {"droppedForBudget", budgetDropped}, {"budget", budget},
-                 {"representation", "layered cards baked from original CC0 scans"},
+                 {"representation", "urban tree: multi-view Mid impostor; other species: layered source cards"},
                  {"canopy", canopy ? nlohmann::json{{"observed", true}, {"noSource", canopy->noSource},
                                                     {"treeCells", canopy->count(Canopy::Tree)}, {"lowCells", canopy->count(Canopy::Low)},
                                                     {"treesFromCanopy", canopyTrees}, {"shrubsFromCanopy", canopyShrubs},

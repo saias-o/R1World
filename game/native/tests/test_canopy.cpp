@@ -113,7 +113,7 @@ TEST(Canopy, measured_canopy_places_trees_and_removes_inferred_ones_where_it_see
             child["importedFrom"].get<std::string>());
         CHECK(levels.count("Near=assets/models/external/nature_selected/urban_tree.glb"));
         CHECK(levels.count("Mid=assets/models/external/nature_selected/urban_tree_mid.glb"));
-        CHECK(levels.count("Far=assets/models/external/nature_cards/urban_tree.glb"));
+    CHECK(levels.count("Far=assets/models/external/nature_selected/urban_tree_far.glb"));
     }
     CHECK(trees > 40);
     int shrubs = 0;

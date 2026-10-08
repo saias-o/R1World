@@ -452,6 +452,27 @@ TEST(Nature, rural_roads_gain_trees_beyond_the_shoulder) {
     const auto settled = planNature(osm, tile, anchor, ground);
     CHECK(settled.stats["trees"].get<int>() < open.stats["trees"].get<int>());
 }
+TEST(Nature, urban_trees_keep_near_mid_and_use_normalized_mid_impostor) {
+    const auto tile=tileAt(2.3522,48.8566);const auto centre=tile.center();
+    const auto anchor=Anchor::at(centre.x,centre.y);
+    OsmData osm;osm.country="FR";
+    osm.features.push_back({99,centre.x,centre.y,{{"natural","tree"},{"height","9"}}});
+    const auto ground=[&](double lo,double la){return anchor.toEngine(lo,la,0);};
+    const auto plants=planNature(osm,tile,anchor,ground);
+    CHECK(plants.nodes.size()==1);
+    const auto& tree=plants.nodes.front();const auto& levels=tree["children"];
+    CHECK(levels.size()==3);
+    for(const auto& level:levels) {
+        const auto name=level["name"].get<std::string>();
+        if(name=="Far") {
+            CHECK(level["importedFrom"]=="assets/models/external/nature_selected/urban_tree_far.glb");
+            CHECK(!level.contains("transform")); // Mid and Far share normalized metres.
+        } else if(name=="Mid")CHECK(level["importedFrom"]=="assets/models/external/nature_selected/urban_tree_mid.glb");
+        else CHECK(level["importedFrom"]=="assets/models/external/nature_selected/urban_tree.glb");
+    }
+    CHECK(tree["transform"]["scale"][1]==9.);
+    CHECK(plants.nodes==planNature(osm,tile,anchor,ground).nodes);
+}
 TEST(Nature, low_garden_frontage_keeps_access_and_respects_the_canopy_threshold) {
     const auto tile=tileAt(-2.71559,47.56272);
     const auto c=tile.center();

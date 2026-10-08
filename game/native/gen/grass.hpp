@@ -28,6 +28,7 @@ constexpr double kLaidHeight = 1.0;
 struct GrassCover {
     int groundSamples = 0;          // kTerrainMeshSize
     std::vector<float> heights;     // engine y of the drawn grid, row (south to north) major
+    std::vector<std::array<float,2>> southBoundary, northBoundary; // normalized u, engine y
     // (u, v) of an engine (x, z): u = a x + b z + c, v = d x + e z + f, with
     // u along the grid's columns and v along its rows, both 0 to 1.
     std::array<double, 6> uvFromEngine{};

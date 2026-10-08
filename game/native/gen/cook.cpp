@@ -616,6 +616,9 @@ CookedTile cookTile(const Observations& in) {
         {"seaIce", pack ? pack->stats : in.seaIce ? nlohmann::json({{"source", in.seaIce->source}, {"frozen", false}})
                                                : nlohmann::json()},
         {"generator", "C++"}};
+    out.manifest["groundEdges"] = {{"south", nlohmann::json::array()}, {"north", nlohmann::json::array()}};
+    for (const auto& p : walked.southEdge) out.manifest["groundEdges"]["south"].push_back({p.x, p.y});
+    for (const auto& p : walked.northEdge) out.manifest["groundEdges"]["north"].push_back({p.x, p.y});
     out.manifest["interiors"]=nlohmann::json::array();
     for(const auto& p:built.interiors)out.manifest["interiors"].push_back(p.json());
     out.manifest["interiorStreaming"]={{"revision",1},{"observationsQueried",osm.interiorUsesQueried},

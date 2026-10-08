@@ -9,6 +9,19 @@
 
 using namespace r1;
 
+TEST(Bridges, shared_boundary_knots_are_carved_with_the_ground) {
+    const Tile tile=tileAt(5.72,45.19);const auto b=tile.bounds();
+    ElevationGrid base{b,kTerrainMeshSize,std::vector<double>(kTerrainMeshSize*kTerrainMeshSize,200.)};
+    const double lon=tile.center().x;
+    base.southEdge={{b.west,200.},{lon,200.},{b.east,200.}};
+    GradePlan plan;plan.carves.push_back({{lon,b.south},3.,40.});
+    const auto carved=carvedGround(base,plan);
+    CHECK(carved.southEdge.size()==base.southEdge.size());
+    NEAR(carved.southEdge[1].y,197.,1e-8);
+    NEAR(carved.sample(lon,b.south),197.,1e-8);
+    NEAR(carved.southEdge.front().y,200.,1e-8);
+}
+
 namespace {
 constexpr double kLon = 1.30, kLat = 47.60;
 const double kPerLat = 111320.0, kPerLon = 111320.0 * std::cos(kLat * kPi / 180);

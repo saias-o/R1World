@@ -4,7 +4,8 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 8 octobre 2026, générateur v36 : LOD intermédiaire des arbres,
+État relu le 9 octobre 2026, générateur v38 : jointures de terrain partagées,
+LOD intermédiaire des arbres et Far billboard dérivé du Mid,
 pavillons français, jardins,
 clôtures, portails et abris de bus ruraux ; priors régionaux US/RU/MA/JP,
 toitures par ailes et villages compacts ; exclusion des centres denses.
@@ -394,19 +395,89 @@ machine de référence (I4).
   Reste à mesurer sur i5 / GTX 1060. Les contrats sont dans `engine/SPEC.md`,
   les résultats de vérification dans `game/README.md`.
   Les mesures actuelles sur RTX 4070 ne qualifient pas cette machine cible.
-- **Reprise prévue le soir du 8 octobre 2026 sur le portable avec NVIDIA MX450**
-  (information donnée par l'utilisateur). Après récupération de `main`, relever
-  CPU, RAM, VRAM, résolution et alimentation secteur ; lancer une compilation
-  optimisée et les parcours Paris, Grenoble et Paris–Tunis, puis un intérieur
-  de maison. Comparer les traces de `game/generated/streaming-validation/`
-  si elles ont été transférées ; sinon refaire les captures avec `--profile`.
-  Vérifier les pics de frame, attentes GPU, pression mémoire et colliders à
-  l'arrivée. Le smoke maison de Tunis a révélé une boucle de republication
-  d'une vieille réponse OSM hors ligne, corrigée et couverte par un test de
-  service ; rejouer ce parcours en jeu. La MX450 est une validation portable
-  supplémentaire ; la qualification i5 / GTX 1060 reste ouverte.
+- **Reprise commencée le soir du 8 octobre 2026 sur le portable MX450 —
+  qualification de fluidité encore ouverte.** Ryzen 7 5700U, environ 7,4 Gio de
+  RAM utilisable, MX450 2 Gio, écran 1920 × 1080, alimentation secteur.
+  Les 92 tests natifs et 166 contrôles de scène/streaming GPU passent. Le
+  parcours Paris–Tunis passe avec les proxys fermés (marche, saut, conduite,
+  prise d'une voiture du trafic et téléportation). Le smoke maison de Tunis
+  passe désormais en jeu : entrée, mobilier et murs solides, sortie,
+  éviction et régénération.
+  La recherche de caméra ne recalcule plus les matrices de tous les objets ;
+  les matrices TRS sont construites directement. Un blocage du remplacement
+  des tuiles révélé à Grenoble est corrigé : une tuile arrivée au délai de
+  secours compte aussi dans le délai du lot, même si d'autres attendent encore.
+  Les nouvelles traces sont dans `game/generated/streaming-validation/mx450/`.
+  Après fermeture du second jeu, une comparaison isolée à Paris en 1080p
+  mesure 45,83 → 39,05 ms par image en moyenne (−14,8 %), p95 50,29 → 43,37 ms,
+  export PNG final exclu ; recherche de caméra 13,18 → 9,89 ms en moyenne.
+  C'est un passage sur les données disponibles, pas une qualification à 60 fps.
+  **Reste à faire** : poursuivre les mesures avec le relief complet et
+  qualifier Grenoble, sans compilation ni autre jeu en cours. La v37 utilise
+  les mêmes sommets de jointure entre les rangées de tuiles ; les régressions
+  de terrain abrupt et de voisinage incomplet passent. Le changement de repère
+  conserve aussi une destination précise, pour corriger le décalage de 0,383 m
+  observé avec les données OSM complètes. **Validation en jeu encore à faire** :
+  la demande de test manuel du joueur interrompt les mesures supplémentaires.
+  Grenoble n'est donc pas encore requalifiée. La suite du générateur compte
+  295 réussites et trois échecs (budget résident, texture de relief et jonction
+  de deux chaussées), conservés sans assouplir les assertions.
+  Les premières captures après correction, avec un second jeu ouvert, sont
+  écartées de la comparaison. La couche de relief installée manque sur le
+  portable. La MX450 ne
+  remplace pas la qualification i5 / GTX 1060, qui reste ouverte.
 - **Voitures et circulation** : améliorer la peinture et les reflets de près,
   puis le comportement aux feux et face aux piétons, avec un coût borné.
+
+### Fun update — à traiter plus tard
+
+- **Rendre le jeu plus amusant à jouer**, avec des interactions dans l'esprit
+  de GTA III.
+- **Accidents de voiture physiques** : percuter une autre voiture provoque un
+  vrai choc ; le véhicule heurté est projeté ou dévié et peut être accidenté,
+  avec des dégâts visibles et un comportement adapté à son état.
+- **Renverser les piétons en voiture** : réactions physiques à l'impact,
+  chutes et conséquences en jeu, dans l'esprit de GTA III.
+- **Combat à pied** : un bouton pour frapper, puis des armes à feu et les
+  interactions de combat associées, dans l'esprit de GTA.
+
+### Detail update — couche de détails manuels, à traiter plus tard
+
+- **Ajouter une couche au-dessus des modèles prédictifs** pour placer et
+  corriger des détails à la main, sans modifier les règles de génération pour
+  chaque cas particulier.
+- **Décrire les placements dans un fichier JSON** : coordonnées du lieu,
+  modèle à poser et orientation, par exemple « placer un lampadaire ici ».
+  Les placements manuels priment sur les propositions prédictives au même
+  endroit et évitent les doublons ; leur provenance reste explicite.
+- **Placer les monuments dans cette couche** : reprendre les placements
+  actuels dans un système commun et explicite, avec ancrage et orientation
+  vérifiables, plutôt que des exceptions dispersées. Conserver les modèles
+  et les ancrages mesurés existants.
+
+### Circulation update — à traiter plus tard
+
+- **Feux de circulation fonctionnels** : cycles cohérents aux carrefours,
+  respect des feux par les véhicules et coordination avec les traversées
+  piétonnes.
+- **Améliorer le système de trafic** : suivi des voies, priorités, virages,
+  distances de sécurité et réactions aux obstacles, aux piétons et aux
+  accidents, avec un coût borné.
+- **Aucune apparition de voiture devant le joueur** : faire apparaître et
+  disparaître les véhicules hors de son champ de vision, à distance suffisante
+  ou derrière un obstacle ; conserver une circulation continue pendant les
+  déplacements et le chargement des tuiles.
+
+### Updates pays par pays — à traiter plus tard
+
+- **Améliorer la génération pays par pays** : sols, végétation, matériaux,
+  bâtiments et détails locaux, à partir de comparaisons avec les lieux réels.
+  Les règles doivent aussi tenir compte de la région, du climat, de la saison
+  et de l'usage du sol à l'intérieur de chaque pays.
+- **Burkina Faso — premier cas signalé** : trop d'herbe dans le rendu actuel
+  selon le constat de l'utilisateur. Restituer davantage de terre nue là où
+  elle est présente dans la réalité, avec des couleurs et une couverture
+  végétale adaptées au lieu, plutôt qu'un sol herbeux par défaut.
 
 ### Végétation basse — à traiter plus tard
 

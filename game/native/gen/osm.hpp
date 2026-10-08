@@ -56,9 +56,25 @@ struct ElevationGrid {
     Bounds bounds;
     int size = 2;
     std::vector<double> values;  // row-major, south to north, west to east
+    // Additional boundary knots (longitude, altitude), shared by staggered
+    // latitude rows. Interior survey samples keep their regular grid.
+    std::vector<P2> southEdge, northEdge;
+    ElevationGrid(Bounds b = {}, int n = 2, std::vector<double> h = {})
+        : bounds(b), size(n), values(std::move(h)) {}
+    static double edgeSample(const std::vector<P2>& edge, double lon) {
+        auto hi = std::upper_bound(edge.begin(), edge.end(), lon,
+                                   [](double x, const P2& p) { return x < p.x; });
+        if (hi == edge.begin()) return hi->y;
+        if (hi == edge.end()) return edge.back().y;
+        const P2& lo = *(hi - 1);
+        const double t = (lon - lo.x) / (hi->x - lo.x);
+        return lo.y * (1 - t) + hi->y * t;
+    }
     double at(int row, int col) const { return values[size_t(row) * size_t(size) + size_t(col)]; }
     // Bilinear, clamped to the grid's bounds.
     double sample(double lon, double lat) const {
+        if (lat <= bounds.south && !southEdge.empty()) return edgeSample(southEdge, lon);
+        if (lat >= bounds.north && !northEdge.empty()) return edgeSample(northEdge, lon);
         double u = (lon - bounds.west) / (bounds.east - bounds.west);
         double v = (lat - bounds.south) / (bounds.north - bounds.south);
         u = std::max(0.0, std::min(1.0, u)) * (size - 1);

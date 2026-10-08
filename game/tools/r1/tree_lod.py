@@ -639,13 +639,16 @@ def build_mid(name: str) -> dict:
 def build_all() -> list[dict]:
     """Every middle level, and their record beside the models they come from."""
     report = [build_mid(name) for name in MID_TREES]
+    # A regenerated Mid must not leave a stale Far silhouette.
+    from .tree_impostor import bake
+    report.append(bake())
     sources = NATURE / "SOURCES.json"
     manifest = [e for e in json.loads(sources.read_text(encoding="utf-8"))
                 if e.get("output") not in {r["output"] for r in report}]
     for entry in report:
         origin = next(e for e in manifest if e.get("output") == entry["derivedFrom"])
         manifest.append({**entry, "attribution": origin.get("attribution", {}),
-                         "method": "crown: whole cards kept by what they add to a dozen views, grown inside its reach; "
+                         "method": entry.get("method") or "crown: whole cards kept by what they add to a dozen views, grown inside its reach; "
                                    "branches: Saida AutoLOD proxy (meshoptimizer + xatlas bake); "
                                    "trunk: rings to its neck, fork decimated, baked by AutoLOD --proxy-shape"})
     sources.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")

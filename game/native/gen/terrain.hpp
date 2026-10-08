@@ -20,6 +20,8 @@ double roadWidthOf(const std::string& highway);
 struct TerrainGrid {
     std::vector<P3> points;
     std::vector<std::string> classes;
+    std::vector<P2> southBoundary, northBoundary; // normalized u, engine y
+    std::vector<std::string> southClasses, northClasses; // one class per refined boundary segment
 };
 
 // The relief of one box, one mesh per ground class. `classify(lon, lat)`
@@ -34,5 +36,9 @@ std::map<std::string, Mesh> buildTerrain(const Bounds& bounds, const ElevationGr
 
 // The engine point on the rendered terrain triangle under (lon, lat).
 P3 groundPoint(double lon, double lat, const ElevationGrid& elevations, const Anchor& anchor, double lift = 0.0);
+
+// Altitude on the same regular or boundary-refined triangle as buildTerrain.
+// Used by runtime vehicle/ground queries as well as generation.
+double terrainElevation(double lon, double lat, const ElevationGrid& elevations);
 
 }  // namespace r1

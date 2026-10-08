@@ -113,3 +113,27 @@ TEST(Grass, a_tile_with_no_grassy_ground_has_no_cover) {
         [](const std::string&) { return std::array<double, 3>{0.1, 0.1, 0.1}; }, {}, {});
     CHECK(g.empty());
 }
+
+TEST(Grass, refined_ground_boundaries_reach_the_blades) {
+    const Lawn lawn;
+    ElevationGrid e{lawn.b,kTerrainMeshSize,std::vector<double>(kTerrainMeshSize*kTerrainMeshSize,30.)};
+    const double step=(lawn.b.east-lawn.b.west)/(kTerrainMeshSize-1);
+    for(int col=0;col<kTerrainMeshSize;++col)e.southEdge.push_back({lawn.b.west+col*step,30.});
+    e.southEdge.insert(e.southEdge.begin()+1,{lawn.b.west+.4*step,40.});
+    TerrainGrid grid;
+    buildTerrain(lawn.b,e,lawn.anchor,[](double,double){return std::string("lawn");},{},&grid);
+    CHECK(grid.southClasses.size()+1==grid.southBoundary.size());
+    const auto cover=grassCover(grid,[](const std::string&){return std::optional<std::string>("grass");},
+                                [](const std::string&){return std::array<double,3>{.1,.2,.1};},{},{});
+    CHECK(!cover.empty());
+    CHECK(cover.southBoundary.size()==size_t(kTerrainMeshSize+1));
+    CHECK(cover.northBoundary.empty());
+    NEAR(cover.southBoundary[1][0],.4/40,1e-7);
+    const P3 tip=lawn.anchor.toEngine(lawn.b.west+.4*step,lawn.b.south,40.);
+    NEAR(cover.southBoundary[1][1],tip.y,1e-5);
+    for(int col=0;col<kTerrainMeshSize;++col) {
+        const size_t index=col==0?0:size_t(col+1);
+        NEAR(cover.southBoundary[index][0],double(col)/40,1e-7);
+        NEAR(cover.southBoundary[index][1],cover.heights[size_t(col)],1e-5);
+    }
+}

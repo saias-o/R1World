@@ -8,7 +8,7 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 8 October 2026. The current generator is v36;
+Documentation reviewed on 9 October 2026. The current generator is v38;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
 
@@ -31,7 +31,40 @@ Map tiles are cached in `cache/map-tiles/osm/`.
 | Space | jump | handbrake | pull up / climb |
 | F | take the nearest car, boat or aircraft | get out (below 7 km/h) | get out, at any moment |
 | Mouse | orbit the camera | turn the head | |
-| M / Échap | the map; **Reprendre** returns | | |
+| M / Échap | the map; **Reprendre** returns (M toggles water in debug) | | |
+
+Press **R** in play to show FPS and enable performance debug. **V** toggles
+road traffic (simulation, cars and their collisions), **Y** toggles volumetric
+grass, **M** toggles WaterNodes (sea and inland water), and **T** toggles tree
+models, LOD behaviours and trunk collisions. Each switch is independent and
+also applies to newly streamed tiles and props. The player's vehicle remains
+usable. In debug, **Escape** opens the map; M opens it during normal play.
+Press R again to hide the counter and restore all four features.
+
+The counter uses elapsed whole-frame wall time, including presentation waits,
+and reports frames / elapsed seconds with average milliseconds per frame over
+half-second windows. Changing a switch resets the window. It uses the existing
+frame clock without enabling or copying the engine profiler; its separate
+360 × 218 non-interactive canvas is created on first use and refreshed at most
+twice a second, avoiding a redraw of the full map/HUD for each FPS update.
+
+Validated on 8 October 2026 with an offline Paris debug smoke: 2,039 streamed
+trees, seven grass fields and four WaterNodes; held keys, independent switches,
+newly streamed nodes, removal of trunk physics, traffic pause/resume, FPS
+averaging and HUD loading passed. The captured HUD was visually checked.
+Run with `R1WORLD_DEBUG_SMOKE=1` and `--smoke --spawn 2.3522 48.8566`;
+`R1WORLD_DEBUG_SHOT=<png>` additionally captures the restored debug HUD.
+
+Tree foliage materials (9 October 2026): Saida now reads the urban tree's
+authored specular color map and IOR instead of applying the default 4% dielectric
+reflectance. R1World additionally weights dry leaf specular by 0.25, including
+grazing angles, once when loading the shared Near/Mid prototypes. Bark retains
+its authored material; geometry, albedo and UVs are unchanged.
+Identically lit Near/Mid captures before, after engine correction and after
+the dry-leaf adjustment were visually checked in
+`generated/streaming-validation/mx450/tree-material-study/{before,after,matte}.png`.
+Engine pixel checks distinguish sRGB specular color from linear alpha strength;
+environment/HDR and double-sided material regressions pass.
 
 A north-up minimap (about 900 m) sits at the bottom left, with a few named
 streets from the cached OSM observations. Above it: the destination's local
@@ -178,7 +211,7 @@ lighting comparison, not a certified time/weather observation. The terrain
 still lacks surveyed land cover and the distant city's buildings beyond the
 resident tiles, and its silhouettes inherit the elevation source's resolution.
 
-Three assertions of `--spawn2` exist because of bugs that shipped:
+Four assertions of `--spawn2` exist because of bugs that shipped:
 
 - **The press, not the click.** Hovering a `ui-hit` element makes the engine
   consume the mouse, so RmlUi never receives the `Up` that makes a `click`. The
@@ -188,6 +221,13 @@ Three assertions of `--spawn2` exist because of bugs that shipped:
 - **The Sun took the observer.** The spawn fails if `setObserver` was refused;
   otherwise the scene quietly lights the wrong hemisphere.
 - **The second Go** must reach a complete spawn, not a stalled counter.
+- **Vehicle view becomes walking direction.** The driver looks 90° sideways
+  in a car before teleporting. Arrival folds that view into the walking heading
+  and clears the vehicle look offset, as a normal vehicle exit does; otherwise
+  Z/W moves sideways relative to the camera after the environment loads.
+  Verified on 8 October 2026 with an offline Paris → Tunis smoke run: car
+  entry, side view, teleport heading assertion, walking/jumping and resume all
+  passed (`generated/streaming-validation/mx450/movement-vehicle-teleport.log`).
 
 ### Offline
 
@@ -335,8 +375,16 @@ These are geometry capacities, not frame-rate measurements.
 
 ### Elevation
 
-The terrain mesh is 41 × 41 over a tile (`kTerrainMeshSize`), and every
-source is read at that grid (`native/gen/sources.cpp`):
+The terrain mesh starts with a 41 × 41 grid over a tile (`kTerrainMeshSize`),
+and every source is read at that grid (`native/gen/sources.cpp`). Its north and
+south boundary strips also contain the regular longitude knots of both
+adjacent rows. Those rows have different tile widths; resampling a shared
+curve separately onto their grids previously left cracks on steep terrain.
+Generator v37 triangulates both sides at the shared knots. Ground queries,
+grass height/coverage, peak shaping and bridge excavation use those refined
+strips too; the interior grid remains unchanged.
+
+Elevation sources, in priority order:
 
 1. **Mainland France and Corsica**: IGN RGE ALTI, a bare-earth grid.
 2. **Elsewhere, or when IGN fails**: the Terrain Tiles (Mapzen's archive on
@@ -783,7 +831,40 @@ and the scene loader parses a referenced file once per node. So trees are
 planted as impostors: `tools/bake_nature.py` bakes each species into layered
 cards (`assets/models/external/nature_cards/`) keeping its scanned albedo and
 alpha, and a city tree carries a near model (`nature_selected/urban_tree.glb`)
-switched by `LODGroupBehaviour`. Surveyed OSM trees and rows are planted first,
+switched by `LODGroupBehaviour`. Urban trees now keep Near within 15 m (10%
+hysteresis), Mid until screen coverage drops below 0.09, then a camera-facing
+Far made from that same Mid: roughly 80 m rather than 250 m for a 9 m tree at
+60° vertical FOV. Transitions retain the existing 0.5 s screen-door fade.
+`tools/r1/tree_impostor.py` bakes 8 azimuths × 5 elevations at 256² per view,
+supersampled twice, into one shared albedo/alpha atlas and a 4-vertex quad.
+Adjacent azimuths blend; elevation selects the nearest view. No sun is baked.
+Saida shades Far with ambient and a broad response to directional light's
+color, intensity and elevation relative to each instance's up axis. It performs
+two albedo reads and skips normal/MR maps, PBR, IBL, GI and shadow sampling.
+Far does not cast shadows; Near/Mid and trunk collisions are retained.
+Other species and shrubs keep their existing cards.
+
+Regenerate only this Far with `python -m r1.tree_impostor` from `tools`
+(NumPy, Pillow, ModernGL and an OpenGL 3.3 context required). Running
+`python -m r1.tree_lod` also regenerates it after Mid. Source hashes and the
+original CC-BY attribution are in `urban_tree_far.source.json` and `SOURCES.json`.
+
+Measured on 9 October 2026, NVIDIA MX450, 1280×720, with 861 shared tree
+instances and identical camera/light: 476 Mid + 385 old Far became 20 Mid +
+841 billboard Far. Median GPU frame time over frames 100–219 fell from
+22.98 ms to 5.52 ms (scene HDR 15.43 → 4.63 ms; shadows 7.19 → 0.30 ms).
+This is a synthetic forest comparison, not a whole-world FPS guarantee.
+Captures/traces: `generated/streaming-validation/mx450/tree-far-study`.
+Billboard lighting/orientation/atlas pixel tests, WebGPU pipeline validation,
+92/92 native engine tests, 187 GPU streaming checks and offline Paris
+performance-debug smoke pass. The broader generator run was not green:
+294/299 passed on the broad run. Subsequent Nature (3), Canopy (4) and
+Appearance (2) checks pass after updating the canopy Far expectation and
+running the country-map test from its required game directory. Failures remain
+in the resident tile vertex budget, far-relief material maps and paired bridge
+decks; those checks were not changed as part of the billboard work.
+
+Surveyed OSM trees and rows are planted first,
 then mapped woods are filled within the budget.
 
 ### Measured canopy
@@ -1559,7 +1640,82 @@ The user plans to resume on a laptop with a NVIDIA MX450 on the evening of
 8 October; the portable validation checklist is recorded in `docs/PLAN.md`.
 Neither the RTX 4070 results nor this planned MX450 run qualify the i5 / GTX 1060.
 
-Grenoble tile 27038/26176 recooks to 135,010 vertices and remains visitable.
+The portable pass resumed on 8 October on a Ryzen 7 5700U / MX450 2 GiB,
+7.4 GiB usable RAM, connected to AC, with a 1920 x 1080 desktop. The first
+offline Paris capture used the hidden-window default of 640 x 360; its retained
+600 frames average 39.03 ms, with scene updates averaging 20.37 ms and camera
+selection 10.92 ms. These are diagnostic timings, not 1080p qualification.
+Affine TRS now constructs scaled rotation columns directly; camera selection
+scans enabled branches without computing every object's matrix, then composes
+only the selected camera's ancestor chain up to the selected scene root. The
+92 native CTest cases and 166 GPU scene streaming checks pass, including
+negative/nonuniform scale, camera
+priority ties, hidden/disabled cameras and immediate mutable-transform edits.
+
+The online Grenoble capture exposed a replacement batch stuck beyond its
+10-second fallback: timed-out candidates were due but did not contribute to
+the batch's oldest-candidate time, so younger unfinished candidates could hold
+them indefinitely and repeat warnings. Timed-out candidates now advance that
+time too. The final Tunis home traversal passes character entry, furniture,
+door/wall collisions, exit, eviction and regeneration; the Paris-to-Tunis run
+passes walking/jumping, driving, traffic takeover and teleport with closed
+proxies. This verifies playable cached data, not absence of all network attempts
+for missing supplemental observations.
+
+Artifacts are under `generated/streaming-validation/mx450/`. The first after captures
+shared the GPU with another live R1World process (some also overlapped a build)
+and are unsuitable for a performance comparison. The installed relief layer
+is absent, and Grenoble's first captures retained pending OSM observations.
+After the other player exited, an isolated offline Paris pair used explicit
+1920 x 1080 output, the same spawn and pinned solar time, with no build running.
+The baseline substitutes only `Transform.cpp` and `CameraDirector.cpp` from
+engine commit `2dfb24f`; other engine/game code and cached observations match.
+Both runs retain 600 frames; the terminal PNG-encoding frame is excluded below.
+
+| Scope | Before | After |
+|---|---:|---:|
+| Mean normal frame | 45.83 ms | 39.05 ms |
+| Frame p95 | 50.29 ms | 43.37 ms |
+| Worst normal frame | 76.99 ms | 53.58 ms |
+| Scene update mean | 24.13 ms | 20.72 ms |
+| Camera selection mean | 13.18 ms | 9.89 ms |
+| GPU frame mean | 30.30 ms | 29.31 ms |
+| Arrival frames over 33 ms | 65 / 468 | 55 / 468 |
+
+Mean normal frame time improves by 14.8% in this pair. Both traces peak at
+68,355 scene nodes and 6,861 meshes; GPU asset residency is about 480 MiB.
+Their retained frames contain no `GPU/WaitUpload`, `GPU/WaitSingleTime`,
+`Resource/LoadGLTF` or `GPU/CreatePipeline` scopes. This is one arrival pair on
+the available data, not a sustained-60-fps or full-relief qualification.
+The traces and inspected 1080p PNGs use the `paris-isolated-` prefix.
+The final online Grenoble smoke and a fresh-process offline repeat both fail
+the unchanged seam check: a 0.726637 m step between v36_27038_26176 and
+v36_27039_26174 at (5.720976, 45.195000), with IGN ground on both sides.
+This persisted in the cache and was not explained solely by asynchronous arrival.
+Generator v37 now uses shared boundary knots; the steep staggered-grid and
+sparse-neighbour regressions pass. With complete cached OSM, an additional
+0.38281 m mismatch exposed cancellation when moving tile roots from a distant
+float frame. Tile and distant-layer placement now use the engine's explicit
+destination rebase API. The user requested manual play before further gameplay
+and performance reruns, so Grenoble gameplay qualification remains open.
+The final native scene streaming test passes 78 checks, including precise
+placement and collision queries after a distant-frame rotation. The new
+GPU regression has not been rerun in this final pass.
+The generator suite reports 295 passing cases and three failures: resident
+geometry budget, missing metallic/roughness texture and paired-carriageway
+deck joining. These assertions remain unchanged. The earlier failure logs and traces are
+`grenoble-final.*` and `grenoble-offline-repeat.*` in the portable artifact folder.
+Repeat performance measurements at explicit 1920 x 1080 with complete data,
+one player process and no compilation; neither MX450 nor i5 / GTX 1060 fluidity
+qualification is complete. While the live player locked `R1World.exe`, the
+source was linked and exercised as `R1World-fluidity-validation.exe` beside it.
+Once that player exited, the final executable was copied to `R1World.exe` and
+used for the isolated after capture. The normal development launch has the fix.
+The first full test build exhausted disk space; stripping debug symbols from
+generated test executables freed about 8 GiB, and the retry completed all tests.
+
+The earlier RTX 4070 validation recooked Grenoble tile 27038/26176 to 135,010
+vertices and kept it visitable.
 Offline Grenoble spawn/capture at (5.723786, 45.197956) and a fresh-process
 repeat both succeed; `cache/density-policy/27038_26176` records 135,010 vertices
 and the reduced policy. The logs and captures are in the same validation folder.
@@ -1572,7 +1728,7 @@ The world's density rules are specified in [the project plan](../docs/PLAN.md).
   policy reads the tile's own geometry and reduces people and interiors, never
   trees or surveyed road structures. Street trees have three levels of detail:
   the model, the same tree thinned by `tools/r1/tree_lod.py` (run it after
-  changing a tree model), and its card.
+  changing a tree model), and a Far atlas billboard derived from Mid.
 - **Cars**: paint and metal now reflect the HDR sky, but glazing is opaque,
   there is no automotive clearcoat layer, and the reflection source is the sky,
   not nearby buildings. An automotive clearcoat and local reflection solution

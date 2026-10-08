@@ -104,7 +104,20 @@ GrassCover grassCover(const TerrainGrid& grid,
             const double u = (i + 0.5) / size * (n - 1), v = (j + 0.5) / size * (n - 1);
             const int col = std::min(n - 2, int(u)), row = std::min(n - 2, int(v));
             const bool lower = u - col >= v - row;
-            const Kind& k = kindOf(grid.classes[size_t(2 * (row * (n - 1) + col) + (lower ? 0 : 1))]);
+            const std::string* cls=&grid.classes[size_t(2 * (row * (n - 1) + col) + (lower ? 0 : 1))];
+            const bool south=row==0&&lower&&!grid.southBoundary.empty();
+            const bool north=row==n-2&&!lower&&!grid.northBoundary.empty();
+            if(south||north) {
+                const auto& edge=south ? grid.southBoundary : grid.northBoundary;
+                const auto& classes=south ? grid.southClasses : grid.northClasses;
+                const double fu=u-col,fv=v-row;
+                const double projected=south ? (fu-fv)/(1-fv) : fu/fv;
+                const double at=(col+projected)/(n-1);
+                auto next=std::upper_bound(edge.begin(),edge.end(),at,[](double x,const P2& p){return x<p.x;});
+                const size_t segment=next==edge.begin()?0:std::min(edge.size()-2,size_t(next-edge.begin()-1));
+                if(segment<classes.size())cls=&classes[segment];
+            }
+            const Kind& k = kindOf(*cls);
             if (k.density <= 0.0) continue;
             ++texelsOf[k.family];
             const uint32_t a = uint32_t(std::lround(k.density * 255.0));
@@ -126,6 +139,15 @@ GrassCover grassCover(const TerrainGrid& grid,
         const int col = std::min(n - 2, int(u)), row = std::min(n - 2, int(v));
         const double fu = u - col, fv = v - row;
         auto y = [&](int r, int c) { return grid.points[size_t(r) * n + c].y; };
+        const bool south=row==0&&fu>=fv&&!grid.southBoundary.empty();
+        const bool north=row==n-2&&fu<fv&&!grid.northBoundary.empty();
+        if(south||north) {
+            const auto& edge=south ? grid.southBoundary : grid.northBoundary;
+            const double w=south ? fv : 1-fv;
+            const double projected=south ? (fu-fv)/std::max(1e-12,1-fv) : fu/std::max(1e-12,fv);
+            return (1-w)*ElevationGrid::edgeSample(edge,(col+projected)/(n-1))+
+                   w*(south ? y(row+1,col+1) : y(row,col));
+        }
         return fu >= fv ? y(row, col) * (1 - fu) + y(row, col + 1) * (fu - fv) + y(row + 1, col + 1) * fv
                         : y(row, col) * (1 - fv) + y(row + 1, col + 1) * fu + y(row + 1, col) * (fv - fu);
     };
@@ -158,6 +180,15 @@ GrassCover grassCover(const TerrainGrid& grid,
     out.coverSize = size;
     out.heights.reserve(grid.points.size());
     for (const P3& p : grid.points) out.heights.push_back(float(p.y));
+    auto copyBoundary=[](const std::vector<P2>& source, auto& target) {
+        for(const auto& p:source) {
+            const std::array<float,2> knot{float(p.x),float(p.y)};
+            if(!target.empty() && knot[0]<=target.back()[0])continue;
+            target.push_back(knot);
+        }
+    };
+    copyBoundary(grid.southBoundary,out.southBoundary);
+    copyBoundary(grid.northBoundary,out.northBoundary);
     return out;
 }
 

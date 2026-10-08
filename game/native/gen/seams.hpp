@@ -8,8 +8,8 @@
 //   - on a seam, the better survey keeps its edge and the other joins it;
 //     two of the same grade meet half-way (groundRank);
 //   - along a row's edge, whose nodes are staggered from the next row's, the
-//     seam is smoothed over kSeamSmoothing metres, so that both tiles' nodes
-//     lie on one curve their straight edges can follow;
+//     seam is smoothed over kSeamSmoothing metres and both meshes include
+//     the union of the rows' boundary nodes, so their straight edges coincide;
 //   - the correction fades inward over kSeamBand of the tile.
 // What is measured stays measured where it is better; what is moved is moved
 // toward a better or an equal measurement, and the manifest says by how much.
@@ -46,7 +46,7 @@ struct SeamReport {
     int neighbours = 0;       // tiles whose relief was known
 };
 
-// The tile's ground, kTerrainMeshSize square, joined to its neighbours'.
+// The tile's regular ground plus shared boundary knots, joined to its neighbours'.
 ElevationGrid stitchedGround(const Tile& tile, const RankedGround& own, const GroundOf& around,
                              SeamReport* report = nullptr);
 

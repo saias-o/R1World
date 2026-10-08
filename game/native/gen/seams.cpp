@@ -26,6 +26,28 @@ double nodeLon(const Bounds& b, int i) { return b.west + (b.east - b.west) * i /
 double nodeLat(const Bounds& b, int j) { return b.south + (b.north - b.south) * j / (kNodes - 1); }
 double rowCentre(int row) { return -90.0 + (row + 0.5) * kStep; }
 
+// Both rows use the union of their node longitudes, including tile corners.
+// Use global node indices so neighbours calculate exactly the same knots.
+std::vector<double> seamKnots(const Bounds& b, int below) {
+    std::vector<double> knots{b.west, b.east};
+    for (int row : {below, below + 1}) {
+        if (row < 0 || row >= kRows) continue;
+        const int count = columns(row) * (kNodes - 1);
+        const double step = 360.0 / count;
+        const int first = int(std::floor((b.west + 180.0) / step));
+        const int last = int(std::ceil((b.east + 180.0) / step));
+        for (int k = first; k <= last; ++k) {
+            const double lon = -180.0 + k * step;
+            if (lon > b.west + 1e-10 && lon < b.east - 1e-10) knots.push_back(lon);
+        }
+    }
+    std::sort(knots.begin(), knots.end());
+    knots.erase(std::unique(knots.begin(), knots.end(), [](double a, double c) {
+        return std::abs(a - c) < 1e-10;
+    }), knots.end());
+    return knots;
+}
+
 // One height and the grade of the survey that gave it.
 struct Height { double value; int rank; };
 
@@ -74,14 +96,37 @@ public:
         return Height{edge(t, *g, north, lon), g->rank};
     }
 
+    // A smoothing tap can extend beyond both available tiles at a corner.
+    // Hold the closest known edge from either row, rather than this cook's
+    // own edge: the fallback must be independent of which side is cooking.
+    std::optional<Height> nearestEdge(int below, double lon) {
+        std::optional<Height> best;
+        double distance = 1e30;
+        for (int row : {below, below+1}) {
+            if (row<0 || row>=kRows)continue;
+            const int count=columns(row), col=tileAt(lon,rowCentre(row)).col;
+            for (int dc : {-1,0,1}) {
+                const Tile t{row,(col+dc+count)%count};
+                const auto* g=ground(t);if(!g)continue;
+                const Bounds b=t.bounds();
+                const double x=(b.west+b.east)/2+wrap(lon-(b.west+b.east)/2);
+                const double at=std::clamp(x,b.west,b.east),d=std::abs(x-at);
+                const Height h{edge(t,*g,row==below,at),g->rank};
+                if(d<distance-1e-10){best=h;distance=d;}
+                else if(best && std::abs(d-distance)<1e-10)best=meet(*best,h);
+            }
+        }
+        return best;
+    }
+
     // The seam between row `below` and the row above it, before smoothing.
     double seamPoint(int below, double lon) {
         const auto low = rowEdge(below, true, lon), high = rowEdge(below + 1, false, lon);
         if (low && high) return meet(*low, *high).value;
         if (low) return low->value;
         if (high) return high->value;
-        // Neither side is known there: this tile's own edge, held level.
-        return edge(tile_, own_, below == tile_.row, lon);
+        const auto nearest=nearestEdge(below,lon);
+        return nearest ? nearest->value : 0.;
     }
 
     // The seam, smoothed: a curve both rows' straight edges can follow.
@@ -160,6 +205,8 @@ ElevationGrid stitchedGround(const Tile& tile, const RankedGround& own, const Gr
     }
     const size_t last = size_t(kNodes - 1);
     ElevationGrid out{b, kNodes, {}};
+    for (double lon : seamKnots(b, tile.row - 1)) out.southEdge.push_back({lon, s.seam(tile.row - 1, lon)});
+    for (double lon : seamKnots(b, tile.row)) out.northEdge.push_back({lon, s.seam(tile.row, lon)});
     out.values.reserve(size_t(kNodes) * kNodes);
     double largest = 0;
     for (int j = 0; j < kNodes; ++j)
@@ -180,6 +227,9 @@ ElevationGrid stitchedGround(const Tile& tile, const RankedGround& own, const Gr
             largest = std::max(largest, std::abs(h - raw(i, j)));
             out.values.push_back(h);
         }
+    for (bool northSide : {false,true})
+        for (const auto& p : northSide ? out.northEdge : out.southEdge)
+            largest = std::max(largest, std::abs(p.y-own.grid.sample(p.x,northSide ? b.north : b.south)));
     if (report) *report = {largest, s.neighbours()};
     return out;
 }
