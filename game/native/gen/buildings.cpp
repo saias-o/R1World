@@ -3,7 +3,9 @@
 #include "clip.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <regex>
+#include <set>
 
 namespace r1 {
 
@@ -204,6 +206,29 @@ double stack(int storeys, const RegionProfile& profile, bool commercial) {
 
 bool truthy(const std::optional<double>& v) { return v && *v != 0.0; }
 
+std::optional<int> taggedStoreys(const Tags& tags) {
+    const auto n = taggedLength(tagOr(tags, "building:levels"));
+    if (!n || *n < 1 || *n > std::numeric_limits<int>::max()) return std::nullopt;
+    return std::max(1, int(pyround(*n)));
+}
+
+int estimatedStoreys(double walls, const RegionProfile& profile) {
+    return int(std::clamp(std::nearbyint(walls / profile.storeyHeight),
+                          1., double(std::numeric_limits<int>::max())));
+}
+
+// A mapped total includes its roof and parapet: decoration must fit inside it.
+void fitTotalHeight(Gabarit& g, double total) {
+    const double reserve = std::min(2.4, total * 0.6);
+    if (g.roofShape == "flat") {
+        g.parapetHeight = std::min(g.parapetHeight, total - reserve);
+        g.wallHeight = total - g.parapetHeight;
+    } else {
+        g.roofHeight = std::min(g.roofHeight, total - reserve);
+        g.wallHeight = total - g.roofHeight;
+    }
+}
+
 // A terminal or a hangar is not a house of its region: it is a glass hall or
 // a steel shed wherever it stands. Only its tags say so -- `aeroway` on the
 // building, or `building=terminal|hangar` -- and only what they did not
@@ -241,6 +266,7 @@ Gabarit planGabarit(const Tags& tags, int64_t osmId, const RegionProfile& profil
     if(tagOr(tags,"r1:utility-hut")=="yes" && !has(tags,"height") && !has(tags,"building:levels") && !has(tags,"roof:shape"))
         return Gabarit{2.6,0,1,"atlas:utility-hut","flat","atlas:utility-hut"};
     Gabarit g;
+    g.parapetHeight = profile.parapetHeight;
     std::string tagged;
     for (char c : tagOr(tags, "roof:shape")) tagged += char(std::tolower((unsigned char)c));
     while (!tagged.empty() && std::isspace((unsigned char)tagged.back())) tagged.pop_back();
@@ -268,23 +294,20 @@ Gabarit planGabarit(const Tags& tags, int64_t osmId, const RegionProfile& profil
     if (g.roofShape == "flat") g.roofHeight = 0.0;
     else {
         const auto taggedRoof = taggedLength(tagOr(tags, "roof:height"));
-        if (taggedRoof && 0.5 <= *taggedRoof && *taggedRoof <= 25.0) g.roofHeight = *taggedRoof;
+        if (taggedRoof && *taggedRoof > 0.0) g.roofHeight = *taggedRoof;
         else {
             const double run = g.roofShape != "skillion" ? box.halfV : box.halfV * 2.0;
             g.roofHeight = std::min(12.0, std::max(0.6, std::tan(radians(pitchDegrees)) * run));
         }
     }
-    const auto levels = taggedLength(tagOr(tags, "building:levels"));
+    const auto levels = taggedStoreys(tags);
     const auto total = taggedLength(tagOr(tags, "height"));
-    if (total && 2.0 <= *total && *total <= 300.0) {
-        const double reserve = std::min(2.4, *total * 0.6);
-        g.roofHeight = std::min(g.roofHeight, std::max(0.0, *total - reserve));
-        g.wallHeight = *total - g.roofHeight;
-        g.storeys = truthy(levels) ? std::max(1, int(pyround(*levels)))
-                                   : std::max(1, int(pyround(g.wallHeight / profile.storeyHeight)));
+    if (total && *total > 0.0) {
+        fitTotalHeight(g, *total);
+        g.storeys = levels ? *levels : estimatedStoreys(g.wallHeight, profile);
         g.heightSource = "tag:height";
-    } else if (levels && 1.0 <= *levels && *levels <= 80.0) {
-        g.storeys = std::max(1, int(pyround(*levels)));
+    } else if (levels) {
+        g.storeys = *levels;
         g.wallHeight = stack(g.storeys, profile, commercial);
         g.heightSource = "tag:levels";
     } else {
@@ -293,8 +316,16 @@ Gabarit planGabarit(const Tags& tags, int64_t osmId, const RegionProfile& profil
         g.heightSource = "atlas";
     }
     if (g.heightSource == "atlas") g.wallHeight = std::max(2.4, g.wallHeight);
-    g.wallHeight = std::min(90.0, g.wallHeight);
-    if (g.roofSource != "tag:shape" || !truthy(taggedLength(tagOr(tags, "roof:height"))))
+    if(g.heightSource=="atlas" && tagOr(tags,"wall")=="no" && tagOr(tags,"building")=="yes" && !commercial && !has(tags,"r1:fuel")) {
+        g.storeys=1;g.wallHeight=2.6;g.roofHeight=std::min(g.roofHeight,1.5);
+        g.heightSource="atlas:light-building";
+    }
+    else if(g.heightSource=="atlas" && openRoof(tags) && !has(tags,"r1:fuel") && !has(tags,"roof:shape")) {
+        g.storeys=1;g.wallHeight=2.6;g.roofHeight=std::min(g.roofHeight,1.5);
+        g.roofShape="flat";g.roofHeight=0;g.parapetHeight=0;g.roofSource="atlas:open-roof";
+        g.heightSource="atlas:open-roof";
+    }
+    if (!truthy(taggedLength(tagOr(tags, "roof:height"))) && g.heightSource != "tag:height")
         g.roofHeight = std::min(g.roofHeight, g.wallHeight * kMaxRoofOverWall);
     return g;
 }
@@ -494,6 +525,45 @@ std::vector<std::array<P3, 3>> gableWalls(const OrientedBox& box, const std::str
     return {};
 }
 
+// Cadastral homes have bays, extensions and L-shaped corners. Clip each roof
+// plane to their surveyed footprint instead of replacing the roof with a deck
+// or covering the empty corner of the enclosing rectangle.
+void footprintRoof(Mesh& roof,Mesh& walls,const Ring& ring,const OrientedBox& box,
+                   const std::string& shape,double eave,double low,double high,double sign,double thickness) {
+    const auto loops=roofLoops(box,shape,eave,low,high,sign);
+    struct Plane {P3 at,n;double y(P2 p)const{return at.y-(n.x*(p.x-at.x)+n.z*(p.y-at.z))/n.y;}};
+    std::vector<Plane> planes;
+    const auto outline=eave>0?clip::bufferRing(ring,eave):clip::Paths64{clip::kMetres.path(ring)};
+    for(const auto& loop:loops) {
+        Plane plane{loop[0],faceNormal(loop[0],loop[1],loop[2])};
+        if(std::abs(plane.n.y)<1e-8)continue;
+        planes.push_back(plane);
+        Ring flat;for(const auto& p:loop)flat.push_back({p.x,p.z});
+        for(const auto& polygon:clip::polygons(clip::intersect(outline,{clip::kMetres.path(flat)})))
+            for(const auto& t:clip::triangles(polygon)) {
+                std::vector<P3> triangle;for(auto p:t)triangle.push_back({p.x,plane.y(p),p.y});
+                addSlab(roof,std::move(triangle),thickness);
+            }
+    }
+    auto top=[&](P2 p){double y=high;for(const auto& plane:planes)y=std::min(y,plane.y(p));return std::max(low,y);};
+    for(size_t i=0;i<ring.size();++i) {
+        const auto a=ring[i],b=ring[(i+1)%ring.size()];std::vector<double> cuts{0,1};
+        for(size_t p=0;p<planes.size();++p)for(size_t q=p+1;q<planes.size();++q) {
+            const double da=planes[p].y(a)-planes[q].y(a),db=planes[p].y(b)-planes[q].y(b);
+            if(da*db<0)cuts.push_back(da/(da-db));
+        }
+        std::sort(cuts.begin(),cuts.end());
+        for(size_t c=1;c<cuts.size();++c) {
+            if(cuts[c]-cuts[c-1]<1e-8)continue;
+            P2 from{a.x+(b.x-a.x)*cuts[c-1],a.y+(b.y-a.y)*cuts[c-1]};
+            P2 to{a.x+(b.x-a.x)*cuts[c],a.y+(b.y-a.y)*cuts[c]};
+            const double yf=top(from),yt=top(to);
+            if(yf>low+1e-6)walls.addTriangle({from.x,low,from.y},{from.x,yf,from.y},{to.x,yt,to.y});
+            if(yt>low+1e-6)walls.addTriangle({from.x,low,from.y},{to.x,yt,to.y},{to.x,low,to.y});
+        }
+    }
+}
+
 void emitParapet(Mesh& mesh, const Ring& ring, double yDeck, double height) {
     // Python compared the inset ring by identity, which a copy never passes:
     // every flat roof gets its parapet, inset or not.
@@ -625,6 +695,108 @@ struct Planned {
     bool commercial, detailed;
     std::vector<OrientedBox> roofBoxes;
 };
+
+// Ancillary structures and monuments do not describe the height of a street's
+// ordinary buildings. Their own mapped dimensions still take precedence.
+bool ordinaryHeightNeighbour(const Tags& tags) {
+    static const std::set<std::string> ancillary = {"shed", "garage", "garages", "roof", "carport",
+        "hut", "service", "kiosk", "greenhouse", "ruins", "tower", "lighthouse"};
+    return !ancillary.count(tagOr(tags,"building")) && !openRoof(tags) && !isWorship(tags) &&
+           aviationKind(tags).empty() && !has(tags,"r1:bus-shelter") &&
+           tagOr(tags,"r1:rural-annex")!="yes" && tagOr(tags,"r1:utility-hut")!="yes" &&
+           tagOr(tags,"wall")!="no" &&
+           tagOr(tags,"man_made")!="tower" && tagOr(tags,"man_made")!="lighthouse";
+}
+
+struct HeightReference {
+    int64_t id;
+    P2 center;
+    double height;
+    bool measured;
+    double area;
+    const Tags* tags;
+};
+std::vector<OrientedBox> homeRoofWings(const Ring& ring,const OrientedBox& box);
+OrientedBox roofPlanBox(const OrientedBox& box,const std::vector<OrientedBox>& wings) {
+    auto out=box;
+    if(!wings.empty()) {
+        out.halfV=0;for(const auto& wing:wings)out.halfV=std::max(out.halfV,wing.halfV);
+    }
+    return out;
+}
+
+// A fixed local radius prevents a distant city's heights leaking into a village.
+// The grid bounds lookup cost; ID resolves distance ties independently of OSM order.
+struct HeightNeighbourhood {
+    static constexpr double radius = 250., cellSize = 50.;
+    std::vector<HeightReference> references;
+    std::map<std::pair<int,int>,std::vector<size_t>> cells;
+    static std::pair<int,int> cell(P2 p) {
+        return {int(std::floor(p.x/cellSize)),int(std::floor(p.y/cellSize))};
+    }
+    HeightNeighbourhood(const std::vector<const OsmWay*>& ways,
+                        const std::vector<const OsmWay*>& surroundings,
+                        const std::function<P3(double,double)>& groundOf,const RegionProfile& profile) {
+        std::map<int64_t,const OsmWay*> unique;
+        for(const auto* w:surroundings)unique[w->id]=w;
+        // Enriched local tags win over the same raw way in the neighbourhood.
+        for(const auto* w:ways)unique[w->id]=w;
+        for(const auto& [id,w]:unique) {
+            if(w->points.size()<4 || !w->closed() || !ordinaryHeightNeighbour(w->tags))continue;
+            const auto height=taggedLength(tagOr(w->tags,"height"));
+            const bool measured=height && *height>0;
+            if(!measured && !taggedStoreys(w->tags))continue;
+            Ring ring;
+            for(size_t i=0;i+1<w->points.size();++i) {
+                const auto p=groundOf(w->points[i].x,w->points[i].y);ring.push_back({p.x,p.z});
+            }
+            const auto clean=cleanFootprint(ring);
+            if(!clean)continue;
+            const auto box=orientedBox(*clean);
+            const double rectangularity=std::abs(polygonArea(*clean))/box.area();
+            const bool home=residentialStyle(tagOr(w->tags,"r1:residential"));
+            const auto wings=home && rectangularity<kRectangularityForPitch?homeRoofWings(*clean,box):std::vector<OrientedBox>{};
+            const auto roofBox=roofPlanBox(box,wings);
+            const bool homePitch=home && roofBox.halfV*2<=kMaxRidgeSpan;
+            const double total=measured?*height:
+                planGabarit(w->tags,id,profile,roofBox,homePitch?1.:rectangularity,
+                            profile.isCommercial(w->tags)).totalHeight();
+            references.push_back({id,centroid(*clean),total,measured,std::abs(polygonArea(*clean)),&w->tags});
+            cells[cell(references.back().center)].push_back(references.size()-1);
+        }
+    }
+    std::vector<std::pair<double,size_t>> nearest(int64_t id,P2 at,const Tags& tags,double area) const {
+        std::vector<std::pair<double,size_t>> measured,levels;
+        const auto lo=cell({at.x-radius,at.y-radius}),hi=cell({at.x+radius,at.y+radius});
+        auto before=[&](const auto& a,const auto& b) {
+            return a.first<b.first || (a.first==b.first && references[a.second].id<references[b.second].id);
+        };
+        for(int x=lo.first;x<=hi.first;++x)for(int z=lo.second;z<=hi.second;++z) {
+            auto found=cells.find({x,z});if(found==cells.end())continue;
+            for(size_t n:found->second) {
+                const auto& ref=references[n];if(ref.id==id)continue;
+                // A house borrows dimensions from comparable homes, not a
+                // school hall, apartment tower or tiny cadastral outbuilding.
+                const auto kind=tagOr(tags,"building");
+                if(has(tags,"r1:residential") || kind=="house" || kind=="detached" || kind=="bungalow") {
+                    const auto donor=tagOr(*ref.tags,"building");
+                    if(!donor.empty() && donor!="yes" && donor!="house" && donor!="detached" &&
+                       donor!="residential" && donor!="bungalow" && donor!="terrace" && donor!="cabin")continue;
+                    bool publicUse=false;
+                    for(const char* key:{"amenity","shop","office","industrial","tourism"})publicUse |= has(*ref.tags,key);
+                    if(publicUse || ref.area<45 || ref.area<area/3 || ref.area>area*3)continue;
+                    const auto floors=taggedStoreys(*ref.tags);
+                    if(has(tags,"r1:residential") && floors && *floors>2)continue;
+                }
+                const double distance=dist(at,ref.center);if(distance>radius)continue;
+                auto& best=ref.measured?measured:levels;
+                best.push_back({distance,n});std::sort(best.begin(),best.end(),before);
+                if(best.size()>3)best.resize(3);
+            }
+        }
+        return measured.empty()?levels:measured;
+    }
+};
 // A small orthogonal home can be several joined wings. Partition its actual
 // footprint into rectangles, rather than flattening its roof or roofing the
 // empty corner of its enclosing box. Non-orthogonal/courtyard cases stay on
@@ -684,6 +856,7 @@ std::optional<double> taggedLength(const std::string& raw) {
     std::replace(s.begin(), s.end(), ',', '.');
     double value = std::strtod(s.c_str(), nullptr);
     if (raw.find("ft") != std::string::npos || raw.find('\'') != std::string::npos) value *= 0.3048;
+    if (!std::isfinite(value)) return std::nullopt;
     return value;
 }
 
@@ -692,18 +865,18 @@ nlohmann::json BuildingStats::json() const {
             {"heightInferred", heightInferred}, {"roofTagged", roofTagged}, {"roofInferred", roofInferred},
             {"roofFlattenedForShape", roofFlattened}, {"facadesDetailed", detailed}, {"partyWalls", partyWalls},
             {"steeples", steeples}, {"roofShapes", shapes}, {"busShelters",busShelters},
+            {"heightFromLevels",heightFromLevels}, {"heightFromNeighbours",heightFromNeighbours},
+            {"heightFromAtlas",heightFromAtlas}, {"neighbourHeights",neighbourHeights},
             {"ruralGabarits",ruralGabarits}};
 }
 
-BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
-                              const std::function<P3(double, double)>& groundOf, const RegionProfile& profile,
-                              P2 detailCenter, double detailRadius, double roofThickness,
-                              const MaterialFor& wallMaterials, const MaterialFor& roofMaterials, BuildingLod lod) {
-    BuildingOutput out;
-    BuildingStats& stats = out.stats;
+namespace {
+std::vector<Planned> planBuildings(const std::vector<const OsmWay*>& ways,
+    const std::function<P3(double,double)>& groundOf, const RegionProfile& profile,
+    P2 detailCenter, double detailRadius, BuildingStats& stats,
+    const std::vector<const OsmWay*>& surroundings) {
     std::vector<Planned> planned;
-    PartyWallIndex party;
-    CanopyBook canopies;
+    const HeightNeighbourhood heights(ways,surroundings,groundOf,profile);
     for (const OsmWay* way : ways) {
         std::vector<P2> raw(way->points.begin(), way->points.end() - 1);
         std::vector<P3> placed;
@@ -732,17 +905,22 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const bool commercial = profile.isCommercial(way->tags);
         const auto* home=residentialStyle(tagOr(way->tags,"r1:residential"));
         std::vector<OrientedBox> roofBoxes;
-        if(home && home->country!="FR" && rectangularity<kRectangularityForPitch &&
+        if(home && rectangularity<kRectangularityForPitch &&
            tagOr(way->tags,"roof:shape")!="flat" && !commercial)roofBoxes=homeRoofWings(*ring,box);
-        Gabarit gabarit = planGabarit(way->tags, way->id, profile, box, roofBoxes.empty()?rectangularity:1., commercial);
+        const bool footprintPitch=home && !commercial && rectangularity<kRectangularityForPitch && box.halfV*2<=kMaxRidgeSpan;
+        Gabarit gabarit = planGabarit(way->tags, way->id, profile, roofPlanBox(box,roofBoxes),
+            roofBoxes.empty() && !footprintPitch?rectangularity:1., commercial);
         if(!roofBoxes.empty() && gabarit.roofShape!="flat" && gabarit.roofSource.rfind("atlas",0)==0)
             gabarit.roofSource="atlas:compound-home";
+        else if(footprintPitch && gabarit.roofShape!="flat" && gabarit.roofSource.rfind("atlas",0)==0)
+            gabarit.roofSource="atlas:footprint-home";
         const bool retail = retailUse(way->tags);
         if (retail && (tagOr(way->tags,"building")=="retail" || tagOr(way->tags,"building")=="supermarket" || tagOr(way->tags,"building")=="mall")) {
             if (gabarit.heightSource=="atlas") { gabarit.wallHeight=retailRecipe(way->tags)=="mall"?7.5:5.2;gabarit.storeys=1; }
             if (gabarit.roofSource!="tag:shape") {
-                if(gabarit.heightSource=="tag:height")gabarit.wallHeight+=gabarit.roofHeight;
+                const double total = gabarit.totalHeight();
                 gabarit.roofShape="flat";gabarit.roofHeight=0;gabarit.roofSource="atlas:retail";
+                if(gabarit.heightSource=="tag:height")fitTotalHeight(gabarit,total);
             }
         }
         if (const std::string kind = aviationKind(way->tags); !kind.empty()) {
@@ -754,10 +932,11 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             if (gabarit.roofSource != "tag:shape") {
                 // A tagged total height stays the total: the roof it no longer
                 // has goes back into the walls.
-                if (gabarit.heightSource == "tag:height") gabarit.wallHeight += gabarit.roofHeight;
+                const double total = gabarit.totalHeight();
                 gabarit.roofShape = "flat";
                 gabarit.roofHeight = 0.0;
                 gabarit.roofSource = "atlas:aviation";
+                if(gabarit.heightSource=="tag:height")fitTotalHeight(gabarit,total);
             }
         }
         double cx = 0, cz = 0;
@@ -769,6 +948,56 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         planned.push_back({way->id, &way->tags, std::move(*ring), floor, foundation, interiorFloor, box, gabarit, commercial,
                            distance <= detailRadius,std::move(roofBoxes)});
     }
+    // Only original height/level observations are references. Inferred buildings
+    // never become donors, so neither ordering nor a chain of guesses changes the result.
+    for(auto& b:planned) {
+        if(b.gabarit.heightSource.rfind("atlas",0)!=0 || !ordinaryHeightNeighbour(*b.tags))continue;
+        const auto neighbours=heights.nearest(b.id,centroid(b.ring),*b.tags,std::abs(polygonArea(b.ring)));
+        if(neighbours.empty())continue;
+        double total=0;
+        nlohmann::json refs=nlohmann::json::array();
+        for(const auto& [distance,n]:neighbours) {
+            const auto& ref=heights.references[n];total+=ref.height;
+            refs.push_back({{"building",ref.id},{"heightM",ref.height},{"distanceM",pyround(distance,2)},
+                            {"source",ref.measured?"tag:height":"tag:levels"}});
+        }
+        total/=neighbours.size();
+        fitTotalHeight(b.gabarit,total);
+        const auto* home=residentialStyle(tagOr(*b.tags,"r1:residential"));
+        const RegionProfile local=home?residentialProfile(profile,*home):profile;
+        b.gabarit.storeys=estimatedStoreys(b.gabarit.wallHeight,local);
+        b.gabarit.heightSource="neighbours";
+        stats.neighbourHeights.push_back({{"building",b.id},{"heightM",total},
+            {"source","inferred:neighbours"},{"radiusM",HeightNeighbourhood::radius},{"references",std::move(refs)}});
+    }
+    return planned;
+}
+double plannedHeight(const Planned& b) {
+    return isWorship(*b.tags) && b.gabarit.heightSource!="tag:height"
+        ? std::max(12.,b.gabarit.wallHeight*2.8)*1.6 : b.gabarit.totalHeight();
+}
+}  // namespace
+
+std::map<int64_t,double> predictBuildingHeights(const std::vector<const OsmWay*>& ways,
+    const std::function<P3(double,double)>& groundOf, const RegionProfile& profile,
+    const std::vector<const OsmWay*>& surroundings) {
+    BuildingStats stats;
+    std::map<int64_t,double> heights;
+    for (const auto& b:planBuildings(ways,groundOf,profile,{},-1,stats,surroundings))
+        heights[b.id]=plannedHeight(b);
+    return heights;
+}
+
+BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
+                              const std::function<P3(double, double)>& groundOf, const RegionProfile& profile,
+                              P2 detailCenter, double detailRadius, double roofThickness,
+                              const MaterialFor& wallMaterials, const MaterialFor& roofMaterials, BuildingLod lod,
+                              const std::vector<const OsmWay*>& surroundings) {
+    BuildingOutput out;
+    BuildingStats& stats=out.stats;
+    auto planned=planBuildings(ways,groundOf,profile,detailCenter,detailRadius,stats,surroundings);
+    PartyWallIndex party;
+    CanopyBook canopies;
     for (size_t owner = 0; owner < planned.size(); ++owner) {
         // A roof on posts shares no wall with anyone.
         if (openRoof(*planned[owner].tags) || has(*planned[owner].tags,"r1:bus-shelter")) continue;
@@ -829,7 +1058,13 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         ++stats.total;
         out.footprints.push_back(b.ring);
         ++stats.shapes[g.roofShape];
-        if (g.heightSource.rfind("atlas", 0) == 0) ++stats.heightInferred; else ++stats.heightMeasured;
+        if (g.heightSource == "tag:height") ++stats.heightMeasured;
+        else {
+            ++stats.heightInferred;
+            if(g.heightSource=="tag:levels")++stats.heightFromLevels;
+            else if(g.heightSource=="neighbours")++stats.heightFromNeighbours;
+            else ++stats.heightFromAtlas;
+        }
         if (g.roofSource == "tag:shape") ++stats.roofTagged; else ++stats.roofInferred;
         if (g.roofSource == "atlas:not-rectangular") ++stats.roofFlattened;
         if (b.detailed) ++stats.detailed;
@@ -859,9 +1094,15 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const double yEave = b.ground + g.wallHeight;
         // A steeple rises to about 2.8 walls and its spire above that
         // (emitSteeple); an estimate that errs tall, since it is a clearance.
-        out.tops.push_back(isWorship(*b.tags) ? b.ground + std::max(12.0, g.wallHeight * 2.8) * 1.6
-                           : yEave + (g.roofShape == "flat" ? facadeProfile.parapetHeight : g.roofHeight));
-        const auto levels = floorLevels(g.wallHeight, g.storeys, facadeProfile, b.commercial);
+        const bool inferSteeple=isWorship(*b.tags) && g.heightSource!="tag:height";
+        out.tops.push_back(b.ground+plannedHeight(b));
+        // Very tall buildings keep their full height and floor count. Above this
+        // detail budget, their existing facade textures replace modelled windows.
+        double perimeter=0;
+        for(size_t e=0;e<b.ring.size();++e)perimeter+=dist(b.ring[e],b.ring[(e+1)%b.ring.size()]);
+        const bool modelOpenings=g.storeys<=128 && perimeter/facadeProfile.bayWidth*g.storeys<=1024;
+        const auto levels = modelOpenings ? floorLevels(g.wallHeight,g.storeys,facadeProfile,b.commercial)
+                                         : std::vector<std::pair<double,double>>{};
         const bool raised = truthy(taggedLength(tagOr(*b.tags, "min_height"))) ||
                             truthy(taggedLength(tagOr(*b.tags, "building:min_level")));
         std::optional<InteriorPlan> interior;
@@ -904,6 +1145,8 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         Mesh& wallMesh = walls.mesh(wallSwatch);
         Mesh& roofMesh = roofs.mesh(roofSwatch);
         const size_t count = b.ring.size();
+        const bool simpleFlat=g.roofShape=="flat" && geometryLod==BuildingLod::SimpleRoofline;
+        const double shellHeight=g.wallHeight+(simpleFlat?g.parapetHeight:0);
         for (size_t e = 0; e < count; ++e) {
             const P2 p0 = b.ring[e], p1 = b.ring[(e + 1) % count];
             auto frame = wallFrame(p0, p1, b.ground);
@@ -938,7 +1181,7 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                 // Eight welded corners cover a facade with a rectangular
                 // doorway. Four overlapping strips need extra T-junctions
                 // and exhausted a dense Vannes tile's arena budget.
-                clip::Polygon facade{{{0,base},{frame->length,base},{frame->length,g.wallHeight},{0,g.wallHeight}},
+                clip::Polygon facade{{{0,base},{frame->length,base},{frame->length,shellHeight},{0,shellHeight}},
                     {{{middle-half,threshold},{middle+half,threshold},{middle+half,threshold+2.15},{middle-half,threshold+2.15}}}};
                 for(auto triangle:clip::triangles(facade)) {
                     auto a=frame->point(triangle[0].x,triangle[0].y),c=frame->point(triangle[1].x,triangle[1].y),d=frame->point(triangle[2].x,triangle[2].y);
@@ -952,15 +1195,15 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                 face(foundations.mesh(wallSwatch), *frame, 0.0, b.foundation - b.ground, frame->length, 0.0);
             const bool shared = party.isParty(int(owner), p0, p1);
             if (shared && countStats) ++stats.partyWalls;
-            if (detailed && !shared && frame->length >= 2.0) {
+            if (detailed && !shared && frame->length >= 2.0 && !levels.empty()) {
                 Mesh& reveals=residential && residential->trim ? ruralTrim.mesh(facadeProfile.trim) : trim;
-                emitFacade(wallMesh, reveals, glass, *frame, levels, g.wallHeight, facadeProfile, b.commercial);
+                emitFacade(wallMesh, reveals, glass, *frame, levels, shellHeight, facadeProfile, b.commercial);
             } else if (wallMaterials) {
                 const double bays = std::max(1.0, double(pyround(frame->length / profile.bayWidth)));
                 const std::pair<double, double> scale{bays / frame->length, g.storeys / std::max(1e-3, g.wallHeight)};
-                face(wallMesh, *frame, 0.0, base, frame->length, g.wallHeight, 0.0, &scale);
+                face(wallMesh, *frame, 0.0, base, frame->length, shellHeight, 0.0, &scale);
             } else {
-                face(wallMesh, *frame, 0.0, base, frame->length, g.wallHeight);
+                face(wallMesh, *frame, 0.0, base, frame->length, shellHeight);
             }
         }
         // Pitched roofs already close the volume with their sloping panels
@@ -968,12 +1211,13 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         // volume; streamed rooms provide their own ceiling below the attic.
         if(g.roofShape=="flat")for (const auto& t : triangulate(b.ring)) {
             const P2 pa = b.ring[size_t(t[0])], pb = b.ring[size_t(t[1])], pc = b.ring[size_t(t[2])];
-            roofMesh.addUpTriangle({pa.x, yEave, pa.y}, {pb.x, yEave, pb.y}, {pc.x, yEave, pc.y});
+            const double deck=yEave+(simpleFlat?g.parapetHeight:0);
+            roofMesh.addUpTriangle({pa.x, deck, pa.y}, {pb.x, deck, pb.y}, {pc.x, deck, pc.y});
         }
-        const bool worship = isWorship(*b.tags);
+        const bool worship = inferSteeple;
         if (g.roofShape == "flat") {
             if (geometryLod != BuildingLod::SimpleRoofline)
-                emitParapet(wallMesh, b.ring, yEave, facadeProfile.parapetHeight);
+                emitParapet(wallMesh, b.ring, yEave, g.parapetHeight);
             if (worship) {
                 emitSteeple(wallMesh, roofMesh, b.box, b.ground, g.wallHeight, steepleStyle(*b.tags));
                 if (countStats) ++stats.steeples;
@@ -990,8 +1234,10 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             for(auto& loop:roofLoops(box,g.roofShape,facadeProfile.eaveOverhang,yEave,ridge,sign))addSlab(roofMesh,loop,slabThickness);
             for(const auto& gable:gableWalls(box,g.roofShape,yEave,ridge,sign))wallMesh.addTriangle(gable[0],gable[1],gable[2]);
         };
-        if(b.roofBoxes.empty())roof(b.box,yRidge);
-        else for(const auto& wing:b.roofBoxes)roof(wing,yEave+std::max(.6,g.roofHeight*wing.halfV/b.box.halfV));
+        if(b.roofBoxes.empty() && homeProfile && std::abs(polygonArea(b.ring))/b.box.area()<.98)
+            footprintRoof(roofMesh,wallMesh,b.ring,b.box,g.roofShape,facadeProfile.eaveOverhang,yEave,yRidge,sign,slabThickness);
+        else if(b.roofBoxes.empty())roof(b.box,yRidge);
+        else for(const auto& wing:b.roofBoxes)roof(wing,yEave+g.roofHeight*wing.halfV/roofPlanBox(b.box,b.roofBoxes).halfV);
         };
         const auto wallMark = walls.mark(), foundationMark = foundations.mark(), roofMark = roofs.mark(), ruralMark = ruralTrim.mark();
         const size_t trimMark = trim.indices.size(), glassMark = glass.indices.size();
@@ -1035,12 +1281,12 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             if (!frame) continue;
             const double bays = std::max(1.0,double(pyround(frame->length/profile.bayWidth)));
             const std::pair<double,double> scale{bays/frame->length,g.storeys/std::max(1e-3,g.wallHeight)};
-            const double top = yEave + (g.roofShape == "flat" ? facadeProfile.parapetHeight : 0.0);
+            const double top = yEave + (g.roofShape == "flat" ? g.parapetHeight : 0.0);
             face(midWalls,*frame,0.0,midBase-b.ground,frame->length,top-b.ground,0.0,
                  wallMaterials ? &scale : nullptr);
         }
         if (g.roofShape == "flat") {
-            const double top = yEave + facadeProfile.parapetHeight;
+            const double top = yEave + g.parapetHeight;
             for (const auto& t : triangulate(b.ring)) {
                 const auto a=b.ring[size_t(t[0])],c=b.ring[size_t(t[1])],d=b.ring[size_t(t[2])];
                 midRoof.addUpTriangle({a.x,top,a.y},{c.x,top,c.y},{d.x,top,d.y});
@@ -1052,8 +1298,10 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                 for (const auto& gable : gableWalls(box,g.roofShape,yEave,ridge,sign))
                     midWalls.addTriangle(gable[0],gable[1],gable[2]);
             };
-            if (b.roofBoxes.empty()) midPitch(b.box,yEave+g.roofHeight);
-            else for (const auto& wing : b.roofBoxes) midPitch(wing,yEave+std::max(.6,g.roofHeight*wing.halfV/b.box.halfV));
+            if(b.roofBoxes.empty() && homeProfile && std::abs(polygonArea(b.ring))/b.box.area()<.98)
+                footprintRoof(midRoof,midWalls,b.ring,b.box,g.roofShape,0,yEave,yEave+g.roofHeight,sign,0);
+            else if (b.roofBoxes.empty()) midPitch(b.box,yEave+g.roofHeight);
+            else for (const auto& wing : b.roofBoxes) midPitch(wing,yEave+g.roofHeight*wing.halfV/roofPlanBox(b.box,b.roofBoxes).halfV);
         }
         visual.levels[1].push_back({"Walls",std::move(midWalls),wallMaterials ? wallMaterials(wallSwatch,true) : flatMaterial(wallSwatch,true)});
         visual.levels[1].push_back({"Roofs",std::move(midRoof),roofMaterials ? roofMaterials(roofSwatch,true) : flatMaterial(roofSwatch,true)});

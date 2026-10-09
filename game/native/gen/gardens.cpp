@@ -15,6 +15,7 @@ Ring project(const OsmWay& w, const Anchor& a) {
     return r;
 }
 bool privateHouse(const OsmWay& b, bool ruralKinds=false, bool smallTownFacade=false) {
+    if(tagOr(b.tags,"wall")=="no")return false;
     const auto kind=tagOr(b.tags,"building");
     if(kind!="yes" && kind!="house" && kind!="detached" &&
        !(ruralKinds && (kind=="residential" || kind=="bungalow" || kind=="cabin")))return false;
@@ -135,7 +136,7 @@ ResidentialPlan planResidential(const OsmData& osm,const Anchor& anchor) {
         for(size_t j:neighbours)if(i!=j && buildings[j].area>=45 && privateHouse(osm.buildings[j]) &&
             buildings[j].box.overlaps(b.box.grown(2.5)))
             joined |= clip::area(clip::intersect(expanded,{clip::kMetres.path(buildings[j].ring)}))>.01;
-        if(joined){++attached;if(!style->villageRows)continue;}
+        if(joined){++attached;if(!style->villageRows || (jurisdiction.code=="FR" && !village))continue;}
         const Road* road=nullptr; P2 frontage{}; double gap=45;
         for(size_t j:roadIndex.near(b.box.grown(45))) {
             const auto& r=roads[j]; const P2 d=minus(r.b,r.a); const double l2=dot(d,d);
@@ -143,7 +144,14 @@ ResidentialPlan planResidential(const OsmData& osm,const Anchor& anchor) {
             const P2 p=plus(r.a,times(d,std::clamp(dot(minus(b.centre,r.a),d)/l2,0.,1.)));
             if(dist(p,b.centre)<gap){gap=dist(p,b.centre);road=&r;frontage=p;}
         }
-        if(!road)continue;
+        if(!road) {
+            // The 45 m road rule proves a frontage for a garden, not the
+            // architecture of a back-row village home. Keep its home gabarit
+            // without inventing a driveway across neighbouring parcels.
+            if(!village)continue;
+            out.homes.push_back({raw.id,style,b.ring,b.centre,{},{},{},0,0,0,false});
+            continue;
+        }
         P2 along=times(minus(road->b,road->a),1/dist(road->a,road->b));
         P2 inward{-along.y,along.x};if(dot(minus(b.centre,frontage),inward)<0)inward=times(inward,-1);
         double width=0,front=1e9,back=-1e9;
@@ -159,8 +167,9 @@ ResidentialPlan planResidential(const OsmData& osm,const Anchor& anchor) {
                              std::clamp(width+style->lotPadding,6.,16.),road->half+style->frontOffset,back+5,gardenEligible});
     }
     // A small untyped outbuilding beside a proven rural home is an annex, not
-    // an eight-storey tower. Keep the French and dense-city paths unchanged.
-    if(jurisdiction.code!="FR")for(size_t i=0;i<osm.buildings.size();++i) {
+    // an eight-storey tower. The home and private land-use checks also apply
+    // to French cadastral extracts; a mapped dimension always wins.
+    for(size_t i=0;i<osm.buildings.size();++i) {
         const auto& raw=osm.buildings[i];const auto& b=buildings[i];
         if(tagOr(raw.tags,"building")!="yes" || b.area<4 || b.area>=45 ||
            has(raw.tags,"height") || has(raw.tags,"building:levels") || !privateHouse(raw))continue;
@@ -168,6 +177,8 @@ ResidentialPlan planResidential(const OsmData& osm,const Anchor& anchor) {
         bool privateSite=true;
         for(const auto& area:osm.landcover)if(!privateGround(area.tags) && pointInPolygon({at.x,at.y},area.points))privateSite=false;
         if(!privateSite)continue;
+        if(jurisdiction.code=="FR" && std::any_of(cities.begin(),cities.end(),
+            [&](P2 p){return dist(p,b.centre)<1500;}))continue;
         const ResidentialHome* nearest=nullptr;double gap=25;
         for(const auto& h:out.homes)if(std::abs(polygonArea(h.ring))>=45 && dist(h.centre,b.centre)<gap) {
             nearest=&h;gap=dist(h.centre,b.centre);
@@ -177,7 +188,7 @@ ResidentialPlan planResidential(const OsmData& osm,const Anchor& anchor) {
         const auto* style=nearest->style;
         out.homes.push_back({raw.id,style,b.ring,b.centre,{},{},{},0,0,0,false});
     }
-    out.stats={{"revision",2},{"country",jurisdiction.code},{"countrySource",jurisdiction.basis},
+    out.stats={{"revision",3},{"country",jurisdiction.code},{"countrySource",jurisdiction.basis},
         {"eligibleHomes",out.homes.size()},{"rejectedDense",dense},{"rejectedAttached",attached},
         {"rejectedLanduse",useRejected},{"inferred",true}};
     out.stats["settlementsQueried"]=osm.settlementsQueried;

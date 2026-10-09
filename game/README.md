@@ -8,7 +8,7 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 9 October 2026. The current generator is v39;
+Documentation reviewed on 10 October 2026. The current generator is v43;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
 
@@ -44,6 +44,9 @@ Map tiles are cached in `cache/map-tiles/osm/`.
 | F | take the nearest car, boat or aircraft | get out (below 7 km/h) | get out, at any moment |
 | Mouse | orbit the camera | turn the head | |
 | M / Échap | the map; **Reprendre** returns (M toggles water in debug) | | |
+
+On foot, the camera follows 3.8 m behind the player and moves closer when
+obstacles or terrain block the view.
 
 Press **R** in play to show FPS and enable performance debug. **V** toggles
 road traffic (simulation, cars and their collisions), **Y** toggles volumetric
@@ -198,6 +201,7 @@ as estimated, not a historical station observation:
 | `vannes` | the port of Vannes from the place Gambetta |
 | `theix` | Theix: the fuel station, the car park and the Carrefour Market |
 | `lasne` | Croix de Lasné, towards Saint-Colombier: rural verges and quiet frontage |
+| `saint_armel` | the reported Lasné regression point: ordinary homes, irregular roofs and small annexes |
 | `grenoble` | Grenoble, towards the Moucherotte and its limestone cliffs |
 | `lecap` | Cape Town, towards Table Mountain |
 | `rio` | Rio de Janeiro, the Corcovado from the Sugarloaf summit |
@@ -264,7 +268,7 @@ when it arrives. The service regression holds this upgrade with a delayed survey
 Tiles are metric latitude rings with no polar cutoff (`native/gen/common.hpp`):
 36 000 rows of 0.005° and `72 000 · cos(lat)` columns per row, so a tile is
 about 556 m on a side everywhere, keyed `v<version>_<row>_<col>`. The
-generator version is `kVersion` (31 today). Within 18 km of a pole the
+generator version is `kVersion` (40). Within 18 km of a pole the
 neighbourhood is the tiles nearest in metres, twelve at the pole.
 
 The player's position is WGS84; each tile owns its tangent frame, and the
@@ -445,8 +449,50 @@ Each of the terrain's triangles is classified by where its centre falls
 (`native/gen/terrain.cpp`) and the mesh is split into one part per class, so
 the ground classes cost **zero vertices**. A class narrower than about 14 m does
 not exist at this resolution: an Amsterdam canal (25 m) does, a brook does not.
-Where OSM mapped nothing, the region says what the ground usually is, and the
-manifest's `ground.measuredFraction` says how much was surveyed:
+Where OSM mapped nothing, `native/gen/ground.cpp` measures local building
+footprint coverage in a **200 × 200 m** window, including neighbouring tiles.
+Coverage is weighted by the **completed predicted building height**, after
+mapped heights, storeys and neighbour inference have been resolved by the same
+planner used for rendering. Height contributes `max(1, log2(1 + height / 6))`:
+towers influence the ground more than low houses without one exceptional tower
+dominating its neighbourhood. The intermediate settlement score requires three
+buildings; a very high weighted density can also qualify a large isolated tower.
+A low farm shed stays below that dense threshold. Footprints are rasterized
+as a union on a globe-aligned sampling grid (about 4 × 6 m at Vannes), so
+overlaps do not inflate coverage and tile boundaries do not reset the estimate.
+
+The Atlas's `ground.inference` table chooses the sparse, settled and dense
+fallbacks, with regional then country overrides. The default weighted coverage
+thresholds are 0.18 and 0.45: France keeps the regional natural ground in sparse
+areas and uses made ground around substantial development. Arid regions and
+the sub-Saharan profile prefer exposed soil in intermediate settlements;
+Burkina Faso's country override starts with bare soil and reserves made ground
+for a much denser score (0.55). These are adjustable priors, not surveyed
+surfaces. Grass, water, parks, forests and other recognized OSM polygons always
+win. The same classes choose both the ground texture and grass blades, so
+inferred paving and bare soil grow no blades. The v42 key regenerates geometry.
+
+`ground.inference` records country, profile, window, thresholds and height
+weight. Classes such as `inferred:urban` and `inferred:bare` remain estimates
+in `ground.measuredFraction`.
+
+Validation on 10 October 2026: nine ground inference tests and 116 Python tests
+pass. The complete native suite has 339 passes and the same three earlier
+failures (Paris resident vertex budget, FarRelief material map, paired bridge
+decks). In the cached Vannes centre tile at -2.7608, 47.6579, 2,652 of the
+2,711 unclassified terrain triangles now use inferred made ground. The mapped
+356 grass triangles remain unchanged and the measured fraction remains 17.35%.
+The grass cover after construction masks falls from 39.53% to 11.07% of the
+tile; baseline/resident geometry gains only 10 vertices (127,734 / 59,731).
+The 640 neighbour-height estimates are unchanged. Snapshots:
+`generated/{building-heights-vannes-after,ground-density-vannes-after}.jsonl`.
+The optimized game builds; offline Paris/Vannes captures pass and were visually
+inspected (`generated/gallery/20261010-011137-c7f3fae`). An earlier simultaneous
+native-suite/gallery run exhausted memory in Paris; the serial gallery passed.
+The offline Paris Rivoli smoke passes running, jumping, driving, walking and
+resume (`cache/sessions/7190bb24f6bd466686c889f1af6db26e`).
+
+The following earlier observations predate this density-and-height rule:
 
 | Neighbourhood | Ground measured | The tile, by area |
 |---|---|---|
@@ -551,7 +597,7 @@ inside a building. The player and the car push the blades aside.
 
 ### The Atlas decides what the survey did not say
 
-Untagged heights, façade materials and roof forms come from the Atlas
+Fallback heights, façade materials and roof forms come from the Atlas
 (`assets/world/atlas.json`, read by `native/gen/palette.cpp`): **twelve named
 regions and twenty-two continental bands**. Rectangles overlap and the table is
 written most-specific first: the first match wins, so a region goes above the
@@ -563,15 +609,89 @@ band it refines.
 | `band` | the smallest honest thing about a continent: a Nordic town is painted timber under a steep roof, a Saharan one flat-roofed earth render |
 | `none` | open ocean, ice sheets, the seams between rectangles |
 
-A tagged `height`, `building:levels` or `roof:shape` always wins (`plan_gabarit`).
-Each manifest says which tier answered and how much was inferred:
+A tagged positive `height` wins, without the former 90 m wall / 300 m total
+height caps. Tagged storeys and roof heights likewise have no architectural
+maximum. Flat-roof parapets fit inside a mapped total; a mapped place-of-worship
+height is not multiplied by a synthesized steeple. Near, Mid, Far and physical
+shells preserve the same planned total height. Above 128 storeys or 1,024
+estimated window bays, existing facade textures replace modelled openings;
+the building's dimensions and floor count remain intact.
+
+Without its own height or storeys, an ordinary closed building uses the
+arithmetic mean of the three nearest buildings with mapped heights within
+250 m. One or two references suffice when fewer are available. If no mapped
+height exists nearby, mapped storey counts provide estimated reference heights;
+otherwise the Atlas remains the fallback. Sheds, garages, open canopies,
+religious towers and airport structures do not supply ordinary street heights.
+Homes use comparable residential references: public halls, apartment buildings,
+footprints under 45 m² and footprints over three times larger or smaller are
+excluded. Only homes classified by the low-rise residential rule exclude
+references with a mapped floor count above two; ordinary urban houses retain
+their taller residential references.
+The full cached OSM neighbourhood participates, including adjacent tiles;
+inferred heights never become references. Distance ties are resolved by OSM ID.
+No additional data source or download is needed.
+
+Generator v43 corrects cadastral village morphology. Attached French homes
+receive the regional home profile when an observed village or hamlet lies
+within 700 m and no town or city lies within 1.5 km. These rows do not invent
+gardens. Back-row village homes without a road within 45 m keep their home
+architecture without an inferred garden or driveway. Untyped footprints below
+45 m² beside a recognized home become low
+annexes, unless their use or mapped dimensions says otherwise. Untyped
+`wall=no` light constructions stay low instead of becoming towers; this
+cadastre tag does not prove a fully open roof (see the
+[OSM tag documentation](https://wiki.openstreetmap.org/wiki/Tag%3Awall%3Dno)). The Breton fallback favors
+two wall levels (80%) rather than one (formerly 90%); this is an adjustable
+architectural prior, not a measurement. Mapped heights and levels still win.
+Pitched home roofs are partitioned into rectangular wings when possible;
+otherwise their planes are clipped to the actual irregular footprint. Near,
+Mid and collision geometry retain the same dimensional plan, also used for
+ground inference. Residential classifications apply to adjacent-tile height
+references as well. The v43 key regenerates previously cooked geometry using
+the cached observations.
+
+Validated on 10 October 2026 at the reported Saint-Armel point
+(-2.716508, 47.563261), using cached observations only: houses 171538265 and
+171538393 now have two wall levels and pitched roofs; the 24 m² footprint
+171539754 has one 2.3 m wall level and a 1.5 m inferred roof. Back-row house
+171538471 also receives the home profile. Shape-flattened roofs on the tile
+fall from 65 to 5; resident geometry remains 30,673 vertices (baseline geometry
+51,327 → 51,107). Seven new regression tests pass; the complete native suite
+reports 346 passes with the same three pre-existing failures (Paris baseline
+vertex target, FarRelief material map, paired bridge decks). All 116 Python
+tests pass. Mapped floor counts in the Vannes centre tile remain 134; no new
+building dataset is used. Offline captures of Saint-Armel, Lasné, Vannes and
+Paris were inspected in `generated/gallery/20261010-014443-c7f3fae`; the final
+height-reference adjustment also passes all ten `BuildingHeights` tests.
+
+`heightMeasured` now counts explicit heights only. `heightFromLevels`,
+`heightFromNeighbours` and `heightFromAtlas` split `heightInferred`;
+`neighbourHeights` records each estimate, its reference IDs, distances, heights
+and whether each reference came from a height or floor count. Each manifest
+says which tier answered and how much was inferred. For example, the cached
+Vannes centre tile at -2.7608, 47.6579 on 10 October 2026 contains:
 
 ```json
-"region": "Amsterdam — ceinture des canaux", "regionTier": "region",
-"inference": {"count": 1381, "heightMeasured": 1249, "heightInferred": 132,
-              "roofTagged": 3, "roofInferred": 1378,
-              "roofShapes": {"flat": 429, "gabled": 777, "hipped": 156, ...}}
+"inference": {"count": 783, "heightMeasured": 0, "heightInferred": 783,
+              "heightFromLevels": 134, "heightFromNeighbours": 640,
+              "heightFromAtlas": 9}
 ```
+
+All 640 neighbour estimates in this tile use three references. Its cache has
+no explicit heights: those references derive from mapped floor counts, so these
+results remain estimates. The v41 cache key regenerates the old geometry.
+The optimized game and cook tools build; 116 Python tests pass, and the native
+suite reports 330 passes with three failures also reproduced using the prior
+building implementation (Paris resident vertex budget, FarRelief material map,
+paired bridge decks). Tall-height tests cover mapped totals through 828 m,
+163 floors, all visual levels and physical shells.
+Offline Paris and Vannes gallery captures pass and were visually inspected
+(`generated/gallery/20261010-004341-c7f3fae`). The Vannes port spawn/swim smoke
+passes. A first smoke from the centre sample point loaded the buildings but
+its drive hit a building collider. The Paris Rivoli smoke passes running,
+jumping, driving, walking and resume checks
+(`cache/sessions/431d9ded91d6434595b202b30ccede05`).
 
 ### Three building levels
 
@@ -687,9 +807,9 @@ clip the plots; neighbouring homes limit their extent. Only the frontage and
 short returns are predicted, not a cadastral rear boundary. Wider visible
 frontages precede small ones when a tile exhausts its 18,000-vertex frontage
 budget. The persistent 120,000-vertex density rule also applies. Geometry shares
-material batches; hedges reuse the existing shrub asset and woody-plant budget.
+material batches.
 
-OSM query v12 includes fences, walls, hedges and gate/entrance nodes. Mapped
+OSM query v12 includes fences, walls and gate/entrance nodes. Mapped
 boundaries silence a guessed enclosure and preserve measured gate openings.
 Older observation caches remain usable; `residential.observationsQueried`
 reports their missing boundary query. The manifest records the rule, confidence,
@@ -888,7 +1008,7 @@ Saida shades Far with ambient and a broad response to directional light's
 color, intensity and elevation relative to each instance's up axis. It performs
 two albedo reads and skips normal/MR maps, PBR, IBL, GI and shadow sampling.
 Far does not cast shadows; Near/Mid and trunk collisions are retained.
-Other species and shrubs keep their existing cards.
+Other species keep their existing cards.
 
 Regenerate only this Far with `python -m r1.tree_impostor` from `tools`
 (NumPy, Pillow, ModernGL and an OpenGL 3.3 context required). Running
@@ -917,29 +1037,24 @@ then mapped woods are filled within the budget.
 
 `gen/canopy.*` is a world layer any system may ask (`storedCanopy`,
 `Canopy::classAt`, `Canopy::heightAt`): per tile, a 48 × 48 grid (about 12 m a
-cell) of trees (3 m or taller over at least 5 % of the cell), low vegetation
-(1–3 m over a quarter: hedges, shrubs) or nothing, and the median tree height
-of each 8 × 8 block.
+cell) of trees (3 m or taller over at least 5 % of the cell) or no tree, and
+the median tree height of each 8 × 8 block.
 
 The source is Meta and WRI's High Resolution Canopy Height Maps (1 m, global,
 CC BY 4.0, imagery 2009–2020): zoom-9 Web Mercator BigTIFFs on AWS.
 `fetchCanopyBand` reads the header, the row offsets of one tile row and those
 rows (a few MB), and converts the hundred-odd tiles that band covers. The raw
 map is never written. The grid is coded by an adaptive binary range coder with
-a JBIG-like 10-cell context: a Breton bocage tile is about 200 bytes, sea
+a JBIG-like 10-cell context: a dense tree-cover tile is about 200 bytes, sea
 2 bytes, about **7 GB for all the land of the planet**, in one file per square
 degree (`cache/world/canopy/<lat>_<lon>.r1c`). The game fetches a missing band
 in the background and cooks again when it lands.
 
-With the canopy, an inferred tree survives only in a tree cell, every empty
-tree cell gets a tree at the measured height (trunk clear of roads and roofs),
-every low cell a shrub; OSM trees keep their place. The budget is then 640
-woody plants per tile (trees and shrubs, 320 without canopy). Low vegetation
-uses the existing shrub model near the camera and foliage cards at distance.
-A surveyed low cell gets priority over inferred fill; spare capacity adds
-clusters instead of isolated miniature trees. Low garden planting below the
-survey's 1 m threshold is inferred beside rural homes, with entrance gaps,
-and recorded separately in `nature.bySource`. On the Theix periurban tile the frame
+With the canopy, an inferred tree survives only in a tree cell, and every empty
+tree cell gets a tree at the measured height (trunk clear of roads and roofs);
+OSM trees keep their place. The budget is 640 trees per tile with canopy data
+and 320 without it. Spare capacity adds clusters instead of isolated miniature
+trees. On the Theix periurban tile the frame
 stays at 60 fps (+0.8 ms scene update). The manifest's `nature.canopy` counts
 cells, trees placed and inferred trees removed. Trunk colliders are created
 when the tile mounts.
@@ -1472,9 +1587,12 @@ The engine now binds the selected HDR sky to the PBR shader; previously a
 descriptor rebuild replaced it with white, flattening every reflection. Diffuse
 sky light remains supplied by the solar ambient, avoiding a second diffuse wash.
 People and road
-vehicles are drawn at **0.8** of their size (`kVehicleScale`), the player's
-call made looking at them; dimensions are scaled with them so doors, cameras
-and gaps agree.
+vehicles are drawn at **0.68** of their size (`kVehicleScale`), reduced by
+15% from 0.8 on 9 October 2026 at the player's request. Dimensions are scaled
+with them so doors, cameras and gaps agree.
+Validated with an optimized game build, 22 human/player/fleet asset tests and
+one offline Paris smoke run: walking, jump, driving, exit and traffic
+car takeover passed.
 
 ### Validation recorded on 6 October
 
@@ -1541,8 +1659,11 @@ the flight phase of the sprint, held 0.74 s.
 
 The twenty together are 49 530 shared vertices (`test_humans.py` holds them
 under 55 000). Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
-player stands 1.46 m at 0.8 scale; run and sprint are retimed (2.8 and 7 m/s)
-so the feet stay planted. Each tile weights the light, medium and dark scans by
+player stands 1.24 m at 0.68 runtime scale (the authored scale 0.8 multiplied
+by `kPeopleVehicleResize=0.85`). Run and sprint retain 2.8 and 7 m/s with
+faster playback through engine clip views, so the feet stay planted. Crowd
+paces, seated offsets and all human capsules follow the smaller size.
+Each tile weights the light, medium and dark scans by
 its country (`assets/world/countries.geojson`), stable per tile and slot,
 balanced between men and women: gameplay defaults, not population statistics.
 

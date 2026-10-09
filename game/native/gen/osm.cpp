@@ -142,7 +142,7 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
         if (has(t, "aeroway")) out.aeroways.push_back(way);
         if (closed && (tagOr(t, "landuse") == "military" || has(t, "military"))) out.military.push_back(way);
         if ((in(tag(t, "landuse"), {"forest", "meadow", "grass", "village_green", "recreation_ground", "orchard"}) ||
-             in(tag(t, "natural"), {"wood", "scrub", "grassland", "shrubbery", "wetland"}) ||
+             in(tag(t, "natural"), {"wood", "grassland", "wetland"}) ||
              in(tag(t, "leisure"), {"park", "garden"})) && closed)
             out.vegetation.push_back(way);
         const bool relationWater=waterMembers.count(way.id) && (tagOr(t,"natural")=="water" || has(t,"water"));

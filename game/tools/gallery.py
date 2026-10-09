@@ -108,6 +108,11 @@ VIEWS = [
      "camera": ((0.0, 1.7, 0.0), (-25.0, 1.7, 150.0)), "frame": (1334, 646),
      "at": "2026-04-20T10:30:00Z",
      "timeNote": "Avril 2026 comme la référence fournie ; jour et heure choisis pour une comparaison reproductible."},
+    {"name": "saint_armel", "title": "Saint-Armel, maisons et annexes de Lasné",
+     "spawn": (-2.716508, 47.563261),
+     # User-reported regression point; look south-west over the irregular
+     # cadastral house (171538265) and the small adjacent footprints.
+     "camera": ((0.0, 3.0, 0.0), (-15.0, 4.5, 14.0))},
     # ── Mountains: each one a real photograph (Wikimedia Commons) ────────────
     # Position and lens from the file's camera location and EXIF; the heading
     # and pitch fitted on the summits it shows (OSM peaks), so that a summit

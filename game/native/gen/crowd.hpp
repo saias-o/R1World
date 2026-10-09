@@ -118,10 +118,10 @@ public:
     double speedAlong(size_t slot, double dirX, double dirZ) const;
 
     static constexpr double kSpawnNear = 28.0, kSpawnFar = 110.0, kDespawn = 150.0;
-    // A person drawn at 0.8 is about 0.36 m across the shoulders; with the
+    // A person drawn at 0.68 is about 0.31 m across the shoulders; with the
     // arms swinging, this is the radius of the capsule each is in the
     // engine's physics, the player included.
-    static constexpr double kBodyRadius = 0.22;
+    static constexpr double kBodyRadius = 0.22 * 0.85;
     // Slower than this into someone is leaning on them, not bumping them;
     // faster than kShove is a sprint, and nobody shrugs that off.
     static constexpr double kBumpSpeed = 0.6, kShove = 4.5;

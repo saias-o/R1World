@@ -109,6 +109,7 @@ void loadPalette(const std::string& gameRoot) {
         p->groundClasses.push_back({j.at("name"), swatchFrom(j.at("swatch")), selectors(j.at("tags"))});
     p->snow = swatchFrom(atlas.at("ground").at("snow"));
     p->frost = swatchFrom(atlas.at("ground").at("frost"));
+    p->groundInference = atlas.at("ground").value("inference", nlohmann::json::object());
     for (const auto& [key, j] : atlas.at("ground").at("seaIce").items()) {
         if (!j.is_object()) continue;  // the note
         p->seaIce[key] = {swatchFrom(j), j.at("family").is_null() ? std::string() : j.at("family").get<std::string>()};
@@ -300,7 +301,9 @@ const std::string* Landcover::at(double lon, double lat) const {
 
 const Swatch& groundSwatch(const std::string& name, const RegionProfile& profile) {
     const auto at = name.find('@');
-    const std::string base = name.substr(0, at), cold = at == std::string::npos ? "" : name.substr(at + 1);
+    std::string base = name.substr(0, at);
+    if (base.rfind("inferred:", 0) == 0) base = base.substr(9);
+    const std::string cold = at == std::string::npos ? "" : name.substr(at + 1);
     const Palette& p = palette();
     if (cold == "snow" && base != "water") return p.snow;
     if (cold == "frost" && base != "water" && base != "urban" && base != "rock" && base != "sand") return p.frost;
@@ -371,10 +374,15 @@ std::string lower(std::string s) {
 std::optional<std::string> groundFamily(const std::string& name, const std::string& inferredGround,
                                         const std::string& climate) {
     const auto at = name.find('@');
-    const std::string base = name.substr(0, at), cold = at == std::string::npos ? "" : name.substr(at + 1);
+    std::string base = name.substr(0, at);
+    const bool densityInferred = base.rfind("inferred:", 0) == 0;
+    if (densityInferred) base = base.substr(9);
+    const std::string cold = at == std::string::npos ? "" : name.substr(at + 1);
     if (base == "water") return std::nullopt;
     if (cold == "snow") return std::string("snow");
     if (cold == "frost" && base != "urban" && base != "rock" && base != "sand") return std::string("frost");
+    // An inferred bare settlement is exposed soil, never savanna with blades.
+    if (densityInferred && base == "bare") return std::string(climate == "arid" ? "cracked_earth" : "bare");
     if (base == kInferred) {
         std::string family = "grass";
         for (const auto& [swatch, f] : kInferredGround) if (inferredGround == swatch) family = f;

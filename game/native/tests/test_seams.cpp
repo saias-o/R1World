@@ -9,7 +9,7 @@
 using namespace r1;
 
 namespace {
-// Ground with a field's worth of hedges and ditches: a 50 m ripple a metre
+// Ground with a field's worth of mapped boundaries and ditches: a 50 m ripple a metre
 // high, which 41 nodes a tile sample differently in two staggered rows.
 double field(double lon, double lat) {
     const double x = lon * kMetresPerDegree * std::cos(radians(lat)), y = lat * kMetresPerDegree;

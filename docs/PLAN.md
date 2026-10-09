@@ -4,7 +4,13 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 9 octobre 2026, générateur v39 : jointures de terrain partagées,
+État relu le 10 octobre 2026, générateur v43 : maisons de village mitoyennes,
+annexes cadastrales basses, toitures en pente suivant les emprises irrégulières ;
+sols manquants déterminés par la
+densité et la hauteur finale prédite des bâtiments, avec règles régionales et
+par pays ; hauteurs des bâtiments estimées
+depuis trois voisins renseignés, suppression des plafonds de hauteur,
+jointures de terrain partagées,
 LOD intermédiaire des arbres et Far billboard dérivé du Mid,
 trois niveaux de bâtiments avec Far plafonné à douze triangles,
 pavillons français, jardins,
@@ -247,9 +253,25 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   skybox du moteur.
 - **Atlas et bâti** : douze régions nommées et vingt-deux bandes continentales
   (`assets/world/atlas.json`, `native/gen/buildings.cpp`). Le manifeste dit si
-  c'est une `region`, une `band` ou `none`.
-- **Sols et matières** : terrain partitionné par classe (`native/gen/terrain.cpp`),
-  habillé de textures photographiées CC0 à leur taille réelle
+  c'est une `region`, une `band` ou `none`. En v41, une hauteur manquante prend
+  la moyenne des trois voisins aux hauteurs renseignées à moins de 250 m,
+  y compris dans les tuiles voisines ; les étages renseignés servent de repli,
+  puis l'Atlas. Les estimations ne deviennent jamais des références. Les
+  hauteurs et étages propres au bâtiment restent prioritaires, sans plafond
+  architectural ; la provenance de chaque moyenne est conservée.
+  En v43, les maisons empruntent aux voisins résidentiels de gabarit comparable,
+  sans abris minuscules, bâtiments publics ou immeubles d'appartements.
+  Les maisons mitoyennes françaises restent basses près d'un village observé,
+  à distance des villes ; les annexes et `wall=no` ne deviennent plus des tours.
+  Les toits des maisons irrégulières sont découpés selon leur emprise, les
+  hauteurs et formes de toit renseignées restant prioritaires.
+- **Sols et matières** : terrain partitionné par classe (`native/gen/terrain.cpp`).
+  les sols inconnus sont inférés sur une fenêtre locale de 200 × 200 m depuis
+  l'emprise des bâtiments pondérée par leur hauteur finale prédite, voisins
+  inclus (`native/gen/ground.cpp`). Le pays et la région règlent les seuils
+  et les choix de terre, sable, végétation ou sol aménagé dans l'Atlas ; les
+  classes observées restent prioritaires. Le manifeste conserve la provenance.
+  Il est habillé de textures photographiées CC0 à leur taille réelle
   (`r1/surfaces.py` les prépare) ; la texture apporte le détail, la palette
   garde l'albédo mesuré. Les fenêtres sont photographiées depuis des modules
   Poly Haven ; relief en parallax mapping, reflets du ciel dans les vitrages

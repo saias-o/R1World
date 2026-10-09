@@ -110,7 +110,6 @@ PROP_MODELS = (
     ("kenney_city-kit-roads.zip", "light-square", "street_lamp"),
     ("kenney_city-kit-roads.zip", "light-curved", "street_lamp_curved"),
     ("kenney_city-kit-roads.zip", "road-sign-street", "bus_stop_sign"),
-    ("kenney_city-kit-roads.zip", "electricity-pole", "power_pole"),
     ("kenney_city-kit-roads.zip", "dumpster", "waste_bin"),
     ("kenney_graveyard-kit_5.0.zip", "bench", "bench"),
     ("kenney_graveyard-kit_5.0.zip", "lightpost-single", "lamp_ornate"),

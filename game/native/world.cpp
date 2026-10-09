@@ -13,6 +13,7 @@
 #include "scene/GLTFLoader.hpp"
 #include "core/Profiler.hpp"
 #include "scene/animation/Animator.hpp"
+#include "scene/animation/ClipView.hpp"
 #include "graphics/ResourceManager.hpp"
 #include "graphics/Material.hpp"
 #include "nodes/GrassNode.hpp"
@@ -112,13 +113,14 @@ constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for w
 constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
 constexpr double kCarKerb=.3;           // m above the ground a street surface is still driven onto
 // The player's height is read from assets/models/humans/humans.json, drawn
-// at its `scale`; the head stays this fraction of it clear of the water.
+// at its `scale` times kPeopleVehicleResize; the head stays this fraction
+// of it clear of the water.
 constexpr double kSwimHeadAbove=.33;
-// Road vehicles are drawn at 80% of the size r1/vehicle_fleet.py authors
-// them at, as people are at 80% of their scan (r1/humans.py): the player's
-// call, made looking at them in the streets. Dimensions read from the fleet
-// manifest are scaled with them, so doors, cameras and gaps agree.
-constexpr double kVehicleScale=.8;
+// Reduce people and road vehicles by 15% relative to their previous 0.8 scale.
+// Keep the authored assets and clip timings intact; runtime dimensions follow
+// the same resize so doors, cameras and collisions agree with the meshes.
+constexpr double kPeopleVehicleResize=.85;
+constexpr double kVehicleScale=.8*kPeopleVehicleResize;
 // §5: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
 // the plan's own table stops calling it walking.
 constexpr double kFastDetail=4.2;       // m/s
@@ -133,7 +135,7 @@ constexpr double kRebaseDistance=350.;
 constexpr double kPartUploadMs=3.,kPropImportMs=2.,kMountTickMs=4.;
 constexpr double kBuildingNearLoad=75.,kBuildingNearRelease=85.;
 constexpr size_t kStreamRequestLimit=25; // the world service's bounded priority list
-constexpr double kOnFootFollow=4.5,kDrivingFollow=8.5;
+constexpr double kOnFootFollow=3.8,kDrivingFollow=8.5;
 // One message for the whole wait after Go: every change of the status line
 // re-renders the interface, a quarter of a second on the map screen.
 constexpr const char* kPreparing="Préparation du terrain de départ… Vous pouvez changer de destination.";
@@ -726,7 +728,7 @@ class World : public Rml::EventListener {
     // node of its own with its own animator over the avatar's shared meshes,
     // rig and clips, so each avatar costs one upload however many walk.
     json humans;
-    double humanScale=.8,playerHeight=1.46;
+    double humanScale=.8*kPeopleVehicleResize,playerHeight=1.46*kPeopleVehicleResize;
     struct HumanKind {
         std::string name,model;
         std::vector<std::pair<std::string,std::vector<std::unique_ptr<saida::MeshNode>>>> levels;
@@ -743,7 +745,7 @@ class World : public Rml::EventListener {
         std::ifstream input(game/"assets/models/humans/humans.json");
         if(!input)throw std::runtime_error("Missing assets/models/humans/humans.json (python -m r1.humans)");
         input>>humans;
-        humanScale=humans.at("scale").get<double>();
+        humanScale=humans.at("scale").get<double>()*kPeopleVehicleResize;
         playerHeight=humans.at("player").at("height").get<double>()*humanScale;
         for(const auto& entry:humans.at("crowd")) {
             HumanKind kind;
@@ -770,6 +772,18 @@ class World : public Rml::EventListener {
         countryCrowd.load(boundaries);
         saida::Log::info("[World crowd] ",crowdKinds.size()," avatars, player ",playerHeight,
                          " m, shared vertices=",humans.value("sharedVertices",0));
+    }
+    // Shorter strides need a faster cadence at the player's existing speed.
+    // Clip views retime playback without rebuilding the imported animation.
+    void playPlayerClip(const char* clip) {
+        if(std::strcmp(clip,"run")!=0&&std::strcmp(clip,"sprint")!=0) {
+            for(auto* a:animators)a->play(clip);
+            return;
+        }
+        saida::ClipView view;
+        view.name=clip;view.source=clip;
+        view.speed=float(1./kPeopleVehicleResize);
+        for(auto* a:animators)a->playView(view);
     }
     // A crowd avatar's shared parts, taken from its prototype on first use:
     // its meshes by level of detail, its rig and its clips.
@@ -6528,7 +6542,7 @@ public:
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt-rootBelow+heave)));
                 player->transform().rotation=glm::angleAxis(float(-swimHeading*rad),glm::vec3(0,1,0))
                                              *glm::angleAxis(float(-lean),glm::vec3(1,0,0));
-                for(auto* a:animators)a->play(moving?"run":"idle");
+                playPlayerClip(moving?"run":"idle");
             } else {
                 bool jump=w.keyDown(GLFW_KEY_SPACE);
                 if(smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
@@ -6557,7 +6571,7 @@ public:
                 }
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
                 const bool sprint=moving&&w.keyDown(GLFW_KEY_LEFT_SHIFT);
-                for(auto* a:animators)a->play(jumpOffset>0?"jump":sprint?"sprint":moving?"run":"idle");
+                playPlayerClip(jumpOffset>0?"jump":sprint?"sprint":moving?"run":"idle");
             }
         }
         updateSinkingCar(dt);

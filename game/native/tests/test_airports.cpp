@@ -166,7 +166,7 @@ TEST(Airports, a_hangar_is_a_steel_shed_unless_its_tags_say_otherwise) {
     CHECK(out.tops.size() == 3);
     const double parapet = profileByKey("PARIS").parapetHeight;
     NEAR(out.tops[0], 12.0 + parapet, 1e-9);  // inferred: a hangar's height, a flat roof
-    NEAR(out.tops[1], 21.0 + parapet, 1e-9);  // measured: the tag wins (rule 4), roof or none
+    NEAR(out.tops[1], 21.0, 1e-9);  // mapped total already includes the roof/parapet
     NEAR(out.tops[2], 15.0 + parapet, 1e-9);
     bool steel = false, glass = false;
     for (const auto& p : out.parts) {

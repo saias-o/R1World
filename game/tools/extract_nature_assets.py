@@ -5,7 +5,7 @@ from mathutils import Vector
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT.parent/'data/source-assets'
 OUT=ROOT/'assets/models/external/nature_selected';OUT.mkdir(parents=True,exist_ok=True)
-items=[('scene.gltf',None,'urban_tree'),('grass_pack_lowpoly_game-ready.glb','Grass main fresh_','grass_fresh'),('grass_pack_lowpoly_game-ready.glb','Grass main dry_','grass_dry'),('grass_pack_lowpoly_game-ready.glb','Grass tall high_','grass_tall'),('stylized_foliage.glb',None,'shrub')]
+items=[('scene.gltf',None,'urban_tree'),('grass_pack_lowpoly_game-ready.glb','Grass main fresh_','grass_fresh'),('grass_pack_lowpoly_game-ready.glb','Grass main dry_','grass_dry'),('grass_pack_lowpoly_game-ready.glb','Grass tall high_','grass_tall')]
 manifest=[]
 for filename,prefix,name in items:
     bpy.ops.wm.read_factory_settings(use_empty=True)

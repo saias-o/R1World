@@ -159,6 +159,7 @@ struct Palette {
     struct GroundClass { std::string name; Swatch swatch; std::vector<std::pair<std::string, std::vector<std::string>>> tags; };
     std::vector<GroundClass> groundClasses;
     Swatch snow, frost;
+    nlohmann::json groundInference;
     // The pack's surfaces (gen/seaice.cpp), each with the photographed family
     // it is drawn with (empty: the flat measured colour).
     struct IceSwatch { Swatch swatch; std::string family; };

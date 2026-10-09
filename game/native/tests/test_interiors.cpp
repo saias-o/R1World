@@ -145,7 +145,7 @@ TEST(Interior, dense_facade_keeps_entrances_rooms_and_observed_height) {
     auto a=buildBuildings({&w},ground,profile,{},500,0,{},{});
     auto b=buildBuildings({&w},ground,profile,{},500,0,{},{},BuildingLod::SimpleRoofline);
     CHECK(a.interiors.size()==1);CHECK(a.interiors[0].json()==b.interiors[0].json());
-    CHECK(a.footprints==b.footprints);CHECK(a.tops==b.tops);NEAR(b.tops[0],18+profile.parapetHeight,1e-9);
+    CHECK(a.footprints==b.footprints);CHECK(a.tops==b.tops);NEAR(b.tops[0],18,1e-9);
     size_t full=0,compact=0;for(const auto& p:a.parts)full+=p.mesh.vertexCount();for(const auto& p:b.parts)compact+=p.mesh.vertexCount();
     CHECK(compact<full);
     const auto& plan=b.interiors[0];std::set<std::array<double,3>> corners;

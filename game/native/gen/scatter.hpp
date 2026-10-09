@@ -11,8 +11,6 @@
 #include <functional>
 
 namespace r1 {
-struct ResidentialPlan;
-
 using GroundAt = std::function<P3(double, double)>;
 using Segment2 = std::pair<P2, P2>;
 
@@ -30,11 +28,10 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // bounded by OSM obstacles, tile ownership and a per-tile budget. With the
 // measured canopy (gen/canopy), every inferred tree must stand where the
 // canopy says a tree stands, and each tree cell the survey left empty gets
-// one, at the canopy's measured height; low cells get shrubs.
+// one, at the canopy's measured height.
 Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, const GroundAt& ground,
                    int budget = 320, const Canopy* canopy = nullptr,
                    const std::vector<OsmWay>* roadside = nullptr,
-                   const ResidentialPlan* residential = nullptr,
                    const clip::Paths64* driveways = nullptr);
 
 // The tile's lane graph in engine metres, and how busy it should be.

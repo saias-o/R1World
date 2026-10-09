@@ -8,10 +8,9 @@ namespace {
 Canopy sample(const Tile& tile) {
     Canopy c;
     c.bounds = tile.bounds();
-    // A diagonal row of trees, a small grove, a hedge line.
+    // A diagonal row of trees and a small grove.
     for (int i = 5; i < 40; ++i) c.cells[size_t(i * Canopy::kCells + i)] = Canopy::Tree;
     for (int r = 30; r < 36; ++r) for (int col = 2; col < 9; ++col) c.cells[size_t(r * Canopy::kCells + col)] = Canopy::Tree;
-    for (int col = 10; col < 40; ++col) c.cells[size_t(2 * Canopy::kCells + col)] = Canopy::Low;
     for (auto& h : c.heights) h = 0;
     c.heights[0] = 12; c.heights[7] = 9; c.heights[14] = 18; c.heights[21] = 15; c.heights[24] = 11; c.heights[28] = 22;
     c.heights[35] = 8;
@@ -45,12 +44,12 @@ TEST(Canopy, a_cell_is_a_tree_only_when_enough_of_it_stands_tall) {
     for (int i = 0; i < 100; ++i) {
         grid.add(0, 0, i < 10 ? 14 : 0);          // a crown over a tenth: tree
         grid.add(1, 0, i < 2 ? 12 : 0);           // two tall pixels: a post, not a tree
-        grid.add(2, 0, i < 40 ? 2 : 0);           // 40 % at 2 m: hedge
+        grid.add(2, 0, i < 40 ? 2 : 0);           // short growth does not classify as a tree
         grid.add(3, 0, i < 10 ? 2 : 0);           // 10 % at 2 m: parked cars
     }
     const Canopy c = grid.finish();
     CHECK(c.at(0, 0) == Canopy::Tree); CHECK(c.at(1, 0) == Canopy::None);
-    CHECK(c.at(2, 0) == Canopy::Low); CHECK(c.at(3, 0) == Canopy::None);
+    CHECK(c.at(2, 0) == Canopy::None); CHECK(c.at(3, 0) == Canopy::None);
     CHECK(c.heights[0] == 14);
     const P2 middle = c.centre(0, 0);
     CHECK(c.classAt(middle.x, middle.y) == Canopy::Tree);
@@ -96,7 +95,7 @@ TEST(Canopy, measured_canopy_places_trees_and_removes_inferred_ones_where_it_see
     CHECK(measured.stats["canopy"]["inferredRemovedByCanopy"].get<int>() > 0);
     CHECK(measured.stats["canopy"]["treesFromCanopy"].get<int>() > 0);
     CHECK(sown.stats["canopy"]["observed"] == false);
-    // Every tree stands in a tree cell (or a shrub in a low one) and carries a height.
+    // Every generated tree stands in a measured tree cell and carries a height.
     int trees = 0;
     for (const auto& node : measured.nodes) {
         const auto& p = node["transform"]["position"];
@@ -116,16 +115,7 @@ TEST(Canopy, measured_canopy_places_trees_and_removes_inferred_ones_where_it_see
     CHECK(levels.count("Far=assets/models/external/nature_selected/urban_tree_far.glb"));
     }
     CHECK(trees > 40);
-    int shrubs = 0;
-    for (const auto& node : measured.nodes) {
-        if (std::find(node["groups"].begin(),node["groups"].end(),"shrub") == node["groups"].end()) continue;
-        ++shrubs;
-        CHECK(node["children"][1]["importedFrom"] == "assets/models/external/nature_selected/shrub.glb");
-        const auto& p = node["transform"]["position"];
-        const auto geo = anchor.toGeodetic(p[0],0,p[2]);
-        CHECK(canopy.classAt(geo.x,geo.y) == Canopy::Low);
-    }
-    CHECK(shrubs > 30 && measured.nodes.size() <= 640);
+    CHECK(measured.nodes.size() <= 640);
     // The same canopy gives the same trees.
     CHECK(planNature(osm, tile, anchor, ground, 640, &canopy).nodes == measured.nodes);
 }

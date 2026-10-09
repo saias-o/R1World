@@ -72,11 +72,6 @@ TEST(Gardens, attached_houses_and_public_or_large_buildings_do_not_get_plots) {
 }
 TEST(Gardens, countries_without_a_residential_rule_keep_their_existing_atlas) {
     Scene s;s.osm.country="DE";CHECK(planResidential(s.osm,s.anchor).homes.empty());
-    const auto plan=planResidential(s.osm,s.anchor);
-    auto ground=[&](double lon,double lat){return s.anchor.toEngine(lon,lat,0);};
-    const auto existing=planNature(s.osm,s.tile,s.anchor,ground);
-    const auto retained=planNature(s.osm,s.tile,s.anchor,ground,320,nullptr,nullptr,&plan);
-    CHECK(existing.nodes==retained.nodes);
     CHECK(s.gardens().parts.empty());
 }
 TEST(Gardens, mapped_boundaries_silence_inferred_enclosures_and_keep_gate_openings) {
@@ -107,7 +102,7 @@ TEST(Gardens, inferred_gabarits_keep_measured_dimensions_and_city_defaults) {
     for(int id=0;id<40;++id) {
         auto g=planGabarit(guessed,id,p,box,1);CHECK(g.storeys<=2);CHECK(g.heightSource=="atlas:detached");
         auto measured=guessed;measured["height"]="8.5";measured["roof:shape"]="flat";
-        g=planGabarit(measured,id,p,box,1);NEAR(g.wallHeight,8.5,1e-9);CHECK(g.heightSource=="tag:height");
+        g=planGabarit(measured,id,p,box,1);NEAR(g.totalHeight(),8.5,1e-9);CHECK(g.heightSource=="tag:height");
         CHECK(g.roofShape=="flat" && g.roofSource=="tag:shape");
     }
     const auto paris=profileByKey("PARIS");
@@ -153,20 +148,6 @@ TEST(BusShelters, tagged_transport_shelters_work_without_country_inference) {
         {{"building","roof"},{"amenity","shelter"},{"shelter_type","public_transport"}}});
     auto b=s.osm.buildings;auto report=classifyBusShelters(b,s.osm,s.anchor,false);
     CHECK(report.size()==1);CHECK(b[0].tags["r1:bus-shelter"]=="measured");
-}
-TEST(Gardens, mapped_hedges_use_shared_shrubs_and_leave_the_gate_open) {
-    Scene s;s.osm.buildings.clear();
-    s.osm.barriers.push_back({80,{s.geo(-18,9),s.geo(18,9)},{{"barrier","hedge"},{"height","1.5"}}});
-    const auto gate=s.geo(0,9);s.osm.features.push_back({81,gate.x,gate.y,{{"barrier","gate"},{"width","4"}}});
-    auto ground=[&](double x,double y){return s.anchor.toEngine(x,y,0);};
-    const auto plants=planNature(s.osm,s.tile,s.anchor,ground,320);
-    int found=0;
-    for(const auto& n:plants.nodes)if(n["name"].get<std::string>().find("mapped-hedge")==7) {
-        ++found;const auto& p=n["transform"]["position"];CHECK(std::abs(p[0].get<double>())>=3.5);
-        CHECK(n["children"][1]["importedFrom"]=="assets/models/external/nature_selected/shrub.glb");
-        NEAR(n["transform"]["scale"][1].get<double>(),1.5,1e-9);
-    }
-    CHECK(found>=6);CHECK(plants.stats["placed"].get<int>()<=320);
 }
 TEST(Gardens, a_front_plot_crossing_a_tile_border_is_drawn_on_both_tiles) {
     Scene s;s.osm.buildings.clear();
@@ -231,7 +212,7 @@ TEST(RuralCountries, tagged_dimensions_override_every_new_country_prior) {
         const auto* s=residentialStyle(key);CHECK(s);
         const Tags tags{{"r1:residential",key},{"height","8.5"},{"building:levels","2"},{"roof:shape","flat"}};
         auto g=planGabarit(tags,10,profileByKey("GENERIC"),box,1);
-        NEAR(g.wallHeight,8.5,1e-9);CHECK(g.storeys==2);CHECK(g.heightSource=="tag:height");
+        NEAR(g.totalHeight(),8.5,1e-9);CHECK(g.storeys==2);CHECK(g.heightSource=="tag:height");
         CHECK(g.roofSource=="tag:shape");
     }
 }
@@ -272,7 +253,76 @@ TEST(RuralCountries, pedestrian_village_rows_and_compound_home_roofs_keep_their_
     NEAR(std::abs(polygonArea(out.footprints[0])),78,1e-6);
     home.tags["roof:shape"]="flat";out=build();CHECK(out.stats.ruralGabarits[0]["roofShape"]=="flat");
     home.tags.erase("roof:shape");home.tags["r1:residential"]="fr.detached";
-    out=build();CHECK(out.stats.ruralGabarits[0]["roofShape"]=="flat");
+    out=build();CHECK(out.stats.ruralGabarits[0]["roofShape"]!="flat");
+    home.tags["height"]="8.5";out=build();
+    NEAR(out.tops[0],8.5,1e-9);
+    for(const auto& level:out.visuals[0].levels) {
+        double top=-1e9;for(const auto& part:level)for(const auto& p:part.mesh.positions)top=std::max(top,p.y);
+        NEAR(top,8.5,1e-9);
+    }
+}
+
+TEST(VillageHomes, french_attached_rows_require_an_observed_village_away_from_towns) {
+    Scene s;s.house(11,12,23);
+    CHECK(planResidential(s.osm,s.anchor).homes.empty());
+    const auto at=s.geo(0,23);s.osm.features.push_back({400,at.x,at.y,{{"place","hamlet"}}});
+    auto plan=planResidential(s.osm,s.anchor);CHECK(plan.homes.size()==2);
+    for(const auto& h:plan.homes)CHECK(!h.gardenEligible);
+    CHECK(s.gardens().parts.empty());
+    s.osm.features.push_back({401,at.x,at.y,{{"place","town"}}});
+    CHECK(planResidential(s.osm,s.anchor).homes.empty());
+}
+TEST(VillageHomes, french_annexes_are_low_but_tiny_typed_houses_and_mapped_dimensions_are_kept) {
+    Scene s;
+    s.osm.buildings.push_back({12,{s.geo(12,24),s.geo(16,24),s.geo(16,28),s.geo(12,28),s.geo(12,24)},{{"building","yes"}}});
+    auto plan=planResidential(s.osm,s.anchor);CHECK(plan.homes.size()==2);
+    CHECK(!plan.homes[1].gardenEligible);
+    for(Tags tags:{Tags{{"building","house"}},Tags{{"building","yes"},{"height","20"}},
+                  Tags{{"building","yes"},{"building:levels","2"}},Tags{{"building","yes"},{"wall","no"}}}) {
+        s.osm.buildings[1].tags=tags;CHECK(planResidential(s.osm,s.anchor).homes.size()==1);
+    }
+}
+TEST(VillageHomes, back_row_village_homes_keep_their_architecture_without_invented_frontages) {
+    Scene s;s.osm.roads.clear();
+    CHECK(planResidential(s.osm,s.anchor).homes.empty());
+    const auto at=s.geo(0,23);s.osm.features.push_back({400,at.x,at.y,{{"place","hamlet"}}});
+    const auto plan=planResidential(s.osm,s.anchor);CHECK(plan.homes.size()==1);
+    CHECK(!plan.homes[0].gardenEligible);CHECK(s.gardens().parts.empty());
+    s.osm.features.push_back({401,at.x,at.y,{{"place","town"}}});
+    CHECK(planResidential(s.osm,s.anchor).homes.empty());
+}
+TEST(VillageHomes, an_irregular_cadastral_home_keeps_a_pitched_roof_over_its_actual_footprint) {
+    // Bays break orthogonality, so the rectangular-wing partition cannot apply.
+    OsmWay home{171538265,{{0,0},{18,0},{18,8},{11,8},{9,12},{0,12},{0,0}},
+        {{"building","yes"},{"r1:residential","fr.brittany.detached"},{"roof:shape","gabled"}}};
+    const auto ground=[](double x,double z){return P3{x,0,z};};
+    const auto out=buildBuildings({&home},ground,profileByKey("FRANCE"),{},-1,.08,{},{});
+    CHECK(out.stats.ruralGabarits[0]["roofShape"]=="gabled");
+    CHECK(out.stats.ruralGabarits[0]["roofSource"]=="tag:shape");
+    CHECK(out.stats.ruralGabarits[0]["roofHeight"].get<double>()>1);
+    // Mid has no overhang: every roof triangle stays inside the observed ring.
+    double area=0;
+    for(const auto& part:out.visuals[0].levels[1])if(part.name=="Roofs") {
+        const auto& m=part.mesh;
+        for(size_t i=0;i<m.indices.size();i+=3) {
+            const auto a=m.positions[m.indices[i]],b=m.positions[m.indices[i+1]],c=m.positions[m.indices[i+2]];
+            CHECK_MSG(pointInPolygon({(a.x+b.x+c.x)/3,(a.z+b.z+c.z)/3},out.footprints[0]),
+                "roof triangle centre "<<(a.x+b.x+c.x)/3<<","<<(a.z+b.z+c.z)/3);
+            area+=std::abs(cross2({a.x,a.z},{b.x,b.z},{c.x,c.z}))/2;
+        }
+    }
+    NEAR(area,std::abs(polygonArea(out.footprints[0])),.03);
+    home.tags["height"]="8.5";
+    const auto heights=predictBuildingHeights({&home},ground,profileByKey("FRANCE"));
+    NEAR(heights.at(home.id),8.5,1e-9);
+    const auto mapped=buildBuildings({&home},ground,profileByKey("FRANCE"),{},-1,.08,{},{});
+    for(const auto& level:mapped.visuals[0].levels) {
+        double top=-1e9;
+        for(const auto& part:level)for(const auto& p:part.mesh.positions) {
+            CHECK(std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z));top=std::max(top,p.y);
+        }
+        NEAR(top,8.5,.001);
+    }
 }
 TEST(RuralCountries, small_town_shop_architecture_does_not_invent_private_plots_or_replace_public_uses) {
     Scene s(-8.972913,29.720753);s.osm.country="MA";s.osm.buildings[0].tags["shop"]="clothes";

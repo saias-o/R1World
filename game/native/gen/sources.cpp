@@ -310,7 +310,7 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
     std::string query = R"([out:json][timeout:90];
 (
   way[building]{B};
-  way[barrier~"^(fence|wall|hedge)$"]{B};
+  way[barrier~"^(fence|wall)$"]{B};
   node[barrier~"^(gate|entrance|lift_gate)$"]{B};
   way[highway]{B};
   way[landuse]{B};
@@ -346,7 +346,6 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
   node[highway~"^(street_lamp|bus_stop|crossing|traffic_signals)$"]{B};
   node[amenity~"^(bench|fountain|waste_basket|drinking_water|post_box|telephone|clock)$"]{B};
   node[emergency=fire_hydrant]{B};
-  node[power~"^(tower|pole)$"]{B};
   node[man_made~"^(water_tower|windmill|lighthouse|mast)$"]{B};
   node[natural~"^(rock|stone)$"]{B};
   node[natural=peak][ele]{W};

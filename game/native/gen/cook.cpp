@@ -18,6 +18,7 @@
 #include "fuel.hpp"
 #include "spatial.hpp"
 #include "gardens.hpp"
+#include "ground.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -200,11 +201,15 @@ CookedTile cookTile(const Observations& in) {
     const ResidentialPlan residential = planResidential(osm, anchor);
     std::map<int64_t,std::string> homeStyles;
     for(const auto& h:residential.homes)homeStyles[h.id]=h.style->key;
-    for(auto& w:fuelWays)if(auto it=homeStyles.find(w.id);it!=homeStyles.end()) {
-        w.tags["r1:residential"]=it->second;
-        Ring r;for(auto p:w.points){auto q=anchor.toEngine(p.x,p.y,0);r.push_back({q.x,q.z});}
-        if(std::abs(polygonArea(r))<45)w.tags["r1:rural-annex"]="yes";
-    }
+    auto applyHomeStyles=[&](std::vector<OsmWay>& ways) {
+        for(auto& w:ways)if(auto it=homeStyles.find(w.id);it!=homeStyles.end()) {
+            w.tags["r1:residential"]=it->second;
+            Ring r;for(auto p:w.points){auto q=anchor.toEngine(p.x,p.y,0);r.push_back({q.x,q.z});}
+            if(std::abs(polygonArea(r))<45)w.tags["r1:rural-annex"]="yes";
+        }
+    };
+    applyHomeStyles(fuelWays);
+    auto residentialWays=osm.buildings;applyHomeStyles(residentialWays);
     const bool denseResidentialCore=residential.homes.empty() && residential.stats.value("rejectedDense",0)>0;
     const auto busShelters=denseResidentialCore ? nlohmann::json::array() :
         classifyBusShelters(fuelWays,osm,anchor,residential.stats.value("country",std::string())=="FR");
@@ -216,8 +221,11 @@ CookedTile cookTile(const Observations& in) {
         return surfaceMaterial(s.name, s.color, s.roughness, roofFamily(s.name), doubleSided);
     };
     auto buildAtLod = [&](BuildingLod lod) {
+        std::vector<const OsmWay*> surroundings;
+        surroundings.reserve(residentialWays.size());
+        for(const auto& w:residentialWays)surroundings.push_back(&w);
         return buildBuildings(buildings, ground, profile, {0.0, 0.0}, kWorldDetailRadius,
-                              kWorldRoofThickness, wallMaterial, roofMaterial, lod);
+                              kWorldRoofThickness, wallMaterial, roofMaterial, lod,surroundings);
     };
     BuildingLod buildingLod = BuildingLod::Full;
     BuildingOutput built = buildAtLod(buildingLod);
@@ -339,10 +347,25 @@ CookedTile cookTile(const Observations& in) {
                       tidal ? &*tidal : nullptr, inlandAt);
     harbour.seaCells = cells.seaCells();
 
+    // Use the same final dimensional plan for surrounding buildings too, before
+    // any render-detail degradation. Raw height/level tags are never the score.
+    std::map<int64_t,const OsmWay*> contextById;
+    for (const auto& w:residentialWays) contextById[w.id]=&w;
+    for (const auto* w:buildings) contextById[w->id]=w;
+    std::vector<const OsmWay*> surroundingBuildings,nearbyBuildings;
+    const double marginLat=270./111320.,marginLon=marginLat/std::max(.05,std::cos(radians(center.y)));
+    for (const auto& [id,w]:contextById) {
+        surroundingBuildings.push_back(w);
+        const auto box=boxOf(w->points);
+        if (box.overlaps({bounds.west-marginLon,bounds.south-marginLat,bounds.east+marginLon,bounds.north+marginLat}))
+            nearbyBuildings.push_back(w);
+    }
+    const auto finalBuildingHeights=predictBuildingHeights(nearbyBuildings,ground,profile,surroundingBuildings);
+    const GroundInference groundInference(osm,bounds,profile,fuelCountry,finalBuildingHeights);
     auto classify = [&](double x, double y) -> std::string {
         if (cells.at(x, y) > 0) return "water";
         const std::string* found = landcover.at(x, y);
-        const std::string name = found ? *found : kInferred;
+        const std::string name = groundInference.at(x,y,found);
         if (name == "water") return name;
         return name + coldSuffix(y, elevations.sample(x, y), climate);
     };
@@ -465,7 +488,7 @@ CookedTile cookTile(const Observations& in) {
     int triangles = 0, inferred = 0;
     for (const auto& [name, n] : groundStats) {
         triangles += n;
-        if (name.substr(0, name.find('@')) == kInferred) inferred += n;
+        if (name.rfind(kInferred,0)==0) inferred += n;
     }
     const double measuredGround = 1.0 - double(inferred) / std::max(1, triangles);
 
@@ -545,7 +568,7 @@ CookedTile cookTile(const Observations& in) {
         // Measured canopy places real trees; the budget must hold a tile's
         // trees, not a sample of them (see kMeasuredNatureBudget).
         nature = planNature(osm, tile, anchor, ground, in.canopy ? kMeasuredNatureBudget : 320,
-                            in.canopy ? &*in.canopy : nullptr, &roadside, &residential, &gardens.drives);
+                            in.canopy ? &*in.canopy : nullptr, &roadside, &gardens.drives);
         // The signs were placed on the surveyed ground: they stand on the dug
         // one, or on the embankment beside them.
         for (auto& n : predicted.nodes) {
@@ -649,7 +672,8 @@ CookedTile cookTile(const Observations& in) {
         {"groundDigs", digJson},
         {"region", profile.name}, {"regionTier", profile.tier}, {"climate", climate},
         {"osmQueryVersion", osm.queryVersion},
-        {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats}}},
+        {"ground", {{"measuredFraction", pyround(measuredGround, 4)}, {"trianglesByClass", groundStats},
+                    {"inference",groundInference.report()}}},
         {"grass", {{"grassy", pyround(out.grass.grassy, 4)}, {"laidOver", pyround(out.grass.laid, 4)}}},
         {"peaks", peakReport},
         {"water", pack ? pack->water : cells.rows()}, {"decks", works.decks},

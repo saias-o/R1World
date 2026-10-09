@@ -57,7 +57,7 @@
       ]
     },
     {
-      "name": "Kenney props — street furniture and vegetation",
+      "name": "Kenney street furniture and props",
       "author": "Kenney",
       "source": "https://kenney.nl/assets/city-kit-roads, https://kenney.nl/assets/graveyard-kit, https://kenney.nl/assets/fantasy-town-kit, https://kenney.nl/assets/nature-kit",
       "license": "CC0 1.0",
@@ -72,7 +72,6 @@
         "assets/models/external/kenney_props/street_lamp.glb",
         "assets/models/external/kenney_props/street_lamp_curved.glb",
         "assets/models/external/kenney_props/bus_stop_sign.glb",
-        "assets/models/external/kenney_props/power_pole.glb",
         "assets/models/external/kenney_props/waste_bin.glb",
         "assets/models/external/kenney_props/bench.glb",
         "assets/models/external/kenney_props/lamp_ornate.glb",

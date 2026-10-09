@@ -473,30 +473,6 @@ TEST(Nature, urban_trees_keep_near_mid_and_use_normalized_mid_impostor) {
     CHECK(tree["transform"]["scale"][1]==9.);
     CHECK(plants.nodes==planNature(osm,tile,anchor,ground).nodes);
 }
-TEST(Nature, low_garden_frontage_keeps_access_and_respects_the_canopy_threshold) {
-    const auto tile=tileAt(-2.71559,47.56272);
-    const auto c=tile.center();
-    const auto anchor=Anchor::at(c.x,c.y);
-    auto geo=[&](double x,double z){const auto p=anchor.toGeodetic(x,0,z);return P2{p.x,p.y};};
-    OsmData osm;
-    osm.roads.push_back(way(1,{geo(-100,0),geo(100,0)},{{"highway","tertiary"},{"width","6"},{"sidewalk","no"}}));
-    osm.buildings.push_back(way(2,{geo(-8,18),geo(8,18),geo(8,30),geo(-8,30),geo(-8,18)},{{"building","house"}}));
-    Canopy bare;bare.bounds=tile.bounds();
-    const auto ground=[&](double lo,double la){return anchor.toEngine(lo,la,0);};
-    const auto plants=planNature(osm,tile,anchor,ground,320,&bare);
-    int shrubs=0;
-    for(const auto& n:plants.nodes) {
-        if(n["name"].get<std::string>().find("inferred-low-garden-frontage")==std::string::npos)continue;
-        ++shrubs;
-        const auto& p=n["transform"]["position"];
-        CHECK(std::abs(p[0].get<double>())>=3.49); // entrance remains open
-        CHECK(p[2].get<double>()>5.9); // beyond the shoulder
-        CHECK(n["transform"]["scale"][1].get<double>()<1);
-    }
-    CHECK(shrubs>=4);
-    CHECK(planNature(osm,tile,anchor,ground,320,&bare).nodes==plants.nodes);
-}
-
 TEST(Traffic, a_street_is_two_lanes_and_a_one_way_is_one) {
     auto ground = [](double lon, double lat) { return P3{lon * 111320, 0, -lat * 111320}; };
     const auto two = buildLaneGraph({way(1, {{0, 0}, {0.001, 0}}, {{"highway", "residential"}})}, ground, 0, 2, 48);

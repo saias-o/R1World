@@ -4,7 +4,8 @@
  "residential": [
   {
    "key": "fr.detached", "country": "FR",
-   "note": "Inference for detached low-density homes only. Not cadastral parcels; never applied to dense blocks or public/commercial uses.",
+   "villageRows": true,
+   "note": "Inference for low-density homes and observed village rows away from towns. Not cadastral parcels; never applied to dense city blocks or public/commercial uses.",
    "maxCoverage": 0.18, "maxMass": 14, "fenceHeight": 1.2,
    "storeys": [[1, 7], [2, 3]], "roofPitch": [30, 42],
    "roofShapes": [["gabled", 7], ["hipped", 2], ["flat", 1]],
@@ -16,9 +17,10 @@
   },
   {
    "key": "fr.brittany.detached", "country": "FR", "box": [-5.3, 47.15, -1.55, 49.0],
-   "note": "Approximate Breton architectural prior, refined only for eligible detached houses. Gabled slate roofs, low eaves; tagged geometry and materials win.",
+   "note": "Approximate Breton home prior: usually two wall levels, pitched slate roofs; attached rows require an observed village or hamlet away from towns. Tagged dimensions always win.",
    "maxCoverage": 0.18, "maxMass": 14, "fenceHeight": 1.2,
-   "storeys": [[1, 9], [2, 1]], "roofPitch": [38, 47],
+   "storeys": [[1, 2], [2, 8]],
+   "villageRows": true, "roofPitch": [38, 47],
    "roofShapes": [["gabled", 9], ["hipped", 1]],
    "roofs": [
     {"name": "Ardoise", "color": [0.10, 0.115, 0.13], "roughness": 0.78, "weight": 9},
@@ -6877,6 +6879,19 @@
   }
  ],
  "ground": {
+  "inference": {
+   "note": "Fallback priors only: mapped land cover wins. Density combines footprint coverage with completed predicted heights, including neighbour estimates; thresholds are gameplay priors, not a survey.",
+   "default": {"halfWindowM": 100, "minimumBuildings": 3, "settledCoverage": 0.18, "denseCoverage": 0.45, "rural": "profile", "settled": "urban", "dense": "urban"},
+   "profiles": {
+    "MAGHREB_SAHARA": {"settledCoverage": 0.06, "settled": "bare"},
+    "MIDDLE_EAST": {"settledCoverage": 0.06, "settled": "bare"},
+    "TUNIS": {"settledCoverage": 0.06, "settled": "bare"},
+    "SUB_SAHARAN": {"settledCoverage": 0.06, "settled": "bare"}
+   },
+   "countries": {
+    "BF": {"rural": "bare", "settledCoverage": 0.04, "denseCoverage": 0.55, "settled": "bare", "dense": "urban"}
+   }
+  },
   "classes": [
    {
     "name": "water",
@@ -7046,11 +7061,7 @@
     "name": "scrub",
     "swatch": {
      "name": "Scrub",
-     "color": [
-      0.132,
-      0.148,
-      0.091
-     ],
+     "color": [0.132, 0.148, 0.091],
      "roughness": 0.95,
      "weight": 1.0
     },
@@ -7060,7 +7071,6 @@
       [
        "heath",
        "scrub",
-       "shrubbery",
        "tundra"
       ]
      ]
@@ -7471,26 +7481,7 @@
     ]
    ]
   },
-  {
-   "name": "pylon",
-   "models": [
-    "assets/models/external/kenney_props/power_pole.glb"
-   ],
-   "height": 11.0,
-   "share": 0.05,
-   "priority": 7,
-   "facesRoad": false,
-   "jitter": 0.0,
-   "tags": [
-    [
-     "power",
-     [
-      "pole",
-      "tower"
-     ]
-    ]
-   ]
-  },
+
   {
    "name": "windmill",
    "models": [

@@ -67,6 +67,29 @@ TEST(BuildingVisuals, capture_keeps_every_baseline_triangle_in_its_building) {
     CHECK(captured==triangleCount(out.parts));
 }
 
+TEST(BuildingVisuals, skyscrapers_keep_full_height_in_every_lod_and_collision_shell) {
+    for(auto lod:{BuildingLod::Full,BuildingLod::UnifiedBase,BuildingLod::SimpleRoofline}) {
+        const auto out=visualBuildings({{rectangle(0,0),{{"height","541.3"},{"roof:shape","flat"},
+                                                       {"building:levels","104"}}}},lod);
+        CHECK(out.visuals.size()==1);
+        for(const auto& level:out.visuals[0].levels)NEAR(top(level),541.3,1e-9);
+        NEAR(top(out.parts),541.3,1e-9);NEAR(out.tops[0],541.3,1e-9);
+    }
+}
+TEST(BuildingVisuals, very_many_storeys_use_bounded_detail_without_shrinking_the_building) {
+    const auto out=visualBuildings({{rectangle(0,0),{{"height","828"},{"roof:shape","flat"},
+                                                   {"building:levels","163"}}}});
+    const auto& near=out.visuals[0].levels[0];
+    NEAR(top(near),828,1e-9);CHECK(triangleCount(near)<200);
+}
+TEST(BuildingVisuals, mapped_worship_height_is_not_multiplied_by_an_invented_steeple) {
+    const auto out=visualBuildings({{rectangle(0,0),{{"height","25"},{"roof:shape","gabled"},
+        {"amenity","place_of_worship"},{"religion","christian"},{"building","church"}}}});
+    CHECK(out.stats.steeples==0);
+    for(const auto& level:out.visuals[0].levels)NEAR(top(level),25,1e-9);
+    NEAR(out.tops[0],25,1e-9);
+}
+
 TEST(BuildingVisuals, near_models_openings_and_preserves_the_same_portal_when_reduced) {
     const auto out=visualBuildings({{rectangle(0,0),{{"building","house"},{"height","12"},{"building:levels","3"},
                                                    {"roof:shape","gabled"}}}},BuildingLod::SimpleRoofline);

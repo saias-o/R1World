@@ -107,7 +107,7 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // ── vegetation ──────────────────────────────────────────────────────────────
 
 namespace {
-constexpr int kNatureRevision = 6;  // 6: multi-view Far derived from the urban tree Mid
+constexpr int kNatureRevision = 7;
 const std::string kCardDir = "assets/models/external/nature_cards";
 
 // Buildings, roads and water grown by a margin, asked "is this point in you".
@@ -201,7 +201,7 @@ std::string identString(__int128 v) {
 
 Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, const GroundAt& ground, int budget,
                    const Canopy* canopy, const std::vector<OsmWay>* roadside,
-                   const ResidentialPlan* residential, const clip::Paths64* driveways) {
+                   const clip::Paths64* driveways) {
     const Bounds bounds = tile.bounds();
     auto xy = [&](double lo, double la) { const P3 p = anchor.toEngine(lo, la, 0); return P2{p.x, p.z}; };
     const P2 sw = xy(bounds.west, bounds.south), ne = xy(bounds.east, bounds.north);
@@ -226,25 +226,6 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
             blocked.polygon(engineLine(way.points), 0.5);
 
     std::vector<Candidate> candidates;
-    const bool denseFrontage=residential && residential->homes.empty() && residential->stats.value("rejectedDense",0)>0;
-    if(!denseFrontage)for(const auto& hedge:osm.barriers) {
-        if(tagOr(hedge.tags,"barrier")!="hedge")continue;
-        auto line=engineLine(hedge.points);const double length=clip::length(line);
-        const int count=std::max(1,int(std::ceil(length/3.)));
-        for(int i=0;i<count;++i) {
-            const double s=(i+.5)*length/count;const P2 p=clip::interpolate(line,s);
-            bool gate=false;
-            for(const auto& n:osm.features)if(tagOr(n.tags,"barrier")=="gate" || tagOr(n.tags,"barrier")=="entrance")
-                if(dist(p,xy(n.lon,n.lat))<lengthTag(tag(n.tags,"width"),3.2)/2+1.6){gate=true;break;}
-            if(gate || blocked.contains(p))continue;
-            const auto geo=anchor.toGeodetic(p.x,0,p.y);if(tileAt(geo.x,geo.y)!=tile)continue;
-            const P2 a=clip::interpolate(line,std::max(0.,s-.2)),b=clip::interpolate(line,std::min(length,s+.2));
-            Tags tags=hedge.tags;tags["r1:shrub"]="yes";tags["r1:hedge"]="yes";
-            tags["r1:hedge:yaw"]=std::to_string(std::atan2(-(b.y-a.y),b.x-a.x));
-            candidates.push_back({1,-((__int128(0x48454447)<<64)+__int128(std::llabs(hedge.id))*4096+i),
-                geo.x,geo.y,std::move(tags),"mapped-hedge-inferred-spacing",false,0});
-        }
-    }
     for (const OsmNode& f : osm.features)
         if (tagOr(f.tags, "natural") == "tree" && tileAt(f.lon, f.lat) == tile)
             candidates.push_back({0, f.id, f.lon, f.lat, f.tags, "osm-point", false, 0});
@@ -266,73 +247,6 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
     // no individual trees or tree row. Keep trunks beyond the shoulder and
     // leave village streets, buildings and surveyed planting to the map.
     const std::string climate = climateAt(profileFor(tile.center().x, tile.center().y).climate, tile.center().y);
-    if (climate == "temperate" || climate == "mediterranean") {
-        struct VergeRoad { P2 a,b; double half; };
-        std::vector<VergeRoad> vergeRoads;
-        BoxIndex roadIndex(32);
-        for (const auto& road : roadside ? *roadside : osm.roads) {
-            const auto h = tagOr(road.tags,"highway");
-            if (h != "secondary" && h != "tertiary" && h != "unclassified" && h != "residential") continue;
-            if (taggedYes(road.tags,"bridge") || taggedYes(road.tags,"tunnel") || has(road.tags,"r1:raised") ||
-                !sidewalkSides(road.tags).empty()) continue;
-            const auto line = engineLine(road.points);
-            for (size_t i=1;i<line.size();++i) {
-                roadIndex.add(vergeRoads.size(),boxOf({line[i-1],line[i]}));
-                vergeRoads.push_back({line[i-1],line[i],roadWidth(road.tags)*.5});
-            }
-        }
-        // Untagged front gardens can carry a low planted edge. Keep a gap
-        // for the entrance, and stay below the canopy survey's 1 m threshold:
-        // it cannot observe these low plantings. This is explicitly inferred.
-        for (const auto& building : osm.buildings) {
-            if(residential && residential->stats.value("country",std::string())=="FR" &&
-               std::none_of(residential->homes.begin(),residential->homes.end(),
-                [&](const auto& h){return h.id==building.id && h.gardenEligible;}))continue;
-            const auto kind = tagOr(building.tags,"building");
-            if (kind != "yes" && kind != "house" && kind != "detached" && kind != "semidetached_house") continue;
-            if (has(building.tags,"amenity") || has(building.tags,"shop") || has(building.tags,"office") ||
-                lengthTag(tag(building.tags,"building:levels"),1)>2) continue;
-            const auto ring = engineLine(building.points);
-            const double area = std::abs(polygonArea(ring));
-            if (area<45 || area>400) continue;
-            const auto box = boxOf(ring);
-            const P2 centre{(box.x0+box.x1)/2,(box.y0+box.y1)/2};
-            const VergeRoad* closest=nullptr;
-            double gap=40;
-            P2 frontage{};
-            for (size_t i:roadIndex.near(Box{centre.x,centre.y,centre.x,centre.y}.grown(gap))) {
-                const auto& r=vergeRoads[i];
-                const double dx=r.b.x-r.a.x,dz=r.b.y-r.a.y,l2=dx*dx+dz*dz;
-                if(l2<1e-9)continue;
-                const double t=std::clamp(((centre.x-r.a.x)*dx+(centre.y-r.a.y)*dz)/l2,0.0,1.0);
-                const P2 p{r.a.x+t*dx,r.a.y+t*dz};
-                if(dist(p,centre)<gap){gap=dist(p,centre);closest=&r;frontage=p;}
-            }
-            if(!closest || gap<closest->half+7)continue;
-            const double length=dist(closest->a,closest->b);
-            const P2 along{(closest->b.x-closest->a.x)/length,(closest->b.y-closest->a.y)/length};
-            const double side=(centre.x-frontage.x)*-along.y+(centre.y-frontage.y)*along.x>=0?1:-1;
-            double span=0;
-            for(const auto& p:ring)span=std::max(span,std::abs((p.x-centre.x)*along.x+(p.y-centre.y)*along.y));
-            span=std::clamp(span+2.5,5.0,12.0);
-            for(int step=-4;step<=4;++step) {
-                const double s=step*3.0;
-                if(std::abs(s)<3.5 || std::abs(s)>span)continue;
-                const __int128 ident=-((__int128(0x47415244)<<64)+__int128(std::llabs(building.id))*16+step+4);
-                PyRandom rng=seeded(ident,19);
-                const double setback=closest->half+3.0+rng.random()*.5;
-                const P2 p{frontage.x+along.x*s-along.y*side*setback,
-                           frontage.y+along.y*s+along.x*side*setback};
-                if(!inRegion(p) || blocked.contains(p))continue;
-                const auto geo=anchor.toGeodetic(p.x,0,p.y);
-                if(tileAt(geo.x,geo.y)!=tile)continue;
-                // Where tall planting is surveyed, let that survey fill it.
-                if(canopy && canopy->classAt(geo.x,geo.y)!=Canopy::None)continue;
-                candidates.push_back({2,ident,geo.x,geo.y,{{"r1:shrub","yes"},{"height",std::to_string(.7+rng.random()*.2)}},
-                                      "inferred-low-garden-frontage",false,0});
-            }
-        }
-    }
     if (climate == "temperate" || climate == "mediterranean") {
         struct BuildingEdge { std::vector<P2> ring; double x0, x1, z0, z1; };
         std::vector<BuildingEdge> buildingRings;
@@ -388,18 +302,17 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
     for (const OsmWay& way : osm.vegetation) {  // already sorted by id
         const Tags& t = way.tags;
         const bool forest = tagOr(t, "natural") == "wood" || tagOr(t, "landuse") == "forest";
-        const bool scrub = tagOr(t, "natural") == "scrub" || tagOr(t, "natural") == "shrubbery";
         const bool park = tagOr(t, "leisure") == "park" || tagOr(t, "leisure") == "garden";
         const bool orchard = tagOr(t, "landuse") == "orchard";
         const bool herb = tagOr(t, "landuse") == "grass" || tagOr(t, "landuse") == "meadow" ||
                           tagOr(t, "natural") == "grassland" || tagOr(t, "natural") == "wetland";
-        if (!(forest || scrub || park || orchard || herb)) continue;
+        if (!(forest || park || orchard || herb)) continue;
         const std::vector<P2> ring = engineLine(way.points);
         double x0 = 1e300, x1 = -1e300, z0 = 1e300, z1 = -1e300;
         for (const P2& p : ring) { x0 = std::min(x0, p.x); x1 = std::max(x1, p.x); z0 = std::min(z0, p.y); z1 = std::max(z1, p.y); }
         x0 = std::max(x0, rx0); x1 = std::min(x1, rx1); z0 = std::max(z0, rz0); z1 = std::min(z1, rz1);
         if (x0 >= x1 || z0 >= z1) continue;
-        const double spacing = herb ? 7 : forest ? 12 : scrub ? 8 : park ? 24 : 9;
+        const double spacing = herb ? 7 : forest ? 12 : park ? 24 : 9;
         // A deterministic stratified distribution, not a planted grid.
         for (long ix = long(std::floor(x0 / spacing)); ix < long(std::ceil(x1 / spacing)); ++ix)
             for (long iz = long(std::floor(z0 / spacing)); iz < long(std::ceil(z1 / spacing)); ++iz) {
@@ -412,23 +325,19 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
                 const P3 geo = anchor.toGeodetic(x, 0, z);
                 if (tileAt(geo.x, geo.y) != tile) continue;
                 Tags inferred = t;
-                if (scrub) inferred["r1:shrub"] = "yes";
                 if (herb) inferred["r1:grass"] = "yes";
                 candidates.push_back({herb ? 4 : 3, ident, geo.x, geo.y, std::move(inferred), "osm-area-inferred-density", forest, 0});
             }
     }
-    // The measured canopy: what was inferred must stand where it says trees
-    // (or, for scrub, vegetation) stand; each tree cell with nothing on it
-    // gets a tree, each low cell a shrub. Surveyed points and rows stay.
-    int canopyRemoved = 0, canopyTrees = 0, canopyShrubs = 0;
+    // Inferred planting follows measured tree cover; surveyed points and rows stay.
+    int canopyRemoved = 0, canopyTrees = 0;
     if (canopy) {
         std::vector<Candidate> kept;
         std::vector<uint8_t> taken(size_t(Canopy::kCells * Canopy::kCells), 0);
         for (Candidate& c : candidates) {
-            const bool grass = tagOr(c.tags, "r1:grass") == "yes", shrub = has(c.tags, "r1:shrub");
-            const bool belowSurvey = shrub && lengthTag(tag(c.tags,"height"),2) < 1.0;
+            const bool grass = tagOr(c.tags, "r1:grass") == "yes";
             const Canopy::Class here = canopy->classAt(c.lon, c.lat);
-            if (c.rank >= 2 && !grass && !belowSurvey && !(here == Canopy::Tree || (shrub && here == Canopy::Low))) { ++canopyRemoved; continue; }
+            if (c.rank >= 2 && !grass && here != Canopy::Tree) { ++canopyRemoved; continue; }
             const int cell = canopy->cellOf(c.lon, c.lat);
             if (cell >= 0 && !grass) taken[size_t(cell)] = 1;
             kept.push_back(std::move(c));
@@ -438,7 +347,7 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         for (int row = 0; row < Canopy::kCells; ++row)
             for (int col = 0; col < Canopy::kCells; ++col) {
                 const Canopy::Class kind = canopy->at(col, row);
-                if (kind == Canopy::None || taken[size_t(row * Canopy::kCells + col)]) continue;
+                if (kind != Canopy::Tree || taken[size_t(row * Canopy::kCells + col)]) continue;
                 const __int128 ident = -((__int128(0x43414E4F) << 64) + __int128(tile.row) * 100003 * 4096 +
                                          __int128(tile.col) * 4096 + row * Canopy::kCells + col);
                 // A trunk within the cell, clear of roads and roofs; the crown
@@ -459,24 +368,10 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
                         const int r = row + dy, cc = col + dx;
                         if ((dx || dy) && r >= 0 && cc >= 0 && r < Canopy::kCells && cc < Canopy::kCells) around += canopy->at(cc, r) == Canopy::Tree;
                     }
-                if (kind == Canopy::Tree) {
-                    const double h = canopy->heightAt(col, row) * (0.85 + rng.random() * 0.25);
-                    tags["height"] = std::to_string(std::max(3.0, h));
-                    candidates.push_back({1, ident, spot->x, spot->y, std::move(tags), "canopy-measured", around >= 6, 0});
-                    ++canopyTrees;
-                } else {
-                    // Low canopy describes a mass of bushes/hedges, not a
-                    // miniature tree with a bare trunk. Cover the cell with
-                    // a small cluster; the same spacing/obstacle budget holds.
-                    for (int k = 0; k < 4; ++k) {
-                        const P2 g = k == 0 ? *spot : P2{middle.x + ((k%2 ? .25 : -.25) + (rng.random()-.5)*.12)*size.x,
-                                                         middle.y + ((k/2 ? .25 : -.25) + (rng.random()-.5)*.12)*size.y};
-                        if (!inRegion(xy(g.x,g.y)) || blocked.contains(xy(g.x,g.y))) continue;
-                        Tags shrubTags{{"r1:shrub","yes"}, {"height",std::to_string(1.2+rng.random()*1.0)}};
-                        candidates.push_back({k == 0 ? 1 : 3, ident*4-k, g.x, g.y, std::move(shrubTags), "canopy-measured-low", false, 0});
-                        ++canopyShrubs;
-                    }
-                }
+                const double h = canopy->heightAt(col, row) * (0.85 + rng.random() * 0.25);
+                tags["height"] = std::to_string(std::max(3.0, h));
+                candidates.push_back({1, ident, spot->x, spot->y, std::move(tags), "canopy-measured", around >= 6, 0});
+                ++canopyTrees;
             }
     }
     // Surveyed trees always win over inferred fill; the hash spreads a capped
@@ -490,11 +385,11 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
     Scatter out;
     std::unordered_map<int64_t, std::vector<P2>> occupied;
     std::map<std::string, int> sources, models, reasons;
-    int rejected = 0, budgetDropped = 0, trees = 0, shrubs = 0, grasses = 0, heights = 0;
+    int rejected = 0, budgetDropped = 0, trees = 0, grasses = 0, heights = 0;
     auto cellKey = [](long x, long z) { return (int64_t(x) << 32) ^ int64_t(uint32_t(z)); };
     for (const Candidate& c : candidates) {
         const P2 p = xy(c.lon, c.lat);
-        const double spacing=has(c.tags,"r1:hedge")?2.9:3.0;
+        const double spacing=3.0;
         const long kx = long(std::floor(p.x / 3)), kz = long(std::floor(p.y / 3));
         bool crowded = false;
         for (long dx = -1; dx <= 1 && !crowded; ++dx)
@@ -507,12 +402,10 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         // Roads exclude inferred planting; a surveyed tree may stand on a median.
         if (c.rank && (blocked.contains(p) || clip::contains(relationWater,p))) { ++rejected; continue; }
         const bool grass = tagOr(c.tags, "r1:grass") == "yes";
-        const bool shrub = has(c.tags, "r1:shrub");
-        if (grass ? grasses >= 160 : trees + shrubs >= budget) { ++budgetDropped; continue; }
+        if (grass ? grasses >= 160 : trees >= budget) { ++budgetDropped; continue; }
         occupied[cellKey(kx, kz)].push_back(p);
         auto [model, reason] = species(c.tags, c.lon, c.lat, c.ident, c.forest);
         if (model == "broadleaf" && std::abs(c.lat) >= 30) model = "urban_tree";
-        if (shrub) { model = "shrub"; reason = "low-vegetation-morphology"; }
         if (grass) {
             const double lo = c.lon, la = c.lat;
             const bool arid = (-18 < lo && lo < 60 && 18 < la && la < 32) || (13 < lo && lo < 23 && -32 < la && la < -20) ||
@@ -521,22 +414,16 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         }
         PyRandom rng = seeded(c.ident, 81);
         const double nominal = grass ? (model == "grass_tall" ? 1.1 : 0.45)
-                               : has(c.tags, "r1:hedge") ? 1.6 : has(c.tags, "r1:shrub") ? 2 : c.forest ? 13 : std::abs(c.lat) < 30 ? 10 : 9;
+                               : c.forest ? 13 : std::abs(c.lat) < 30 ? 10 : 9;
         const double observed = lengthTag(tag(c.tags, "height"), 0);
         const double height = observed > 0 ? observed : nominal * (0.8 + rng.random() * 0.4);
-        const double width = shrub && height < 1.0 ? height * 1.8 : height;
+        const double width = height;
         heights += observed > 0;
         ++reasons[reason];
-        if (grass) ++grasses; else if (shrub) ++shrubs; else ++trees;
+        if (grass) ++grasses; else ++trees;
         nlohmann::json children = nlohmann::json::array();
         if (grass) {
             children.push_back({{"type", "Node"}, {"name", "Near"}, {"importedFrom", "assets/models/external/nature_selected/" + model + ".glb"}});
-        } else if (shrub) {
-            const double k = 1.0 / sourceHeight("urban_tree");
-            children.push_back({{"type","Node"}, {"name","Far"}, {"importedFrom",kCardDir+"/urban_tree.glb"},
-                                {"transform",{{"position",{0,-.35,0}}, {"scale",{k*1.25,k*1.35,k*1.25}}}}});
-            children.push_back({{"type","Node"}, {"name","Near"},
-                                {"importedFrom","assets/models/external/nature_selected/shrub.glb"}});
         } else {
             const double k = 1.0 / sourceHeight(model);
             if(model == "urban_tree")
@@ -552,23 +439,22 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
             }
         }
         PyRandom yawRng = seeded(c.ident, 71);
-        const bool hedge=has(c.tags,"r1:hedge");
-        const double yaw = hedge ? taggedLength(tagOr(c.tags,"r1:hedge:yaw")).value_or(0) : yawRng.random() * kTau;
+        const double yaw = yawRng.random() * kTau;
         const P3 at = ground(c.lon, c.lat);
         out.nodes.push_back({{"type", "Node"}, {"name", std::string("Nature ") + c.source + " " + identString(c.ident)},
-                             {"enabled", true}, {"groups", {"vegetation", grass ? "grass" : shrub ? "shrub" : "tree"}}, {"children", children},
+                             {"enabled", true}, {"groups", {"vegetation", grass ? "grass" : "tree"}}, {"children", children},
                              {"transform", {{"position", {at.x, at.y, at.z}}, {"rotation", {0, std::sin(yaw / 2), 0, std::cos(yaw / 2)}},
-                                            {"scale", {hedge?3.25:width, height, hedge?.85:width}}}}});
+                                            {"scale", {width, height, width}}}}});
         ++sources[c.source];
         ++models[model];
     }
-    out.stats = {{"revision", kNatureRevision}, {"placed", out.nodes.size()}, {"trees", trees}, {"shrubs", shrubs}, {"grassTufts", grasses},
+    out.stats = {{"revision", kNatureRevision}, {"placed", out.nodes.size()}, {"trees", trees}, {"grassTufts", grasses},
                  {"heightsMeasured", heights}, {"modelSelection", reasons}, {"bySource", sources}, {"byModel", models},
                  {"rejectedOverlap", rejected}, {"droppedForBudget", budgetDropped}, {"budget", budget},
                  {"representation", "urban tree: multi-view Mid impostor; other species: layered source cards"},
                  {"canopy", canopy ? nlohmann::json{{"observed", true}, {"noSource", canopy->noSource},
-                                                    {"treeCells", canopy->count(Canopy::Tree)}, {"lowCells", canopy->count(Canopy::Low)},
-                                                    {"treesFromCanopy", canopyTrees}, {"shrubsFromCanopy", canopyShrubs},
+                                                    {"treeCells", canopy->count(Canopy::Tree)},
+                                                    {"treesFromCanopy", canopyTrees},
                                                     {"inferredRemovedByCanopy", canopyRemoved},
                                                     {"source", "Meta & WRI High Resolution Canopy Height Maps, CC BY 4.0 (imagery 2009-2020)"}}
                                    : nlohmann::json{{"observed", false}}},

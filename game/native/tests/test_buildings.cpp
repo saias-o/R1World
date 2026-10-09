@@ -179,6 +179,24 @@ TEST(Gabarit, a_tagged_height_is_used_and_marked_measured) {
     const Gabarit g = gabarit({{"height", "14"}});
     CHECK(g.heightSource == "tag:height" && g.wallHeight + g.roofHeight <= 14.01);
 }
+TEST(Gabarit, skyscrapers_keep_mapped_heights_above_the_old_caps) {
+    for(double height:{91.,381.,541.3,828.}) {
+        const auto g=gabarit({{"height",std::to_string(height)},{"roof:shape","flat"}});
+        CHECK(g.heightSource=="tag:height");NEAR(g.totalHeight(),height,1e-9);
+        CHECK(g.wallHeight>90);
+    }
+}
+TEST(Gabarit, high_storey_counts_and_mapped_roofs_are_not_capped) {
+    const auto g=gabarit({{"building:levels","163"},{"roof:shape","flat"}});
+    CHECK(g.storeys==163 && g.heightSource=="tag:levels");
+    NEAR(g.wallHeight,163*chamonix().storeyHeight,1e-9);
+    const auto roof=gabarit({{"height","160"},{"roof:shape","pyramidal"},{"roof:height","65"}});
+    NEAR(roof.roofHeight,65,1e-9);NEAR(roof.totalHeight(),160,1e-9);
+}
+TEST(Gabarit, a_flat_roof_parapet_fits_inside_the_mapped_total) {
+    const auto g=gabarit({{"height","12"},{"roof:shape","flat"}});
+    CHECK(g.parapetHeight>0);NEAR(g.totalHeight(),12,1e-9);
+}
 TEST(Gabarit, levels_become_metres_through_the_region) {
     const Gabarit g = gabarit({{"building:levels", "4"}});
     CHECK(g.heightSource == "tag:levels" && g.storeys == 4);
@@ -211,6 +229,104 @@ TEST(Gabarit, the_region_supplies_a_plausible_storey_count) {
     for (int id = 0; id < 200; ++id) counts.insert(gabarit({}, id).storeys);
     for (int c : counts) CHECK(c >= 2 && c <= 4);
     CHECK(counts.size() > 1);
+}
+
+TEST(BuildingHeights, missing_height_uses_the_three_nearest_observed_totals) {
+    const auto out=build({{square(8),{{"building","house"},{"roof:shape","flat"}}},
+        {square(8,{20,0}),{{"height","12"},{"roof:shape","flat"}}},
+        {square(8,{40,0}),{{"height","18"},{"roof:shape","flat"}}},
+        {square(8,{60,0}),{{"height","24"},{"roof:shape","flat"}}},
+        {square(8,{80,0}),{{"height","100"},{"roof:shape","flat"}}}});
+    NEAR(out.visuals[0].high.y,18,1e-9);
+    CHECK(out.stats.heightMeasured==4 && out.stats.heightInferred==1 && out.stats.heightFromNeighbours==1);
+    const auto& report=out.stats.neighbourHeights[0];CHECK(report["source"]=="inferred:neighbours");
+    CHECK(report["references"].size()==3 && report["references"][2]["building"]==4);
+}
+TEST(BuildingHeights, own_height_and_storeys_always_win) {
+    const auto out=build({{square(8),{{"height","7"},{"roof:shape","flat"}}},
+        {square(8,{20,0}),{{"building:levels","2"},{"roof:shape","flat"}}},
+        {square(8,{40,0}),{{"height","100"},{"roof:shape","flat"}}}});
+    NEAR(out.visuals[0].high.y,7,1e-9);
+    NEAR(out.visuals[1].high.y,2*chamonix().storeyHeight+chamonix().parapetHeight,1e-9);
+    CHECK(out.stats.heightFromNeighbours==0 && out.stats.heightFromLevels==1 && out.stats.heightInferred==1);
+}
+TEST(BuildingHeights, one_or_two_known_neighbours_are_used_without_inventing_a_third) {
+    const auto out=build({{square(8),{{"roof:shape","flat"}}},
+        {square(8,{20,0}),{{"height","12"}}},{square(8,{40,0}),{{"height","18"}}}});
+    NEAR(out.visuals[0].high.y,15,1e-9);
+    CHECK(out.stats.neighbourHeights[0]["references"].size()==2);
+}
+TEST(BuildingHeights, estimates_do_not_propagate_and_distant_references_do_not_leak) {
+    const auto out=build({{square(8),{{"roof:shape","flat"}}},
+        {square(8,{240,0}),{{"height","30"},{"roof:shape","flat"}}},
+        {square(8,{-100,0}),{{"roof:shape","flat"}}}});
+    NEAR(out.visuals[0].high.y,30,1e-9);
+    const auto fallback=gabarit({{"roof:shape","flat"}},3,square(8,{-100,0}));
+    NEAR(out.visuals[2].high.y,fallback.totalHeight(),1e-9);
+    CHECK(out.stats.heightFromNeighbours==1 && out.stats.heightFromAtlas==1);
+}
+TEST(BuildingHeights, mapped_heights_beat_nearby_floor_estimates_and_sheds_stay_small) {
+    const auto out=build({{square(8),{{"roof:shape","flat"}}},
+        {square(8,{10,20}),{{"building:levels","30"},{"roof:shape","flat"}}},
+        {square(8,{40,0}),{{"height","12"}}},
+        {square(4,{10,0}),{{"building","shed"},{"height","2"}}},
+        {square(4,{20,20}),{{"building","shed"},{"roof:shape","flat"}}}});
+    NEAR(out.visuals[0].high.y,12,1e-9);
+    CHECK(out.stats.neighbourHeights.size()==1);
+    CHECK(out.stats.neighbourHeights[0]["references"][0]["building"]==3);
+}
+TEST(BuildingHeights, known_floor_counts_are_an_explicit_fallback_when_no_heights_exist) {
+    // Urban houses may have more than two floors: only a recognized low-rise
+    // residential prior excludes taller references, not the building=house tag.
+    const auto out=build({{square(8),{{"building","house"},{"roof:shape","flat"}}},
+        {square(8,{20,0}),{{"building","house"},{"building:levels","3"},{"roof:shape","flat"}}}});
+    NEAR(out.visuals[0].high.y,out.visuals[1].high.y,1e-9);
+    CHECK(out.stats.neighbourHeights[0]["references"][0]["source"]=="tag:levels");
+}
+TEST(BuildingHeights, neighbours_across_tile_edges_and_distance_ties_are_order_independent) {
+    std::vector<OsmWay> owned;
+    auto add=[&](int64_t id,P2 at,Tags tags) {
+        owned.push_back({id,square(8,at),std::move(tags)});owned.back().points.push_back(owned.back().points.front());
+    };
+    add(1,{0,0},{{"roof:shape","flat"}});
+    add(10,{20,0},{{"height","12"}});add(20,{-20,0},{{"height","18"}});
+    add(30,{0,20},{{"height","24"}});add(40,{0,-20},{{"height","100"}});
+    std::vector<const OsmWay*> context;for(const auto& w:owned)context.push_back(&w);
+    auto run=[&] { return buildBuildings({&owned[0]},[](double x,double z){return P3{x,0,z};},chamonix(),
+        {0,0},-1,0,nullptr,nullptr,BuildingLod::Full,context); };
+    const auto first=run();std::reverse(context.begin(),context.end());const auto second=run();
+    CHECK(first.visuals.size()==1);NEAR(first.visuals[0].high.y,18,1e-9);
+    CHECK(first.stats.neighbourHeights==second.stats.neighbourHeights);
+}
+
+TEST(BuildingHeights, homes_use_three_comparable_homes_instead_of_tiny_annexes_and_public_halls) {
+    const auto out=build({
+        {square(10),{{"building","house"},{"r1:residential","fr.brittany.detached"},{"roof:shape","flat"}}},
+        {square(3,{12,0}),{{"building","yes"},{"height","2.5"}}},
+        {square(10,{15,20}),{{"building","yes"},{"amenity","school"},{"height","4"}}},
+        {square(10,{25,0}),{{"building","apartments"},{"height","80"}}},
+        {square(10,{40,0}),{{"building","house"},{"height","7"}}},
+        {square(10,{60,0}),{{"building","detached"},{"height","8"}}},
+        {square(10,{80,0}),{{"building","yes"},{"height","9"}}}},-1,&profileByKey("FRANCE"));
+    NEAR(out.visuals[0].high.y,8,1e-9);
+    CHECK(out.stats.neighbourHeights[0]["references"].size()==3);
+    CHECK(out.stats.neighbourHeights[0]["references"][0]["building"]==5);
+}
+TEST(BuildingHeights, residential_annexes_do_not_borrow_the_height_of_the_main_house) {
+    const auto out=build({{square(4),{{"building","yes"},{"r1:residential","fr.brittany.detached"},
+        {"r1:rural-annex","yes"},{"roof:shape","flat"}}},
+        {square(10,{15,0}),{{"building","house"},{"height","9"}}}},-1,&profileByKey("FRANCE"));
+    CHECK(out.stats.heightFromNeighbours==0);
+    CHECK(out.visuals[0].high.y<4);
+}
+TEST(BuildingHeights, cadastral_light_buildings_stay_low_and_keep_their_mapped_height) {
+    OsmWay way{1,{{0,0},{4,0},{4,3},{0,3},{0,0}},{{"building","yes"},{"wall","no"}}};
+    const auto ground=[](double x,double z){return P3{x,0,z};};
+    auto out=buildBuildings({&way},ground,profileByKey("FRANCE"),{},-1,.08,{},{});
+    CHECK(out.openRoofs==0);CHECK(out.stats.total==1);CHECK(out.visuals.size()==1);
+    CHECK(predictBuildingHeights({&way},ground,profileByKey("FRANCE")).at(1)<4.2);
+    way.tags["height"]="18";
+    NEAR(predictBuildingHeights({&way},ground,profileByKey("FRANCE")).at(1),18,1e-9);
 }
 
 // ── alignment ───────────────────────────────────────────────────────────────

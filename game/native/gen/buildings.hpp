@@ -15,6 +15,8 @@ struct BuildingStats {
     int total = 0, rejected = 0, heightMeasured = 0, heightInferred = 0, roofTagged = 0, roofInferred = 0;
     int roofFlattened = 0, detailed = 0, partyWalls = 0, steeples = 0;
     int busShelters = 0;
+    int heightFromLevels = 0, heightFromNeighbours = 0, heightFromAtlas = 0;
+    nlohmann::json neighbourHeights = nlohmann::json::array();
     nlohmann::json ruralGabarits = nlohmann::json::array();
     std::map<std::string, int> shapes;
     nlohmann::json json() const;
@@ -60,7 +62,13 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                               const std::function<P3(double, double)>& groundOf,
                               const RegionProfile& profile, P2 detailCenter, double detailRadius,
                               double roofThickness, const MaterialFor& wallMaterials,
-                              const MaterialFor& roofMaterials, BuildingLod lod = BuildingLod::Full);
+                              const MaterialFor& roofMaterials, BuildingLod lod = BuildingLod::Full,
+                              const std::vector<const OsmWay*>& surroundings = {});
+
+// The same completed dimensional prediction as rendering, without emitting meshes.
+std::map<int64_t,double> predictBuildingHeights(const std::vector<const OsmWay*>& ways,
+    const std::function<P3(double,double)>& groundOf, const RegionProfile& profile,
+    const std::vector<const OsmWay*>& surroundings = {});
 
 // Metres from an OSM length tag, honouring feet; nullopt when it has none.
 std::optional<double> taggedLength(const std::string& raw);
@@ -86,6 +94,8 @@ struct Gabarit {
     double wallHeight = 0, roofHeight = 0;
     int storeys = 1;
     std::string heightSource, roofShape, roofSource;
+    double parapetHeight = 0;
+    double totalHeight() const { return wallHeight + (roofShape == "flat" ? parapetHeight : roofHeight); }
 };
 
 // How tall, and what is on top: measured where tagged, the region elsewhere.

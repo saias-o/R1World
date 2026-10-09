@@ -49,7 +49,6 @@ void CanopyGrid::add(int col, int row, uint8_t metres) {
     Cell& c = cells_[size_t(row * Canopy::kCells + col)];
     ++c.pixels;
     if (metres >= 3) ++c.tall;
-    else if (metres >= 1) ++c.low;
     c.top = std::max(c.top, metres);
 }
 
@@ -61,7 +60,6 @@ Canopy CanopyGrid::finish() const {
         // A crown of 3 m across is 7 m2, about 5 % of a cell: less than that
         // is a lamp post or a lorry, not a tree.
         if (c.pixels && c.tall >= std::max(3u, c.pixels / 20)) out.cells[i] = Canopy::Tree;
-        else if (c.pixels && c.low * 4 >= c.pixels) out.cells[i] = Canopy::Low;
     }
     for (int by = 0; by < Canopy::kBlocks; ++by)
         for (int bx = 0; bx < Canopy::kBlocks; ++bx) {
@@ -80,8 +78,7 @@ Canopy CanopyGrid::finish() const {
 //
 // A binary range coder (LZMA's) over adaptive probabilities. The tree plane is
 // coded cell by cell with the ten cells before it as context, as JBIG codes a
-// page; the low plane only where there is no tree, with the tree plane around
-// it in its context; then each block's height, where the block has trees.
+// page; then each block's height, where the block has trees.
 
 namespace {
 using rangecoder::Decoder;
@@ -99,33 +96,22 @@ int context(const std::array<uint8_t, N * N>& plane, int row, int col) {
     }
     return ctx;
 }
-int treeAround(const std::array<uint8_t, N * N>& tree, int row, int col) {
-    auto at = [&](int r, int c) { return (r >= 0 && c >= 0 && c < N && r < N) ? tree[size_t(r * N + c)] : 0; };
-    return (at(row, col) << 2) | (at(row - 1, col) << 1) | at(row, col - 1);
-}
-
-// The version byte, then flags: 1 trees, 2 low vegetation, 4 no source.
-constexpr uint8_t kCanopyVersion = 1;
+// The version byte, then flags: 1 trees, 4 no source.
+constexpr uint8_t kCanopyVersion = 2;
 }  // namespace
 
 std::string encodeCanopy(const Canopy& c) {
-    std::array<uint8_t, N * N> tree{}, low{};
-    for (size_t i = 0; i < tree.size(); ++i) { tree[i] = c.cells[i] == Canopy::Tree; low[i] = c.cells[i] == Canopy::Low; }
+    std::array<uint8_t, N * N> tree{};
+    for (size_t i = 0; i < tree.size(); ++i) tree[i] = c.cells[i] == Canopy::Tree;
     const bool anyTree = std::find(tree.begin(), tree.end(), 1) != tree.end();
-    const bool anyLow = std::find(low.begin(), low.end(), 1) != low.end();
     std::string out;
     out.push_back(char(kCanopyVersion));
-    out.push_back(char((anyTree ? 1 : 0) | (anyLow ? 2 : 0) | (c.noSource ? 4 : 0)));
-    if (!anyTree && !anyLow) return out;
+    out.push_back(char((anyTree ? 1 : 0) | (c.noSource ? 4 : 0)));
+    if (!anyTree) return out;
     Encoder e;
-    std::vector<uint16_t> treeP(1 << 10, kHalf), lowP(1 << 13, kHalf), heightP(64, kHalf);
+    std::vector<uint16_t> treeP(1 << 10, kHalf), heightP(64, kHalf);
     if (anyTree)
         for (int r = 0; r < N; ++r) for (int col = 0; col < N; ++col) e.bit(treeP[size_t(context(tree, r, col))], tree[size_t(r * N + col)]);
-    if (anyLow)
-        for (int r = 0; r < N; ++r) for (int col = 0; col < N; ++col) {
-            if (tree[size_t(r * N + col)]) continue;
-            e.bit(lowP[size_t((context(low, r, col) << 3) | treeAround(tree, r, col))], low[size_t(r * N + col)]);
-        }
     if (anyTree)
         for (int b = 0; b < Canopy::kBlocks * Canopy::kBlocks; ++b) {
             bool has = false;
@@ -146,18 +132,13 @@ Canopy decodeCanopy(const std::string& bytes, const Bounds& bounds) {
     c.bounds = bounds;
     const uint8_t flags = uint8_t(bytes[1]);
     c.noSource = flags & 4;
-    if (!(flags & 3)) return c;
+    if (!(flags & 1)) return c;
     Decoder d(bytes, 2);
-    std::array<uint8_t, N * N> tree{}, low{};
-    std::vector<uint16_t> treeP(1 << 10, kHalf), lowP(1 << 13, kHalf), heightP(64, kHalf);
+    std::array<uint8_t, N * N> tree{};
+    std::vector<uint16_t> treeP(1 << 10, kHalf), heightP(64, kHalf);
     if (flags & 1)
         for (int r = 0; r < N; ++r) for (int col = 0; col < N; ++col) tree[size_t(r * N + col)] = uint8_t(d.bit(treeP[size_t(context(tree, r, col))]));
-    if (flags & 2)
-        for (int r = 0; r < N; ++r) for (int col = 0; col < N; ++col) {
-            if (tree[size_t(r * N + col)]) continue;
-            low[size_t(r * N + col)] = uint8_t(d.bit(lowP[size_t((context(low, r, col) << 3) | treeAround(tree, r, col))]));
-        }
-    for (size_t i = 0; i < tree.size(); ++i) c.cells[i] = tree[i] ? Canopy::Tree : low[i] ? Canopy::Low : Canopy::None;
+    for (size_t i = 0; i < tree.size(); ++i) c.cells[i] = tree[i] ? Canopy::Tree : Canopy::None;
     if (flags & 1)
         for (int b = 0; b < Canopy::kBlocks * Canopy::kBlocks; ++b) {
             bool has = false;
@@ -409,6 +390,7 @@ std::optional<Canopy> storedCanopy(const std::string& root, const Tile& tile) {
     auto& records = region(path);
     auto it = records.find({tile.row, tile.col});
     if (it == records.end()) return std::nullopt;
+    if (it->second.size() < 2 || uint8_t(it->second[0]) != kCanopyVersion) return std::nullopt;
     return decodeCanopy(it->second, tile.bounds());
 }
 
@@ -418,7 +400,9 @@ void storeCanopy(const std::string& root, const Tile& tile, const Canopy& canopy
     if (bytes.size() > 0xFFFF) throw std::runtime_error("canopy record too long");
     std::lock_guard<std::mutex> guard(storeLock);
     auto& records = region(path);
-    if (records.count({tile.row, tile.col})) return;
+    const auto existing = records.find({tile.row, tile.col});
+    if (existing != records.end() && existing->second.size() >= 2 &&
+        uint8_t(existing->second[0]) == kCanopyVersion) return;
     std::error_code ec;
     fs::create_directories(fs::path(path).parent_path(), ec);
     const bool fresh = !fs::exists(path, ec) || fs::file_size(path, ec) < 8;
