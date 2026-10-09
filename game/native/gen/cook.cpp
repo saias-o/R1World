@@ -119,6 +119,11 @@ size_t vertexCount(const std::vector<MeshPart>& parts) {
     for (const MeshPart& p : parts) n += p.mesh.vertexCount();
     return n;
 }
+
+nlohmann::json meshCounts(const std::vector<MeshPart>& parts) {
+    const size_t indices = indexCount(parts);
+    return {{"vertices", vertexCount(parts)}, {"indices", indices}, {"triangles", indices / 3}};
+}
 }  // namespace
 
 CookedTile cookTile(const Observations& in) {
@@ -406,9 +411,10 @@ CookedTile cookTile(const Observations& in) {
         return c && *c == "water";
     });
 
-    auto assemble = [&](std::vector<MeshPart>& harbourParts) {
+    auto assemble = [&](std::vector<MeshPart>& harbourParts, bool baselineBuildings = true) {
         std::vector<MeshPart> parts;
-        for (auto* list : {&terrainParts, &streets.parts, &bridges.parts, &harbourParts, &built.parts})
+        for (auto* list : {&terrainParts, &streets.parts, &bridges.parts, &harbourParts,
+                          baselineBuildings ? &built.parts : &built.staticParts})
             for (MeshPart& p : *list) parts.push_back(p);
         for (const MeshPart& p : airports.parts) parts.push_back(p);
         for (const MeshPart& p : parking.parts) parts.push_back(p);
@@ -443,6 +449,7 @@ CookedTile cookTile(const Observations& in) {
         harbour.pilesDropped = true;
     }
     const size_t vertices = vertexCount(parts) + landmarks.vertices;
+    const size_t indices = indexCount(parts);
     const bool ocean = in.offline
         ? (sea && sea->area() >= (bounds.east - bounds.west) * (bounds.north - bounds.south) * (1 - 1e-9))
         : [&] {
@@ -489,10 +496,12 @@ CookedTile cookTile(const Observations& in) {
         props.stats = {{"placed", 0}, {"droppedForBudget", 0}, {"byKind", nlohmann::json::object()}};
         nature.stats = {{"revision", 3}, {"placed", 0}};
     } else {
-        out.parts = std::move(parts);
+        // Mask grass against the same complete baseline geometry used by the
+        // density policy, then retain only always-visible parts for rendering.
+        // Building visuals and collision shells are independently streamable.
         // Grass where the ground is drawn grassy, under nothing laid on it.
         std::vector<const MeshPart*> laid;
-        for (const MeshPart& p : out.parts)
+        for (const MeshPart& p : parts)
             if (p.name.rfind("Ground \xE2\x80\x94 ", 0) != 0) laid.push_back(&p);
         out.grass = grassCover(
             drawnGround, [&](const std::string& cls) { return groundFamily(cls, profile.ground.name, climate); },
@@ -501,6 +510,13 @@ CookedTile cookTile(const Observations& in) {
             const Material ground = surfaceMaterial(out.grass.family, {0.0, 0.0, 0.0}, 1.0, out.grass.family);
             out.grassUvScale = ground.uvScale;
             out.grassVariation = ground.variation;
+        }
+        out.parts = assemble(works.parts, false);
+        out.buildings = std::move(built.visuals);
+        for (MeshPart& p : built.parts) {
+            const bool open = std::any_of(built.staticParts.begin(), built.staticParts.end(),
+                [&](const MeshPart& shelter) { return p.name == shelter.name && p.material == shelter.material; });
+            if (!open) out.buildingCollisions.push_back(std::move(p));
         }
         if (!inlandMesh.empty()) {
             auto water = seaNode(bounds, anchor, "Inland water");
@@ -574,6 +590,41 @@ CookedTile cookTile(const Observations& in) {
         laneGraph = {{"nodes", nlohmann::json::array()}, {"lanes", nlohmann::json::array()}, {"cars", 0},
                      {"leftHand", laneGraph["leftHand"]}};
     }
+    // Variant geometry is deliberately outside the density count above: three
+    // levels are prepared on the worker, but only the chosen level is resident.
+    // The startup share needs just Far, so a dense tile can appear before Near.
+    size_t residentVertices = vertexCount(out.parts) + (ocean || pack ? 0 : landmarks.vertices);
+    size_t residentIndices = indexCount(out.parts);
+    std::array<size_t, 3> levelVertices{}, levelIndices{};
+    size_t reducedVertices = 0, reducedIndices = 0;
+    nlohmann::json buildingLods = {{"revision", 1}, {"count", out.buildings.size()},
+                                  {"buildings", nlohmann::json::array()}};
+    const char* levelNames[] = {"near", "mid", "far"};
+    for (const BuildingVisual& building : out.buildings) {
+        nlohmann::json levels = nlohmann::json::array();
+        for (size_t level = 0; level < building.levels.size(); ++level) {
+            auto count = meshCounts(building.levels[level]);
+            levelVertices[level] += count["vertices"].get<size_t>();
+            levelIndices[level] += count["indices"].get<size_t>();
+            count["name"] = levelNames[level];
+            levels.push_back(std::move(count));
+        }
+        residentVertices += vertexCount(building.levels[2]);
+        residentIndices += indexCount(building.levels[2]);
+        auto reduced = meshCounts(building.reducedNear);
+        reducedVertices += reduced["vertices"].get<size_t>();
+        reducedIndices += reduced["indices"].get<size_t>();
+        buildingLods["buildings"].push_back({{"id", building.id}, {"footprint", building.footprint},
+            {"bounds", {{"low", {building.low.x, building.low.y, building.low.z}},
+                        {"high", {building.high.x, building.high.y, building.high.z}}}},
+            {"levels", levels}, {"reducedNear", reduced}});
+    }
+    buildingLods["levels"] = nlohmann::json::array();
+    for (size_t level = 0; level < levelVertices.size(); ++level)
+        buildingLods["levels"].push_back({{"name", levelNames[level]}, {"vertices", levelVertices[level]},
+            {"indices", levelIndices[level]}, {"triangles", levelIndices[level] / 3}});
+    buildingLods["reducedNear"] = {{"vertices", reducedVertices}, {"indices", reducedIndices},
+                                  {"triangles", reducedIndices / 3}};
     out.manifest = {
         {"key", tile.key()}, {"row", tile.row}, {"col", tile.col}, {"lon", center.x}, {"lat", center.y},
         {"bounds", {{"south", bounds.south}, {"west", bounds.west}, {"north", bounds.north}, {"east", bounds.east}}},
@@ -583,7 +634,9 @@ CookedTile cookTile(const Observations& in) {
         {"vertices", pack ? vertexCount(pack->parts) : ocean ? 0 : vertices},
         // The arena holds indices too (three for every vertex it holds): a
         // finely gridded tile reaches that limit before the vertex one.
-        {"indices", indexCount(out.parts)},
+        {"indices", pack ? indexCount(pack->parts) : ocean ? 0 : indices},
+        {"residentVertices", residentVertices}, {"residentIndices", residentIndices},
+        {"buildingLods", buildingLods},
         {"buildings", buildings.size()}, {"surface", pack ? "sea-ice" : ocean ? "ocean" : "land"},
         {"source", std::string(in.offline ? "Natural Earth 1:110m; " : "OpenStreetMap; ") + in.elevationSource},
         {"elevationSource", in.elevationSource}, {"offlineApproximation", in.offline || in.groundPending},

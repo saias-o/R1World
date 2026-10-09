@@ -4,8 +4,9 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 9 octobre 2026, générateur v38 : jointures de terrain partagées,
+État relu le 9 octobre 2026, générateur v39 : jointures de terrain partagées,
 LOD intermédiaire des arbres et Far billboard dérivé du Mid,
+trois niveaux de bâtiments avec Far plafonné à douze triangles,
 pavillons français, jardins,
 clôtures, portails et abris de bus ruraux ; priors régionaux US/RU/MA/JP,
 toitures par ailes et villages compacts ; exclusion des centres denses.
@@ -15,8 +16,9 @@ Le détail de ce qui est fait et mesuré est dans `game/README.md`.
 
 1. **Le monde doit ressembler à la Terre.** Pas à une terre plausible : à *la*
    Terre, à l'endroit précis où le joueur se tient.
-2. **Cela doit tourner sur un Core i5 avec une GTX 1060.** C'est la machine de
-   référence, celle qui contraint le design.
+2. **Le jeu doit tenir 30 fps partout dans le monde sur le Ryzen 7 5700U
+   avec NVIDIA MX450.** C'est la machine de référence, celle qui contraint le
+   design et les budgets.
 
 Ce qui produit la ressemblance (§2) coûte peu, et ce qui coûte cher produit peu.
 
@@ -101,9 +103,19 @@ identifiant OSM. Le générateur est compilé sans contraction flottante
 générateur incrémente sa version (`kVersion`), jamais en silence.
 
 ### I4 — Le budget est un contrat
-Machine de référence : **Core i5 4 cœurs, GTX 1060 6 Go, 1080p / 60 fps.** Sur
-i5, **c'est le CPU la ressource rare**, pas le GPU. L'arène de géométrie du
-moteur est fixée à **1 048 576 sommets** (`GeometryRegistry::kDefaultMaxVertices`)
+Machine de référence : **Ryzen 7 5700U, NVIDIA MX450 2 Gio, environ 7,4 Gio de
+RAM utilisable, alimentation secteur, 1920 × 1080 / 30 fps.** Objectif fixé par
+l'utilisateur le 9 octobre 2026 : **30 fps soutenus dans le jeu, partout dans
+le monde**, soit un budget de **33,33 ms par image**. Il s'applique aux villes
+denses, campagnes, forêts, côtes, montagnes et pôles, aux intérieurs et aux
+déplacements à pied ou en véhicule, y compris pendant le streaming. Une mesure
+locale ou une moyenne qui masque des ralentissements ne qualifie pas cet
+objectif global ; les distributions de temps de frame et les pics sont relevés.
+CPU, GPU, RAM et VRAM sont mesurés sur ce portable : aucune ressource n'est
+présumée être le seul facteur limitant. Les anciens relevés sur d'autres
+machines restent des observations, pas une qualification de cette cible.
+L'arène de géométrie du moteur est fixée à **1 048 576 sommets**
+(`GeometryRegistry::kDefaultMaxVertices`)
 et tous les budgets de sommets en découlent (`CLAUDE.md` §5). **120 000 sommets
 est un seuil de dégradation, pas de refus** : une tuile dont la géométrie propre
 le dépasse voit sa foule divisée par quatre et ses nouveaux intérieurs bloqués.
@@ -127,10 +139,26 @@ sans modifier les observations ni la géométrie déterministe du monde.
 Les arbres ont leurs propres niveaux de détail : le modèle, le même arbre
 éclairci (`tools/r1/tree_lod.py`, 4 000 triangles de couronne, 1 800 de
 branches, 160 de tronc, silhouette commune à 94 %) et sa carte. Un niveau se
-fond dans le suivant en une demi-seconde (fondu tramé de Saida). Le modèle complet est réservé aux arbres à
-moins de 15 m du joueur, environ un espacement de forêt et quart : quelques
-arbres, de l'ordre de cinq en forêt. Le niveau intermédiaire couvre le reste
-jusqu'à environ 250 m pour un arbre de 9 m ; la carte ne sert qu'au fond.
+fond dans le suivant en une demi-seconde (fondu tramé de Saida). Le modèle
+complet est réservé aux arbres à moins de 15 m du joueur. Pour l'arbre urbain,
+le Mid reste jusqu'à une couverture écran de 0,09, soit environ 80 m pour un
+arbre de 9 m avec un champ vertical de 60°, puis cède à un billboard Far de
+quatre sommets dérivé du même Mid. Son atlas couvre huit azimuts et cinq
+élévations ; son éclairage simplifié et l'absence d'ombres portées au loin
+réduisent le coût GPU. Les autres essences gardent leurs cartes existantes.
+
+Les bâtiments fermés ont trois niveaux : **Near** avec détails de façade et
+intérieurs chargés à proximité, **Mid** avec l'emprise réelle et une toiture
+simplifiée, **Far** avec une boîte orientée fermée de **12 triangles maximum
+par bâtiment**, sans textures ni ombres portées. Le Near est réservé aux
+bâtiments à moins de 75 m (85 m pour en sortir) ; la couverture écran choisit
+ensuite le niveau. Les transitions se fondent en 0,3 seconde et gardent un
+niveau disponible pendant le chargement du suivant. Dans une tuile dégradée
+au-delà de **120 000 sommets**, le Near garde l'enveloppe sans les détails
+ajoutés et les nouveaux intérieurs restent bloqués. Le seuil porte toujours
+sur la géométrie propre de la tuile avant LOD, pas sur les trois variantes
+additionnées. Seuls les niveaux demandés occupent l'arène, avec le petit Far
+en réserve ; les collisions gardent l'enveloppe réelle indépendamment du LOD.
 
 ### I5 — Le jeu sait toujours ce qu'il ignore
 Chaque élément porte sa provenance : `mesuré`, `inféré` ou `synthétisé`. Ce qui
@@ -339,6 +367,12 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
   de la photo de Rio est corrigée d'une heure par inférence du Soleil visible,
   avec cette incertitude indiquée. La ville et le couvert détaillé au-delà des
   tuiles résidentes restent à restituer pour atteindre la fidélité des photos.
+- **Pluie** : la prévision locale distingue pluie liquide et neige et pilote les
+  particules Saida, le ciel nuageux et les matériaux extérieurs. Le shader
+  générique du moteur ajoute les impacts circulaires et les films humides sur
+  bitume, pavés, béton et parkings ; le sol sèche progressivement. Les nuages
+  de pluie complètent les HDR existantes, avec masses cumuliformes et enclumes.
+  Les shaders partagent leurs coordonnées monde entre les yeux en VR.
 - **Relief installé** : une grille mesurée d'environ 278 m couvre les latitudes
   de −85° à +85°, en blocs compacts de 10° (`native/gen/relief.*`, `r1relief`).
   Les anneaux de 256 m et plus la lisent sans réseau ; les anneaux fins et le
@@ -373,61 +407,8 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
 
 Chacune garde les règles du projet : rien ne dégrade un asset existant
 (`CLAUDE.md` §1), les couleurs sont des albédos, tout ce qui est inféré le dit
-dans le manifeste (I5), et le coût se compte contre l'arène et le CPU de la
-machine de référence (I4).
-
-### Fiabilité et fluidité — priorité immédiate
-- **Densité par tuile** : règle permanente ci-dessus, à 120 000 sommets de
-  géométrie de tuile. Le dépassement ne supprime ni routes, ni bâtiments, ni
-  arbres. Grenoble est recuite à 135 010 sommets
-  sans le refus antérieur ; la qualification en jeu est décrite dans le README.
-- **Streaming sans pics de frame** : décodage des assets en tâche de fond et
-  uploads GPU incrémentaux intégrés dans le moteur, parcours Paris–Tunis validé.
-  Les transferts, mipmaps et compactages natifs ne vident plus la file GPU.
-  Les allocations de textures, la rasterisation des interfaces et le calcul
-  diffus du ciel passent aussi en tâche de fond dans le moteur ; transferts
-  de textures bornés, ressources conservées jusqu'à leur fin réelle.
-  Les enseignes, intérieurs et glaces lointaines utilisent désormais les uploads
-  en file ; les intérieurs deviennent visibles et solides une fois prêts.
-  Les pipelines natifs sont construits par lots sur deux tâches au démarrage,
-  et le redimensionnement réutilise ceux du bloom. Les traces Paris, Grenoble
-  et Paris–Tunis ne contiennent plus d'attentes GPU de ces chemins.
-  Reste à mesurer sur i5 / GTX 1060. Les contrats sont dans `engine/SPEC.md`,
-  les résultats de vérification dans `game/README.md`.
-  Les mesures actuelles sur RTX 4070 ne qualifient pas cette machine cible.
-- **Reprise commencée le soir du 8 octobre 2026 sur le portable MX450 —
-  qualification de fluidité encore ouverte.** Ryzen 7 5700U, environ 7,4 Gio de
-  RAM utilisable, MX450 2 Gio, écran 1920 × 1080, alimentation secteur.
-  Les 92 tests natifs et 166 contrôles de scène/streaming GPU passent. Le
-  parcours Paris–Tunis passe avec les proxys fermés (marche, saut, conduite,
-  prise d'une voiture du trafic et téléportation). Le smoke maison de Tunis
-  passe désormais en jeu : entrée, mobilier et murs solides, sortie,
-  éviction et régénération.
-  La recherche de caméra ne recalcule plus les matrices de tous les objets ;
-  les matrices TRS sont construites directement. Un blocage du remplacement
-  des tuiles révélé à Grenoble est corrigé : une tuile arrivée au délai de
-  secours compte aussi dans le délai du lot, même si d'autres attendent encore.
-  Les nouvelles traces sont dans `game/generated/streaming-validation/mx450/`.
-  Après fermeture du second jeu, une comparaison isolée à Paris en 1080p
-  mesure 45,83 → 39,05 ms par image en moyenne (−14,8 %), p95 50,29 → 43,37 ms,
-  export PNG final exclu ; recherche de caméra 13,18 → 9,89 ms en moyenne.
-  C'est un passage sur les données disponibles, pas une qualification à 60 fps.
-  **Reste à faire** : poursuivre les mesures avec le relief complet et
-  qualifier Grenoble, sans compilation ni autre jeu en cours. La v37 utilise
-  les mêmes sommets de jointure entre les rangées de tuiles ; les régressions
-  de terrain abrupt et de voisinage incomplet passent. Le changement de repère
-  conserve aussi une destination précise, pour corriger le décalage de 0,383 m
-  observé avec les données OSM complètes. **Validation en jeu encore à faire** :
-  la demande de test manuel du joueur interrompt les mesures supplémentaires.
-  Grenoble n'est donc pas encore requalifiée. La suite du générateur compte
-  295 réussites et trois échecs (budget résident, texture de relief et jonction
-  de deux chaussées), conservés sans assouplir les assertions.
-  Les premières captures après correction, avec un second jeu ouvert, sont
-  écartées de la comparaison. La couche de relief installée manque sur le
-  portable. La MX450 ne
-  remplace pas la qualification i5 / GTX 1060, qui reste ouverte.
-- **Voitures et circulation** : améliorer la peinture et les reflets de près,
-  puis le comportement aux feux et face aux piétons, avec un coût borné.
+dans le manifeste (I5), et le coût se compte contre l'arène, le CPU, le GPU,
+la RAM et la VRAM de la machine de référence (I4).
 
 ### Fun update — à traiter plus tard
 
@@ -457,6 +438,8 @@ machine de référence (I4).
 
 ### Circulation update — à traiter plus tard
 
+- **Peinture et reflets des voitures** : améliorer leur rendu de près,
+  avec un coût borné sur la machine de référence.
 - **Feux de circulation fonctionnels** : cycles cohérents aux carrefours,
   respect des feux par les véhicules et coordination avec les traversées
   piétonnes.
@@ -487,6 +470,14 @@ machine de référence (I4).
   au climat, au pays et à l'usage du sol ; respecter les limites observées,
   les accès, les centres urbains et les budgets d'instances/LOD. Vérifier aux
   points GPS des photos, à heure et météo comparables, sans déplacer la caméra.
+
+### Raccord brouillard / skybox HDRI — à traiter plus tard
+
+- **Supprimer la démarcation visible à l'horizon** : fondre progressivement
+  le bas de la skybox vers `fogColor` sur quelques degrés, après les nuages
+  et avant le tonemapping, en HDR linéaire. Harmoniser la couleur, pas seulement
+  la luminosité moyenne ; vérifier aussi que le bord du terrain est masqué
+  par le brouillard avant son arrêt.
 
 ### Animals update
 - **Beaucoup d'animaux, adaptés à l'endroit** : l'espèce découle du biome, de

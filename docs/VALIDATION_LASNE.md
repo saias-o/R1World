@@ -40,7 +40,8 @@ Dernière session de capture :
 `game/cache/sessions/1de51e57bc994126970072121bf12251/game.log`.
 Le profil contient 600 images : 16,35 ms/image en moyenne, dont 8,13 ms
 d'attente du limiteur. Pic de 372,69 ms pendant le chargement.
-Mesure sur la machine de développement, pas sur la GTX 1060 cible.
+Mesure sur la machine de développement ; elle ne qualifie pas la cible
+Ryzen 7 5700U / MX450 à 30 fps soutenus partout dans le monde.
 
 Test de fumée complet hors réseau : **PASS**, marche de 102,8 m, saut,
 conduite, sortie du véhicule, prise d'une voiture du trafic et reprise du jeu.
@@ -81,7 +82,8 @@ réseau. Journal final :
 `game/cache/sessions/48ee3373bb374d1ca29771659e9c689d/game.log`.
 Le profil final couvre 600 images : 16,40 ms/image, dont 8,75 ms d'attente du
 limiteur ; portée CPU `Renderer/DrawFrame` 2,06 ms, pic de chargement 385,48 ms.
-Ce relevé sur RTX 4070 ne qualifie pas la GTX 1060 cible.
+Ce relevé sur RTX 4070 ne qualifie pas la cible Ryzen 7 5700U / MX450
+à 30 fps soutenus partout dans le monde.
 
 L'IBL conserve les projections du ciel en cache et ne prélève le second ciel
 dans le shader que pendant le fondu. Le préfiltrage GGX des reflets reste dans
@@ -131,7 +133,8 @@ reste un local technique, sans confusion avec un abri ni gabarit d'habitation.
   `game/cache/sessions/e7a3e6468fb345078d6ccbf79e44a8a9/game.log`.
 - Profil de cette capture, 600 images : 16,47 ms/image ; portée CPU
   `Renderer/DrawFrame` 1,82 ms ; pic de chargement 428,60 ms. Mesure RTX 4070,
-  sans qualification de la GTX 1060 cible.
+  sans qualification de la cible Ryzen 7 5700U / MX450 à 30 fps soutenus
+  partout dans le monde.
 - Test de fumée final hors réseau : **PASS**, marche de 92,36 m, saut,
   conduite, freinage, sortie, prise d'une voiture du trafic et reprise du jeu.
   Session `game/cache/sessions/29af9c0ade494ec1938ac0b98454aed6/game.log`.

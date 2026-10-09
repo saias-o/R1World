@@ -36,7 +36,8 @@ limite ; ils utilisent respectivement roche, planches et pierre sans fenêtres.
 | Tsumago | 23 659 | 148 |
 
 Plafond conservé : 120 000 sommets par tuile. Ces mesures ne qualifient pas
-les FPS sur i5/GTX 1060. Paris, tuile 27771/23994 : géométrie et props identiques
+les 30 fps soutenus partout dans le monde sur Ryzen 7 5700U / MX450.
+Paris, tuile 27771/23994 : géométrie et props identiques
 octet pour octet à la référence antérieure, 110 428 sommets, aucun jardin inféré.
 SHA256 GLB : `4542FE9E30FB87E0D619B17D9A227A2053FE237AF035C518B1BC6C5B1028C659`.
 SHA256 props : `A6EC30021AFAC2E6DB703F60EC3BE979FB0EDC77B24FFD8E44C9659FFD544668`.

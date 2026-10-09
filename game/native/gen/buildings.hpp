@@ -25,8 +25,22 @@ using MaterialFor = std::function<Material(const Swatch&, bool doubleSided)>;
 // The tile cook can step down building geometry before refusing a dense tile.
 enum class BuildingLod { Full, UnifiedBase, SimpleRoofline };
 
+// Independent visual levels of one planned building. The baseline shell in
+// BuildingOutput::parts stays authoritative for collision and density; these
+// levels only change what is drawn, with the same surveyed footprint/height.
+struct BuildingVisual {
+    int64_t id = 0;
+    size_t footprint = 0;
+    P3 low{}, high{};
+    std::array<std::vector<MeshPart>, 3> levels;  // Near, Mid, Far
+    std::vector<MeshPart> reducedNear;
+};
+
 struct BuildingOutput {
     std::vector<MeshPart> parts;
+    std::vector<BuildingVisual> visuals;
+    // Open structures keep their own geometry and never become a closed box.
+    std::vector<MeshPart> staticParts;
     std::vector<Ring> footprints;  // engine (x, z)
     // The highest point over each footprint, engine y: what an aircraft
     // clears or stops against, and what a helicopter lands on.

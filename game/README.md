@@ -8,9 +8,21 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 9 October 2026. The current generator is v38;
+Documentation reviewed on 9 October 2026. The current generator is v39;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
+
+The reference PC is the user's Ryzen 7 5700U / NVIDIA MX450 2 GiB laptop,
+with about 7.4 GiB usable RAM, connected to AC. The performance target,
+set on 9 October 2026, is sustained **30 fps at 1920 × 1080 everywhere in
+the world**, a **33.33 ms whole-frame budget**, including streaming and
+gameplay on foot, in vehicles and inside buildings. Dense cities, rural areas,
+forests, coasts, mountains and polar regions all fall under this target.
+This remains a design target, not a demonstrated whole-world guarantee.
+On 9 October 2026 the user removed the dedicated fluidity/qualification
+campaign from the backlog after the tree Far billboard and tighter Mid range
+were delivered. Historical measurements below retain their actual hardware,
+observed frame rates and limitations.
 
 ## Playing
 
@@ -561,10 +573,44 @@ Each manifest says which tier answered and how much was inferred:
               "roofShapes": {"flat": 429, "gabled": 777, "hipped": 156, ...}}
 ```
 
-Roofs are drawn without fascia or soffit (six vertices where a slab costs
-twenty-four); the ridge, pitch, overhang and colour carry the silhouette.
-Facades are a preview LOD: no modelled openings except the doors of
-interiors.
+### Three building levels
+
+Each closed building has three deterministic representations. **Near** adds
+window reveals and glazing, roof thickness, trim and regional roof details;
+its doors match the generated interiors. **Mid** keeps the surveyed footprint
+and a simplified roof, with closed façades and no interior openings or added
+detail. **Far** is a closed oriented box with at most **12 triangles per
+building**, regional wall and roof colours, no texture maps and no cast shadows.
+Open structures such as bus shelters and canopies keep their existing geometry.
+
+Saida selects levels by projected screen coverage (Near 0.08, Mid 0.008),
+with a 0.3-second dither fade. Near is eligible within 75 m of the building
+bounds and remains eligible until 85 m. A ready level stays visible while its
+replacement uploads. Far stays resident as a small fallback; unused Near and
+Mid meshes are released after their fade. The tile streamer and closer-level
+admission share the arena budget. Physics uses the original building shell
+on the CPU, so a distant box cannot change walls, doorways or collision shapes.
+Interiors load only when their building's Near is ready.
+
+The permanent density policy still uses **120,000 vertices per tile**, counted
+on the original geometry. A degraded tile uses the original envelope for Near,
+without the added façade and roof details, and blocks new interiors. Manifest
+`vertices`/`indices` retain that baseline; `residentVertices`/`residentIndices`
+reserve the static tile plus Far, and `buildingLods` records each variant's
+counts. Diagnostic GLB exports retain the original full shells. The three
+variants never get added together to trigger the density threshold.
+
+Verified on 9 October 2026 in `generated/building-lod-validation`: 11 new
+generator tests pass; the complete generator suite has 308 passing tests and
+the same two prior failures (FarRelief material map and paired bridge decks).
+The engine passes 92 native CTest cases and 226 GPU streaming checks. Offline
+1920×1080 captures pass in Paris and Grenoble; the close Grenoble view shows
+25 reduced Near buildings and no detailed Near. Its 382 closed buildings use
+9,278 Mid triangles and 4,584 Far triangles (12 each), against 18,658 triangles
+for their reduced Near envelopes. The Tunis home entry/exit, collision,
+eviction and regeneration smoke and the Paris-to-Tunis walk/drive/teleport
+smoke pass. These checks ran on the current RTX 4070 desktop; they verify the
+LOD implementation and do not measure the reference laptop's frame rate.
 
 ### Churches and mosques
 
@@ -1156,12 +1202,46 @@ The Pole is a place like any other (`--spawn 0 90`): on foot, on the pack.
   measured visibility (23 km at the pole the day it was written).
 
 **Weather you can see.** Open-Meteo's local conditions carry visibility,
-wind, cloud cover, precipitation, snowfall and snow depth. Snow falls around
+wind, cloud cover, precipitation, rain, showers, snowfall and snow depth. Snow falls around
 the camera with the measured wind, and drifts along the ground above 6 m/s.
 From 3 cm of measured snow, ground and roofs of resident tiles wear the
 photographed snow (streets stay clear). Cloud cover softens the Sun and blends
 in an overcast sky; precipitation thickens the haze. A forecast older than two
 hours is unavailable, and nothing waits for weather.
+
+Liquid rain activates Saida's Rain particle preset around the camera, with a
+bounded budget and the measured wind. An upward physics query suppresses the
+emitter when the camera is beneath a roof. Rain plus showers is converted from
+the forecast's reported aggregation interval (`precipitationIntervalSeconds`,
+normally 900 seconds for current conditions) to mm/h; legacy cached totals are
+used only outside snow conditions (`native/weather.hpp`). Explicit zero liquid
+rain remains authoritative. The local weather check wraps the date line, and
+teleports reset the weather pointer and accumulated wetness.
+
+The engine's generic `rain_ripples.glsl` is enabled on carriageways, cobbles,
+sidewalks, kerbs, markings, bridge concrete, made ground and parking surfaces.
+It adds animated expanding impacts, wet roughness and irregular puddle patches
+under the existing PBR lighting. Interior floors, vegetation and facades are
+not opted in. Wetness rises over eight seconds and dries over two minutes after
+rain stops; impacts stop with rainfall. Water also receives the engine's
+impact shading. These are visual water films, not simulated water accumulation.
+
+Rain raises the cloudy sky blend and activates the engine's procedural rain
+bases, cumuliform towers and anvils over the existing HDR skies. The cloud
+overlay is lit from those images and stays dark at night. Droplet simulation,
+world-space impact placement and cloud directions are shared by stereo eyes;
+native multiview and Web shader variants use the same equations. This does not
+claim a headset validation or a new reference-machine frame-rate measurement.
+
+Verified 2026-10-09 without launching R1World: optimized engine and game builds,
+94/94 engine CTest cases, six forecast/wetness CPU cases, 53 particle GPU state
+checks and 99 weather rendering checks with 18 hidden engine captures.
+The images verify animated impacts, wet shading, untouched opt-out/wall/unlit
+surfaces, storm structure, return to clear sky and dark nighttime clouds.
+Logs and captures are in `generated/rain-validation/`; the real rendered path
+was mono Vulkan on the current desktop, while multiview and Web shaders were
+compiled. Open-Meteo's [current interval documentation](https://open-meteo.com/en/docs)
+defines the precipitation-period conversion used above.
 
 ## The Sun and the sky
 
@@ -1187,6 +1267,14 @@ clock, and time stops flowing until **Heure réelle** hands `null` back. A
 capture's `--at` still wins. The choice is kept in `cache/options.json`, which
 smoke tests and captures neither read nor write; a bad hour is refused on
 screen and in `game.log`.
+
+**Options → Météo dans le monde** lets the player choose **Dégagé**,
+**Petite pluie** or **Forte pluie / orage** everywhere, including after a
+change of destination. **Météo réelle** restores each place's local weather.
+This choice is independent of the forced hour; the selected button and the
+weather status show which mode is active. It is saved alongside the hour in
+`cache/options.json` and works even without a local forecast. Smoke tests and
+captures keep their own atmosphere and never read or overwrite these choices.
 
 **The sky** is eleven Qwantani pure-sky HDRIs (Poly Haven, CC0), one sky
 photographed from before dawn to after dusk (`r1/skies.py`):
@@ -1543,9 +1631,10 @@ material property, including textures, rather than only its name and paint.
 Later measurements: Le Fourchêne hypermarket at 60 fps; the canopy tile at
 60 fps (+0.8 ms scene update); a 600-frame Vannes home run at 0.750 ms/frame
 for `Physics/SceneStep`. These were taken on an RTX 4070 host, not on the
-reference i5 / GTX 1060. The streaming contracts and remaining engine limits
-are documented in [Saida's specification](../engine/SPEC.md). Reference
-i5 / GTX 1060 qualification remains outstanding.
+reference Ryzen 7 5700U / MX450. The streaming contracts and remaining engine
+limits are documented in [Saida's specification](../engine/SPEC.md).
+These historical captures do not demonstrate sustained 30 fps worldwide on
+Ryzen 7 5700U / MX450.
 
 On 8 October, consecutive optimized offline Paris captures on the RTX 4070
 host (`--spawn 2.3522 48.8566 --after-frames 5 --at 1791374400`) measured:
@@ -1579,8 +1668,9 @@ arguments, reduces main-thread upload work:
 | Mean frame including loading | 18.34 ms | 18.22 ms |
 | Frame p95 | 21.74 ms | 21.63 ms |
 
-This is still one local arrival capture, not a guarantee of 60 fps. The startup
-frame peaks at 190.45 ms. The final Paris trace contains no upload/queue waits
+This is still one local arrival capture, not a qualification of sustained 30 fps
+worldwide on the reference PC. The startup frame peaks at 190.45 ms.
+The final Paris trace contains no upload/queue waits
 during its frames after moving the far landmarks to asynchronous loading.
 Grenoble retains one 0.40 ms legacy queue wait; its mesh pump peaks at 0.59 ms
 and texture finalization at 2.65 ms. Startup and texture allocation still hitch.
@@ -1604,7 +1694,7 @@ the same RTX 4070, offline data and pinned capture time:
 
 Environment projection no longer appears on the main thread in either arrival.
 These are individual captures including loading, scripted map interactions and
-PNG export, not target-hardware or sustained-60-fps benchmarks. In the final
+PNG export, not target-hardware or sustained-30-fps benchmarks. In the final
 Paris/Grenoble traces, the worst frame is the terminal screenshot export;
 normal frame p95 remains about 21.5/21.7 ms. A profiler regression that attached
 cross-frame worker completions to the wrong frame is covered and corrected.
@@ -1638,7 +1728,9 @@ The targeted service suite passes all eight cases, including this regression.
 The Tunis home smoke that exposed this needs an in-game rerun.
 The user plans to resume on a laptop with a NVIDIA MX450 on the evening of
 8 October; the portable validation checklist is recorded in `docs/PLAN.md`.
-Neither the RTX 4070 results nor this planned MX450 run qualify the i5 / GTX 1060.
+The RTX 4070 results do not qualify the reference Ryzen 7 5700U / MX450;
+the planned run starts its validation, with sustained 30 fps worldwide as
+the target.
 
 The portable pass resumed on 8 October on a Ryzen 7 5700U / MX450 2 GiB,
 7.4 GiB usable RAM, connected to AC, with a 1920 x 1080 desktop. The first
@@ -1686,7 +1778,7 @@ Mean normal frame time improves by 14.8% in this pair. Both traces peak at
 68,355 scene nodes and 6,861 meshes; GPU asset residency is about 480 MiB.
 Their retained frames contain no `GPU/WaitUpload`, `GPU/WaitSingleTime`,
 `Resource/LoadGLTF` or `GPU/CreatePipeline` scopes. This is one arrival pair on
-the available data, not a sustained-60-fps or full-relief qualification.
+the available data, not a sustained-30-fps or full-relief qualification.
 The traces and inspected 1080p PNGs use the `paris-isolated-` prefix.
 The final online Grenoble smoke and a fresh-process offline repeat both fail
 the unchanged seam check: a 0.726637 m step between v36_27038_26176 and
@@ -1705,10 +1797,12 @@ The generator suite reports 295 passing cases and three failures: resident
 geometry budget, missing metallic/roughness texture and paired-carriageway
 deck joining. These assertions remain unchanged. The earlier failure logs and traces are
 `grenoble-final.*` and `grenoble-offline-repeat.*` in the portable artifact folder.
-Repeat performance measurements at explicit 1920 x 1080 with complete data,
-one player process and no compilation; neither MX450 nor i5 / GTX 1060 fluidity
-qualification is complete. While the live player locked `R1World.exe`, the
-source was linked and exercised as `R1World-fluidity-validation.exe` beside it.
+These captures do not demonstrate sustained 30 fps worldwide on the reference
+Ryzen 7 5700U / MX450. They remain an archived validation record; the dedicated
+fluidity campaign was removed from the backlog at the user's request on
+9 October 2026 after the tree LOD work. While the live player locked
+`R1World.exe`, the source was linked and exercised as
+`R1World-fluidity-validation.exe` beside it.
 Once that player exited, the final executable was copied to `R1World.exe` and
 used for the isolated after capture. The normal development launch has the fix.
 The first full test build exhausted disk space; stripping debug symbols from

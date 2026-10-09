@@ -53,6 +53,7 @@
 #include "gen/service.hpp"
 #include "gen/terrain.hpp"
 #include "minimap.hpp"
+#include "weather.hpp"
 #include "forced_time.hpp"
 #include "density_policy.hpp"
 #include <filesystem>
@@ -130,6 +131,7 @@ constexpr double kRebaseDistance=350.;
 // Soft per-frame budgets, in milliseconds: soft because one mesh upload or one
 // model import cannot be split.
 constexpr double kPartUploadMs=3.,kPropImportMs=2.,kMountTickMs=4.;
+constexpr double kBuildingNearLoad=75.,kBuildingNearRelease=85.;
 constexpr size_t kStreamRequestLimit=25; // the world service's bounded priority list
 constexpr double kOnFootFollow=4.5,kDrivingFollow=8.5;
 // One message for the whole wait after Go: every change of the status line
@@ -384,6 +386,12 @@ struct PartUpload {
 struct PreparedTile {
     std::vector<PartUpload> parts;
     std::vector<Footprint> footprints;
+    struct Building {
+        std::array<std::vector<PartUpload>,3> levels;
+        std::vector<PartUpload> reducedNear;
+    };
+    std::vector<Building> buildings;
+    std::vector<std::shared_ptr<const saida::MeshCollisionData>> buildingCollisions;
 };
 
 // A generator part in the engine's vertex format.
@@ -412,6 +420,27 @@ PreparedTile prepareTile(const r1::CookedTile& tile) {
         auto part=uploadOf(tile.parts[i],i);
         part.prepared=saida::prepareMesh({std::move(part.vertices),std::move(part.indices)});
         out.push_back(std::move(part));
+    }
+    auto prepareParts=[](const std::vector<r1::MeshPart>& parts) {
+        std::vector<PartUpload> result;
+        for(size_t i=0;i<parts.size();++i) {
+            auto part=uploadOf(parts[i],i);
+            part.prepared=saida::prepareMesh({std::move(part.vertices),std::move(part.indices)});
+            result.push_back(std::move(part));
+        }
+        return result;
+    };
+    for(const auto& building:tile.buildings) {
+        PreparedTile::Building b;
+        for(size_t level=0;level<3;++level)b.levels[level]=prepareParts(building.levels[level]);
+        b.reducedNear=prepareParts(building.reducedNear);
+        prepared.buildings.push_back(std::move(b));
+    }
+    for(const auto& part:tile.buildingCollisions) {
+        auto data=std::make_shared<saida::MeshCollisionData>();
+        data->indices=part.mesh.indices;
+        for(const auto& p:part.mesh.positions)data->positions.push_back({float(p.x),float(p.y),float(p.z)});
+        prepared.buildingCollisions.push_back(std::move(data));
     }
     const json& tops=tile.manifest.contains("footprintTops")?tile.manifest.at("footprintTops"):json::array();
     for(const auto& polygon:tile.manifest.at("footprints")) {
@@ -449,6 +478,20 @@ struct Loaded {
     // The tile's own geometry goes up a few parts a frame (World::uploadParts).
     saida::Node* geography=nullptr; size_t nextPart=0;
     std::vector<saida::Mesh*> partMeshes;
+    struct Building {
+        saida::Node* node=nullptr;
+        saida::LODGroupBehaviour* lod=nullptr;
+        struct Level {
+            saida::Node* root=nullptr;
+            std::vector<saida::Mesh*> meshes;
+            size_t nextPart=0;
+            bool started=false,refused=false,failed=false;
+        };
+        std::array<Level,3> levels;
+        bool close=false;
+    };
+    std::vector<Building> buildings;
+    std::vector<int> visualForFootprint;
     saida::GrassNode* grass=nullptr;  // its blades, when its ground grows any
     std::vector<saida::WaterNode*> waters;
     bool reducedDensity=false;
@@ -855,6 +898,7 @@ class World : public Rml::EventListener {
     double crowdFactor() {
         double factor=r1::crowdHourFactor(localSolarHour());
         // Rain and falling snow send people indoors, about half of them.
+        const auto weather=effectiveWeather();
         if(weather.known&&(weather.rain>.5||weather.snowfall>.3))factor*=.5;
         return factor;
     }
@@ -1033,6 +1077,7 @@ class World : public Rml::EventListener {
     std::unique_ptr<r1::WorldService> service;
     std::map<std::string,saida::AssetID> textures;
     size_t residentVertexBudget=0,residentIndexBudget=0;
+    bool buildingTrimPending=false;
     // A tile was mounted: it may be the one the player stands on, cooked
     // again with the buildings its first, provisional cook did not have.
     bool checkStanding=false;
@@ -1098,6 +1143,7 @@ class World : public Rml::EventListener {
     // is the instant last handed to the Sun, so the script is told only when
     // the hour or the time zone under the player changes.
     std::optional<int> forcedMinutes; std::optional<double> forcedSent; bool forcedSaid=false,optionsOpen=false;
+    r1::WeatherOverride forcedWeather=r1::WeatherOverride::Real;
     saida::CaptureRequest worldCapture;
     saida::runtime::CaptureViewpoint captureView;
     bool captureQueued=false;
@@ -3061,14 +3107,16 @@ class World : public Rml::EventListener {
     }
     bool localConditions() const {
         return conditions.is_object()&&conditions.contains("lon")&&conditions.contains("lat")
-            &&std::abs(conditions.value("lon",1000.)-lon)<.12
-            &&std::abs(conditions.value("lat",1000.)-lat)<.12;
+            &&r1::weatherLocal(conditions.value("lon",1000.),conditions.value("lat",1000.),lon,lat);
     }
-    // The weather as last read: what the sky, the fog and the snow are drawn from.
-    struct Weather {
-        double cover=0,rain=0,visibility=0,windSpeed=0,windFrom=0,snowfall=0,snowDepth=0;
-        int code=-1; bool known=false;
-    } weather;
+    // Keep observations separate: returning to real weather restores the
+    // local forecast, while a forced atmosphere applies at every coordinate.
+    using Weather=r1::WeatherState;
+    Weather observedWeather;
+    Weather effectiveWeather() const {
+        return r1::resolveWeather(observedWeather,localConditions(),forcedWeather,
+            inspectAt?std::optional<std::array<double,3>>(inspectWeather):std::nullopt);
+    }
     bool fogFar=false;  // what the fog was last told about the horizon
     static double number(const json& j,const char* key,double fallback) {
         auto it=j.find(key);return it!=j.end()&&it->is_number()?it->get<double>():fallback;
@@ -3077,20 +3125,18 @@ class World : public Rml::EventListener {
         auto latest=sky->latest();
         if(!latest||latest==conditionsDoc)return;
         conditionsDoc=latest;conditions=*latest;
-        if(!localConditions())return;
         const auto w=conditions.value("weather",json());
-        weather=Weather{};
-        if(inspectAt)return;  // a fixed instant is photographed under a clear sky
+        observedWeather=Weather{};
         if(w.is_object()) {
-            weather.known=true;
-            weather.cover=std::clamp(number(w,"cloudCover",0.)/100.,0.,1.);
-            weather.rain=std::max(0.,number(w,"precipitation",0.));
-            weather.visibility=number(w,"visibility",0.);
-            weather.windSpeed=std::max(0.,number(w,"windSpeed",0.));
-            weather.windFrom=number(w,"windFrom",0.);
-            weather.snowfall=std::max(0.,number(w,"snowfall",0.));
-            weather.snowDepth=std::max(0.,number(w,"snowDepth",0.));
-            weather.code=int(number(w,"code",-1.));
+            observedWeather.known=true;
+            observedWeather.cover=std::clamp(number(w,"cloudCover",0.)/100.,0.,1.);
+            observedWeather.rain=r1::liquidRainMmPerHour(w);
+            observedWeather.visibility=number(w,"visibility",0.);
+            observedWeather.windSpeed=std::max(0.,number(w,"windSpeed",0.));
+            observedWeather.windFrom=number(w,"windFrom",0.);
+            observedWeather.snowfall=std::max(0.,number(w,"snowfall",0.));
+            observedWeather.snowDepth=std::max(0.,number(w,"snowDepth",0.));
+            observedWeather.code=int(number(w,"code",-1.));
         }
         applyWeather();
     }
@@ -3102,15 +3148,85 @@ class World : public Rml::EventListener {
     bool applyWeather() {
         if(!sunScript)return false;
         fogFar=farPack.node!=nullptr;
-        const double seen=inspectAt?inspectWeather[2]:
-            weather.visibility>0&&weather.visibility<kVisibilityCeiling?weather.visibility:0.;
-        const double cloud=inspectAt?inspectWeather[0]:weather.cover;
-        const double rain=inspectAt?inspectWeather[1]:weather.rain;
+        const auto weather=effectiveWeather();
+        const double seen=weather.visibility>0&&(inspectAt||weather.visibility<kVisibilityCeiling)?weather.visibility:0.;
+        const double rain=weather.rain;
+        const double cloud=r1::rainCloudCover(weather.cover,weather.code,rain);
         json result;
         const bool accepted=sunScript->callExport("setWeather",json::array({cloud,rain,seen,height(lon,lat)}),result)
             ==saida::ScriptCallStatus::Succeeded&&result.is_boolean()&&result.get<bool>();
         if(inspectAt&&accepted)saida::Log::info("[World inspection] cloud=",cloud," rain_mm_h=",rain," visibility_m=",seen);
         return accepted;
+    }
+
+    saida::ParticleSystemNode* rainfall=nullptr;
+    r1::RainState rainState;
+    double rainShelterAge=1e9;
+    glm::vec3 rainShelterEye{0.f};
+    bool rainSheltered=false;
+    glm::vec3 weatherWind() const {
+        const auto weather=effectiveWeather();
+        const double to=(weather.windFrom+180.)*rad;
+        const glm::dvec3 local(std::sin(to)*weather.windSpeed,0.,-std::cos(to)*weather.windSpeed);
+        // Bearings belong to the observer's tangent frame, including at poles;
+        // render coordinates belong to the last floating origin instead.
+        return glm::vec3(glm::transpose(origin.basis)*Frame(lon,lat,alt).basis*local);
+    }
+    void clearRain() {
+        if(rainfall)rainfall->setEnabled(false);
+        rainState.reset();rainShelterAge=1e9;rainSheltered=false;
+        auto& settings=engine.sceneTree().world().settings();
+        settings.rainIntensity=0.f;settings.wetness=0.f;settings.stormCloudCover=0.f;
+    }
+    void updateRain(double dt) {
+        const auto weather=effectiveWeather();
+        const bool active=playing&&!pending&&weather.known;
+        const double rate=weather.rain;
+        rainState.update(dt,rate,active);
+        auto& settings=engine.sceneTree().world().settings();
+        settings.rainIntensity=float(rainState.intensity);
+        settings.wetness=float(rainState.wetness);
+        const double storm=active&&rate>0.?r1::rainCloudCover(weather.cover,weather.code,rate):0.;
+        settings.stormCloudCover+=float((storm-settings.stormCloudCover)*(1.-std::exp(-std::max(0.,dt)/2.)));
+        if(storm==0.&&settings.stormCloudCover<.0001f)settings.stormCloudCover=0.f;
+        if(!active){clearRain();return;}
+        const glm::vec3 up=glm::normalize(glm::vec3(glm::transpose(origin.basis)*
+            (ecef(lon,lat,alt+1.)-ecef(lon,lat,alt))));
+        settings.rainUpDirection=up;
+        const glm::vec3 eye=camera->transform().position;
+        rainShelterAge+=dt;
+        if(rate>0.&&(rainShelterAge>.15||glm::length(eye-rainShelterEye)>1.f)) {
+            rainShelterAge=0.;rainShelterEye=eye;
+            auto* physics=engine.sceneTree().world().physics();
+            rainSheltered=physics&&physics->raycast(eye+up*.1f,up,120.f,obstacleFilter()).hit;
+        }
+        if(rate<=0.||rainSheltered||menu) {
+            if(rainfall)rainfall->setEnabled(false);
+            return;
+        }
+        if(daylightAge>.5&&sunScript) {
+            json result;daylightAge=0.;
+            if(sunScript->callExport("daylight",json::array(),result)==saida::ScriptCallStatus::Succeeded&&result.is_number())
+                daylightNow=std::clamp(result.get<double>(),0.,1.);
+        }
+        if(!rainfall) {
+            auto node=std::make_unique<saida::ParticleSystemNode>();node->setName("rainfall");
+            node->effectClass=saida::ParticleSystemNode::EffectClass::Rain;node->applyEffectPreset();
+            rainfall=static_cast<saida::ParticleSystemNode*>(engine.sceneTree().world().addChild(std::move(node)));
+            saida::Log::info("[World weather] liquid rain, ",rate," mm/h");
+        }
+        const glm::vec3 wind=weatherWind();
+        const glm::vec3 drift=wind*.55f;
+        rainfall->setEnabled(true);
+        rainfall->maxParticles=1800;rainfall->lifetime=1.1f;
+        rainfall->shape=saida::ParticleSystemNode::Shape::Box;rainfall->boxExtents={14.f,2.f,14.f};
+        rainfall->radius=14.f;rainfall->spawnRate=float(std::clamp(90.+rate*140.,90.,1500.));
+        rainfall->startSize=.035f;rainfall->stretch=22.f;rainfall->endSizeScale=1.f;
+        rainfall->startColor={.75f,.81f,.88f,.38f};rainfall->endColor={.75f,.81f,.88f,.08f};
+        rainfall->emissive=float(.035+.7*daylightNow);rainfall->drag=0.f;
+        rainfall->gravity=-up*1.5f;
+        rainfall->useInitialVelocity=true;rainfall->initialVelocity=-up*12.f+drift;
+        rainfall->transform().position=eye+up*9.f-drift*.65f;
     }
     // Streets and buildings that arrive after the player (a provisional
     // tile cooked again) can land on him: he is moved to the nearest free
@@ -3154,7 +3270,8 @@ class World : public Rml::EventListener {
         return true;
     }
     void updateSnowCover() {
-        const bool want=weather.known&&localConditions()&&weather.snowDepth>=.03;
+        const auto weather=effectiveWeather();
+        const bool want=weather.known&&weather.snowDepth>=.03;
         for(auto& [key,t]:loaded) {
             if(!t.geography)continue;
             if(t.snowed&&!want) {
@@ -3181,7 +3298,8 @@ class World : public Rml::EventListener {
         return static_cast<saida::ParticleSystemNode*>(engine.sceneTree().world().addChild(std::move(n)));
     }
     void updateSnow(double dt) {
-        const bool here=playing&&!pending&&weather.known&&localConditions();
+        const auto weather=effectiveWeather();
+        const bool here=playing&&!pending&&weather.known;
         const bool falling=here&&((weather.code>=71&&weather.code<=77)||weather.code==85||weather.code==86||weather.snowfall>.02);
         const bool lying=onSeaIce(lon,lat)||weather.snowDepth>.05;
         const bool blowing=here&&lying&&weather.windSpeed>6.;
@@ -3192,8 +3310,7 @@ class World : public Rml::EventListener {
                 daylightNow=std::clamp(result.get<double>(),0.,1.);
         }
         // The wind blows towards where it does not come from; x east, z south.
-        const double to=(weather.windFrom+180.)*rad;
-        const glm::vec3 wind(float(std::sin(to)*weather.windSpeed),0.f,float(-std::cos(to)*weather.windSpeed));
+        const glm::vec3 wind=weatherWind();
         const glm::vec3 eye=camera->transform().position;
         const float light=float(.04+.9*daylightNow);
         if(falling) {
@@ -3270,11 +3387,25 @@ class World : public Rml::EventListener {
         if(testRun()){saida::Log::info("[World options] cache/options.json ignored by a test run");return;}
         try {
             const json options=json::parse(input);
-            const std::string typed=options.value("forcedTime",std::string());
-            if(typed.empty())return;
-            forcedMinutes=r1::parseClockTime(typed);
-            if(forcedMinutes)saida::Log::info("[World options] time forced to ",r1::formatClockTime(*forcedMinutes)," local");
-            else saida::Log::error("[World options] cache/options.json: forcedTime '",typed,"' is not HH:MM, ignored");
+            if(!options.is_object())throw std::runtime_error("options must be an object");
+            if(const auto hour=options.find("forcedTime");hour!=options.end()) {
+                if(!hour->is_string())saida::Log::error("[World options] cache/options.json: forcedTime must be a string, ignored");
+                else {
+                    const auto typed=hour->get<std::string>();
+                    if(!typed.empty()) {
+                        forcedMinutes=r1::parseClockTime(typed);
+                        if(forcedMinutes)saida::Log::info("[World options] time forced to ",r1::formatClockTime(*forcedMinutes)," local");
+                        else saida::Log::error("[World options] cache/options.json: forcedTime '",typed,"' is not HH:MM, ignored");
+                    }
+                }
+            }
+            if(const auto atmosphere=options.find("forcedWeather");atmosphere!=options.end()) {
+                const auto mode=atmosphere->is_string()?r1::parseWeatherOverride(atmosphere->get<std::string>()):std::nullopt;
+                if(mode) {
+                    forcedWeather=*mode;
+                    saida::Log::info("[World options] weather mode ",r1::weatherOverrideKey(forcedWeather)," everywhere");
+                } else saida::Log::error("[World options] cache/options.json: invalid forcedWeather, ignored");
+            }
         } catch(const std::exception& e) {
             saida::Log::error("[World options] cache/options.json unreadable, ignored: ",e.what());
         }
@@ -3282,12 +3413,29 @@ class World : public Rml::EventListener {
     void saveOptions() {
         if(testRun())return;
         json options=json::object();
+        // Updating either option must preserve the other and any future keys.
+        std::ifstream input(optionsFile());
+        if(input) {
+            try {
+                auto saved=json::parse(input);
+                if(saved.is_object())options=std::move(saved);
+                else saida::Log::warn("[World options] replacing invalid non-object options");
+            } catch(const std::exception& e) {
+                saida::Log::warn("[World options] replacing unreadable options: ",e.what());
+            }
+            input.close();
+        }
         if(forcedMinutes)options["forcedTime"]=r1::formatClockTime(*forcedMinutes);
+        else options.erase("forcedTime");
+        options["forcedWeather"]=r1::weatherOverrideKey(forcedWeather);
         std::error_code ignored;fs::create_directories(optionsFile().parent_path(),ignored);
         std::ofstream output(optionsFile());
-        if(!(output<<options.dump(2)<<"\n")) {
+        output<<options.dump(2)<<"\n";
+        output.flush();
+        if(!output) {
             saida::Log::error("[World options] could not write ",optionsFile().string());
             sayForcedTime("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
+            sayForcedWeather("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
         }
     }
     void sayForcedTime(const std::string& problem={}) {
@@ -3296,18 +3444,44 @@ class World : public Rml::EventListener {
             ?"Partout dans le monde, il est "+r1::formatClockTime(*forcedMinutes)+" à l'heure locale. Le temps ne s'écoule plus."
             :"Heure réelle : chaque lieu est à son heure du moment.");
     }
+    void sayForcedWeather(const std::string& problem={}) {
+        for(const auto mode:{r1::WeatherOverride::Real,r1::WeatherOverride::Clear,
+                             r1::WeatherOverride::LightRain,r1::WeatherOverride::Storm}) {
+            const std::string id=std::string("weather-")+r1::weatherOverrideKey(mode);
+            if(auto* button=ui->findElementById(id))button->SetClass("selected",mode==forcedWeather);
+        }
+        ui->notifyJsMutation();
+        text("weather-options-status",!problem.empty()?problem:
+            forcedWeather==r1::WeatherOverride::Real?"Météo réelle : chaque lieu suit sa prévision locale.":
+            std::string("Partout dans le monde : ")+r1::weatherOverrideLabel(forcedWeather)+". Ce choix est conservé après un déplacement.");
+    }
+    void forceWeather(r1::WeatherOverride mode) {
+        forcedWeather=mode;
+        saida::Log::info("[World options] weather mode ",r1::weatherOverrideKey(mode)," everywhere");
+        sayForcedWeather();
+        saveOptions();
+        if(findSun()&&!applyWeather()) {
+            saida::Log::error("[World options] scripts/sun_cycle.js refused forced weather");
+            sayForcedWeather("Le ciel a refusé la météo choisie : voir game.log.");
+        }
+        updateSnowCover();
+        updateSnow(0.);
+        updateRain(0.);
+        text("local-conditions",weatherLabel());
+    }
     void showOptions(bool show) {
         optionsOpen=show;
         style("options-screen","display",show?"block":"none");
         if(!show)return;
         field("forced-time",forcedMinutes?r1::formatClockTime(*forcedMinutes):std::string());
         sayForcedTime();
+        sayForcedWeather();
     }
     void forceTime(std::optional<int> minutes) {
         forcedMinutes=minutes;forcedSaid=false;
         saida::Log::info("[World options] ",minutes?"time forced to "+r1::formatClockTime(*minutes)+" local":std::string("real time"));
-        saveOptions();
         sayForcedTime();
+        saveOptions();
         applyForcedTime();
     }
     void applyTypedTime() {
@@ -3317,6 +3491,8 @@ class World : public Rml::EventListener {
         sayForcedTime("Heure invalide « "+typed+" » : écrivez HH:MM, de 00:00 à 23:59 (par exemple 14:00).");
     }
     std::string weatherLabel() {
+        if(forcedWeather!=r1::WeatherOverride::Real&&!inspectAt)
+            return std::string("météo forcée : ")+r1::weatherOverrideLabel(forcedWeather)+" · partout";
         if(!localConditions())return "Météo locale indisponible";
         const auto weather=conditions.value("weather",json());
         if(!weather.is_object())return "Météo locale indisponible";
@@ -3656,6 +3832,11 @@ class World : public Rml::EventListener {
         d.normalStrength=float(m.normalStrength);
         d.heightId=texture(m.heightTexture,false);d.parallaxDepth=float(m.parallaxDepth);
         d.environmentReflection=float(m.environmentReflection);
+        // Only outdoor hard surfaces collect a film of water. Interior floors
+        // and facade concrete remain independent even when they share textures.
+        if(m.name=="Carriageway"||m.name=="Cobbled carriageway"||m.name=="Sidewalks"||
+           m.name=="Kerbs"||m.name=="Surveyed zebra crossings"||m.name=="Bridge concrete"||
+           m.name=="Made ground"||m.name=="Parking asphalt"||m.name=="Parking markings")d.rain.reception=1.f;
         d.albedoId=texture(m.baseColorTexture,true);
         d.normalId=texture(m.normalTexture,false);
         d.metallicRoughnessId=texture(m.metallicRoughnessTexture,false);
@@ -3752,6 +3933,128 @@ class World : public Rml::EventListener {
             }
         }
     }
+    static const std::vector<PartUpload>& buildingParts(const Loaded& t,size_t index,int level) {
+        const auto& source=std::any_cast<const PreparedTile&>(t.served->prepared).buildings[index];
+        return level==0&&t.reducedDensity?source.reducedNear:source.levels[size_t(level)];
+    }
+    static const std::vector<r1::MeshPart>& buildingMaterials(const Loaded& t,size_t index,int level) {
+        const auto& source=t.served->cooked.buildings[index];
+        return level==0&&t.reducedDensity?source.reducedNear:source.levels[size_t(level)];
+    }
+    static size_t residentVertices(const json& data) { return data.value("residentVertices",data.at("vertices").get<size_t>()); }
+    static size_t residentIndices(const json& data) { return data.value("residentIndices",data.value("indices",size_t(0))); }
+    static std::pair<size_t,size_t> buildingExtraGeometry(const Loaded& t) {
+        size_t vertices=0,indices=0;
+        for(size_t i=0;i<t.buildings.size();++i)for(int level=0;level<2;++level)
+            if(t.buildings[i].levels[size_t(level)].started)for(const auto& part:buildingParts(t,i,level)) {
+                vertices+=part.prepared->geometry.vertices.size();indices+=part.prepared->geometry.indices.size();
+            }
+        return {vertices,indices};
+    }
+    static bool buildingsReady(const Loaded& t) {
+        for(size_t i=0;i<t.buildings.size();++i) {
+            const auto& state=t.buildings[i].levels[2];
+            if(!state.started||state.nextPart<buildingParts(t,i,2).size())return false;
+            for(auto* mesh:state.meshes)if(!mesh->loaded())return false;
+        }
+        return true;
+    }
+    static bool nearBuildingReady(const Loaded& t,size_t footprint) {
+        if(footprint>=t.visualForFootprint.size()||t.visualForFootprint[footprint]<0)return false;
+        const auto& b=t.buildings[size_t(t.visualForFootprint[footprint])];
+        return b.lod->activeLevel()==0&&b.levels[0].started&&
+            std::all_of(b.levels[0].meshes.begin(),b.levels[0].meshes.end(),[](auto* mesh){return mesh->loaded();});
+    }
+    // Only requested representations occupy the arena. The tiny Far stays as
+    // a fallback while a closer level uploads; physical shells never change.
+    void updateBuildingLods() {
+        // An abandoned upload is protected by the resource cache until its
+        // job finishes. Sweep once more then, so it cannot retain arena space.
+        if(buildingTrimPending&&engine.resources().assetLoadsSettled()) {trim();buildingTrimPending=false;}
+        struct Candidate {Loaded* tile;size_t index;double distance;};
+        std::vector<Candidate> candidates;
+        size_t reservedV=farVertices()+farPack.vertices+nextFarPack.vertices,reservedI=0;
+        for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles) {
+            reservedV+=residentVertices(t.data);reservedI+=residentIndices(t.data);
+            const auto eye=cameraTileLocal(t);
+            for(size_t i=0;i<t.buildings.size();++i) {
+                auto& b=t.buildings[i];const auto& source=t.served->cooked.buildings[i];
+                const double dx=eye.x-std::clamp(eye.x,source.low.x,source.high.x);
+                const double dz=eye.z-std::clamp(eye.z,source.low.z,source.high.z);
+                const double d=std::hypot(dx,dz);
+                b.close=d<(b.close?kBuildingNearRelease:kBuildingNearLoad);
+                b.lod->setFinestLevel(playing&&!pending&&!menu&&t.node->isVisibleInHierarchy()?(b.close?0:1):2);
+                candidates.push_back({&t,i,d});
+                for(int level=0;level<3;++level) {
+                    auto& state=b.levels[size_t(level)];const auto& parts=buildingParts(t,i,level);
+                    bool ready=state.started&&state.nextPart==parts.size();
+                    for(auto* mesh:state.meshes)ready=ready&&mesh->loaded();
+                    b.lod->setLevelReady(level,ready);
+                    if(state.started&&state.nextPart==parts.size()&&!ready&&!state.failed&&
+                       engine.resources().assetLoadsSettled()) {
+                        state.failed=true;
+                        saida::Log::error("[World building LOD] ",source.id," level=",level,
+                            " GPU upload failed; retaining available representation");
+                        if(level==2)text("stream-status","Un bâtiment n'a pas pu être chargé.");
+                        if(smoke){testFailed=true;engine.sceneTree().quit();return;}
+                    }
+                    if(level<2&&state.started)for(const auto& part:parts) {
+                        reservedV+=part.prepared->geometry.vertices.size();
+                        reservedI+=part.prepared->geometry.indices.size();
+                    }
+                }
+            }
+        }
+        bool released=false;
+        for(const auto& c:candidates) {
+            auto& t=*c.tile;auto& b=t.buildings[c.index];
+            const int desired=playing&&!pending&&!menu&&t.node->isVisibleInHierarchy()
+                ?std::max(b.lod->desiredLevel(),b.lod->finestLevel()):2;
+            for(int level=0;level<2;++level) {
+                auto& state=b.levels[size_t(level)];
+                if(!state.started||level==desired||level==b.lod->activeLevel()||level==b.lod->fadingLevel())continue;
+                b.lod->setLevelReady(level,false);
+                for(const auto& part:buildingParts(t,c.index,level)) {
+                    reservedV-=part.prepared->geometry.vertices.size();reservedI-=part.prepared->geometry.indices.size();
+                }
+                while(!state.root->children().empty())state.root->removeChild(state.root->children().front().get());
+                state.meshes.clear();state.nextPart=0;state.started=false;state.refused=false;state.failed=false;released=true;
+            }
+        }
+        if(released) {trim();buildingTrimPending=!engine.resources().assetLoadsSettled();}
+        std::stable_sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a.distance<b.distance;});
+        const auto started=std::chrono::steady_clock::now();
+        for(const auto& c:candidates) {
+            auto& t=*c.tile;auto& b=t.buildings[c.index];
+            // Always initialize Far, including hidden replacement tiles whose
+            // renderer has not selected a view yet.
+            int level=playing&&!pending&&!menu&&t.node->isVisibleInHierarchy()&&b.levels[2].started&&b.levels[2].nextPart==buildingParts(t,c.index,2).size()
+                ?std::max(b.lod->desiredLevel(),b.lod->finestLevel()):2;
+            level=std::clamp(level,0,2);
+            auto& state=b.levels[size_t(level)];const auto& parts=buildingParts(t,c.index,level);
+            if(state.failed)continue;
+            if(!state.started) {
+                size_t v=0,idx=0;for(const auto& part:parts){v+=part.prepared->geometry.vertices.size();idx+=part.prepared->geometry.indices.size();}
+                if(level<2&&(reservedV+v>residentVertexBudget||reservedI+idx>residentIndexBudget)) {
+                    if(!state.refused)saida::Log::info("[World building LOD] ",t.served->cooked.buildings[c.index].id,
+                        " requested ",level==0?"Near":"Mid"," exceeds resident arena share; keeping ready fallback");
+                    state.refused=true;continue;
+                }
+                state.started=true;state.refused=false;
+                if(level<2){reservedV+=v;reservedI+=idx;}
+            }
+            const auto& materials=buildingMaterials(t,c.index,level);
+            while(state.nextPart<parts.size()) {
+                const auto& part=parts[state.nextPart++];
+                auto* mesh=engine.resources().getMesh(engine.resources().queueMemoryMesh(part.prepared));
+                if(!mesh)throw std::runtime_error("Building visual mesh registration refused");
+                auto node=std::make_unique<saida::MeshNode>(part.name,mesh,material(materials[part.material].material));
+                node->castShadows()=level!=2;
+                state.root->addChild(std::move(node));state.meshes.push_back(mesh);
+                if(msSince(started)>=kPartUploadMs)return;
+            }
+        }
+    }
     void placeTiles() {
         for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles) {
             // Keep the precise destination: composing a translation from the
@@ -3783,10 +4086,10 @@ class World : public Rml::EventListener {
                 room.node->traverse([&](saida::Node& node,const glm::mat4&) {
                     if(auto* mesh=node.mesh())ready=ready&&mesh->loaded();
                 });
-                if(ready) {
+                if(ready&&nearBuildingReady(t,room.plan.footprint)) {
                     room.ready=true;room.node->setEnabled(true);
                     saida::Log::info("[World interiors] ready ",room.plan.name);
-                } else if(engine.resources().assetLoadsSettled()) {
+                } else if(!ready&&engine.resources().assetLoadsSettled()) {
                     room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
                     room.refused=true;released=true;
                     saida::Log::error("[World interiors] geometry upload failed: ",room.plan.name);
@@ -3807,7 +4110,8 @@ class World : public Rml::EventListener {
                 room.layout={};room.opening=0;room.ready=false;released=true;
             }
             if(room.node)++active;
-            if(!t.reducedDensity&&!room.node&&!room.refused&&distance<kInteriorLoad)candidates.push_back({&t,&room,distance});
+            if(!t.reducedDensity&&!room.node&&!room.refused&&distance<kInteriorLoad&&
+               nearBuildingReady(t,room.plan.footprint))candidates.push_back({&t,&room,distance});
             if(room.node&&room.ready) {
                 auto p=room.plan.local(at);
                 // Sensor on both sides, with a hold time and a wide safety zone.
@@ -4099,7 +4403,9 @@ class World : public Rml::EventListener {
             if(!blocked(door.x,door.y,door.z)){fail("closed door not solid");return;}
             if(!blocked(wall.x,wall.y,wall.z)) {
                 saida::Log::error("[World retail E2E] wall u=",wallU," edge=",r.plan.edge," floor=",r.plan.floor);
-                const auto bytes=r1::writeGlb(owner->served->cooked.parts);
+                auto snapshot=owner->served->cooked.parts;
+                snapshot.insert(snapshot.end(),owner->served->cooked.buildingCollisions.begin(),owner->served->cooked.buildingCollisions.end());
+                const auto bytes=r1::writeGlb(snapshot);
                 std::ofstream geometry(game/"generated/interior-smoke-failure.glb",std::ios::binary);
                 geometry.write(reinterpret_cast<const char*>(bytes.data()),std::streamsize(bytes.size()));
                 std::ofstream planFile(game/"generated/interior-smoke-failure.json");planFile<<r.plan.json().dump();
@@ -4713,11 +5019,40 @@ class World : public Rml::EventListener {
         }
     }
     // The nodes the parts go up under (World::uploadParts).
-    static void shape(Loaded& tile) {
+    void shape(Loaded& tile) {
         tile.geography=tile.node->findByPath("Geography");
         tile.grass=dynamic_cast<saida::GrassNode*>(tile.node->findByPath("Grass"));
         for(const auto& child:tile.node->children())
             if(auto* water=dynamic_cast<saida::WaterNode*>(child.get()))tile.waters.push_back(water);
+        const auto& prepared=std::any_cast<const PreparedTile&>(tile.served->prepared);
+        if(tile.geography)for(size_t i=0;i<prepared.buildingCollisions.size();++i) {
+            auto body=std::make_unique<saida::StaticBodyNode>();
+            body->setName("Building shell collider "+std::to_string(i));
+            auto collision=std::make_unique<saida::CollisionShapeNode>();
+            collision->setTriangleMeshData(prepared.buildingCollisions[i]);
+            body->addChild(std::move(collision));tile.geography->addChild(std::move(body));
+        }
+        tile.reducedDensity=densityPolicy.reduced(tile.served->cooked.tile)||
+            tile.data.at("vertices").get<size_t>()>r1::DensityPolicy::kThreshold;
+        const char* names[]={"Near","Mid","Far"};
+        tile.buildings.reserve(tile.served->cooked.buildings.size());
+        tile.visualForFootprint.assign(tile.data.at("footprints").size(),-1);
+        for(const auto& source:tile.served->cooked.buildings) {
+            Loaded::Building b;
+            b.node=tile.node->createChild<saida::Node>("Building "+std::to_string(source.id));
+            for(size_t level=0;level<3;++level) {
+                b.levels[level].root=b.node->createChild<saida::Node>(names[level]);
+                b.levels[level].root->setVisible(false);
+            }
+            b.lod=b.node->addBehaviour<saida::LODGroupBehaviour>();
+            b.lod->setLevels({{"Near",.08f},{"Mid",.008f},{"Far",0.f}});
+            b.lod->setBounds({{float(source.low.x),float(source.low.y),float(source.low.z)},
+                              {float(source.high.x),float(source.high.y),float(source.high.z)}});
+            b.lod->setCrossFade(.3f);
+            for(int level=0;level<3;++level)b.lod->setLevelReady(level,false);
+            if(source.footprint<tile.visualForFootprint.size())tile.visualForFootprint[source.footprint]=int(tile.buildings.size());
+            tile.buildings.push_back(std::move(b));
+        }
     }
     // Everything a tile in `loaded` does beyond being drawn: its density, its
     // traffic and crowd, its aircraft. After the emplace, never before: the
@@ -4752,7 +5087,7 @@ class World : public Rml::EventListener {
     static constexpr double kReplaceWaitMs=10000.,kBatchWaitMs=1000.;
     bool replacementReady(const std::string& key,const Loaded& next) {
         const auto& parts=std::any_cast<const PreparedTile&>(next.served->prepared).parts;
-        bool ready=!next.geography||next.nextPart>=parts.size();
+        bool ready=(!next.geography||next.nextPart>=parts.size())&&buildingsReady(next);
         for(auto* mesh:next.partMeshes)ready=ready&&mesh->loaded();
         // As many of its props as the shown version has, or all of them.
         const auto old=loaded.find(key);
@@ -4820,8 +5155,12 @@ class World : public Rml::EventListener {
         }
         if(promoteIncoming())removed=true;
         size_t count=0,indices=0;
-        for(auto* tiles:{&loaded,&incoming})for(auto& [k,t]:*tiles)if(wanted.count(k))
-            {count+=t.data.at("vertices").get<size_t>();indices+=t.data.value("indices",size_t(0));}
+        for(auto* tiles:{&loaded,&incoming})for(auto& [k,t]:*tiles) {
+            if(wanted.count(k)) {count+=residentVertices(t.data);indices+=residentIndices(t.data);}
+            // Closer representations share the same arena. Include even the
+            // departing tile's details until its Far transition releases them.
+            const auto [extraV,extraI]=buildingExtraGeometry(t);count+=extraV;indices+=extraI;
+        }
         // The far landmarks share the arena with the tiles (gen/landmarks.cpp).
         count+=farVertices()+farPack.vertices+nextFarPack.vertices;
         bool started=false;
@@ -4833,7 +5172,7 @@ class World : public Rml::EventListener {
             if(!stale(it->second)||incoming.count(it->first)){++it;continue;}
             const auto current=service->find(it->second.served->cooked.tile);
             const json& data=current->cooked.manifest;
-            const size_t vertices=data.at("vertices").get<size_t>(),tileIndices=data.value("indices",size_t(0));
+            const size_t vertices=residentVertices(data),tileIndices=residentIndices(data);
             if(count+vertices<=residentVertexBudget&&indices+tileIndices<=residentIndexBudget) {
                 try {
                     auto* ptr=engine.sceneTree().world().addChild(buildTile(it->first,*current));
@@ -4855,8 +5194,9 @@ class World : public Rml::EventListener {
                                  " of ",residentIndexBudget," indices");
                 if(wanted.count(it->first)) {
                     const auto& old=it->second.data;
-                    count-=old.at("vertices").get<size_t>();indices-=old.value("indices",size_t(0));
+                    count-=residentVertices(old);indices-=residentIndices(old);
                 }
+                const auto [extraV,extraI]=buildingExtraGeometry(it->second);count-=extraV;indices-=extraI;
                 it->second.node->queueFree();it=loaded.erase(it);removed=true;
             }
         }
@@ -4869,7 +5209,7 @@ class World : public Rml::EventListener {
             if(!served)continue;
             const json& data=served->cooked.manifest;
             try {
-                const size_t vertices=data.at("vertices").get<size_t>(),tileIndices=data.value("indices",size_t(0));
+                const size_t vertices=residentVertices(data),tileIndices=residentIndices(data);
                 if(count+vertices>residentVertexBudget||indices+tileIndices>residentIndexBudget) {
                     text("stream-status","Limite de détail atteinte dans cette zone.");
                     if(refused.empty()) {
@@ -4920,6 +5260,7 @@ class World : public Rml::EventListener {
         }
         auto ready=[&](double x,double y){auto* t=tile(x,y);if(!t)return false;
             if(t->geography&&t->nextPart<std::any_cast<const PreparedTile&>(t->served->prepared).parts.size())return false;
+            if(!buildingsReady(*t))return false;
             for(auto* mesh:t->partMeshes)if(!mesh->loaded())return false;
             return !t->geography||(!t->geography->children().empty()&&
                 !static_cast<saida::CollisionObjectNode*>(t->geography->children().back().get())->bodyId().IsInvalid());};
@@ -4951,7 +5292,7 @@ class World : public Rml::EventListener {
                 return;
             }
             lon=x0;lat=y0;alt=waterSpawn?waterLevel(lon,lat):height(lon,lat);
-            conditions=json::object();weather=Weather{};
+            conditions=json::object();conditionsDoc.reset();observedWeather=Weather{};clearRain();
             origin=Frame(lon,lat,alt);placeTiles();moveSun();
             jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
             // Teleporting leaves the current vehicle. A water arrival starts
@@ -5074,8 +5415,9 @@ public:
         // Textures resident at once. A city neighbourhood shows about fifteen
         // photographed materials (ground, streets, walls, roofs; see
         // assets/textures/surfaces.json), some 90 MB, on top of what 256 MB already held.
-        // The reference GTX 1060 has 4.5 GB of VRAM to spend (plan §3 I4), and
-        // the geometry arena takes about 50 MB of it.
+        // The reference MX450 has 2 GiB of VRAM (plan §3 I4). This 512 MiB
+        // resource budget leaves space for the roughly 50 MiB geometry arena,
+        // render targets and other GPU allocations; total residency is profiled.
         e.resources().setGpuBudget(512ull*1024*1024);
         r1::WorldService::Options options;
         options.gameRoot=game.string();
@@ -5137,6 +5479,10 @@ public:
         else if(id=="forced-apply")applyTypedTime();
         else if(id=="forced-clear"){forceTime(std::nullopt);field("forced-time",std::string());}
         else if(id.rfind("forced-preset-",0)==0)forceTime(std::stoi(id.substr(14))*60);
+        else if(id=="weather-real")forceWeather(r1::WeatherOverride::Real);
+        else if(id=="weather-clear")forceWeather(r1::WeatherOverride::Clear);
+        else if(id=="weather-light-rain")forceWeather(r1::WeatherOverride::LightRain);
+        else if(id=="weather-storm")forceWeather(r1::WeatherOverride::Storm);
         else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
         else if(id=="zoom-in")zoomMap(zoom*2);
         else if(id=="zoom-out")zoomMap(zoom/2);
@@ -5927,6 +6273,7 @@ public:
             for(auto id:{"map","go","resume","zoom-in","zoom-out","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
                          "city-choice-0","city-choice-1","city-choice-2","city-choice-3","city-choice-4",
                          "options","options-back","forced-apply","forced-clear",
+                         "weather-real","weather-clear","weather-light-rain","weather-storm",
                          "forced-preset-8","forced-preset-12","forced-preset-17","forced-preset-22"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
@@ -6008,8 +6355,9 @@ public:
         poll+=delta;hud+=delta;
         if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)cost.stream=timed([&]{stream();});}
         cost.parts=timed([&]{uploadParts();});
+        updateBuildingLods();
         if(!playing)cost.warm=timed([&]{warm();});
-        if(!playing||menu)return;
+        if(!playing||menu){updateRain(delta);return;}
         updateInteriors(delta);
         const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail)
                         ||(piloting&&std::abs(plane.speed)>kFastDetail);
@@ -6296,6 +6644,13 @@ public:
                 // several frames (uploadParts), and its props may be done first.
                 const auto& resident=i->second;
                 if(!resident.geography||resident.nextPart<std::any_cast<const PreparedTile&>(resident.served->prepared).parts.size())return false;
+                if(!buildingsReady(resident))return false;
+                for(const auto& building:resident.buildings) {
+                    const int desired=building.lod->desiredLevel();
+                    if(desired<0)return false;
+                    const auto& state=building.levels[size_t(desired)];
+                    if(!state.refused&&(building.lod->activeLevel()!=desired||building.lod->fadingLevel()>=0))return false;
+                }
                 return resident.nextProp==resident.props.size()&&
                     resident.nextLettering==resident.data.value("lettering",json::array()).size();
             });
@@ -6331,16 +6686,27 @@ public:
             const bool seaReady=(!std::getenv("R1WORLD_CAPTURE_SEA")||(!seaShips.empty()&&captureSeaWait>4.)
                 ||captureSeaWait>30.)
                 // The local weather is part of the picture: a few seconds for it.
-                &&(weather.known||inspectAt||captureSeaWait>6.);
+                &&(effectiveWeather().known||captureSeaWait>6.);
             if(settled&&seaReady&&!captureQueued){
                 // An inspection picture is of the world: no HUD, no minimap.
                 if(inspectAt){style("hud","display","none");minimapUi->setEnabled(false);}
                 size_t plants=0;for(auto& [key,t]:loaded)plants+=t.vegetation.size();
                 saida::Log::info("[World nature] resident plants=",plants," shared static prototypes=",naturePrototypes.size());
+                std::array<size_t,3> buildingLevels{};size_t detailedBuildings=0;
+                for(const auto& [key,t]:loaded)for(const auto& b:t.buildings) {
+                    const int level=b.lod->activeLevel();
+                    if(level>=0)++buildingLevels[size_t(level)];
+                    if(level==0&&!t.reducedDensity)++detailedBuildings;
+                }
+                saida::Log::info("[World building LOD] visible Near/Mid/Far=",buildingLevels[0],"/",buildingLevels[1],"/",buildingLevels[2],
+                    " detailed Near=",detailedBuildings," Far triangles per building <=12");
                 saida::Log::info("[World traffic] resident cars=",trafficLive()," of ",trafficWanted()," asked for");
                 const auto& rendering=engine.sceneTree().world().settings();
                 saida::Log::info("[World PBR] ibl=",rendering.iblEnabled," specular=",rendering.iblSpecularIntensity,
                                  " sky=",rendering.skyboxTexture," exposure=",rendering.skyboxExposure);
+                saida::Log::info("[World rain] mm_h=",effectiveWeather().rain,
+                    " intensity=",rendering.rainIntensity," wetness=",rendering.wetness,
+                    " storm_clouds=",rendering.stormCloudCover," sheltered=",rainSheltered);
                 car->traverse([&](saida::Node& n,const glm::mat4&){
                     if(n.material()&&n.name().rfind("paint-",0)==0) {
                         const auto& m=n.material()->desc();
@@ -6351,6 +6717,7 @@ public:
                 captureQueued=true;engine.captureFrameThenExit(worldCapture);
             }
         }
+        updateRain(delta);
         if(hud>.5) {
             hud=0;
             updateMinimap();

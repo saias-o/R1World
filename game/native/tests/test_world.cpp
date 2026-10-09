@@ -587,6 +587,9 @@ TEST(Cook, grenoble_over_120k_keeps_its_surveyed_geometry_and_reports_indices) {
     CHECK(tile.manifest.at("footprints").size()>300);
     CHECK(!tile.parts.empty());
     size_t indices=0;for(const auto& part:tile.parts)indices+=part.mesh.indices.size();
+    // The baseline shell is retained on the CPU while independent building
+    // visual levels stream. The density contract still counts that shell.
+    for(const auto& part:tile.buildingCollisions)indices+=part.mesh.indices.size();
     CHECK(tile.manifest.at("indices").get<size_t>()==indices);
     CHECK(tile.manifest.at("indices").get<size_t>()>0);
 }
@@ -622,8 +625,8 @@ TEST(Cook, a_resident_target_uses_building_lod_without_losing_the_ground) {
     bool ground = false, roof = false;
     for (const auto& part : t.parts) {
         ground |= part.name.find("Ground") == 0;
-        roof |= part.name.find("Roofs") == 0;
     }
+    for (const auto& part : t.buildingCollisions) roof |= part.name.find("Roofs") == 0;
     CHECK(ground && roof);
 }
 TEST(Cook, every_footprint_says_how_high_it_stands) {

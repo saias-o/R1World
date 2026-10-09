@@ -5,6 +5,7 @@
 #pragma once
 
 #include "canopy.hpp"
+#include "buildings.hpp"
 #include "mesh.hpp"
 #include "osm.hpp"
 #include "peaks.hpp"
@@ -58,8 +59,14 @@ struct Observations {
 
 struct CookedTile {
     Tile tile;
-    // The tile's own ground, streets, buildings and works: uploaded as meshes.
+    // The tile's ground, streets, works and open shelters: uploaded as meshes.
     std::vector<MeshPart> parts;
+    // Each closed building keeps its visual variants separate from the ground,
+    // so the renderer can stream the level visible from the current camera.
+    std::vector<BuildingVisual> buildings;
+    // The baseline physical shells stay on the CPU. Camera distance and visual
+    // LOD never change their portals, walls or roofs, nor wait on a GPU upload.
+    std::vector<MeshPart> buildingCollisions;
     // For a tile that is all ocean, the sea node that replaces the ground.
     nlohmann::json ocean;
     // Where grass blades grow on its ground (gen/grass); empty where none does.

@@ -306,6 +306,12 @@ struct MeshBook {
     UvMode mode = UvMode::None;
     UV repeat{1.0, 1.0};
     std::map<std::string, std::pair<Swatch, Mesh>> meshes;
+    using Mark = std::map<std::string, size_t>;
+    Mark mark() const {
+        Mark out;
+        for (const auto& [name, entry] : meshes) out[name] = entry.second.indices.size();
+        return out;
+    }
     Mesh& mesh(const Swatch& s) {
         auto it = meshes.find(s.name);
         if (it == meshes.end()) {
@@ -327,7 +333,47 @@ struct MeshBook {
             out.push_back({prefix + " \xE2\x80\x94 " + name, std::move(entry.second), m});
         }
     }
+    // Copy only this building's triangles from the shared tile buckets. The
+    // plan and party-wall index are shared; welding remains local to a level.
+    void capture(std::vector<MeshPart>& out, const Mark& before, const std::string& prefix,
+                 bool doubleSided, const MaterialFor& materials) const {
+        for (const auto& [name, entry] : meshes) {
+            auto first = before.find(name);
+            const size_t offset = first == before.end() ? 0 : first->second;
+            if (offset == entry.second.indices.size()) continue;
+            MeshBook one;
+            one.mode = mode; one.repeat = repeat;
+            Mesh& piece = one.mesh(entry.first);
+            for (size_t i = offset; i < entry.second.indices.size(); ++i) {
+                const uint32_t index = entry.second.indices[i];
+                piece.indices.push_back(piece.vertex(entry.second.positions[index], entry.second.normals[index],
+                                                       entry.second.texcoords[index]));
+            }
+            one.parts(out, prefix, doubleSided, materials);
+        }
+    }
 };
+
+Mesh slice(const Mesh& source, size_t offset) {
+    Mesh out(source.uvMode); out.facadeRepeat = source.facadeRepeat;
+    for (size_t i = offset; i < source.indices.size(); ++i) {
+        const uint32_t index = source.indices[i];
+        out.indices.push_back(out.vertex(source.positions[index], source.normals[index], source.texcoords[index]));
+    }
+    return out;
+}
+
+Material flatMaterial(const Swatch& swatch, bool doubleSided = false) {
+    Material out;
+    out.name = swatch.name; out.color = {swatch.color[0], swatch.color[1], swatch.color[2], 1.0};
+    out.roughness = swatch.roughness; out.doubleSided = doubleSided;
+    return out;
+}
+
+void addOpenings(std::vector<MeshPart>& parts, Mesh trim, Mesh glass, const RegionProfile& profile) {
+    if (!trim.empty()) parts.push_back({"Openings \xE2\x80\x94 reveals", std::move(trim), flatMaterial(profile.trim)});
+    if (!glass.empty()) parts.push_back({"Openings \xE2\x80\x94 glazing", std::move(glass), flatMaterial(profile.glass)});
+}
 
 // ── shopfronts: one part per material, not four per shop ────────────────────
 // A part is a mesh to upload, a draw and a static body. Four per shop made the
@@ -810,8 +856,6 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const bool retailCladding=retailUse(*b.tags)&&tagOr(*b.tags,"building")=="retail"&&g.storeys<=2;
         const Swatch& wallSwatch = aviation == "terminal" ? kTerminalWall : aviation == "hangar" ? kHangarWall : retailCladding?kRetailWall:houseWall;
         const Swatch& roofSwatch = aviation.empty() ? (retailCladding&&g.roofShape=="flat"?kRetailRoof:houseRoof) : kAviationRoof;
-        Mesh& wallMesh = walls.mesh(wallSwatch);
-        Mesh& roofMesh = roofs.mesh(roofSwatch);
         const double yEave = b.ground + g.wallHeight;
         // A steeple rises to about 2.8 walls and its spire above that
         // (emitSteeple); an estimate that errs tall, since it is a clearance.
@@ -821,6 +865,7 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         const bool raised = truthy(taggedLength(tagOr(*b.tags, "min_height"))) ||
                             truthy(taggedLength(tagOr(*b.tags, "building:min_level")));
         std::optional<InteriorPlan> interior;
+        std::vector<MeshPart> shop;
         if (!interiorRecipe(*b.tags).empty() && !raised && yEave-b.interiorFloor>=2.2) {
             InteriorPlan p;p.id=b.id;p.ring=b.ring;p.floor=b.interiorFloor;p.footprint=out.footprints.size()-1;
             p.recipe=interiorRecipe(*b.tags);p.name=interiorName(*b.tags);p.region=profile.key;
@@ -843,17 +888,27 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
                 // The approach meets the sampled terrain four metres outside.
                 p.approach=p.floor-.08;
                 interior=p;out.interiors.push_back(p);
-                if(retailInterior(p.recipe))shopfronts.add(buildShopfront(p));
+                if(retailInterior(p.recipe)) {
+                    shop = buildShopfront(p);
+                    shopfronts.add(std::vector<MeshPart>(shop));
+                }
             }
         }
         if(!interior&&!interiorRecipe(*b.tags).empty())out.interiorUnavailable.push_back({
             {"id",b.id},{"reason",raised?"raised-building":yEave-b.interiorFloor<2.2?"insufficient-headroom":"no-exposed-door-edge"}});
+        // Render from this single plan: no second portal choice, gabarit draw,
+        // or isolated party-wall index may change a building between levels.
+        auto render = [&](MeshBook& walls, MeshBook& foundations, MeshBook& roofs, MeshBook& ruralTrim,
+                          Mesh& trim, Mesh& glass, bool detailed, BuildingLod geometryLod,
+                          double slabThickness, bool countStats) {
+        Mesh& wallMesh = walls.mesh(wallSwatch);
+        Mesh& roofMesh = roofs.mesh(roofSwatch);
         const size_t count = b.ring.size();
         for (size_t e = 0; e < count; ++e) {
             const P2 p0 = b.ring[e], p1 = b.ring[(e + 1) % count];
             auto frame = wallFrame(p0, p1, b.ground);
             if (!frame) continue;
-            const bool unifiedBase = lod != BuildingLod::Full && !b.detailed;
+            const bool unifiedBase = geometryLod != BuildingLod::Full && !detailed;
             const double base = !raised && unifiedBase ? b.foundation - b.ground : 0.0;
             auto foundation=[&]() {
                 // The approach slab crosses the facade at floor level. Keep
@@ -896,8 +951,8 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
             if (!raised && !unifiedBase)
                 face(foundations.mesh(wallSwatch), *frame, 0.0, b.foundation - b.ground, frame->length, 0.0);
             const bool shared = party.isParty(int(owner), p0, p1);
-            if (shared) ++stats.partyWalls;
-            if (b.detailed && !shared && frame->length >= 2.0) {
+            if (shared && countStats) ++stats.partyWalls;
+            if (detailed && !shared && frame->length >= 2.0) {
                 Mesh& reveals=residential && residential->trim ? ruralTrim.mesh(facadeProfile.trim) : trim;
                 emitFacade(wallMesh, reveals, glass, *frame, levels, g.wallHeight, facadeProfile, b.commercial);
             } else if (wallMaterials) {
@@ -917,39 +972,132 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         }
         const bool worship = isWorship(*b.tags);
         if (g.roofShape == "flat") {
-            if (lod != BuildingLod::SimpleRoofline)
+            if (geometryLod != BuildingLod::SimpleRoofline)
                 emitParapet(wallMesh, b.ring, yEave, facadeProfile.parapetHeight);
             if (worship) {
                 emitSteeple(wallMesh, roofMesh, b.box, b.ground, g.wallHeight, steepleStyle(*b.tags));
-                ++stats.steeples;
+                if (countStats) ++stats.steeples;
             }
-            continue;
+            return;
         }
         if (worship) {
             emitSteeple(wallMesh, roofMesh, b.box, b.ground, g.wallHeight, steepleStyle(*b.tags));
-            ++stats.steeples;
+            if (countStats) ++stats.steeples;
         }
         const double sign = slopeSign(tagOr(*b.tags, "roof:direction"));
         const double yRidge = yEave + g.roofHeight;
         auto roof=[&](const OrientedBox& box,double ridge) {
-            for(auto& loop:roofLoops(box,g.roofShape,facadeProfile.eaveOverhang,yEave,ridge,sign))addSlab(roofMesh,loop,roofThickness);
+            for(auto& loop:roofLoops(box,g.roofShape,facadeProfile.eaveOverhang,yEave,ridge,sign))addSlab(roofMesh,loop,slabThickness);
             for(const auto& gable:gableWalls(box,g.roofShape,yEave,ridge,sign))wallMesh.addTriangle(gable[0],gable[1],gable[2]);
         };
         if(b.roofBoxes.empty())roof(b.box,yRidge);
         else for(const auto& wing:b.roofBoxes)roof(wing,yEave+std::max(.6,g.roofHeight*wing.halfV/b.box.halfV));
+        };
+        const auto wallMark = walls.mark(), foundationMark = foundations.mark(), roofMark = roofs.mark(), ruralMark = ruralTrim.mark();
+        const size_t trimMark = trim.indices.size(), glassMark = glass.indices.size();
+        render(walls, foundations, roofs, ruralTrim, trim, glass, b.detailed, lod, roofThickness, true);
+
+        BuildingVisual visual;
+        visual.id = b.id; visual.footprint = out.footprints.size() - 1;
+        visual.reducedNear = shop;
+        walls.capture(visual.reducedNear, wallMark, "Walls", true, wallMaterials);
+        foundations.capture(visual.reducedNear, foundationMark, "Foundations", true, nullptr);
+        roofs.capture(visual.reducedNear, roofMark, "Roofs", roofThickness <= 0.0, roofMaterials);
+        ruralTrim.capture(visual.reducedNear, ruralMark, "Rural opening reveals", false, nullptr);
+        addOpenings(visual.reducedNear, slice(trim, trimMark), slice(glass, glassMark), profile);
+
+        MeshBook nearWalls, nearFoundations, nearRoofs, nearRural;
+        nearWalls.mode = walls.mode; nearWalls.repeat = walls.repeat; nearRoofs.mode = roofs.mode;
+        Mesh nearTrim, nearGlass;
+        const double nearThickness = std::max(0.15, roofThickness);
+        render(nearWalls, nearFoundations, nearRoofs, nearRural, nearTrim, nearGlass, true,
+               BuildingLod::Full, nearThickness, false);
+        visual.levels[0] = std::move(shop);
+        nearWalls.parts(visual.levels[0], "Walls", true, wallMaterials);
+        nearFoundations.parts(visual.levels[0], "Foundations", true, nullptr);
+        nearRoofs.parts(visual.levels[0], "Roofs", false, roofMaterials);
+        nearRural.parts(visual.levels[0], "Rural opening reveals", false, nullptr);
+        addOpenings(visual.levels[0], std::move(nearTrim), std::move(nearGlass), profile);
+
+        visual.low = {1e300, 1e300, 1e300}; visual.high = {-1e300, -1e300, -1e300};
+        for (const auto& part : visual.levels[0]) for (const auto& p : part.mesh.positions) {
+            visual.low = {std::min(visual.low.x,p.x),std::min(visual.low.y,p.y),std::min(visual.low.z,p.z)};
+            visual.high = {std::max(visual.high.x,p.x),std::max(visual.high.y,p.y),std::max(visual.high.z,p.z)};
+        }
+
+        // Mid keeps the actual polygon and roof ridge, but has no opening
+        // reveals, glazing, separate foundations, slabs, parapets or steeple.
+        Mesh midWalls(wallMaterials ? UvMode::Facade : UvMode::None), midRoof(roofs.mode);
+        midWalls.facadeRepeat = walls.repeat;
+        const double midBase = raised ? b.ground : b.foundation;
+        for (size_t e = 0; e < b.ring.size(); ++e) {
+            auto frame = wallFrame(b.ring[e],b.ring[(e+1)%b.ring.size()],b.ground);
+            if (!frame) continue;
+            const double bays = std::max(1.0,double(pyround(frame->length/profile.bayWidth)));
+            const std::pair<double,double> scale{bays/frame->length,g.storeys/std::max(1e-3,g.wallHeight)};
+            const double top = yEave + (g.roofShape == "flat" ? facadeProfile.parapetHeight : 0.0);
+            face(midWalls,*frame,0.0,midBase-b.ground,frame->length,top-b.ground,0.0,
+                 wallMaterials ? &scale : nullptr);
+        }
+        if (g.roofShape == "flat") {
+            const double top = yEave + facadeProfile.parapetHeight;
+            for (const auto& t : triangulate(b.ring)) {
+                const auto a=b.ring[size_t(t[0])],c=b.ring[size_t(t[1])],d=b.ring[size_t(t[2])];
+                midRoof.addUpTriangle({a.x,top,a.y},{c.x,top,c.y},{d.x,top,d.y});
+            }
+        } else {
+            const double sign = slopeSign(tagOr(*b.tags,"roof:direction"));
+            auto midPitch = [&](const OrientedBox& box,double ridge) {
+                for (auto loop : roofLoops(box,g.roofShape,0.0,yEave,ridge,sign)) addSlab(midRoof,std::move(loop),0.0);
+                for (const auto& gable : gableWalls(box,g.roofShape,yEave,ridge,sign))
+                    midWalls.addTriangle(gable[0],gable[1],gable[2]);
+            };
+            if (b.roofBoxes.empty()) midPitch(b.box,yEave+g.roofHeight);
+            else for (const auto& wing : b.roofBoxes) midPitch(wing,yEave+std::max(.6,g.roofHeight*wing.halfV/b.box.halfV));
+        }
+        visual.levels[1].push_back({"Walls",std::move(midWalls),wallMaterials ? wallMaterials(wallSwatch,true) : flatMaterial(wallSwatch,true)});
+        visual.levels[1].push_back({"Roofs",std::move(midRoof),roofMaterials ? roofMaterials(roofSwatch,true) : flatMaterial(roofSwatch,true)});
+
+        // Far is one closed OBB: ten wall/base triangles and two on the roof.
+        // Its exact vertical extrema come from Near, including roof furniture.
+        Mesh farWalls, farRoof;
+        P3 bottom[4], top[4];
+        const double corners[4][2] = {{-1,-1},{1,-1},{1,1},{-1,1}};
+        for (int i=0;i<4;++i) {
+            const auto p=b.box.point(corners[i][0]*b.box.halfU,corners[i][1]*b.box.halfV);
+            bottom[i]={p.x,visual.low.y,p.y}; top[i]={p.x,visual.high.y,p.y};
+        }
+        for (int i=0;i<4;++i) {
+            const int j=(i+1)%4;
+            farWalls.addQuad(bottom[i],top[i],top[j],bottom[j]);
+        }
+        farWalls.addQuad(bottom[0],bottom[1],bottom[2],bottom[3]);
+        farRoof.addUpQuad(top[0],top[1],top[2],top[3]);
+        visual.levels[2].push_back({"Far walls",std::move(farWalls),flatMaterial(wallSwatch)});
+        visual.levels[2].push_back({"Far roof",std::move(farRoof),flatMaterial(roofSwatch)});
+        for (auto& level : visual.levels) for (auto& part : level) part.mesh.releaseWeld();
+        for (auto& part : visual.reducedNear) part.mesh.releaseWeld();
+        out.visuals.push_back(std::move(visual));
     }
     for (auto& part : shopfronts.parts) out.parts.push_back(std::move(part));
     walls.parts(out.parts, "Walls", true, wallMaterials);
     foundations.parts(out.parts, "Foundations", true, nullptr);
     roofs.parts(out.parts, "Roofs", roofThickness <= 0.0, roofMaterials);
     ruralTrim.parts(out.parts,"Rural opening reveals",false,nullptr);
-    if(!shelterWood.empty())out.parts.push_back({"Bus shelter timber",std::move(shelterWood),
-        surfaceMaterial("Bus shelter timber",{.18,.115,.06},.88,"deck")});
-    if(!shelterRoof.empty())out.parts.push_back({"Bus shelter roof",std::move(shelterRoof),
-        surfaceMaterial("Bus shelter roof",{.14,.15,.16},.8,"metal_seam")});
+    if(!shelterWood.empty()) {
+        out.parts.push_back({"Bus shelter timber",std::move(shelterWood),
+            surfaceMaterial("Bus shelter timber",{.18,.115,.06},.88,"deck")});
+        out.staticParts.push_back(out.parts.back());
+    }
+    if(!shelterRoof.empty()) {
+        out.parts.push_back({"Bus shelter roof",std::move(shelterRoof),
+            surfaceMaterial("Bus shelter roof",{.14,.15,.16},.8,"metal_seam")});
+        out.staticParts.push_back(out.parts.back());
+    }
     if(!shelterFrame.empty()) {
         Material frame;frame.name="Bus shelter frame";frame.color={.07,.08,.07,1};frame.roughness=.78;
         out.parts.push_back({"Bus shelter frame",std::move(shelterFrame),frame});
+        out.staticParts.push_back(out.parts.back());
     }
     if (!trim.empty()) {
         Material m; m.name = profile.trim.name; m.roughness = profile.trim.roughness;
@@ -961,7 +1109,10 @@ BuildingOutput buildBuildings(const std::vector<const OsmWay*>& ways,
         m.color = {profile.glass.color[0], profile.glass.color[1], profile.glass.color[2], 1.0};
         out.parts.push_back({"Openings \xE2\x80\x94 glazing", std::move(glass), m});
     }
-    for (auto& part : canopies.parts()) out.parts.push_back(std::move(part));
+    for (auto& part : canopies.parts()) {
+        out.parts.push_back(std::move(part));
+        out.staticParts.push_back(out.parts.back());
+    }
     out.footprints.insert(out.footprints.end(), canopies.obstacles.begin(), canopies.obstacles.end());
     out.tops.insert(out.tops.end(), canopies.obstacleTops.begin(), canopies.obstacleTops.end());
     out.fuelStations = std::move(canopies.stations);

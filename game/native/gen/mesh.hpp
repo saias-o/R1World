@@ -36,6 +36,11 @@ struct Mesh {
     bool empty() const { return indices.empty(); }
     size_t vertexCount() const { return positions.size(); }
 
+    // Construction-only weld keys are larger than the finished vertex data.
+    // Release them once no triangles will be appended (e.g. stored LODs).
+    // Positions, normals, UVs and indices remain available for rendering.
+    void releaseWeld() { lookup_.clear(); lookup_.rehash(0); }
+
     uint32_t vertex(const P3& position, const P3& normal, UV uv);
     void addTriangle(P3 a, P3 b, P3 c, const UV* uvs = nullptr);
     // Turned so its normal points up (y > 0).

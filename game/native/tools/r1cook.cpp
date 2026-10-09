@@ -138,8 +138,16 @@ int main(int argc, char** argv) {
             line["elevationSource"] = cooked.manifest["elevationSource"];
             line["grass"] = cooked.manifest["grass"];
             line["peaks"] = cooked.manifest["peaks"];
+            line["residentVertices"] = cooked.manifest["residentVertices"];
+            line["residentIndices"] = cooked.manifest["residentIndices"];
+            line["buildingLods"] = cooked.manifest["buildingLods"];
+            // Inspection exports retain the former complete building shell.
+            // Runtime rendering streams independent variants, while a single
+            // exported GLB remains a complete, useful baseline world asset.
+            std::vector<r1::MeshPart> baselineParts = cooked.parts;
+            for (const auto& p : cooked.buildingCollisions) baselineParts.push_back(p);
             nlohmann::json parts = nlohmann::json::array();
-            for (const auto& p : cooked.parts)
+            for (const auto& p : baselineParts)
                 parts.push_back({{"name", p.name}, {"vertices", p.mesh.vertexCount()}, {"triangles", p.mesh.indices.size() / 3}});
             line["parts"] = parts;
             line["props"] = cooked.props.size();
@@ -155,7 +163,7 @@ int main(int argc, char** argv) {
             line["manifest"]["crowd"] = {{"people",crowd["people"]}, {"inputs",crowd["inputs"]},
                                             {"nodes",crowd["nodes"].size()}, {"links",crowd["links"].size()}};
             if (!glb.empty()) {
-                const auto bytes = r1::writeGlb(cooked.parts);
+                const auto bytes = r1::writeGlb(baselineParts);
                 std::ofstream f(glb + "/" + tile.key() + ".glb", std::ios::binary);
                 f.write(reinterpret_cast<const char*>(bytes.data()), std::streamsize(bytes.size()));
                 std::ofstream s(glb + "/" + tile.key() + ".props.json", std::ios::binary);
