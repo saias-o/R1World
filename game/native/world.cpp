@@ -39,6 +39,10 @@
 #include <glm/gtc/quaternion.hpp>
 #include <nlohmann/json.hpp>
 #include "saida/traffic/Traffic.hpp"
+#include "vehicle_runtime.hpp"
+#include "traffic_signal.hpp"
+#include "gen/traffic_format.hpp"
+#include "gen/roadside.hpp"
 #include "gen/crowd.hpp"
 #include "gen/appearance.hpp"
 #include "gen/landmarks.hpp"
@@ -94,21 +98,10 @@ constexpr double kTileGeometryShare = .85;
 
 // ── driving ─────────────────────────────────────────────────────────────────
 //
-// Arcade driving uses geographic coordinates and the streamed height field.
-// Physical vehicles can use Scene::rebaseOrigin with VehicleBehaviour; this
-// controller intentionally keeps the game's ground-following arcade handling.
-constexpr double kCarTopSpeed=28.;      // m/s -- 100 km/h; 130 read as too fast to place a car in a street
-constexpr double kCarReverseSpeed=-7.;
-constexpr double kCarAccel=7.;          // m/s^2 -- 0-100 km/h in about 4 s
-constexpr double kCarBrake=12.;
-constexpr double kCarHandbrake=16.;
-constexpr double kCarRollResist=.55;    // m/s^2 of coasting loss at rest
-constexpr double kCarDrag=.0016;        // + v^2 term; together they settle near the top speed
-constexpr double kCarTurnRadius=3.6;    // m, the tightest circle the front wheels cut
-constexpr double kCarLateralAccel=16.;  // m/s^2 -- grip a real tyre does not have, on purpose
+// VehicleRuntime configures physical handling; these are interaction limits.
 constexpr double kCarSteerAngle=34.;    // degrees of visible lock on the front wheels
 constexpr double kCarReach=4.5;         // m -- how close you stand to open the door
-constexpr double kCarExitSpeed=2.;      // m/s -- above it, stepping out is refused out loud
+constexpr double kSmokeBrakeSpeed=2.;  // The smoke driver also exercises a normal stop.
 constexpr double kCarSinkRate=1.2;      // m/s after a car leaves the road for water
 constexpr double kCarSinkDepth=4.5;     // keep the car below the surface until a teleport
 constexpr double kCarKerb=.3;           // m above the ground a street surface is still driven onto
@@ -520,6 +513,14 @@ struct Loaded {
     std::vector<size_t> carKinds;
     std::vector<std::vector<saida::Node*>> carWheels;
     std::vector<double> carSpin;
+    std::vector<uint64_t> carIdentities;
+    struct SignalLamp {
+        saida::MeshNode* node=nullptr;
+        uint32_t program=0,group=0,colour=0;
+        bool lit=false;
+    };
+    std::vector<SignalLamp> signalLamps;
+    std::vector<glm::vec2> signalPositions;
     size_t wanted=0;                      // cars this tile's density asks for
     // The people on its pavements (gen/crowd.hpp): the same shape as the
     // traffic, for the same reason -- the crowd points at the graph.
@@ -935,6 +936,25 @@ class World : public Rml::EventListener {
             remaining-=share;
             l.crowd.setPopulation(int(share));
             r1::Crowd::Scene scene;
+            scene.crossingAllowed=[this,&l](size_t link) {
+                const auto& crossing=l.walks.links[link];
+                const auto& start=l.walks.nodes[crossing.a];const auto& end=l.walks.nodes[crossing.b];
+                const glm::vec2 middle(float((start.x+end.x)*.5),float((start.z+end.z)*.5));
+                constexpr float kControlledCrossingDistance=35.f;
+                float nearest=kControlledCrossingDistance;int signal=-1;
+                for(size_t i=0;i<l.signalPositions.size();++i) {
+                    const float distance=glm::distance(middle,l.signalPositions[i]);
+                    if(distance<nearest){nearest=distance;signal=int(i);}
+                }
+                if(signal>=0&&!l.graph.signals[size_t(signal)].pedestriansMayStart(trafficTime_))return false;
+                for(const auto& car:l.flow.agents())if(car.alive) {
+                    const auto pose=l.flow.pose(car);
+                    const float gap=glm::distance(middle,glm::vec2(pose.position.x,pose.position.y));
+                    constexpr float kCrossingSafetyTime=3.f;
+                    if(gap<car.length+pose.speed*kCrossingSafetyTime)return false;
+                }
+                return true;
+            };
             scene.eyeX=eye.x;scene.eyeZ=eye.z;
             const glm::vec3 ahead=camera->transform().rotation*glm::vec3(0,0,-1);
             const glm::dvec3 look=glm::transpose(l.frame.basis)*origin.basis*glm::dvec3(ahead.x,ahead.y,ahead.z);
@@ -1160,6 +1180,8 @@ class World : public Rml::EventListener {
     r1::WeatherOverride forcedWeather=r1::WeatherOverride::Real;
     saida::CaptureRequest worldCapture;
     saida::runtime::CaptureViewpoint captureView;
+    bool captureVehicleDent=false;
+    double captureVehicleWait=0;
     bool captureQueued=false;
     // --at <unix seconds>: an inspection capture, lit at that instant under a
     // clear sky and without the HUD, so two builds photograph the same place
@@ -1664,6 +1686,15 @@ class World : public Rml::EventListener {
     // new frame can face the other way from the old one.
     void rebaseOrigin() {
         const Frame next(lon,lat,alt);
+        auto rebaseVehicle=[&](saida::Node* node) {
+            if(!node)return;
+            r1::VehicleRuntime::synchronize(*node);
+            const auto worldPoint=origin.origin+origin.basis*glm::dvec3(node->transform().position);
+            const auto rotation=glm::quat_cast(glm::mat3(glm::transpose(next.basis)*origin.basis));
+            engine.sceneTree().world().rebaseSubtreeTo(*node,glm::vec3(next.local(worldPoint)),
+                glm::normalize(rotation*node->transform().rotation));
+        };
+        rebaseVehicle(car);for(auto& entry:parked)rebaseVehicle(entry.node);
         auto turn=[&](double heading){
             const glm::dvec3 d=origin.basis[0]*std::sin(heading*rad)-origin.basis[2]*std::cos(heading*rad);
             return wrap(std::atan2(glm::dot(d,next.basis[0]),-glm::dot(d,next.basis[2]))/rad);
@@ -1957,9 +1988,9 @@ class World : public Rml::EventListener {
         body->addChild(std::move(shape));body->addChild(std::move(mesh));parent.addChild(std::move(body));
     }
     void vehicleCollider(saida::Node& node,const VehicleModel& spec) {
-        if(node.findByPath("Vehicle collider"))return;
-        boxCollider(node,"Vehicle collider",{float(spec.width),float(spec.height),float(spec.length)},
-                    {0,float(spec.height*.5),0});
+        if(!r1::VehicleRuntime::body(node))if(auto* lod=node.getBehaviour<saida::LODGroupBehaviour>())node.removeBehaviour(lod);
+        r1::VehicleRuntime::install(node,{float(spec.length),float(spec.width),float(spec.height),float(spec.wheelbase),float(spec.wheelRadius)},spec.name);
+        vehicleLod(node);
     }
     saida::QueryFilter obstacleFilter() const {
         saida::QueryFilter filter;filter.ignoreInner=feet->innerBodyId();
@@ -2057,7 +2088,7 @@ class World : public Rml::EventListener {
             for(auto& child:n.children())collect(*child);
         };
         collect(root);
-        const size_t expected=root.findByPath("Far")?4:2;
+        const size_t expected=(root.findByPath("Far")||root.findByPath("Vehicle collider/Far"))?4:2;
         if(frontWheels.size()!=expected||rearWheels.size()!=expected)
             saida::Log::warn("[World car] this car has ",frontWheels.size()," front and ",
                              rearWheels.size()," rear wheels named wheel-*; they will not turn");
@@ -2067,13 +2098,23 @@ class World : public Rml::EventListener {
         // the player owns, so they have to be rewritten when the origin moves.
         // There are at most six of them.
         for(auto& entry:parked) {
+            if(r1::VehicleRuntime::physical(*entry.node)) {
+                r1::VehicleRuntime::synchronize(*entry.node);
+                const auto p=entry.node->transform().position;
+                const auto worldPoint=origin.origin+origin.basis*glm::dvec3(p);
+                const auto geo=r1::ecefToGeodetic(worldPoint.x,worldPoint.y,worldPoint.z);
+                entry.lon=geo.x;entry.lat=geo.y;entry.alt=geo.z-r1::VehicleRuntime::kBodyClearance;
+                continue;
+            }
             entry.node->transform().position=glm::vec3(origin.local(ecef(entry.lon,entry.lat,entry.alt+.06)));
             entry.node->transform().rotation=glm::angleAxis(float(-entry.yaw*rad),glm::vec3(0,1,0));
         }
         if(!carParked||!car)return;
-        car->transform().position=glm::vec3(origin.local(ecef(carLon,carLat,carAlt+.06)));
-        car->transform().rotation=carSinking
-            ?glm::angleAxis(float(-carYaw*rad),glm::vec3(0,1,0)):carRotation();
+        if(r1::VehicleRuntime::physical(*car))captureCarPose();
+        else {
+            car->transform().position=glm::vec3(origin.local(ecef(carLon,carLat,carAlt+.06)));
+            car->transform().rotation=carSinking?glm::angleAxis(float(-carYaw*rad),glm::vec3(0,1,0)):carRotation();
+        }
         // Wheels turn because a car whose wheels do not turn is a car sliding
         // on ice, and this one is visible from three metres behind it.
         auto spin=glm::angleAxis(float(-wheelSpin),glm::vec3(1,0,0));
@@ -2126,6 +2167,7 @@ class World : public Rml::EventListener {
         if(!covered)return;
         if(!found){saida::Log::warn("[World car] ",key," covered the parked car and no free spot is within 20 m");return;}
         saida::Log::info("[World car] ",key," streamed in over the parked car; moved to ",x,", ",y);
+        r1::VehicleRuntime::deactivate(*car);
         carLon=x;carLat=y;carAlt=groundAt(x,y,carAlt);placeCar();
     }
     // Park the car beside a dry spawn. A swimmer cannot arrive with a car.
@@ -2135,6 +2177,8 @@ class World : public Rml::EventListener {
         // Half a planet away from where they were left, so they are not kept.
         clearAbandonedCars();
         if(!car)return;
+        r1::VehicleRuntime::reset(*car);
+        if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=true;
         car->setEnabled(false);
         if(swimming)return;
         // No road has ever reached the pack ice: nobody drives to the Pole.
@@ -2232,6 +2276,9 @@ class World : public Rml::EventListener {
     // driven by the player and by the simulation at once is two cars.
     void takeTrafficCar(const Reach& target) {
         Loaded& tile=*target.tile;
+        r1::VehicleRuntime::synchronize(*target.node);
+        target.node->updateTransforms(tile.node->worldTransform(),true);
+        const glm::mat4 previousWorld=target.node->worldTransform();
         const glm::vec3 local=target.node->transform().position;
         const auto here=geodeticOf(tile,local);
         tile.flow.retire(target.agent);
@@ -2244,6 +2291,8 @@ class World : public Rml::EventListener {
         }
         abandonCurrentCar();
         car=engine.sceneTree().world().addChild(std::move(owned));
+        car->transform().position=glm::vec3(previousWorld[3]);
+        car->transform().rotation=glm::quat_cast(glm::mat3(previousWorld));
         carParked=true;
         carLon=here.x;carLat=here.y;carAlt=groundAt(carLon,carLat,alt);
         // Keep its heading: the car was driving somewhere, and snapping it to
@@ -2278,7 +2327,10 @@ class World : public Rml::EventListener {
         if(target.kind==2)takeTrafficCar(target);
         else if(target.kind==1)takeAbandonedCar(target);
         if(!carParked||!car)return false;
-        driving=true;carSpeed=0;lookYaw=0;lookIdle=0;
+        driving=true;lookYaw=0;lookIdle=0;
+        if(auto* physics=engine.sceneTree().world().physics())r1::VehicleRuntime::activate(*car,*physics,glm::vec3(0));
+        captureCarPose();
+        if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=false;
         // The car is where the player is now, and the walk's own lon/lat drive
         // it from here: one position, one streamer, one sun. Nothing downstream
         // has to learn that the player is sitting down.
@@ -2290,42 +2342,52 @@ class World : public Rml::EventListener {
         saida::Log::info("[World car] entered at ",carLon,", ",carLat);
         return true;
     }
-    // Returns false when the car refuses to let him out, and says why both
-    // times: a door that does nothing is the failure mode this file exists to
-    // keep out of the game (rule 3 of CLAUDE.md).
+    // Exit at any speed or attitude. A blocked door falls back to the clear
+    // space above the chassis; an airborne exit falls from its actual height.
     bool leaveCar() {
         if(!driving)return false;
-        if(std::abs(carSpeed)>kCarExitSpeed) {
-            text("stream-status","Trop rapide pour descendre — ralentissez.");
-            saida::Log::info("[World car] exit refused at ",std::abs(carSpeed)," m/s");
-            return false;
+        captureCarPose();
+        const auto& spec=vehicleSpec(*car);
+        const r1::VehicleDimensions size{float(spec.length),float(spec.width),float(spec.height),float(spec.wheelbase),float(spec.wheelRadius)};
+        glm::vec3 exitPosition;bool found=false;
+        for(float turn:{0.f,180.f,90.f,270.f}) {
+            const double bearing=(carYaw+turn)*rad;
+            const auto offset=r1::VehicleRuntime::exitOffset(size,car->transform().rotation,
+                {float(cos(bearing)),0,float(-sin(bearing))});
+            const auto candidate=car->transform().position+offset;
+            const auto point=origin.origin+origin.basis*glm::dvec3(candidate);
+            const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+            if(tile(geo.x,geo.y)&&!blocked(geo.x,geo.y,geo.z)){exitPosition=candidate;found=true;break;}
         }
-        // Beside the car, never inside the shell it collides with.
-        double x=0,y=0;bool found=false;
-        for(double side:{2.6,-2.6}) {
-            auto q=onward(carLon,carLat,cos(carYaw*rad)*side,-sin(carYaw*rad)*side);
-            if(tile(q.x,q.y)&&!blocked(q.x,q.y,carAlt)&&std::abs(height(q.x,q.y,carAlt)-carAlt)<kStepUp){x=q.x;y=q.y;found=true;break;}
-        }
-        if(!found)found=freeSpot(carLon,carLat,9.,x,y,carAlt);
-        if(!found) {
-            text("stream-status","Impossible de descendre ici — avancez un peu.");
-            saida::Log::warn("[World car] no standable ground within 9 m of ",carLon,", ",carLat);
-            return false;
-        }
+        if(!found)exitPosition=car->transform().position+
+            r1::VehicleRuntime::exitOffset(size,car->transform().rotation,{0,1,0});
+        const auto point=origin.origin+origin.basis*glm::dvec3(exitPosition);
+        const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+        const double exitSpeed=carSpeed;
+        float verticalVelocity=0;
+        if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())
+            verticalVelocity=body->physicsWorld()->linearVelocity(body->bodyId()).y;
         driving=false;carSpeed=0;steerShown=0;
+        if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=true;
         // Step out looking where you were looking, not snapped back to the
         // bonnet: the offset becomes the walk's own yaw.
         yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
-        lon=x;lat=y;alt=groundAt(x,y,carAlt);
+        lon=geo.x;lat=geo.y;alt=groundAt(lon,lat,carAlt);
+        jumpOffset=std::max(0.,geo.z-alt);jumpVelocity=std::clamp(double(verticalVelocity),-kFallTerminal,15.);
+        swimming=false;
+        player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
         player->setEnabled(true);
         player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
         followDistance=std::min(followDistance,kOnFootFollow);
         text("stream-status","À pied. F : remonter dans la voiture.");
-        saida::Log::info("[World car] left at ",lon,", ",lat);
+        saida::Log::info("[World car] left at ",lon,", ",lat," speed=",exitSpeed," m/s, fall=",jumpOffset," m");
         request(lon,lat);
         return true;
     }
     void sinkCar(double x,double y) {
+        if(car)if(auto* body=r1::VehicleRuntime::body(*car)) {
+            r1::VehicleRuntime::synchronize(*car);body->kinematic=true;body->markDirty();
+        }
         carWaterLevel=waterLevel(x,y);carSinkDepth=0;carSinking=true;
         carLon=x;carLat=y;carAlt=carWaterLevel;carSpeed=0;steerShown=0;
         driving=false;swimming=true;swimTime=0;swimLean=0;
@@ -2342,73 +2404,60 @@ class World : public Rml::EventListener {
         carSinkDepth=std::min(kCarSinkDepth,carSinkDepth+kCarSinkRate*dt);
         carAlt=carWaterLevel-carSinkDepth;
     }
-    // One step of the car, in the tangent plane. Throttle and steering are the
-    // same two axes the walk reads; what differs is that a car carries its
-    // speed and its heading from one frame to the next, which is the whole of
-    // what makes driving feel unlike walking.
+    void captureCarPose() {
+        r1::VehicleRuntime::synchronize(*car);
+        const glm::dvec3 point=origin.origin+origin.basis*glm::dvec3(car->transform().position);
+        const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+        carLon=geo.x;carLat=geo.y;carAlt=geo.z-r1::VehicleRuntime::kBodyClearance;
+        const glm::vec3 forward=car->transform().rotation*glm::vec3(0,0,-1);
+        carYaw=std::atan2(double(forward.x),-double(forward.z))/rad;
+        if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())
+            carSpeed=glm::dot(body->physicsWorld()->linearVelocity(body->bodyId()),forward);
+        if(driving){lon=carLon;lat=carLat;alt=carAlt;yaw=carYaw;}
+    }
+public:
+    void afterSimulation(float) {
+        if(!driving||!car||pending||!playing||(!worldCapture.pngPath.empty()&&captureView.set))return;
+        auto* body=r1::VehicleRuntime::body(*car);
+        if(!body||!body->physicsWorld()||body->kinematic)return;
+        glm::vec3 position;glm::quat rotation;
+        body->physicsWorld()->getBodyTransform(body->bodyId(),position,rotation);
+        const auto forward=rotation*glm::vec3(0,0,-1);
+        const double currentYaw=std::atan2(double(forward.x),-double(forward.z))/rad;
+        const auto turn=glm::angleAxis(float(-wrap(currentYaw-carYaw)*rad),glm::vec3(0,1,0));
+        // Input/camera placement precedes Jolt. Render the camera against the
+        // same completed solver pose as the car, including multi-step frames.
+        camera->transform().position=position+turn*(camera->transform().position-car->transform().position);
+        camera->transform().rotation=glm::normalize(turn*camera->transform().rotation);
+    }
+private:
     void driveCar(double dt,double throttle,double steerInput,bool handbrake) {
+        if(!car)return;
+        captureCarPose();
         if(onWater(lon,lat,alt)){sinkCar(lon,lat);return;}
-        if(throttle>0)carSpeed=std::min(kCarTopSpeed,carSpeed+kCarAccel*throttle*dt);
-        else if(throttle<0) {
-            // Reverse is what the brake becomes once the car has stopped, which
-            // is the pedal a driver expects and one key fewer to explain.
-            if(carSpeed>.2)carSpeed=std::max(0.,carSpeed-kCarBrake*dt);
-            else carSpeed=std::max(kCarReverseSpeed,carSpeed+kCarAccel*throttle*dt);
-        }
-        if(handbrake)carSpeed-=std::copysign(std::min(std::abs(carSpeed),kCarHandbrake*dt),carSpeed);
-        if(throttle==0&&!handbrake) {
-            double loss=(kCarRollResist+kCarDrag*carSpeed*carSpeed)*dt;
-            carSpeed-=std::copysign(std::min(std::abs(carSpeed),loss),carSpeed);
-        }
-        double v=std::abs(carSpeed);
-        if(v>1e-3) {
-            // Two limits: the front wheels cannot cut a circle tighter than
-            // kCarTurnRadius, and the heading cannot swing faster than
-            // kCarLateralAccel allows at this speed. The second still stops a
-            // hairpin at 130 km/h from being one key press -- 27 degrees a
-            // second up there -- while leaving 90 at town speed.
-            double turn=std::min(v/std::max(kCarTurnRadius,vehicleSpec(*car).wheelbase*1.45),kCarLateralAccel/v);
-            carYaw=wrap(carYaw+steerInput*turn/rad*dt*(carSpeed<0?-1:1));
-            wheelSpin+=carSpeed/vehicleSpec(*car).wheelRadius*dt;
-        }
-        steerShown+=(steerInput-steerShown)*(1-std::exp(-9*dt));
-        yaw=carYaw;
-        if(v<=1e-3){carLon=lon;carLat=lat;carAlt=alt;return;}
-        auto next=onward(lon,lat,sin(carYaw*rad)*carSpeed*dt,cos(carYaw*rad)*carSpeed*dt);
-        if(!tile(next.x,next.y))stream(); // Mount a prefetched tile before stopping at its edge.
-        if(!tile(next.x,next.y)) {
-            // Outrunning the streamer. Said rather than shown as a stutter: at
-            // 130 km/h a car reaches the edge of the loaded world in seconds,
-            // and a wall of nothing has to announce itself as one.
-            carSpeed=0;
+        auto* drive=r1::VehicleRuntime::driver(*car);if(!drive)return;
+        constexpr double kReverseBrakeThreshold=.2;
+        constexpr double kTerrainGuardMargin=8.;
+        const double stoppingDistance=carSpeed*carSpeed/(2.*std::max(1.f,drive->braking))+kTerrainGuardMargin;
+        const double guardDirection=std::abs(carSpeed)>kReverseBrakeThreshold?carSpeed:throttle;
+        const double guardDistance=std::copysign(stoppingDistance,guardDirection);
+        const auto ahead=onward(lon,lat,sin(carYaw*rad)*guardDistance,cos(carYaw*rad)*guardDistance);
+        if(!tile(ahead.x,ahead.y))stream();
+        float brake=0;
+        if(!tile(ahead.x,ahead.y)) {
+            throttle=0;brake=1;
+            if(carStop!="terrain")saida::Log::info("[World car] braking before unloaded terrain at ",ahead.x,", ",ahead.y);
+            carStop="terrain";
             text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
-            return;
+        } else {
+            carStop.clear();
+            if(throttle*carSpeed<0&&std::abs(carSpeed)>kReverseBrakeThreshold) { throttle=0;brake=1; }
         }
-        if(onWater(next.x,next.y,alt)){carStop="water";sinkCar(next.x,next.y);return;}
-        // Arcade handling keeps geographic pose; obstacle detection is a Jolt
-        // query along the travelled step, including the streamed traffic bodies.
-        // Each step is tested standing on the ground it reaches, not at the
-        // altitude the car left: up a ramp, the old altitude is inside it.
-        const double length=std::abs(carSpeed)*dt;
-        const int steps=std::max(1,int(std::ceil(length/.25)));
-        double level=alt;
-        for(int i=1;i<=steps;++i) {const double d=length*i/steps;
-            const auto q=onward(lon,lat,sin(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1),
-                                            cos(carYaw*rad)*std::min(d,length)*(carSpeed<0?-1:1));
-            level=drivenGround(q.x,q.y,level);
-            if(blocked(q.x,q.y,level)) {
-                const std::string stop="an obstacle ("+obstacleName(q.x,q.y,level)+")";
-                // Once per obstacle, not once per frame the throttle is held.
-                if(stop!=carStopSaid)saida::Log::info("[World car] stopped by ",stop," at ",q.x,", ",q.y," level ",level);
-                carStop=carStopSaid=stop;carSpeed=0;
-                text("stream-status","Obstacle — la voiture s'arrête.");return;}
-        }
-        lon=next.x;lat=next.y;alt=drivenGround(lon,lat,level);
-        carStopSaid.clear();
-        carLon=lon;carLat=lat;carAlt=alt;
+        drive->command(float(throttle),brake,float(steerInput),handbrake);
+        steerShown=drive->steering();
+        wheelSpin+=carSpeed/vehicleSpec(*car).wheelRadius*dt;
         request(lon,lat);
     }
-
     // ── boats ───────────────────────────────────────────────────────────────
     //
     // Every boat the harbours moored can be taken: the manifest says where each
@@ -3644,7 +3693,10 @@ class World : public Rml::EventListener {
         return fleet.front(); // The entry scene starts with the city car.
     }
     static void vehicleLod(saida::Node& node) {
-        auto* lod=node.addBehaviour<saida::LODGroupBehaviour>();
+        auto* body=r1::VehicleRuntime::body(node);
+        auto& visual=body?static_cast<saida::Node&>(*body):node;
+        auto* lod=visual.getBehaviour<saida::LODGroupBehaviour>();
+        if(!lod)lod=visual.addBehaviour<saida::LODGroupBehaviour>();
         // Full source detail is for close cars. Switch by projected size,
         // keeping long vehicles detailed farther away, with engine hysteresis.
         lod->setLevels({{"Near",.16f},{"Far",0.f}});
@@ -3670,7 +3722,9 @@ class World : public Rml::EventListener {
             spec.prototype=prototypes->addChild(std::move(root));fleet.push_back(spec);
         }
         if(fleet.empty())throw std::runtime_error("The road vehicle fleet is empty");
-        car->setName("vehicle-city");vehicleLod(*car);
+        while(!car->children().empty())car->removeChild(car->children().front().get());
+        for(const auto& child:fleet.front().prototype->children())car->addChild(clonePlant(*child));
+        car->setName("vehicle-city");vehicleLod(*car);collectWheels(*car);
         saida::Log::info("[World traffic] fleet=",fleet.size()," shared vertices=",doc.at("totalVertices").get<size_t>());
     }
     size_t vehicleKind(uint32_t seed,const saida::traffic::Lane& lane) const {
@@ -3681,6 +3735,158 @@ class World : public Rml::EventListener {
         for(size_t i=0;i<fleet.size();++i)if(fleet[i].name==name)return i;
         return 0;
     }
+    double trafficTime_=0;
+    bool trafficValidation_=std::getenv("R1WORLD_TRAFFIC_VALIDATE")!=nullptr;
+    double trafficValidationTime_=0,trafficValidationReport_=0;
+    size_t trafficValidationMoving_=0,trafficValidationLive_=0;
+    size_t trafficValidationSteadySamples_=0,trafficValidationSteadyMoving_=0;
+    static constexpr double kTrafficValidationSeconds=60.,kTrafficValidationReportSeconds=5.;
+    static constexpr double kTrafficValidationWarmupSeconds=30.;
+    static constexpr size_t kTrafficValidationMinimumLive=20,kTrafficValidationMinimumMoving=10;
+    void validateTraffic(double dt) {
+        if(!playing||pending)return;
+        trafficValidationTime_+=dt;trafficValidationReport_+=dt;
+        if(trafficValidationReport_<kTrafficValidationReportSeconds)return;
+        trafficValidationReport_=0;
+        size_t live=0,moving=0,physical=0,grounded=0,incidents=0,requested=0,damaged=0;
+        std::array<size_t,8> reasons{};size_t deadEnds=0;
+        for(auto& [key,region]:loaded)for(size_t slot=0;slot<region.flow.agents().size();++slot) {
+            const auto& agent=region.flow.agents()[slot];if(!agent.alive)continue;
+            ++live;moving+=agent.speed>1.f;incidents+=agent.incident;requested+=agent.targetSpeed>1.f;
+            if(agent.targetSpeed<.1f)++reasons[size_t(agent.stopReason)];
+            deadEnds+=agent.nextLane==UINT32_MAX;
+            if(slot<region.cars.size()&&region.cars[slot]&&r1::VehicleRuntime::physical(*region.cars[slot])) {
+                ++physical;const auto* drive=r1::VehicleRuntime::driver(*region.cars[slot]);
+                grounded+=drive->grounded();damaged+=drive->damage>.1f;
+            }
+        }
+        trafficValidationLive_=std::max(trafficValidationLive_,live);
+        trafficValidationMoving_=std::max(trafficValidationMoving_,moving);
+        if(trafficValidationTime_>=kTrafficValidationWarmupSeconds){++trafficValidationSteadySamples_;trafficValidationSteadyMoving_+=moving;}
+        saida::Log::info("[World traffic validation] t=",trafficValidationTime_," live=",live," moving=",moving,
+            " requested=",requested," physical=",physical," grounded=",grounded," incidents=",incidents," damaged=",damaged);
+        saida::Log::info("[World traffic validation] stops following=",reasons[1]," junction=",reasons[2],
+            " blockedExit=",reasons[3]," signal=",reasons[4]," stopSign=",reasons[5]," deadEnds=",deadEnds);
+        if(trafficValidationTime_>=kTrafficValidationSeconds) {
+            // A snapshot can coincide with all-red clearance. Measure sustained
+            // motion after warmup instead of requiring a particular final phase.
+            const double steadyMoving=trafficValidationSteadySamples_?double(trafficValidationSteadyMoving_)/trafficValidationSteadySamples_:0.;
+            testFailed=trafficValidationLive_<kTrafficValidationMinimumLive||steadyMoving<kTrafficValidationMinimumMoving;
+            saida::Log::info("[World traffic validation] ",testFailed?"FAIL":"PASS"," peak live=",trafficValidationLive_," peak moving=",trafficValidationMoving_," steady moving=",steadyMoving);
+            engine.sceneTree().quit();
+        }
+    }
+    std::array<saida::AssetID,3> signalMeshes_{};
+    void prepareSignalMeshes() {
+        if(signalMeshes_[0])return;
+        auto& resources=engine.resources();
+        signalMeshes_[0]=resources.queueMemoryMesh(saida::prepareMesh(r1::traffic_signal::pole()),"r1world/signal/pole");
+        signalMeshes_[1]=resources.queueMemoryMesh(saida::prepareMesh(r1::traffic_signal::housing()),"r1world/signal/housing");
+        signalMeshes_[2]=resources.queueMemoryMesh(saida::prepareMesh(r1::traffic_signal::lens()),"r1world/signal/lens");
+    }
+    bool frameTrafficSignal() {
+        saida::Node* closest=nullptr;float distance=std::numeric_limits<float>::max();
+        const auto observer=origin.local(ecef(lon,lat,alt));
+        for(auto& [key,region]:loaded)for(const auto& child:region.node->children()) {
+            if(child->name()!="Traffic signal")continue;
+            const float candidate=glm::distance(glm::vec3(observer),glm::vec3(child->worldTransform()[3]));
+            if(candidate<distance){distance=candidate;closest=child.get();}
+        }
+        if(!closest)return false;
+        const auto matrix=closest->worldTransform();
+        const auto position=glm::vec3(matrix*glm::vec4(1.4f,2.3f,-3.8f,1));
+        const auto target=glm::vec3(matrix*glm::vec4(0,1.9f,r1::traffic_signal::kHeadOffset,1));
+        player->setVisible(false);camera->transform().position=position;
+        camera->transform().rotation=glm::quatLookAt(glm::normalize(target-position),glm::vec3(0,1,0));
+        return true;
+    }
+    saida::Material* signalMaterial(uint32_t colour,bool lit) {
+        static const std::array<glm::vec3,3> colours{{{1,.03f,.01f},{1,.5f,.01f},{.03f,1,.1f}}};
+        constexpr float kLensGlassAlbedo=.08f,kLensEmissiveStrength=2.f;
+        saida::MaterialDesc desc;
+        desc.baseColor=glm::vec4(colours[colour]*kLensGlassAlbedo,1);
+        desc.emissiveColor=glm::vec4(lit?colours[colour]*kLensEmissiveStrength:glm::vec3(0),1);
+        desc.roughness=.35f;
+        return engine.resources().getMaterial(desc);
+    }
+    void buildTrafficSignals(Loaded& tile,const json& doc) {
+        if(!doc.contains("controls"))return;
+        using namespace r1::traffic_signal;
+        constexpr float kKerbClearance=.45f;
+        constexpr double kMaximumRoadsideReach=40.;
+        r1::RoadSurface roadSurface;
+        if(auto surface=tile.data.find("roadSurface");surface!=tile.data.end())for(const auto& contour:*surface) {
+            r1::Ring ring;
+            for(const auto& point:contour)ring.push_back({point[0],point[1]});
+            roadSurface.contours.push_back(std::move(ring));
+        }
+        prepareSignalMeshes();
+        auto& resources=engine.resources();
+        saida::MaterialDesc pole;pole.baseColor={.24f,.25f,.26f,1};pole.roughness=.4f;pole.metallic=.7f;
+        auto* poleMaterial=engine.resources().getMaterial(pole);
+        saida::MaterialDesc casing;casing.baseColor={.018f,.02f,.023f,1};casing.roughness=.5f;
+        auto* housingMaterial=resources.getMaterial(casing);
+        std::map<std::pair<uint32_t,uint8_t>,const json*> approaches;
+        for(const auto& control:doc.at("controls")) {
+            if(control.at("kind")!="traffic_signals")continue;
+            const auto laneIndex=control.at("lane").get<uint32_t>();
+            if(laneIndex>=tile.graph.lanes.size())continue;
+            const auto& lane=tile.graph.lanes[laneIndex];if(lane.signal<0)continue;
+            const auto key=std::make_pair(lane.to,lane.signalGroup);
+            auto [found,inserted]=approaches.emplace(key,&control);
+            if(!inserted) {
+                const auto& existing=tile.graph.lanes[found->second->at("lane").get<uint32_t>()];
+                if(lane.offset>existing.offset)found->second=&control;
+            }
+        }
+        for(const auto& [key,control]:approaches) {
+            const auto laneIndex=control->at("lane").get<uint32_t>();
+            const auto& lane=tile.graph.lanes[laneIndex];
+            const auto direction=tile.graph.direction(laneIndex);
+            constexpr float kJunctionMatchTolerance=.1f,kCrossingDirectionCosine=.7f;
+            const saida::traffic::Vec2 junction{tile.signalPositions[size_t(lane.signal)].x,tile.signalPositions[size_t(lane.signal)].y};
+            float crossingHalfWidth=0.f;
+            for(uint32_t crossing=0;crossing<tile.graph.lanes.size();++crossing) {
+                const auto& other=tile.graph.lanes[crossing];
+                if(std::abs(saida::traffic::dot(direction,tile.graph.direction(crossing)))>kCrossingDirectionCosine)continue;
+                if(saida::traffic::length(tile.graph.nodes[other.from]-junction)>kJunctionMatchTolerance&&
+                   saida::traffic::length(tile.graph.nodes[other.to]-junction)>kJunctionMatchTolerance)continue;
+                crossingHalfWidth=std::max(crossingHalfWidth,std::abs(other.offset)+other.width*.5f);
+            }
+            const float junctionDistance=saida::traffic::dot(junction-tile.graph.nodes[lane.to],direction);
+            const float setback=std::max(tile.flow.driver.stopLineDistance,crossingHalfWidth+kKerbClearance-junctionDistance);
+            const auto centre=tile.flow.positionOf(laneIndex,tile.graph.laneLength(laneIndex)-setback);
+            const float side=doc.value("leftHand",false)?-1.f:1.f;
+            const auto location=roadSurface.roadside({centre.x,centre.y},{-direction.y*side,direction.x*side},kKerbClearance,kMaximumRoadsideReach);
+            if(!location) {
+                saida::Log::warn("[World signals] no clear roadside for lane ",laneIndex,"; post omitted");
+                continue;
+            }
+            const auto geo=geodeticOf(tile,{float(location->x),control->at("position")[1].get<float>(),float(location->y)});
+            if(!this->tile(geo.x,geo.y)) {
+                saida::Log::warn("[World signals] roadside terrain unavailable for lane ",laneIndex,"; post omitted");
+                continue;
+            }
+            // The foundation sits on terrain; pavement may cover its foot.
+            // A universal pavement lift would leave verge-mounted posts floating.
+            const float ground=float(tile.frame.local(ecef(geo.x,geo.y,height(geo.x,geo.y))).y);
+            auto* assembly=tile.node->createChild<saida::Node>("Traffic signal");
+            assembly->transform().position={float(location->x),ground,float(location->y)};
+            assembly->transform().rotation=glm::angleAxis(std::atan2(direction.x,direction.y),glm::vec3(0,1,0));
+            assembly->createChild<saida::MeshNode>("Galvanized pole and brackets",resources.getMesh(signalMeshes_[0]),poleMaterial);
+            for(int head=0;head<2;++head) {
+                const float scale=head==0?1.f:kRepeaterScale,height=head==0?kHeadHeight:kRepeaterHeight;
+                auto* housing=assembly->createChild<saida::MeshNode>(head==0?"Signal housing and visors":"Repeater housing and visors",resources.getMesh(signalMeshes_[1]),housingMaterial);
+                housing->transform().position={0,height,kHeadOffset};housing->transform().scale=glm::vec3(scale);
+                for(uint32_t colour=0;colour<3;++colour) {
+                    auto* lamp=assembly->createChild<saida::MeshNode>("Signal lens",resources.getMesh(signalMeshes_[2]),signalMaterial(colour,false));
+                    lamp->transform().position={0,height+(1.f-float(colour))*kLensPitch*scale,kHeadOffset};
+                    lamp->transform().scale=glm::vec3(scale);
+                    tile.signalLamps.push_back({lamp,uint32_t(lane.signal),lane.signalGroup,colour,false});
+                }
+            }
+        }
+    }
     void readGraph(Loaded& tile) {
         auto found=tile.data.find("traffic");
         if(found==tile.data.end())return;   // cooked before traffic existed
@@ -3689,24 +3895,41 @@ class World : public Rml::EventListener {
             tile.graph.nodes.push_back({float(node[0]),float(node[2])});
             tile.groundUp.push_back(float(node[1]));
         }
-        for(auto& lane:doc.at("lanes"))
-            tile.graph.lanes.push_back({uint32_t(lane[0]),uint32_t(lane[1]),
-                                        float(lane[2]),float(lane[3])});
+        for(const auto& entry:doc.at("lanes")) {
+            using namespace r1::traffic_format;
+            saida::traffic::Lane lane{uint32_t(entry[From]),uint32_t(entry[To]),float(entry[Speed]),float(entry[Weight])};
+            if(entry.size()>AllowedTurns) {
+                lane.offset=entry[Offset];lane.width=entry[Width];lane.road=entry[Road];lane.number=entry[Number];lane.priority=entry[Priority];
+                lane.signal=entry[Signal];lane.signalGroup=entry[Group];lane.stop=entry[Stop];lane.yield=entry[Yield];lane.allowedTurns=entry[AllowedTurns];
+            }
+            if(entry.size()>Layer)lane.layer=entry[Layer];
+            tile.graph.lanes.push_back(lane);
+        }
+        if(doc.contains("signals"))for(const auto& entry:doc.at("signals")) {
+            saida::traffic::Signal signal;signal.key=entry.at("key");signal.offset=entry.value("offset",0.);
+            tile.graph.signals.push_back(signal);
+            const auto& p=entry.at("position");tile.signalPositions.push_back({p[0].get<float>(),p[2].get<float>()});
+        }
+        if(doc.contains("restrictions"))for(const auto& entry:doc.at("restrictions"))
+            tile.graph.restrictions.push_back({entry[0],entry[1],entry[2],entry[3]});
         if(tile.graph.lanes.empty())return;
+        tile.graph.rightTurnCrossSign=1;
         tile.graph.build();
         saida::traffic::Rules rules;
         rules.leftHand=doc.value("leftHand",false);
+        rules.lateralAxisSign=-1.f;
         // The despawn radius is the streamer's, not a taste: a car further
         // than the tile ring is a car in a tile that is about to be evicted.
         rules.despawn=260.f;
         // The simulator measures centre-to-centre gaps. Reserve a bus length
         // plus clearance so two long vehicles cannot overlap in a queue.
-        rules.minGap=12.5f;
+        rules.minGap=saida::traffic::DriverSettings{}.defaultLength+saida::traffic::DriverSettings{}.bumperGap;
         rules.junctionGuard=14.f;
         // Deterministic per tile, so the same street is the same street on
         // every visit and a capture can be compared with itself.
         tile.flow.reset(&tile.graph,rules,uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u);
         tile.wanted=doc.value("cars",0);
+        buildTrafficSignals(tile,doc);
     }
     glm::vec3 paintFor(uint32_t seed) const {
         return paints[seed%paints.size()];
@@ -3716,6 +3939,8 @@ class World : public Rml::EventListener {
             if(!n.material()||n.name().rfind("paint-",0)!=0)return;
             auto desc=n.material()->desc();
             desc.baseColor=glm::vec4(albedo,desc.baseColor.a);
+            constexpr float kVehicleReflection=1.f;
+            desc.environmentReflection=std::max(desc.environmentReflection,kVehicleReflection);
             if(auto* mesh=dynamic_cast<saida::MeshNode*>(&n))
                 mesh->setMaterial(engine.resources().getMaterial(desc));
         });
@@ -3726,8 +3951,51 @@ class World : public Rml::EventListener {
         const glm::vec3 p=camera->transform().position;
         return tile.frame.local(origin.origin+origin.basis*glm::dvec3(p.x,p.y,p.z));
     }
+    bool trafficVisible(const Loaded& tile,const saida::traffic::Pose& pose) const {
+        const auto eye=cameraTileLocal(tile);
+        const glm::dvec3 delta(pose.position.x-eye.x,0,pose.position.y-eye.z);
+        constexpr double kVisibilityDistance=300.;
+        constexpr double kVisibilityCosine=.15;
+        const double distance=glm::length(delta);
+        if(distance>kVisibilityDistance)return false;
+        if(distance<1.)return true;
+        const auto forward=glm::transpose(tile.frame.basis)*origin.basis*glm::dvec3(camera->transform().rotation*glm::vec3(0,0,-1));
+        return glm::dot(delta,forward)/distance>kVisibilityCosine;
+    }
+    saida::traffic::Pose physicalTrafficPose(Loaded& tile,size_t slot) {
+        auto& root=*tile.cars[slot];r1::VehicleRuntime::synchronize(root);
+        const auto position=root.transform().position;
+        const auto forward=root.transform().rotation*glm::vec3(0,0,-1);
+        auto* rigid=r1::VehicleRuntime::body(root);
+        const auto velocity=glm::transpose(glm::mat3(tile.node->worldTransform()))*rigid->physicsWorld()->linearVelocity(rigid->bodyId());
+        return {{position.x,position.z},std::atan2(forward.x,forward.z),std::max(0.f,glm::dot(velocity,forward))};
+    }
+    saida::traffic::Obstacle vehicleTrafficObstacle(saida::Node& car,const Loaded& tile) const {
+        glm::vec3 position;glm::quat rotation;
+        if(r1::VehicleRuntime::physical(car)) {
+            auto* body=r1::VehicleRuntime::body(car);
+            body->physicsWorld()->getBodyTransform(body->bodyId(),position,rotation);
+        } else {position=glm::vec3(car.worldTransform()[3]);rotation=glm::quat_cast(glm::mat3(car.worldTransform()));}
+        const auto inverse=glm::inverse(tile.node->worldTransform());
+        const auto local=glm::vec3(inverse*glm::vec4(position,1));
+        const auto direction=glm::mat3(inverse)*(rotation*glm::vec3(0,0,-1));
+        const auto& spec=vehicleSpec(car);
+        saida::traffic::Obstacle obstacle;obstacle.active=car.enabled();obstacle.position={local.x,local.z};
+        obstacle.halfLength=float(spec.length*.5);obstacle.halfWidth=float(spec.width*.5);obstacle.yaw=std::atan2(direction.x,direction.z);
+        return obstacle;
+    }
     void updateTraffic(float delta) {
         if(!debugTraffic||fleet.empty())return;
+        const float trafficDelta=std::clamp(delta,0.f,.25f);
+        trafficTime_+=trafficDelta;
+        auto promoteParked=[&](saida::Node* node) {
+            if(!node||!node->enabled()||r1::VehicleRuntime::physical(*node))return;
+            const auto eye=origin.local(ecef(lon,lat,alt));
+            if(glm::length(glm::dvec3(node->transform().position)-eye)<r1::VehicleRuntime::kPromotionDistance)
+                if(auto* physics=engine.sceneTree().world().physics())r1::VehicleRuntime::activate(*node,*physics,glm::vec3(0));
+        };
+        if(carParked&&!carSinking)promoteParked(car);
+        for(auto& entry:parked)promoteParked(entry.node);
         // §5 again, from the other side: the whole neighbourhood shares one
         // fleet budget, and the tiles nearest the player spend it first --
         // `nearby` returns them in that order. Far tiles keep their graph and
@@ -3738,21 +4006,35 @@ class World : public Rml::EventListener {
             if(found==loaded.end())continue;
             Loaded& l=found->second;
             if(l.graph.lanes.empty())continue;
-            const size_t share=std::min<size_t>(l.wanted,remaining);
+            const glm::dvec3 eye=cameraTileLocal(l);
+            const size_t localCapacity=l.flow.capacityNear({float(eye.x),float(eye.z)});
+            const size_t share=std::min({l.wanted,localCapacity,remaining});
             remaining-=share;
             l.flow.setPopulation(uint32_t(share));
+            l.flow.setVisibility([this,&l](const saida::traffic::Pose& pose){return playing&&!pending&&trafficVisible(l,pose);});
+            l.flow.setTime(trafficTime_);
+            for(auto& lamp:l.signalLamps) {
+                const auto light=l.graph.signals[lamp.program].light(lamp.group,trafficTime_);
+                const bool lit=uint32_t(light)==lamp.colour;
+                if(lit!=lamp.lit){lamp.node->setMaterial(signalMaterial(lamp.colour,lit));lamp.lit=lit;}
+            }
+            for(size_t i=0;i<l.cars.size();++i)if(l.cars[i]&&trafficSlotLive(l,i)&&r1::VehicleRuntime::physical(*l.cars[i])) {
+                const auto pose=physicalTrafficPose(l,i);
+                const auto* deform=r1::VehicleRuntime::body(*l.cars[i])->getBehaviour<saida::DeformableMeshBehaviour>();
+                l.flow.setPhysicalPose(i,pose,deform&&deform->absorbedEnergy()>=deform->maximumImpactEnergy*r1::VehicleRuntime::kDisablingDamageFraction);
+            }
+            std::vector<saida::traffic::Obstacle> roadObstacles;
+            if(carParked&&car&&!driving)roadObstacles.push_back(vehicleTrafficObstacle(*car,l));
+            for(auto& parkedCar:parked)roadObstacles.push_back(vehicleTrafficObstacle(*parkedCar.node,l));
+            for(const auto& walker:l.crowd.walkers())if(walker.alive&&walker.link>=0&&walker.along>.75&&l.walks.links[walker.link].crossing)
+                roadObstacles.push_back({{float(walker.x),float(walker.z)},float(r1::Crowd::kBodyRadius),true});
+            l.flow.setObstacles(std::move(roadObstacles));
             // The observer is the camera, not the player. It stands eight and a
             // half metres behind him in a car, so "sixteen metres behind the
             // player" was eight metres behind the *camera* -- in shot, which is
             // half of why cars appeared in view.
-            const glm::dvec3 eye=cameraTileLocal(l);
             saida::traffic::Obstacle player;
-            if(driving) {
-                const glm::dvec3 p=l.frame.local(ecef(carLon,carLat,carAlt));
-                player.position={float(p.x),float(p.z)};
-                player.radius=float(vehicleSpec(*car).length*.5+.4);
-                player.active=true;
-            }
+            if(driving)player=vehicleTrafficObstacle(*car,l);
             // Which way the camera is looking, in this tile's frame, so cars
             // may appear close behind it and never close in front.
             const glm::vec3 ahead=camera->transform().rotation*glm::vec3(0,0,-1);
@@ -3762,8 +4044,69 @@ class World : public Rml::EventListener {
             const saida::traffic::Vec2 facing=flat>1e-6
                 ?saida::traffic::Vec2{float(look.x/flat),float(look.z/flat)}
                 :saida::traffic::Vec2{0.f,0.f};
-            l.flow.update(std::min(.05f,delta),{float(eye.x),float(eye.z)},facing,player);
-            syncTrafficNodes(l,std::min(.05f,delta));
+            l.flow.update(trafficDelta,{float(eye.x),float(eye.z)},facing,player);
+            syncTrafficNodes(l,trafficDelta);
+        }
+        transferTraffic();
+    }
+    static void resizeTrafficSlots(Loaded& tile,size_t count) {
+        if(tile.cars.size()>=count)return;
+        tile.cars.resize(count,nullptr);tile.carKinds.resize(count,0);tile.carWheels.resize(count);
+        tile.carSpin.resize(count,0);tile.carIdentities.resize(count,0);
+    }
+    bool transferTrafficCar(Loaded& source,size_t index,Loaded& destination) {
+        auto* root=source.cars[index];
+        r1::VehicleRuntime::synchronize(*root);
+        root->updateTransforms(source.node->worldTransform(),true);
+        const auto into=glm::inverse(destination.node->worldTransform())*root->worldTransform();
+        const auto forward=glm::mat3(into)*glm::vec3(0,0,-1);
+        const auto agent=source.flow.agents()[index];
+        const saida::traffic::Pose actual{{into[3].x,into[3].z},std::atan2(forward.x,forward.z),agent.speed};
+        const auto slot=destination.flow.adopt(agent,actual,source.graph.lanes[agent.lane].road);
+        if(!slot)return false;
+        auto owned=source.node->detachChild(root);
+        if(!owned){destination.flow.retire(*slot);return false;}
+        source.flow.retire(index);
+        root->transform().position=glm::vec3(into[3]);
+        root->transform().rotation=glm::normalize(glm::quat_cast(glm::mat3(into)));
+        resizeTrafficSlots(destination,*slot+1);
+        if(destination.cars[*slot])destination.cars[*slot]->queueFree();
+        destination.cars[*slot]=destination.node->addChild(std::move(owned));
+        destination.carKinds[*slot]=source.carKinds[index];destination.carIdentities[*slot]=source.carIdentities[index];
+        destination.carWheels[*slot]=std::move(source.carWheels[index]);destination.carSpin[*slot]=source.carSpin[index];
+        source.cars[index]=nullptr;source.carIdentities[index]=0;
+        return true;
+    }
+    void preserveTrafficCar(Loaded& source,size_t index) {
+        auto* root=source.cars[index];
+        r1::VehicleRuntime::synchronize(*root);
+        root->updateTransforms(source.node->worldTransform(),true);
+        const auto world=root->worldTransform();
+        const auto point=origin.origin+origin.basis*glm::dvec3(world[3]);
+        const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+        auto owned=source.node->detachChild(root);if(!owned)return;
+        source.flow.retire(index);source.cars[index]=nullptr;source.carIdentities[index]=0;
+        root=engine.sceneTree().world().addChild(std::move(owned));
+        root->transform().position=glm::vec3(world[3]);root->transform().rotation=glm::quat_cast(glm::mat3(world));
+        if(auto* drive=r1::VehicleRuntime::driver(*root))drive->parked=true;
+        const auto forward=root->transform().rotation*glm::vec3(0,0,-1);
+        parked.push_back({root,geo.x,geo.y,geo.z-r1::VehicleRuntime::kBodyClearance,std::atan2(double(forward.x),-double(forward.z))/rad});
+    }
+    void transferTraffic() {
+        for(auto& [key,source]:loaded)for(size_t i=0;i<source.cars.size();++i) {
+            auto* root=source.cars[i];if(!root||!trafficSlotLive(source,i))continue;
+            const auto geo=geodeticOf(source,root->transform().position);
+            auto* destination=tile(geo.x,geo.y);
+            const auto& agent=source.flow.agents()[i];
+            const float remaining=source.graph.laneLength(agent.lane)-agent.s;
+            if((!destination||destination==&source)&&agent.nextLane==UINT32_MAX&&remaining<source.flow.driver.transferTolerance) {
+                constexpr float kBoundaryProbeDistance=2.f;
+                const auto terminal=source.flow.positionOf(agent.lane,source.graph.laneLength(agent.lane))+source.graph.direction(agent.lane)*kBoundaryProbeDistance;
+                const auto ahead=geodeticOf(source,{terminal.x,root->transform().position.y,terminal.y});
+                destination=tile(ahead.x,ahead.y);
+            }
+            if(!destination||destination==&source||destination->graph.lanes.empty())continue;
+            transferTrafficCar(source,i,*destination);
         }
     }
     bool trafficSlotLive(const Loaded& tile,size_t slot) const {
@@ -3773,12 +4116,7 @@ class World : public Rml::EventListener {
     // Reuse each slot's graph; dormant slots retain resources without rendering.
     void syncTrafficNodes(Loaded& tile,float delta) {
         const auto& agents=tile.flow.agents();
-        if(tile.cars.size()<agents.size()) {
-            tile.cars.resize(agents.size(),nullptr);
-            tile.carKinds.resize(agents.size(),0);
-            tile.carWheels.resize(agents.size());
-            tile.carSpin.resize(agents.size(),0.);
-        }
+        resizeTrafficSlots(tile,agents.size());
         for(size_t i=0;i<tile.cars.size();++i) {
             const bool live=trafficSlotLive(tile,i);
             if(!tile.cars[i]) {
@@ -3802,6 +4140,16 @@ class World : public Rml::EventListener {
             }
             tile.cars[i]->setEnabled(true);
             const auto& agent=agents[i];
+            if(tile.carIdentities[i]!=agent.identity) {
+                r1::VehicleRuntime::reset(*tile.cars[i]);tile.carIdentities[i]=agent.identity;
+                const auto& dimensions=fleet[tile.carKinds[i]];
+                tile.flow.setVehicleDimensions(i,float(dimensions.length),float(dimensions.width));
+                const auto profile=r1::vehicleDynamics(dimensions.name);
+                const auto* vehicleDrive=r1::VehicleRuntime::driver(*tile.cars[i]);
+                tile.flow.setVehicleLimits(i,{profile.acceleration,profile.braking,profile.grip,profile.maximumSpeed,
+                    float(dimensions.wheelbase),glm::radians(vehicleDrive->steeringAngle)});
+                paintCar(*tile.cars[i],paintFor(uint32_t(agent.identity)));
+            }
             // Agent seeds advance at junctions. Keep model and paint stable
             // for the pooled node instead of changing a car in full view.
             tile.carSpin[i]+=agent.speed*delta/fleet[tile.carKinds[i]].wheelRadius;
@@ -3812,12 +4160,34 @@ class World : public Rml::EventListener {
             const float span=tile.graph.laneLength(agent.lane);
             const float t=span>0.f?agent.s/span:0.f;
             const float up=tile.groundUp[lane.from]*(1.f-t)+tile.groundUp[lane.to]*t;
-            const auto dir=tile.graph.direction(agent.lane);
+            const saida::traffic::Vec2 dir{std::sin(pose.yaw),std::cos(pose.yaw)};
             // Engine z points south, so north is -z and the bearing the rest of
             // this file speaks is atan2(east, north).
             const double bearing=std::atan2(double(dir.x),-double(dir.y));
-            tile.cars[i]->transform().position=glm::vec3(pose.position.x,up+.06f,pose.position.y);
-            tile.cars[i]->transform().rotation=glm::angleAxis(float(-bearing),glm::vec3(0,1,0));
+            auto& root=*tile.cars[i];
+            const auto observer=tile.frame.local(ecef(lon,lat,alt));
+            const float distance=std::hypot(float(observer.x)-pose.position.x,float(observer.z)-pose.position.y);
+            if(!r1::VehicleRuntime::physical(root)) {
+                root.transform().position=glm::vec3(pose.position.x,up+r1::VehicleRuntime::kBodyClearance,pose.position.y);
+                const float rise=(tile.groundUp[lane.to]-tile.groundUp[lane.from])/std::max(.05f,span);
+                root.transform().rotation=glm::angleAxis(float(-bearing),glm::vec3(0,1,0))*glm::angleAxis(std::atan(rise),glm::vec3(1,0,0));
+                const float promotion=r1::VehicleRuntime::kPromotionDistance+std::abs(float(carSpeed))*r1::VehicleRuntime::kPredictionTime;
+                if(distance<promotion)if(auto* physics=engine.sceneTree().world().physics())
+                    r1::VehicleRuntime::activate(root,*physics,glm::mat3(tile.node->worldTransform())*
+                        (root.transform().rotation*glm::vec3(0,0,-1))*agent.speed);
+            }
+            if(r1::VehicleRuntime::physical(root)) {
+                const auto command=tile.flow.command(i,pose);
+                auto* drive=r1::VehicleRuntime::driver(root);drive->parked=false;drive->command(command.throttle,command.brake,command.steer);
+                const auto lanePosition=tile.flow.positionOf(agent.lane,agent.s);
+                const auto laneDirection=tile.graph.direction(agent.lane);
+                const bool aligned=saida::traffic::length(pose.position-lanePosition)<.5f&&
+                    saida::traffic::dot(dir,laneDirection)>.98f;
+                if(distance>r1::VehicleRuntime::kDemotionDistance&&!agent.incident&&!trafficVisible(tile,pose)&&
+                   aligned&&r1::VehicleRuntime::stableForTraffic(root)) {
+                    r1::VehicleRuntime::deactivate(root);tile.flow.releasePhysicalPose(i);
+                }
+            }
         }
     }
     size_t trafficWanted() const {
@@ -4514,7 +4884,9 @@ class World : public Rml::EventListener {
             if(!handle||handle.failed())throw std::runtime_error("Model load failed: "+path+" "+handle.error());
             if(!handle.ready())return nullptr;
             auto imported=std::make_unique<saida::Node>(fs::path(path).stem().string());
-            if(!saida::GLTFLoader::instantiate(handle,*imported,engine.resources()))
+            saida::GLTFLoadOptions importOptions;
+            importOptions.retainDeformationSource=path.rfind("assets/models/vehicles/",0)==0;
+            if(!saida::GLTFLoader::instantiate(handle,*imported,engine.resources(),importOptions))
                 throw std::runtime_error("Model instantiation failed: "+path);
             if(path=="assets/models/external/nature_selected/urban_tree.glb"
                ||path=="assets/models/external/nature_selected/urban_tree_mid.glb") {
@@ -5135,11 +5507,17 @@ class World : public Rml::EventListener {
         if(due.empty()||(holding&&longest<kBatchWaitMs))return false;
         for(const auto& key:due) {
             const double waited=msSince(incoming.at(key).builtAt);
-            if(auto old=loaded.find(key);old!=loaded.end()){old->second.node->queueFree();loaded.erase(old);}
+            auto old=loaded.extract(key);
             auto handle=incoming.extract(key);
             handle.mapped().node->setVisible(true);
             Loaded& tile=loaded.insert(std::move(handle)).position->second;
             activate(key,tile);
+            if(!old.empty()) {
+                auto& source=old.mapped();
+                for(size_t i=0;i<source.cars.size();++i)if(source.cars[i]&&trafficSlotLive(source,i))
+                    if(!transferTrafficCar(source,i,tile))preserveTrafficCar(source,i);
+                source.node->queueFree();
+            }
             saida::Log::info("[World streaming] replaced ",key," after ",int(waited)," ms cook_ms=",
                              tile.served->cooked.cookMs);
         }
@@ -5157,6 +5535,11 @@ class World : public Rml::EventListener {
         // neighbourhood, 107 k for the tile being left, 9 k for every prop
         // model on the planet, inside 1 048 576.
         if(playing)keep.insert(tileAt(lon,lat).key());
+        if(playing&&!pending&&!warming)for(const auto& [key,region]:loaded) {
+            bool visible=false;
+            for(const auto& agent:region.flow.agents())if(agent.alive&&trafficVisible(region,region.flow.pose(agent))){visible=true;break;}
+            if(visible)keep.insert(key);
+        }
         bool removed=false;
         auto stale=[&](const Loaded& t){
             const auto current=service->find(t.served->cooked.tile);
@@ -5170,7 +5553,7 @@ class World : public Rml::EventListener {
         if(promoteIncoming())removed=true;
         size_t count=0,indices=0;
         for(auto* tiles:{&loaded,&incoming})for(auto& [k,t]:*tiles) {
-            if(wanted.count(k)) {count+=residentVertices(t.data);indices+=residentIndices(t.data);}
+            if(wanted.count(k)||(!pending&&!warming&&keep.count(k))) {count+=residentVertices(t.data);indices+=residentIndices(t.data);}
             // Closer representations share the same arena. Include even the
             // departing tile's details until its Far transition releases them.
             const auto [extraV,extraI]=buildingExtraGeometry(t);count+=extraV;indices+=extraI;
@@ -5562,7 +5945,8 @@ public:
             double candidate=direction*11.25,clear=clearAhead(carLon,carLat,carAlt,candidate,1.,60.);
             if(clear>smokeClear){smokeClear=clear;heading=candidate;}
         }
-        carYaw=heading;
+        r1::VehicleRuntime::deactivate(*car);
+        carYaw=heading;placeCar();
         // The car is where the player spawned and the walk phase has taken him
         // eleven metres away from it, which is the first thing this test found
         // and the right thing for it to find: a door has a handle, not a
@@ -5577,6 +5961,18 @@ public:
             testFailed=true;engine.sceneTree().quit();return;
         }
         smokeDriving=true;smokeDriveTime=0;smokeTopSpeed=0;smokeDriveStart=ecef(lon,lat,alt);
+        if(std::getenv("R1WORLD_SMOKE_VEHICLE_DAMAGE")) {
+            auto* body=r1::VehicleRuntime::body(*car);
+            auto* damage=body->getBehaviour<saida::DeformableMeshBehaviour>();
+            const auto& spec=vehicleSpec(*car);
+            if(!damage->applyImpact({0,float(spec.height*.5),float(-spec.length*.5)},{0,0,1},damage->maximumImpactEnergy)) {
+                saida::Log::error("[World E2E] FAIL could not damage the actual car mesh");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            r1::VehicleRuntime::synchronize(*car);
+            saida::Log::info("[World E2E] damaged car, absorbed energy=",damage->absorbedEnergy(),
+                " J, power loss=",r1::VehicleRuntime::driver(*car)->damage);
+        }
         churn=0;churnFrames=0;dirtyFrames=0;
         saida::Log::info("[World E2E] driving, ",smokeClear,"m clear on heading ",carYaw);
     }
@@ -5635,10 +6031,9 @@ public:
         }
         saida::Log::info("[World E2E] took over a traffic car; ",parked.size(),
                          " car(s) left standing");
-        if(!leaveCar()) {
-            saida::Log::error("[World E2E] FAIL could not step out of the taken car");
-            testFailed=true;engine.sceneTree().quit();return;
-        }
+        // Taking the same solver body preserves its momentum. Brake it through
+        // normal frames before testing the door, just as for the first drive.
+        smokeDriving=true;smokeBrake=true;smokeDriveTime=0;
     }
 
     // `--sail`: find a moored boat, stand beside it, take the helm, sail it
@@ -6423,6 +6818,7 @@ public:
         if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
         if(retailTest())f=r=0;
         if(performanceSmoke){f=r=0;smokeStarted=false;}
+        if(trafficValidation_){f=r=0;smokeStarted=false;}
         if(smokeApproach) {
             auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
             yaw=std::atan2(to.x,-to.z)/rad;f=1;r=0;
@@ -6638,6 +7034,15 @@ public:
                 camera->transform().position=position;
                 camera->transform().rotation=glm::quatLookAt(glm::normalize(target-position),glm::vec3(0,1,0));
             }
+            if(std::getenv("R1WORLD_CAPTURE_VEHICLE")) {
+                r1::VehicleRuntime::synchronize(*car);
+                const auto& spec=vehicleSpec(*car);const auto rotation=car->transform().rotation;
+                const auto position=car->transform().position+rotation*glm::vec3(float(spec.width*1.8),float(spec.height*1.4),float(-spec.length*1.2));
+                const auto target=car->transform().position+rotation*glm::vec3(0,float(spec.height*.5),0);
+                player->setVisible(false);camera->transform().position=position;
+                camera->transform().rotation=glm::quatLookAt(glm::normalize(target-position),glm::vec3(0,1,0));
+            }
+            if(std::getenv("R1WORLD_CAPTURE_SIGNAL"))frameTrafficSignal();
             auto want=nearby(lon,lat);
             captureWait+=dt;
             // A first visit mounts its ground before its streets: a picture of
@@ -6702,6 +7107,22 @@ public:
                 // The local weather is part of the picture: a few seconds for it.
                 &&(effectiveWeather().known||captureSeaWait>6.);
             if(settled&&seaReady&&!captureQueued){
+                // Optional visual proof uses the shipped car, normal cage API
+                // and renderer, after source/terrain streaming has completed.
+                if(std::getenv("R1WORLD_CAPTURE_VEHICLE_DENT")) {
+                    if(!captureVehicleDent) {
+                        const auto& spec=vehicleSpec(*car);
+                        auto* damage=r1::VehicleRuntime::body(*car)->getBehaviour<saida::DeformableMeshBehaviour>();
+                        if(!damage->applyImpact({0,float(spec.height*.5),float(-spec.length*.5)},{0,0,1},damage->maximumImpactEnergy)) {
+                            saida::Log::error("[World E2E] FAIL vehicle dent: source geometry is not ready");
+                            testFailed=true;engine.sceneTree().quit();return;
+                        }
+                        captureVehicleDent=true;
+                    }
+                    captureVehicleWait+=dt;
+                    constexpr double kDentSettleTime=2.;
+                    if(captureVehicleWait<kDentSettleTime||!engine.resources().assetLoadsSettled())return;
+                }
                 // An inspection picture is of the world: no HUD, no minimap.
                 if(inspectAt){style("hud","display","none");minimapUi->setEnabled(false);}
                 size_t plants=0;for(auto& [key,t]:loaded)plants+=t.vegetation.size();
@@ -6773,6 +7194,7 @@ public:
                  +(physicsRefused?" · collisions incomplètes : le monde physique est plein":""));
         }
         if(performanceSmoke){runPerformanceSmoke(delta);return;}
+        if(trafficValidation_){validateTraffic(dt);return;}
         if(smokeWaterSpawn&&smokeWalk>1.5) {
             const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
             const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
@@ -6829,10 +7251,8 @@ public:
         }
         if(smokeDriving&&smokeBrake) {
             smokeDriveTime+=std::min(.05,double(delta));
-            // The door refusing to open at 76 km/h is the feature working, and
-            // the driver answers it the way a driver does: it brakes. A test
-            // that stepped out at speed would be testing a car this one is not.
-            if(std::abs(carSpeed)>kCarExitSpeed) {
+            // The traffic takeover also exercises service braking before exit.
+            if(std::abs(carSpeed)>kSmokeBrakeSpeed) {
                 if(smokeDriveTime>20.) {
                     saida::Log::error("[World E2E] FAIL the car would not slow down, still ",
                                       std::abs(carSpeed)," m/s");
@@ -6848,7 +7268,7 @@ public:
                 testFailed=true;engine.sceneTree().quit();return;
             }
             saida::Log::info("[World E2E] on foot again at ",lon,", ",lat);
-            if(!smokeTookOver&&trafficLive()>0){runSmokeTakeover();if(testFailed)return;}
+            if(!smokeTookOver&&trafficLive()>0){runSmokeTakeover();return;}
             smokeFinishPhase();
             return;
         }
@@ -6868,7 +7288,7 @@ public:
             const double covered=glm::length(ecef(lon,lat,alt)-smokeDriveStart);
             const double needed=std::min(20.,smokeClear*.6);
             if(smokeDriveTime<2. || (smokeDriveTime<5. &&
-               (covered<needed||std::abs(carSpeed)<=kCarExitSpeed)))return;
+               (covered<needed||std::abs(carSpeed)<=kSmokeBrakeSpeed)))return;
             // A street that asked for cars and got none is the failure this
             // assertion exists for -- and a spawn on a moor that asked for
             // none is not one, so the claim is checked against the ask.
@@ -6885,23 +7305,27 @@ public:
             // The distance is measured against the clearance the driver found
             // rather than against a fixed number, because a spawn is wherever
             // the map was clicked and some of them are courtyards.
-            if(covered<needed||smokeTopSpeed<7.2||std::abs(carSpeed)<=kCarExitSpeed) {
+            if(covered<needed||smokeTopSpeed<7.2||std::abs(carSpeed)<=kSmokeBrakeSpeed) {
                 saida::Log::error("[World E2E] FAIL drive: covered=",covered,
                                   "m of ",smokeClear,"m clear, top=",smokeTopSpeed," m/s","; last stopped by ",carStop," at ",carLon,", ",carLat," alt ",carAlt);
                 testFailed=true;engine.sceneTree().quit();return;
             }
             saida::Log::info("[World E2E] drive passed, covered=",covered,
-                             "m top=",smokeTopSpeed," m/s (",int(smokeTopSpeed*3.6)," km/h)");
+                             "m top=",smokeTopSpeed," m/s (",int(smokeTopSpeed*3.6)," km/h), power loss=",
+                             r1::VehicleRuntime::driver(*car)->damage);
             reportChurn("driving");measureWalk();
-            // Getting out is half the feature, and its refusals are the half
-            // that used to be silent everywhere else in this file. The exit at
-            // speed must be refused, and then the brake must earn it.
-            if(leaveCar()) {
-                saida::Log::error("[World E2E] FAIL stepped out of a car doing ",
-                                  std::abs(carSpeed)," m/s");
+            auto* body=r1::VehicleRuntime::body(*car);
+            const auto velocity=body->physicsWorld()->linearVelocity(body->bodyId());
+            const double exitSpeed=carSpeed;
+            if(!leaveCar()||driving||!player->enabled()||
+               glm::distance(velocity,body->physicsWorld()->linearVelocity(body->bodyId()))>.001f) {
+                saida::Log::error("[World E2E] FAIL moving exit or vehicle momentum at ",exitSpeed," m/s");
                 testFailed=true;engine.sceneTree().quit();return;
             }
-            smokeBrake=true;smokeDriveTime=0;
+            saida::Log::info("[World E2E] PASS moving exit at ",exitSpeed," m/s with vehicle momentum preserved");
+            smokeDriving=false;
+            if(!smokeTookOver&&trafficLive()>0){runSmokeTakeover();return;}
+            smokeFinishPhase();
             return;
         }
     }
@@ -6972,6 +7396,7 @@ int main(int argc,char** argv) {
             world.inspectConditions(conditions);
         }
         engine.setOnFrame([&](float dt){world.update(dt);});
+        engine.setAfterSimulation([&](float dt){world.afterSimulation(dt);});
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
         engine.run();return engine.captureFailed()||world.failed()?1:0;
     }catch(const std::exception& e){saida::Log::error("R1World: ",e.what());return 1;}

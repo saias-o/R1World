@@ -424,7 +424,8 @@ CookedTile cookTile(const Observations& in) {
         auto it = laneLevels.find({lon, lat});
         return it == laneLevels.end() ? ground(lon, lat) : anchor.toEngine(lon, lat, it->second);
     };
-    nlohmann::json laneGraph = buildLaneGraph(roads, roadGround, int(buildings.size()), center.x, center.y);
+    nlohmann::json laneGraph = buildLaneGraph(roads, roadGround, int(buildings.size()), center.x, center.y,
+                                           osm.features, osm.turnRestrictions);
     Works works = buildWorks(osm.maritime, lightFeatures, ground, anchor, cells, harbour);
     // Runways, taxiways, aprons and what is parked on them; one helicopter
     // per military base. Nothing parks in water, inside the tile or out.
@@ -684,6 +685,15 @@ CookedTile cookTile(const Observations& in) {
         {"landmarkRevision", kLandmarkRevision},
         {"landmarkReplacedWays", ocean ? nlohmann::json::array() : landmarks.replaced},
         {"nature", nature.stats}, {"streets", streets.stats},
+        {"roadSurface", [&]{
+            nlohmann::json contours=nlohmann::json::array();
+            for(const auto& path:streets.carriageway) {
+                nlohmann::json ring=nlohmann::json::array();
+                for(const auto& point:path)ring.push_back({double(point.x)/1000.,double(point.y)/1000.});
+                contours.push_back(std::move(ring));
+            }
+            return contours;
+        }()},
         {"residential", gardens.stats},
         {"predicted", ocean || pack ? nlohmann::json({{"revision", kPredictRevision}, {"signs", 0}}) : predicted.stats},
         {"bridges", bridges.stats}, {"raised", ocean || pack ? nlohmann::json::array() : bridges.raised}, {"traffic", laneGraph}, {"crowd", crowd},

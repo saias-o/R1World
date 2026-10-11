@@ -36,6 +36,7 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
 
 // The tile's lane graph in engine metres, and how busy it should be.
 nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& ground, int buildings,
-                              double lon, double lat);
+                              double lon, double lat, const std::vector<OsmNode>& features = {},
+                              const std::vector<OsmTurnRestriction>& restrictions = {});
 
 }  // namespace r1

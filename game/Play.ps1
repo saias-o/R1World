@@ -9,8 +9,8 @@
 # up to date before every game build: the engine is developed with the game
 # (CLAUDE.md §6). engine\build is the engine's Debug tree, unoptimized, and
 # the game never links against it. The executable is rebuilt by itself
-# whenever a source is newer than it -- a stale executable is a game that
-# silently does not have the change you just made.
+# whenever a source or included header is newer than its object, or an object
+# is newer than the executable. Engine ABI headers also invalidate world.cpp.
 #
 #   -Rebuild    recompile every translation unit, not only the stale ones
 #   -BuildOnly  build, then stop (what the test drivers call)
@@ -51,13 +51,23 @@ function Get-Units {
     return $units
 }
 
-# The newest header any unit may include: touching one rebuilds them all.
+# Generator units use their own headers; world.cpp also includes runtime headers.
 function Get-HeaderTime {
+    param([switch]$GeneratorOnly)
     $newest = [datetime]::MinValue
     Get-ChildItem -LiteralPath $native -Filter '*.hpp' |
-        ForEach-Object { if ($_.LastWriteTime -gt $newest) { $newest = $_.LastWriteTime } }
+        ForEach-Object { if ((-not $GeneratorOnly -or $_.Name -eq 'minimap.hpp') -and $_.LastWriteTime -gt $newest) { $newest = $_.LastWriteTime } }
     Get-ChildItem -LiteralPath (Join-Path $native 'gen') -Filter '*.hpp' |
         ForEach-Object { if ($_.LastWriteTime -gt $newest) { $newest = $_.LastWriteTime } }
+    return $newest
+}
+
+function Get-RuntimeHeaderTime {
+    $newest = [datetime]::MinValue
+    foreach ($directory in @((Join-Path $engineSource 'src'), (Join-Path $engineSource 'plugins\traffic\include'))) {
+        Get-ChildItem -LiteralPath $directory -Filter '*.hpp' -Recurse |
+            ForEach-Object { if ($_.LastWriteTime -gt $newest) { $newest = $_.LastWriteTime } }
+    }
     return $newest
 }
 
@@ -71,9 +81,17 @@ function Test-Stale([string]$target, [string]$source, [datetime]$headers) {
 function Test-GameStale {
     if (-not (Test-Path -LiteralPath $exe)) { return $true }
     $built = (Get-Item -LiteralPath $exe).LastWriteTime
-    if ((Get-HeaderTime) -gt $built) { return $true }
+    $headers = Get-HeaderTime
+    $generatorHeaders = Get-HeaderTime -GeneratorOnly
+    $runtimeHeaders = Get-RuntimeHeaderTime
+    if ($headers -gt $built -or $runtimeHeaders -gt $built) { return $true }
     foreach ($unit in Get-Units) {
         if ((Get-Item -LiteralPath $unit.Source).LastWriteTime -gt $built) { return $true }
+        $object = Join-Path $out ('obj\' + [IO.Path]::GetFileNameWithoutExtension($unit.Source) + '.o')
+        if (-not (Test-Path -LiteralPath $object) -or (Get-Item -LiteralPath $object).LastWriteTime -gt $built) { return $true }
+        $dependencyTime = if ($unit.Engine) { $headers } else { $generatorHeaders }
+        if ($unit.Engine -and $runtimeHeaders -gt $dependencyTime) { $dependencyTime = $runtimeHeaders }
+        if (Test-Stale $object $unit.Source $dependencyTime) { return $true }
     }
     $engineLib = Join-Path $engineBuild 'libsaida_engine.a'
     return (Test-Path -LiteralPath $engineLib) -and ((Get-Item -LiteralPath $engineLib).LastWriteTime -gt $built)
@@ -146,9 +164,18 @@ function Write-Response([string]$path, [string[]]$arguments) {
 # Parallel compile jobs: bounded by memory (about 1.5 GB per g++), never more
 # than 4 by default. Every core at once on a 7 GB machine starved the display
 # driver (bugcheck 0x116, VIDEO_TDR_FAILURE). R1_BUILD_JOBS overrides.
-$ramGB = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB
-$buildJobs = [Math]::Max(1, [Math]::Min([Math]::Min(4, [Environment]::ProcessorCount), [int][Math]::Floor($ramGB / 1.5)))
-if ($env:R1_BUILD_JOBS) { $buildJobs = [Math]::Max(1, [int]$env:R1_BUILD_JOBS) }
+if ($env:R1_BUILD_JOBS) {
+    $buildJobs = [Math]::Max(1, [int]$env:R1_BUILD_JOBS)
+} else {
+    try {
+        $ramGB = (Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB
+        $buildJobs = [Math]::Max(1, [Math]::Min([Math]::Min(4, [Environment]::ProcessorCount), [int][Math]::Floor($ramGB / 1.5)))
+    } catch {
+        # Restricted Windows sessions may deny CIM; keep compilation bounded.
+        $buildJobs = [Math]::Max(1, [Math]::Min(2, [Environment]::ProcessorCount))
+        Write-Warning "Mémoire système inaccessible : compilation limitée à $buildJobs tâche(s)."
+    }
+}
 
 function Start-Compiler([string]$response, [string]$errors) {
     $p = Start-Process -FilePath $compiler -ArgumentList ('"@' + $response + '"') -WorkingDirectory $engineBuild `
@@ -163,12 +190,15 @@ function Invoke-Build([bool]$everything) {
     $objects = Join-Path $out 'obj'
     New-Item -ItemType Directory -Force -Path $objects | Out-Null
     $headers = Get-HeaderTime
+    $generatorHeaders = Get-HeaderTime -GeneratorOnly
+    $runtimeHeaders = Get-RuntimeHeaderTime
     $queue = New-Object System.Collections.Queue
     $all = @()
     foreach ($unit in Get-Units) {
         $obj = Join-Path $objects ([IO.Path]::GetFileNameWithoutExtension($unit.Source) + '.o')
         $all += $obj
-        $newest = $headers
+        $newest = if ($unit.Engine) { $headers } else { $generatorHeaders }
+        if ($unit.Engine -and $runtimeHeaders -gt $newest) { $newest = $runtimeHeaders }
         $engineLib = Join-Path $engineBuild 'libsaida_engine.a'
         if ($unit.Engine -and (Test-Path -LiteralPath $engineLib)) {
             $built = (Get-Item -LiteralPath $engineLib).LastWriteTime

@@ -32,7 +32,7 @@ public:
 
 // The Overpass question, as a number: an answer to an older one is used only
 // when the network cannot give the current one, and the manifest says so.
-constexpr int kOsmQueryVersion = 14; // 14: complete nearby inland-water multipolygons.
+constexpr int kOsmQueryVersion = 15; // 15: surveyed node-based turn restrictions.
 // The question that brought the shops, stations and civic uses: an answer to
 // it or a later one needs no retail layer of its own.
 constexpr int kOsmRetailVersion = 13; // civic uses plus settlement nodes; enrich older cached answers cheaply

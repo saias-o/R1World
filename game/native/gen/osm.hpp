@@ -20,6 +20,12 @@ struct OsmNode {
     Tags tags;
 };
 
+struct OsmTurnRestriction {
+    int64_t fromWay = 0, toWay = 0, viaNode = 0;
+    P2 via;
+    bool only = false;
+};
+
 struct OsmWaterArea {
     int64_t id = 0; // OSM relation, separate from way ids
     std::vector<std::vector<P2>> outers, inners;
@@ -29,6 +35,7 @@ struct OsmWaterArea {
 // The classified ways of one Overpass answer. Every list is sorted by id, so
 // what a tile keeps never depends on the order Overpass happened to send.
 struct OsmData {
+    std::vector<OsmTurnRestriction> turnRestrictions;
     std::vector<OsmWay> buildings, roads, vegetation, waterways, landcover, treeRows, coastlines, maritime;
     // Everything `aeroway` (runways, taxiways, aprons, helipads, stands) and
     // the closed ways that say an area is military (gen/airports.cpp).

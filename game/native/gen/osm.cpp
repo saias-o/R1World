@@ -79,6 +79,7 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
     std::map<int64_t, const nlohmann::json*> waterRelations;
     std::set<P2> trees;
     std::unordered_set<int64_t> featureIds, wayIds;
+    std::map<int64_t,const nlohmann::json*> restrictionRelations;
     for (const nlohmann::json* doc : {&document, layer, retail}) {
         if (!doc) continue;
         auto elements = doc->find("elements");
@@ -100,6 +101,7 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
                 if (wayIds.insert(e.at("id").get<int64_t>()).second) rawWays.push_back(&e);
             } else if (type == "relation") {
                 const Tags tags = readTags(e);
+                if (tagOr(tags,"type")=="restriction") restrictionRelations.emplace(e.at("id").get<int64_t>(), &e);
                 if (tagOr(tags,"type")=="multipolygon" &&
                     (tagOr(tags,"natural")=="water" || has(tags,"water")))
                     waterRelations.emplace(e.at("id").get<int64_t>(), &e);
@@ -107,6 +109,22 @@ OsmData normalizeOsm(const nlohmann::json& document, const nlohmann::json* layer
         }
     }
     std::unordered_map<int64_t,const nlohmann::json*> memberWays;
+    for (const auto& [id,relation] : restrictionRelations) {
+        const auto tags = readTags(*relation);
+        const auto rule = tagOr(tags,"restriction");
+        if (rule.rfind("no_",0)!=0 && rule.rfind("only_",0)!=0) continue;
+        if (has(tags,"restriction:conditional") || has(tags,"except") || !relation->contains("members")) continue;
+        OsmTurnRestriction restriction;
+        restriction.only = rule.rfind("only_",0)==0;
+        for (const auto& member : relation->at("members")) {
+            const auto role=member.value("role",std::string()),type=member.value("type",std::string());
+            if(role=="from"&&type=="way")restriction.fromWay=member.at("ref").get<int64_t>();
+            if(role=="to"&&type=="way")restriction.toWay=member.at("ref").get<int64_t>();
+            if(role=="via"&&type=="node")restriction.viaNode=member.at("ref").get<int64_t>();
+        }
+        const auto via=nodes.find(restriction.viaNode);
+        if(restriction.fromWay && restriction.toWay && via!=nodes.end()) { restriction.via=via->second;out.turnRestrictions.push_back(restriction); }
+    }
     for (const auto* way : rawWays) memberWays.emplace(way->at("id").get<int64_t>(),way);
     std::unordered_set<int64_t> waterMembers;
     for (const auto& [id,relation] : waterRelations) {

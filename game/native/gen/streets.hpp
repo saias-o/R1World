@@ -63,6 +63,9 @@ struct StreetOutput {
     // Every street surface laid on the ground (carriageway, cobbles and
     // pavement) inside the tile, engine (x, z): no water is drawn over it.
     clip::Paths64 ground;
+    // Rendered asphalt/cobble contours before tile clipping: tile borders must
+    // not become artificial road edges when placing roadside equipment.
+    clip::Paths64 carriageway;
 };
 
 // `roads` may be cut one segment per way (cook's clipRoads): the segments of

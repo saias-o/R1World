@@ -12,6 +12,7 @@
 #include "gen/service.hpp"
 #include "gen/sources.hpp"
 #include "gen/streets.hpp"
+#include "gen/roadside.hpp"
 #include "gen/terrain.hpp"
 #include "gen/waterways.hpp"
 
@@ -298,6 +299,31 @@ TEST(Streets, pavement_is_cut_out_of_building_footprints) {
     const auto with = buildStreets({s.road}, {}, s.grid, s.anchor, {footprint});
     const auto without = s.streets({s.road});
     CHECK(with.stats["sidewalkAreaM2"].get<double>() < without.stats["sidewalkAreaM2"].get<double>() - 10);
+}
+TEST(Streets, roadside_contours_match_the_rendered_carriageway) {
+    Slope s;
+    const auto out=s.streets({s.road});
+    const auto* road=part(out.parts,"Carriageway");
+    CHECK(road);
+    NEAR(clip::area(out.carriageway),area(road->mesh),.02);
+    CHECK(clip::contains(out.carriageway,P2{0,0}));
+    CHECK(!clip::contains(out.carriageway,P2{0,4}));
+    RoadSurface surface;
+    for(const auto& path:out.carriageway)surface.contours.push_back(clip::kMetres.ring(path));
+    const auto post=surface.roadside({0,1.5},{0,1},.45,40);
+    CHECK(post);NEAR(post->y,3.45,.002);
+    CHECK(!clip::contains(out.carriageway,*post));
+    const auto* pavement=part(out.parts,"Sidewalks");
+    CHECK(pavement&&covers(pavement->mesh,*post));
+}
+TEST(Streets, tile_clipping_does_not_create_a_roadside_edge) {
+    Slope s;
+    s.road.points={{-.002,0},{.002,0}};
+    const auto out=s.streets({s.road});
+    RoadSurface surface;
+    for(const auto& path:out.carriageway)surface.contours.push_back(clip::kMetres.ring(path));
+    CHECK(surface.contains({140,0}));
+    CHECK(!surface.roadside({100,0},{1,0},.45,40));
 }
 
 TEST(Water, a_mapped_river_line_has_a_visible_width_without_mapped_banks) {

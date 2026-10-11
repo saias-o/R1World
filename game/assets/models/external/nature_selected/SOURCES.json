@@ -65,7 +65,6 @@
     "normalizedHeight": 1,
     "vertices": 74
   },
-
   {
     "output": "urban_tree_mid.glb",
     "derivedFrom": "urban_tree.glb",
@@ -98,7 +97,7 @@
     "pivot": [
       0.0,
       0.5000998377799988,
-      2.980232238769531E-08
+      2.9802322387695312e-08
     ],
     "attribution": {
       "author": "Daniel (https://sketchfab.com/danielpetrov)",
@@ -106,6 +105,8 @@
       "source": "https://sketchfab.com/3d-models/realistic-tree-d989c0f801d847b9a74992ec4ddcfdfc",
       "title": "Realistic Tree"
     },
-    "method": "multi-view orthographic Mid albedo/alpha; no baked sun; shared camera-facing quad with coarse live ambient/directional lighting"
+    "occlusionDirections": 32,
+    "occlusionResolution": 512,
+    "method": "multi-view Mid scanned albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"
   }
 ]

@@ -4,7 +4,8 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 10 octobre 2026, générateur v43 : maisons de village mitoyennes,
+État relu le 11 octobre 2026, générateur v46 : réseau routier directionnel,
+feux et trafic physique proche, chocs et déformation par instance ; maisons de village mitoyennes,
 annexes cadastrales basses, toitures en pente suivant les emprises irrégulières ;
 sols manquants déterminés par la
 densité et la hauteur finale prédite des bâtiments, avec règles régionales et
@@ -150,7 +151,8 @@ complet est réservé aux arbres à moins de 15 m du joueur. Pour l'arbre urbain
 le Mid reste jusqu'à une couverture écran de 0,09, soit environ 80 m pour un
 arbre de 9 m avec un champ vertical de 60°, puis cède à un billboard Far de
 quatre sommets dérivé du même Mid. Son atlas couvre huit azimuts et cinq
-élévations ; son éclairage simplifié et l'absence d'ombres portées au loin
+élévations et conserve les normales et l'occlusion interne du Mid, avec le
+soleil calculé en direct ; son éclairage simplifié et l'absence d'ombres portées au loin
 réduisent le coût GPU. Les autres essences gardent leurs cartes existantes.
 
 Les bâtiments fermés ont trois niveaux : **Near** avec détails de façade et
@@ -436,9 +438,8 @@ la RAM et la VRAM de la machine de référence (I4).
 
 - **Rendre le jeu plus amusant à jouer**, avec des interactions dans l'esprit
   de GTA III.
-- **Accidents de voiture physiques** : percuter une autre voiture provoque un
-  vrai choc ; le véhicule heurté est projeté ou dévié et peut être accidenté,
-  avec des dégâts visibles et un comportement adapté à son état.
+- **Accidents de voiture physiques** : repris dans la mise à jour commune
+  « Véhicules et trafic » ci-dessous ; ils ne sont plus un chantier séparé.
 - **Renverser les piétons en voiture** : réactions physiques à l'impact,
   chutes et conséquences en jeu, dans l'esprit de GTA III.
 - **Combat à pied** : un bouton pour frapper, puis des armes à feu et les
@@ -458,20 +459,275 @@ la RAM et la VRAM de la machine de référence (I4).
   vérifiables, plutôt que des exceptions dispersées. Conserver les modèles
   et les ancrages mesurés existants.
 
-### Circulation update — à traiter plus tard
+### Véhicules et trafic — plan validé le 10 octobre 2026
 
-- **Peinture et reflets des voitures** : améliorer leur rendu de près,
-  avec un coût borné sur la machine de référence.
-- **Feux de circulation fonctionnels** : cycles cohérents aux carrefours,
-  respect des feux par les véhicules et coordination avec les traversées
-  piétonnes.
-- **Améliorer le système de trafic** : suivi des voies, priorités, virages,
-  distances de sécurité et réactions aux obstacles, aux piétons et aux
-  accidents, avec un coût borné.
-- **Aucune apparition de voiture devant le joueur** : faire apparaître et
-  disparaître les véhicules hors de son champ de vision, à distance suffisante
-  ou derrière un obstacle ; conserver une circulation continue pendant les
-  déplacements et le chargement des tuiles.
+Cette mise à jour réunit la Circulation update et les accidents automobiles
+de la Fun update. Le socle est implémenté : conduite physique sans suspension
+imposée, impacts issus du solveur, déformation générique par instance, colliders
+adaptés, voies directionnelles, feux, changements de voie et transferts de
+véhicules entre tuiles. Les preuves et limites sont dans `game/README.md`.
+Correctifs du 11 octobre : redémarrage et maintien en pente, contacts de roues
+arrondis, conservation des courts raccords routiers, suivi adapté au braquage
+de chaque modèle, obstacles de voitures garées et feux avec boîtier, visières,
+lentilles et répétiteur. Le contrôle de Paris couvre désormais une minute de
+trafic, au-delà du démarrage initial.
+Les poteaux des feux sont ancrés hors des contours de chaussée réellement
+rendus, avec un dégagement perpendiculaire de 45 cm. Les contours sont conservés
+par le générateur ; les largeurs de voies IA ne servent plus à trouver la bordure.
+Les détails ci-dessous conservent la cible validée ; les résistances mécaniques
+par pièce, effets de choc dédiés, règles nationales complètes et qualification
+sur casque réel restent des extensions, pas des fonctionnalités déjà validées.
+Objectif : des voitures qui suivent réellement les routes, respectent les
+carrefours et réagissent physiquement aux chocs, avec une carrosserie qui se
+déforme selon l'endroit et la violence de l'impact. Les sept modèles existants
+et leur échelle actuelle sont conservés.
+
+#### A. Architecture et autorité sur les voitures
+
+- **Saida, `engine/src`** : informations d'impact génériques, corps dynamiques,
+  service de déformation, géométrie modifiable par instance, colliders adaptés,
+  outils de réglage et sérialisation. Aucun concept OSM, tuile ou R1World.
+- **Plugin `engine/plugins/traffic`** : réseau de voies, conducteur IA,
+  suivi des véhicules, feux, priorités, changements de voie et réaction aux
+  incidents. Le plugin reste utilisable et testable sans moteur ni fenêtre.
+- **R1World, `game/native`** : transformation des observations OSM en réseau,
+  raccord des tuiles, profils de la flotte, streaming et intégration avec la
+  foule et la position géodésique. Extraire les nouveaux modules de véhicules
+  et trafic plutôt que tout ajouter à `world.cpp`.
+- **Le contrôleur à suspension existant n'est pas imposé**, ni au joueur ni
+  au trafic. Le choix du modèle de conduite est indépendant du système de
+  chocs. Comparer en premier une conduite par forces avec adhérence simplifiée
+  au contrôleur existant ; retenir le modèle qui passe les essais de tenue de
+  route et le budget. Une suspension détaillée reste une option, pas une
+  dépense obligatoire par voiture.
+- **Trafic éloigné** : progression légère sur les voies, pose interpolée,
+  sans simulation détaillée des pneus ou déformation active.
+  **Véhicule du joueur et trafic exposé à un choc** : corps dynamiques, gravité,
+  contacts et forces de conduite. Promotion anticipée selon distance, vitesse
+  relative et trajectoire probable ; transfert de pose et de vitesses sans
+  saut. L'IA commande accélérateur, frein et direction ; elle ne replace pas
+  un corps dynamique sur sa courbe à chaque frame.
+- Après impact, le corps reste physique tant que l'incident est actif ; aucune
+  remise en place automatique sur la voie. La rétrogradation demande stabilité,
+  distance et absence de contact probable. Pendant la conduite, la pose physique
+  locale détermine la position géodésique du joueur pour le streamer : une seule
+  autorité, rebasage et éviction compatibles avec les corps en mouvement.
+
+#### B. Collisions et conséquences des accidents
+
+- Étendre les événements de contact du moteur : identifiants sûrs des corps,
+  points, normale, vitesse relative au point de contact, masses effectives,
+  estimation de l'impulsion et de l'énergie incidente. Les callbacks physiques
+  enregistrent les données ; les consommateurs les traitent à une frontière
+  sûre du pas physique, sans modifier scène ou géométrie depuis un worker Jolt.
+- L'impulsion estimée sert à qualifier les dégâts ; **Jolt fournit déjà la
+  réponse dynamique**, donc aucun second coup artificiel ne s'ajoute. La
+  version embarquée expose `EstimateCollisionResponse`, une estimation de
+  collision à deux corps, pas une mesure exacte du solveur en carambolage.
+  Agréger les contacts d'un même impact et borner le budget de dégâts par corps
+  et par pas pour éviter de compter plusieurs fois la même énergie.
+- Intensité fondée sur la vitesse de rapprochement suivant la normale et
+  la masse effective, avec rotation et bras de levier : un frottement latéral,
+  un choc frontal et un choc excentré ne produisent pas les mêmes effets.
+  Le proxy `E = 0,5 × masse_effective × vitesse_normale²` règle la gravité ;
+  l'absorption dépend ensuite de la résistance des zones touchées.
+- Chocs entre voitures, avec murs, arbres, mobilier et sol : déplacement,
+  rotation, glissade et éventuel retournement selon les contacts. Activer la
+  détection continue sur les véhicules rapides pour limiter les traversées.
+- Profils propres aux sept véhicules : masse, centre de masse, freinage,
+  adhérence, dimensions et résistance des zones. Le réglage tient compte de
+  l'échelle visuelle actuelle ; les propriétés mécaniques sont des choix de
+  simulation explicitement réglés, pas des mesures constructeur prétendues.
+- Petits impacts : marques et enfoncements faibles. Impacts moyens : éléments
+  écrasés et tenue de route affectée. Gros impacts : déformation importante,
+  roue désaxée ou moteur endommagé selon la zone, jusqu'à immobilisation.
+  Les défauts suivent les pièces touchées, avec plafonds de gravité réglables.
+- Véhicule accidenté : freinage et arrêt si possible, abandon de la trajectoire
+  devenue inaccessible, signalement de sa nouvelle emprise comme obstacle.
+  Les autres voitures ralentissent, attendent ou contournent par une voie
+  autorisée ; elles ne traversent pas l'épave et ne disparaissent pas à l'impact.
+  Sons de choc et petits effets de poussière/étincelles sont bornés et réutilisent
+  les capacités et assets disponibles.
+
+#### C. Déformation générique des meshes dans Saida
+
+- Ajouter un composant réutilisable, noms proposés `DeformableMeshBehaviour`
+  et `DeformationProfile`, pour un mesh rigide ou un assemblage de meshes.
+  Un impact manuel et un contact physique empruntent la même API. Une caisse,
+  un panneau ou une barrière doivent pouvoir se déformer avec le même système.
+- **Structure de contrôle légère** : points et groupes locaux entraînent les
+  sommets du modèle détaillé par des poids préparés une fois. Les groupes
+  conservent leur forme localement, avec déformation élastique amortie puis
+  modification permanente de la forme de repos au-delà du seuil plastique.
+  Choix implémenté : cage régulière de 125 points par défaut, interpolation
+  trilinéaire, plasticité et contraintes de gradient, sans solveur par triangle.
+  Le shape matching par groupes reste une extension ; la version actuelle
+  ne simule pas une coque automobile complète. Le coût de la cage dépend de
+  sa résolution ; le déplacement du mesh détaillé est étalé par budget de sommets.
+- Préparation automatique de base depuis la géométrie ; réglages facultatifs
+  par matériau, sous-mesh et zone. Séparer les parties non reliées pour éviter
+  qu'une proximité spatiale entraîne une pièce indépendante. Pour les voitures,
+  différencier carrosserie, châssis, roues et vitres : la cage ne doit pas
+  écraser les pneus ni tirer un pare-chocs à travers l'habitacle.
+- Impact localisé et orienté : l'enfoncement et la torsion suivent la zone de
+  contact, la résistance et l'énergie attribuée. Limites de compression,
+  déplacements et amortissement empêchent les pointes et effondrements
+  incontrôlés. Vérifier les dégénérescences et reculs de déformation ; ne pas
+  prétendre résoudre l'auto-collision complète de toute carrosserie.
+- **Les modèles partagés restent intacts**. Données préparées partagées,
+  état déformé propre au véhicule ; géométrie mutable allouée à la demande.
+  Libération sûre lors de destruction, annulation de chargement et réutilisation
+  des slots. Toutes les copies comptent dans l'arène de 1 048 576 sommets.
+- Déplacer réellement les sommets, mettre à jour les normales/tangentes, les
+  bounds, le culling et les ombres. Appliquer le même état de déformation aux
+  LOD Near et Far via leurs poids respectifs : changer de LOD ne répare pas
+  la voiture. UV et séparations de matériaux sont conservés.
+- Collisions de forme : utiliser une représentation grossière composée de
+  volumes convexes déformables, distincte du mesh détaillé. Actualiser seulement
+  les zones dont la forme change suffisamment, à une frontière sûre du pas,
+  en conservant vitesses et paramètres du corps. Aucun triangle mesh dynamique
+  détaillé, non pris en charge par le contrat actuel. Vérifier l'écart entre
+  collision et silhouette et la stabilité des contacts après remplacement.
+- Après stabilisation, conserver la forme et dormir : aucune simulation
+  continue pour une bosse figée. Paramètres disponibles dans l'éditeur et
+  via API ; état compact versionné, réinitialisation explicite et restauration.
+  Conserver les dégâts pendant prise de contrôle, entrée/sortie, rebasage,
+  changement de LOD et réutilisation contrôlée des ressources. Le trafic ambiant
+  évincé peut être retiré hors vue ; pas de registre illimité d'épaves mondiales.
+- Première version : meshes rigides avec topologie conservée. Déchirure de
+  triangles, fracture générale, pièces arrachées, animation squelettique et
+  simulation industrielle complète d'une carrosserie ne sont pas incluses.
+  Les meshes non compatibles sont diagnostiqués explicitement.
+
+#### D. Voies, suivi des routes et continuité
+
+- Construire de vraies voies directionnelles à partir du profil routier déjà
+  utilisé pour dessiner la route : largeur, voies par sens, sens uniques,
+  conduite à gauche/droite, vitesses et mouvements autorisés. Lire les
+  restrictions de virage OSM et les indications de voies disponibles ; repli
+  explicite et marqué inféré quand la donnée manque.
+- Conserver identité des routes/nœuds OSM et niveau routier : ne pas connecter
+  un pont à la route située dessous à cause de la proximité en plan.
+  Respecter les ponts existants ; la construction de tunnels visitables reste
+  hors de cette mise à jour.
+- Trajectoires courbes continues dans les virages et connecteurs de carrefour,
+  contenues dans la surface roulable. Orientation, pente et roues suivent la
+  route ; anticiper la courbure et réduire la vitesse avant le virage.
+  Tenir compte de l'empattement et du gabarit des bus/camions.
+- Distance de sécurité entre pare-chocs selon longueur réelle, vitesse et temps
+  de réaction ; remplacer l'espacement uniforme actuel prévu pour un bus.
+  Accélération et freinage progressifs, prédiction de collision et freinage
+  d'urgence. Les voitures en sens inverse ne sont pas prises pour un bouchon.
+- Stops, cédez-le-passage, priorité applicable au pays, ronds-points et gestion
+  des trajectoires en conflit. Ne pas entrer dans un carrefour dont la sortie
+  est bouchée. Arbitrage équitable pour éviter les attentes infinies.
+- Changements de voie avec contrôles des intervalles avant et arrière ;
+  placement pour tourner, dépassement d'un véhicule lent lorsque permis et
+  contournement d'obstacle. Une voie unique réellement bloquée peut rester
+  bloquée ; aucune traversée du trottoir ni téléportation de secours.
+- Raccorder les réseaux des tuiles chargées par identités stables et conserver
+  l'identité de l'agent lors du transfert : position, vitesse, modèle, couleur,
+  état physique et dégâts. Attendre avant une frontière non chargée avec une
+  distance de freinage suffisante plutôt que disparaître au bout du graphe.
+- Naissances et retraits validés par le frustum de la caméra, distance et
+  visibilité/occlusion ; limiter le coût des requêtes. Si aucun emplacement
+  discret n'est disponible, différer. Ni baisse de population par tuile ni
+  transfert de propriétaire ne supprime une voiture visible.
+
+#### E. Feux et piétons
+
+- Relier les feux observés à leurs voies et lignes d'arrêt. Les positions
+  mesurées restent prioritaires ; affectation incertaine et temps de cycle
+  sont inférés et identifiés comme tels. Ne pas inventer une durée réelle OSM
+  ni équiper automatiquement tous les carrefours de feux.
+- Phases vert/orange/rouge, intervalle de dégagement et groupes de mouvements
+  compatibles. Cycle partagé par tout un carrefour et continuité pendant le
+  streaming ; configuration des timings et debug de phase.
+- Freinage avant la ligne d'arrêt selon vitesse et distance ; à l'orange,
+  arrêter si possible sans freinage dangereux, sinon dégager le carrefour.
+  Aucun vert simultané pour deux mouvements configurés en conflit.
+- Associer les traversées de la foule au contrôleur du carrefour : autorisation
+  de départ piéton et temps de dégagement. Les voitures cèdent aux piétons
+  engagés, même si leur propre feu vient de passer au vert.
+
+#### F. Rendu et budgets
+
+- Améliorer peinture, rugosité, reflets et séparation vitres/pneus/métal à
+  partir des assets existants. Les bosses doivent rester lisibles dans les
+  reflets et l'éclairage. Éviter un matériau unique recréé par voiture et frame.
+- Cible globale inchangée : **1080p, 30 fps soutenus**, Ryzen 7 5700U/MX450,
+  2 Gio VRAM. Garder le plafond actuel de **80 voitures ambiantes** ; budget
+  physique et budget graphique distincts, suivi du CPU/GPU/RAM/VRAM.
+- Hypothèses initiales à mesurer : physique à **60 Hz**, décisions IA proches
+  à **10–20 Hz**, trafic éloigné à **5–10 Hz** avec interpolation ; cage de
+  **128–512 points** par voiture et **4–8 itérations** lorsqu'elle se déforme.
+  Les dimensions et fréquences sont configurables, pas des performances prouvées.
+- Cibles additionnelles sur scènes comparables : CPU du trafic hors solveur
+  **≤ 1 ms au p95**, CPU de déformation **≤ 1 ms au p95** pour huit véhicules
+  simultanément touchés. Mesurer séparément physique et uploads ; le verdict
+  dépend du temps de frame complet et des pics, pas seulement de ces sous-budgets.
+- Index par voie pour les files et index spatial pour les obstacles, préparation
+  hors thread principal, aucun recalcul de graphe par voiture. Téléversements
+  de géométrie limités aux plages modifiées, groupés et asynchrones, compatibles
+  avec les frames GPU en vol et la compaction de l'arène.
+- Sous charge, étaler préparation/uploads et baisser la fréquence des décisions
+  éloignées ou le nombre d'itérations des déformations secondaires. Les contacts
+  imminents restent physiques ; un budget ne rend pas une voiture invulnérable.
+  Pas d'effacement de dégâts ni de réduction silencieuse des modèles proches.
+
+#### G. Ordre de réalisation et critères de livraison
+
+1. **Référence et prototype de risque** : mesures actuelles reproductibles,
+   comparaison des modèles de conduite, scène générique caisse/panneau,
+   premier choc entre deux véhicules avec cage, LOD et collider. Vérifier
+   les budgets de copies et uploads avant d'étendre à toute la flotte.
+2. **Socle moteur** : événements d'impact, géométrie mutable sûre, déformation
+   plastique, colliders, API/éditeur et contrat de sauvegarde de l'état.
+3. **Véhicules du jeu** : profils des sept modèles, remplacement de l'arrêt
+   instantané actuel par contacts physiques, transitions de simulation,
+   dégâts mécaniques, prise de contrôle et intégration géodésique.
+4. **Réseau et conducteur** : voies et virages, suivi, priorités, index,
+   changements de voie, raccord des tuiles et suppression du popping.
+5. **Carrefours vivants** : feux visibles et fonctionnels, traversées piétonnes,
+   bouchons et réactions aux accidents, puis finition des matériaux et effets.
+6. **Qualification** : tests moteur, plugin et générateur, essais intégrés
+   hors ligne, captures/vidéos et profils sur la machine de référence.
+
+Essais de livraison : impacts frontaux à 10/30/60/100 km/h, choc latéral,
+frottement, impact excentré, voiture contre camion, mur et arbre, retournement,
+chocs répétés et carambolage de huit voitures. Vérifier progression des dégâts
+pour un même cas, absence d'énergie artificiellement ajoutée et de cumul de
+contacts au repos, conduite affectée au bon endroit et épave réellement solide.
+Les profils sont des approximations de jeu ; le système ne sera pas présenté
+comme une mesure certifiée d'accident réel.
+
+Essais trafic : courbes serrées, pente/pont, sens unique, rond-point, conduite
+à gauche, file compact/bus, feu orange/rouge, sortie de carrefour bloquée,
+piéton déjà engagé, changement de voie et route coupée par accident. Parcours
+avec caméra tournée à 180°, franchissements de tuiles, rebasage, chargement
+retardé et prise de contrôle d'une voiture cabossée. Vérifier que les dégâts
+ne changent ni les autres instances ni les assets et survivent aux deux LOD.
+
+Comparer à état/scène/densité identiques sur Paris dense, route rurale, route
+sinueuse et pont, plus une scène contrôlée de conduite à gauche ; relever
+temps de frame p50/p95/p99/max et mémoire pendant streaming et carambolage.
+Ces lieux valident les scénarios observés, sans prétendre mesurer toute la
+Terre. Les contrats génériques modifiés sont vérifiés dans les builds natif,
+authoring WASM et player Web, conformément aux règles moteur ; toute limite
+de backend est explicitement rapportée. Mettre à jour `engine/SPEC.md`,
+`engine/ROADMAP.md`, le README du plugin et `game/README.md` avec ce qui est
+réellement livré et mesuré.
+
+**Périmètre exclu** : combat/armes, ragdolls et conséquences physiques sur les
+piétons, nouvelles simulations de bateaux/avions, tunnels, stationnement
+urbain automatique et persistance mondiale illimitée des épaves. Le respect
+des piétons par le trafic est inclus. Les autres updates restent séparées.
+
+Références techniques pour le prototype :
+[shape matching et plasticité, Müller et al., 2005](https://matthias-research.github.io/pages/publications/MeshlessDeformations_SIG05.pdf),
+[contrat d'estimation des impacts Jolt](https://jrouwe.github.io/JoltPhysicsDocs/5.0.0/_estimate_collision_response_8h_source.html).
+L'assemblage proposé doit être validé par le prototype ; ce plan ne revendique
+ni une technique nouvelle publiée, ni un réalisme ou un coût déjà démontré.
 
 ### Updates pays par pays — à traiter plus tard
 

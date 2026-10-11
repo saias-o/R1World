@@ -103,6 +103,7 @@ public:
         double eyeX = 0, eyeZ = 0, faceX = 0, faceZ = -1;
         double playerX = 1e9, playerZ = 1e9, playerVX = 0, playerVZ = 0;
         double carX = 1e9, carZ = 1e9, carSpeed = 0;
+        std::function<bool(size_t)> crossingAllowed;
     };
     void update(double dt, const Scene& scene);
     const std::vector<Walker>& walkers() const { return walkers_; }

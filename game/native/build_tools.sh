@@ -10,19 +10,26 @@ mkdir -p $OUT/obj $OUT/tmp
 export TMPDIR="$(pwd)/$OUT/tmp" TEMP="$(pwd)/$OUT/tmp" TMP="$(pwd)/$OUT/tmp"
 FLAGS="-std=gnu++17 -O2 -ffp-contract=off -Wall -Wextra -I. -Ithird_party/clipper2/include -Ithird_party/earcut -I../../engine/third_party/json"
 PIDS=""
+JOBS=${R1_BUILD_JOBS:-4}
+ACTIVE=0
+wait_batch() {
+  failed=0
+  for pid in $PIDS; do if ! wait "$pid"; then failed=1; fi; done
+  PIDS=""
+  ACTIVE=0
+  [ "$failed" = 0 ]
+}
 for f in minimap.cpp gen/*.cpp third_party/clipper2/src/*.cpp tools/r1cook.cpp tools/r1relief.cpp tests/*.cpp; do
   if [ "$f" = minimap.cpp ]; then o=$OUT/obj/minimap.o
   else o=$OUT/obj/$(basename $(dirname $f))_$(basename $f .cpp).o; fi
   if [ ! -f $o ] || [ $f -nt $o ] || [ -n "$(find gen tests . -maxdepth 1 -name '*.hpp' -newer $o)" ]; then
     g++ $FLAGS -c $f -o $o &
     PIDS="$PIDS $!"
+    ACTIVE=$((ACTIVE + 1))
+    if [ "$ACTIVE" -ge "$JOBS" ]; then wait_batch || exit 1; fi
   fi
 done
-FAILED=0
-for pid in $PIDS; do
-  if ! wait "$pid"; then FAILED=1; fi
-done
-if [ "$FAILED" != 0 ]; then exit 1; fi
+wait_batch || exit 1
 LIB=$(ls $OUT/obj/gen_*.o $OUT/obj/src_*.o $OUT/obj/minimap.o)
 g++ $LIB $OUT/obj/tools_r1cook.o -o $OUT/r1cook.exe -lwinhttp -static-libgcc -static-libstdc++
 g++ $LIB $OUT/obj/tools_r1relief.o -o $OUT/r1relief.exe -lwinhttp -static-libgcc -static-libstdc++

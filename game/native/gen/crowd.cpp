@@ -761,6 +761,9 @@ void Crowd::update(double dt, const Scene& scene) {
                         }
                     }
                 }
+                constexpr double kCrossingEntryDistance=.75;
+                if(g.links[w.link].crossing&&w.along<kCrossingEntryDistance&&scene.crossingAllowed&&
+                   !scene.crossingAllowed(size_t(w.link)))break;
                 w.along += speed * dt;
                 while (w.link >= 0 && w.along >= g.links[w.link].length) {
                     const double over = w.along - g.links[w.link].length;

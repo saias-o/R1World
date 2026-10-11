@@ -410,9 +410,11 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
     // Integer millimetres throughout: the precision snap shapely needed is
     // the grid itself here. The tile keeps what lies inside it; its
     // neighbour lays the rest of a street that crosses the edge.
-    const Paths64 asphalt = clip::intersect(clip::subtract(clip::unite(roadPolys), buildings), tile);
+    const Paths64 fullAsphalt=clip::subtract(clip::unite(roadPolys), buildings);
+    const Paths64 fullCobbles=clip::subtract(clip::subtract(clip::unite(cobblePolys), buildings),fullAsphalt);
+    const Paths64 asphalt = clip::intersect(fullAsphalt, tile);
     const Paths64 cobbles =
-        clip::intersect(clip::subtract(clip::subtract(clip::unite(cobblePolys), buildings), asphalt), tile);
+        clip::intersect(fullCobbles, tile);
     const Paths64 paving = clip::intersect(
         clip::subtract(clip::subtract(clip::subtract(clip::unite(walkPolys), asphalt), cobbles), buildings), tile);
     const Paths64 carriageway = clip::unite(asphalt, cobbles);
@@ -531,6 +533,7 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         }
 
     StreetOutput out;
+    out.carriageway=clip::unite(fullAsphalt,fullCobbles);
     out.ground = clip::unite(hard, clip::unite(gravel, verges));
     struct Spec { const char* name; Mesh* mesh; std::array<double, 3> color; const char* family; };
     const Spec specs[] = {{"Carriageway", &roadMesh, {0.10, 0.11, 0.12}, "asphalt"},

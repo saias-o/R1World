@@ -313,6 +313,7 @@ std::string ObservationStore::osmQuery(const Bounds& b) {
   way[barrier~"^(fence|wall)$"]{B};
   node[barrier~"^(gate|entrance|lift_gate)$"]{B};
   way[highway]{B};
+  relation[type=restriction]{B};
   way[landuse]{B};
   way[natural]{B};
   way[leisure~"park|garden|golf_course|pitch"]{B};

@@ -1470,6 +1470,11 @@
             "path": "assets/models/signs/town/glyph_00c7-r1.glb",
             "type": "Mesh"
         },
+        "13316098648922414411": {
+            "hash": 6689508091664618193,
+            "path": "assets/models/external/nature_selected/urban_tree_far_normal.png",
+            "type": "Texture"
+        },
         "13324765669890703855": {
             "hash": 14480278396880646620,
             "path": "assets/world/relief/30_-20.r1relief",
@@ -2276,7 +2281,7 @@
             "type": "Unknown"
         },
         "15336490900835210494": {
-            "hash": 9771130978607770800,
+            "hash": 17132935539486642364,
             "path": "assets/models/external/nature_selected/urban_tree_far.source.json",
             "type": "Unknown"
         },
@@ -2601,7 +2606,7 @@
             "type": "Unknown"
         },
         "16103095463242979549": {
-            "hash": 16952590110067256680,
+            "hash": 5551707504902347625,
             "path": "assets/models/external/nature_selected/urban_tree_far.glb",
             "type": "Mesh"
         },
@@ -6601,7 +6606,7 @@
             "type": "Texture"
         },
         "9569450703380592770": {
-            "hash": 6424600364351431417,
+            "hash": 2546812888287795117,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
         },

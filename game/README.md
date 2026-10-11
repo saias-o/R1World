@@ -26,6 +26,10 @@ observed frame rates and limitations.
 
 ## Playing
 
+On Windows, double-click `Jouer.cmd` in the repository root to build and play.
+The launcher limits compilation to two jobs when Windows denies the system
+memory query; `R1_BUILD_JOBS` can explicitly choose the compilation job count.
+
 ```powershell
 powershell -File game\Play.ps1
 ```
@@ -41,7 +45,7 @@ Map tiles are cached in `cache/map-tiles/osm/`.
 | ZQSD / WASD | walk | drive | see [Flying](#flying) |
 | Maj | run | | push down / descend |
 | Space | jump | handbrake | pull up / climb |
-| F | take the nearest car, boat or aircraft | get out (below 7 km/h) | get out, at any moment |
+| F | take the nearest car, boat or aircraft | get out at any speed | get out, at any moment |
 | Mouse | orbit the camera | turn the head | |
 | M / Échap | the map; **Reprendre** returns (M toggles water in debug) | | |
 
@@ -1002,11 +1006,17 @@ hysteresis), Mid until screen coverage drops below 0.09, then a camera-facing
 Far made from that same Mid: roughly 80 m rather than 250 m for a 9 m tree at
 60° vertical FOV. Transitions retain the existing 0.5 s screen-door fade.
 `tools/r1/tree_impostor.py` bakes 8 azimuths × 5 elevations at 256² per view,
-supersampled twice, into one shared albedo/alpha atlas and a 4-vertex quad.
+supersampled twice, into shared albedo/alpha and normal/visibility atlases and a
+4-vertex quad. The albedo is unchanged; mapped normals come from the same Mid.
+32 equal-area directions measure cosine-weighted hemisphere visibility against
+the source's alpha-tested geometry at 512². This static occlusion preserves
+canopy cavities and contrast without baking a particular sun direction.
 Adjacent azimuths blend; elevation selects the nearest view. No sun is baked.
-Saida shades Far with ambient and a broad response to directional light's
-color, intensity and elevation relative to each instance's up axis. It performs
-two albedo reads and skips normal/MR maps, PBR, IBL, GI and shadow sampling.
+Saida shades this Far with occluded ambient and live Lambert directional light
+using normals in each instance's authored frame. It performs two albedo and two
+normal/visibility reads, and skips MR maps, PBR, IBL, GI and runtime shadow
+sampling. Billboards without a normal atlas keep the former broad volume
+lighting and its two-read cost.
 Far does not cast shadows; Near/Mid and trunk collisions are retained.
 Other species keep their existing cards.
 
@@ -1014,6 +1024,20 @@ Regenerate only this Far with `python -m r1.tree_impostor` from `tools`
 (NumPy, Pillow, ModernGL and an OpenGL 3.3 context required). Running
 `python -m r1.tree_lod` also regenerates it after Mid. Source hashes and the
 original CC-BY attribution are in `urban_tree_far.source.json` and `SOURCES.json`.
+
+The 11 October contrast correction is verified by an identical offline Paris
+camera (`generated/tree-contrast-validation/paris-tree-contrast.png`) and a
+Near/Mid/Far comparison under shared light (`near-mid-far.png` in that directory).
+The two bake/asset checks, 15 engine billboard pixel cases, dielectric-material
+regression, 95/95 native CTest and native runtime contract pass. Mono and XR
+shaders compile, and the translated scene pipeline validates in Chrome WebGPU.
+This verifies rendering compatibility; headset performance remains unmeasured.
+The Release Web player also builds successfully. In a local MX450 comparison
+with 20 Mid + 841 Far trees at 1280×720, median GPU frame time over samples
+100–219 is 4.747 ms for coarse lighting and 4.748 ms for relit lighting. These
+two runs show no measurable total-frame regression in this scene; they do not
+qualify whole-world or headset performance. Traces and counts are in
+`generated/tree-contrast-validation/forest`, summarized by `measurement.json`.
 
 Measured on 9 October 2026, NVIDIA MX450, 1280×720, with 861 shared tree
 instances and identical camera/light: 476 Mid + 385 old Far became 20 Mid +
@@ -1549,12 +1573,62 @@ leave it behind. Each refusal (no kerb within 14 m, no room to step out, too
 fast, edge of the loaded world, an obstacle) writes a log line and a line the
 player can read.
 
-The handling is arcade and says so (`native/world.cpp`): 100 km/h top speed,
-7 m/s² of pull (0–100 in about 4 s), a 3.6 m turning circle and 16 m/s² of
-lateral grip, about 90°/s of heading at town speed and 27°/s at speed. The
-mouse turns the head, which eases back behind the car once it rolls. Stepping
-out is refused above 2 m/s. Water ejects the driver into a swim and the car
-sinks. Obstacles are engine scene queries.
+`native/vehicle_runtime.hpp` installs the engine's `SurfaceDrive` controller,
+three raised chassis collision volumes, four rounded wheel contacts and
+`DeformableMesh` on each car. Driving uses
+forces on a Jolt body, with simplified ground adhesion and no suspension
+requirement. Profiles for all seven models specify mass, acceleration, braking,
+grip and damage energy as game approximations, not manufacturer measurements.
+Ground support samples the centre and both axles. Powered slope assistance
+preserves responsive arcade acceleration uphill; releasing the accelerator
+restores the full grade load. Drive force stays available below the top-speed
+band in the requested direction, including torque opposing rollback. Braking
+counteracts gravity along the slope. The body has no separate linear damping:
+the controller alone applies rolling and aerodynamic resistance. Acceleration,
+braking and grip profiles favour keyboard-friendly action driving, while the
+original model-specific speed limits remain in place.
+Small upward wheel contacts are excluded from body damage through the engine's
+contact policy; severe landings and chassis collisions remain eligible.
+Contacts determine crash motion. Cosmetic energy below half the profile's
+damage budget leaves power intact; further body damage progressively reduces
+power by at most 35%, rather than disabling the engine through accumulated
+bodywork energy. This is a gameplay penalty, not simulated engine failure.
+Localized mesh dents affect grip and
+front-chassis asymmetry biases steering. Wheels/glazing are excluded from the
+cage. Near/Far geometry retains permanent damage while shared source assets stay
+intact. The deformation model has bounded plastic offsets, not tearing or full
+structural crash simulation.
+
+The mouse turns the head and eases back once the car rolls. Stepping out is
+allowed at any speed; taking a moving traffic car preserves solver momentum.
+Water ejects the driver and the car sinks. A terrain guard brakes before an
+unloaded region. Physics determines position, including the geographic position
+used for streaming/rebasing, instead of translating the car along a 2D path.
+At rest the terrain guard checks the requested driving direction, and either
+direction input first brakes opposing motion before engaging the requested gear.
+Holding a direction while overturned progressively rights the car on nearby
+ground. F also works on the roof or in mid-air: exit points account for the
+rotated chassis, with an above-chassis fallback when its sides are blocked.
+The abandoned body keeps its velocity and brakes through the solver; an airborne
+character falls from the exit height. The chase camera follows the completed
+physics pose before rendering, avoiding the previous one-frame camera/body lag.
+Set `R1WORLD_SMOKE_VEHICLE_DAMAGE=1` with `--smoke` to exercise driving/braking
+with an actual deformed car mesh and collider in the streamed world.
+
+Handling verification on 11 October 2026: `tools/verify_vehicle_runtime.ps1`
+uses each fleet manifest's dimensions at the game's 0.68 scale and absorbs the
+solver pose into the geographic owner every frame. All 42 combinations of seven
+models, flat/22-degree ground and three damage levels pass acceleration and
+restart checks. The compact exceeds 80 km/h within three seconds at 10, 15, 30,
+60, 90 and 120 Hz; after five seconds it reaches 99 km/h on flat ground and
+95 km/h on a 22-degree slope. The actual Paris smoke run, using the real clock,
+applies 65 kJ to the retained car mesh and rebuilt collider, drives 27.6 m at a
+peak of 66 km/h with the maximum 35% power penalty, brakes and takes over a
+traffic car successfully. Evidence: `generated/vehicle-validation/handling-runtime.log`
+and `handling-paris-damaged.log`. The 95 native engine tests, native/Web runtime
+contracts, Web player build and Chrome gameplay/restart checks pass. Frame-rate
+equivalence tests do not qualify a physical VR headset or a complete Web port
+of the geographic game.
 
 **The detail follows the speed.** Above 4.2 m/s (15 km/h) street furniture
 stops being imported and vegetation radii shrink to 55%; slow down and both
@@ -1622,7 +1696,7 @@ binary. Its tests run alone:
 
 | Here | There |
 | --- | --- |
-| `native/gen/scatter.cpp` (`buildLaneGraph`) turns the tile's OSM ways into a lane graph | `Graph` drives on it |
+| `native/gen/traffic_graph.cpp` (`buildLaneGraph`) turns the tile's OSM ways into a lane graph | `Graph` drives on it |
 | The tile's density decides how many cars | `Flow::setPopulation` spends it |
 | Which side of the road this place drives on | `Rules::leftHand` mirrors the lane |
 | A scene node per agent, painted, on the terrain | `Flow::pose` says where |
@@ -1641,6 +1715,42 @@ binary. Its tests run alone:
 - **F takes any car.** The traffic node leaves the flow (`Flow::retire`) and
   joins the world; the car you left stays where you left it. Six abandoned cars
   are kept; a teleport clears them.
+
+Generator v46 / traffic schema 2 preserves short road connectors, directional lane counts, offsets,
+road identity, turn masks and layer separation. Speed tags accept km/h and mph.
+Observed traffic-signal, stop and give-way nodes attach to nearby lanes; their
+assignment and signal timing are explicitly inferred. Static via-node `no_` and
+`only_` restrictions are read; conditional, exception and via-way restrictions
+are unsupported. The old OSM query cache is refreshed under query version 15.
+
+Signal meshes share a cylindrical galvanized pole, mounting brackets, a rounded
+black housing, three domed circular lenses under visors and a lower repeater.
+Heads face their incoming approach; parallel lanes share the outermost post.
+The generator retains the asphalt/cobble contours used by the rendered street.
+Posts are placed outside those contours with 45 cm perpendicular clearance,
+including rounded junction mouths and median islands. Placement runs once at
+tile activation; an unavailable safe roadside omits the post with a diagnostic.
+Visible lamp heads use the same phase as the flow. Opposing approaches share
+green; perpendicular traffic waits. Green/amber/all-red phases
+include a shared pedestrian phase; engaged pedestrians finish their crossing,
+and cars treat them as obstacles. At unsignalled crossings pedestrians also
+wait for a safe gap. Curved junction poses, lateral-speed limits, length-aware
+following, adjacent-lane changes and a reused spatial sweep improve road following.
+Intersection admission is conservative, without full country-specific traffic
+law, route destinations or movement-conflict scheduling.
+
+Remote cars follow the graph. Nearby cars are promoted to dynamic bodies with
+their current pose/velocity, aligned to the road grade; AI supplies driving
+commands across multiple short segments. Severely damaged cars brake
+and retain physical ownership. Clean offscreen cars may return to graph control
+beyond the hysteresis distance. Region handoff/replacement moves live vehicle
+nodes with their identity and damage; an unmappable replacement vehicle remains
+as a braked, reachable car. A teleport clears abandoned cars. This does not
+provide unlimited world persistence for wrecks.
+
+The engine implementation is built for native and Web players and shares geometry
+between mono/multiview views. R1World remains a native Windows application; these
+changes do not complete its Web port or qualify headset performance.
 
 ## The people
 
@@ -1936,6 +2046,85 @@ repeat both succeed; `cache/density-policy/27038_26176` records 135,010 vertices
 and the reduced policy. The logs and captures are in the same validation folder.
 The world's density rules are specified in [the project plan](../docs/PLAN.md).
 
+## Vehicle and traffic verification — 11 October 2026
+
+The shipped `VehicleRuntime` passes hill starts, braking holds and restarts on
+8°, 15° and 22° slopes at 30, 60 and 120 Hz, plus a flat-to-15° ramp transition.
+Run `powershell -File tools/verify_vehicle_runtime.ps1` from the game directory.
+The same fixture verifies signal triangle winding and shared mesh budgets.
+Roadside placement passes four geometry cases and two street integration cases:
+wide roads, both driving sides, junction mouths, diagonal clearance, median
+islands, missing edges, agreement with rendered pavement and tile-boundary
+continuity. The full Streets group passes all 17 cases. The final v46
+1920×1080 [signal capture](generated/vehicle-validation/paris-signal-roadside.png)
+shows the post outside the carriageway with its foundation on the ground.
+The sustained offline Paris run holds the observer stationary for 60 simulated
+seconds: peak 42 live vehicles, 41 at completion, peak 22 moving and an average
+13 moving over the sampled second half. The acceptance window spans changing
+signal phases, instead of requiring movement during a particular final phase.
+
+The follow-up offline gameplay run passes with nine resident tiles: 107.594 m
+walked, 20.4142 m driven, peak 14.9092 m/s, braking to 1.41842 m/s, takeover of
+a traffic car, braking to 1.12586 m/s, exit and resumed walking. Both runs use
+1280×720. They verify behavior, not sustained frame timing.
+
+The optimized native engine builds and all **95 CTest cases pass**. The standalone
+traffic suite passes with `g++ -std=c++20 -O2 -Wall -Wextra`. Native runtime
+reflection verifies 31 node types, 23 behaviours and 263 properties.
+The dedicated vehicle-impact test passes 5,424 checks, including 30/60/120 Hz
+physics runs, bounded cage gradients, restoration, continuous collision and
+absence of accumulated damage at resting contacts.
+
+The Release Web player and authoring WASM build successfully. The authoring
+Node smoke test passes. On local Windows Chrome with its native GPU adapter,
+the Web reflection contract passes (18 node types, 15 behaviours, 246
+properties), as do the Witness gameplay and saved-state restart scenarios.
+This is an engine runtime proof; the Witness scene does not exercise a detailed
+vehicle dent in a constrained browser.
+
+The GPU streaming/deformation check passes **295 checks** on the reference MX450,
+including private mesh instances, internal LODs, GPU vertex readback, collision
+shape replacement, saved dent restoration and an automatic solver-driven crash.
+An additional eight-car test loads the actual `city.glb`, applies simultaneous
+impacts and checks that every eligible surface publishes private geometry:
+0.447 ms to prepare the eight impacts, deformation CPU p95 0.352 ms / maximum
+1.177 ms, uploads p95 0.112 ms / maximum 0.397 ms across 600 simulated frames.
+Those measurements isolate deformation work; they do not measure a complete
+rendered frame or guarantee that a whole fleet's detailed dents appear at once.
+The CPU budget is 6,144 vertices per frame globally, with a default 2,048 per
+component update at 15 Hz. Geometry upload budgets are also bounded.
+
+The generator reports **358 passing cases and four failures**. An isolated
+checkout of the previous sources reports 345 passing cases and the same four
+failures: `Cook.a_resident_target_uses_building_lod_without_losing_the_ground`,
+`FarRelief.cliffs_use_a_wall_scan_and_forests_follow_the_climate`,
+`Bridges.two_carriageways_mapped_side_by_side_are_one_deck`, and
+`Appearance.bundled_country_map_finds_ouagadougou_and_paris`. The seven new vehicle
+and road-network cases and six additional roadside cases pass; those baseline
+failures remain unresolved.
+
+The initial 10 October offline Paris gameplay run passes with nine resident tiles: 78.1961 m
+walked, 20.4339 m driven with a peak 10.5453 m/s, braking below the exit limit,
+then takeover of a moving traffic car and a second complete stop before exit.
+The resumed walking phase also passes. The run and its CPU profile use a
+1920×1080 window, but include streaming and accelerated smoke-test steps;
+they are not proof of sustained 30 fps or headset frame timing.
+The matching 1920×1080 [intact](generated/vehicle-validation/car-intact.png) and
+[dented](generated/vehicle-validation/car-dented.png) captures use the shipped
+vehicle and renderer. The second applies a manual frontal impact through the
+normal deformation API; automatic contact-to-dent integration is verified
+separately by the GPU crash fixture. Both capture runs complete successfully.
+
+Logs and local captures are under `generated/vehicle-validation/`. A retained
+source mesh must opt into `GLTFLoadOptions::retainDeformationSource`; the game
+does so for vehicle prototypes. The generic system retains topology and uses a
+plastic control lattice with bounded gradients, rather than a complete shell
+or fracture simulation. Wheels and glazing are excluded from the body cage.
+Separate mechanical zones, detachable parts and dedicated collision effects
+remain extensions. PC/OpenXR and Web implementations share the mesh state;
+real headset performance and constrained-device Web deformation remain to be
+qualified, and these engine changes do not port R1World's geography to Web.
+
 ## Known limits
 
 - **Dense neighbourhoods**: the 120,000-vertex per-tile refusal is removed;
@@ -1971,9 +2160,13 @@ The world's density rules are specified in [the project plan](../docs/PLAN.md).
   Generated guardrails follow class defaults, not a complete equipment survey.
   Outside the measured Paris
   sample, detail has had less visual verification.
-- **Traffic**: no traffic lights, no lane changing, no parked cars along the
-  kerb, no collisions between traffic and the world beyond its lane; junction
-  give-way is nearest-first. Traffic does not stop for pedestrians.
+- **Traffic**: signal timing and missing lane rules are inferred, rather than
+  surveyed municipal programs. Junction reservations remain conservative;
+  national priority laws, roundabout semantics, destination routing and kerb
+  parking are not complete. OSM restrictions with conditional exceptions or
+  via-way chains are not yet supported. Physical simulation is local; distant
+  traffic follows its graph. Pedestrian crossing protection uses local gaps
+  and the shared signal phase.
 - **People**: no children, no regional clothing, passers-by never enter
   buildings.
 - **Aircraft**: no air traffic, taxi routing or tower; runways and aerodromes
