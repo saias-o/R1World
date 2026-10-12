@@ -58,8 +58,11 @@ struct WalkGraph {
 };
 
 // Stagger is the moment a bump carries someone off their feet's line; the
-// three after it are what they do about it.
-enum class Activity : uint8_t { Walk, Idle, Wait, Phone, Talk, Sit, Flee, Stagger, Shrug, Angry, Dust };
+// three after it are what they do about it. Down is a body the game's physics
+// holds (knocked down, run over, shot); Panic is running from a gunshot or a
+// fight; Fight is going for the player, off the paths, fists up.
+enum class Activity : uint8_t { Walk, Idle, Wait, Phone, Talk, Sit, Flee, Stagger, Shrug, Angry, Dust,
+                                Down, Panic, Fight };
 const char* clipOf(Activity a);
 
 struct Walker {
@@ -85,6 +88,14 @@ struct Walker {
     double bumpX = 0, bumpZ = 0, bumpSpeed = 0;  // the last one: away from the player, m/s
     // Looking at the player: `look` is 0 or 1 and the game eases the head.
     double look = 0, lookTimer = 0, lookCool = 0;
+    // Fighting. `brave` people answer a blow with their fists, the others
+    // run; `attacks` grows with each punch thrown at the player (the game
+    // lands it); a body Down `dead` stays down.
+    double health = 100;
+    bool dead = false, brave = false, closing = false;
+    uint32_t attacks = 0;
+    double attackTimer = 0, fightTimer = 0, downTimer = 0;
+    double fearX = 0, fearZ = 0;  // what Panic runs from
 };
 
 struct CrowdPace { double walk = 1.0, run = 2.4; };  // m/s, as drawn
@@ -118,6 +129,24 @@ public:
     // How fast walker `slot` moves along (dirX, dirZ), m/s.
     double speedAlong(size_t slot, double dirX, double dirZ) const;
 
+    // ── a fight ──
+    // Everyone within `radius` of (x, z) runs from it for about `seconds`:
+    // off the bench, away along their path. Bodies down and fighters stay.
+    void scare(double x, double z, double radius, double seconds);
+    // Walker `slot` loses `amount` health; true if this blow killed them.
+    bool damage(size_t slot, double amount);
+    // Off their feet: the game's ragdoll holds the body until getUp().
+    bool knockDown(size_t slot);
+    // Back on their feet where the game stood them, (x, y, z) facing
+    // `heading`, then back to the paths -- fists up if brave and the player
+    // is near, running from him otherwise. False for the dead.
+    bool getUp(size_t slot, double x, double y, double z, double heading);
+    // Hit by the player: the brave fight back, the rest run from him.
+    void provoke(size_t slot);
+    // Walking off the paths (going for the player, back to a path after a
+    // fall): the game sets their height on the ground.
+    static bool offGraph(const Walker& w) { return w.link < 0 && w.seat < 0 && w.activity != Activity::Down; }
+
     static constexpr double kSpawnNear = 28.0, kSpawnFar = 110.0, kDespawn = 150.0;
     // A person drawn at 0.68 is about 0.31 m across the shoulders; with the
     // arms swinging, this is the radius of the capsule each is in the
@@ -128,6 +157,12 @@ public:
     static constexpr double kBumpSpeed = 0.6, kShove = 4.5;
     // How close the player passes in front of someone to be looked at.
     static constexpr double kLookRange = 7.0;
+    // A fighter throws a punch from this close, and gives up past kFightLeash
+    // or after kFightSeconds. About one passer-by in five fights back.
+    static constexpr double kFightReach = 0.95, kFightLeash = 30.0, kFightSeconds = 25.0;
+    static constexpr uint32_t kBravePercent = 22;
+    // A body lying dead is cleared this long after it fell, once out of view.
+    static constexpr double kCorpseSeconds = 45.0;
 
 private:
     double random();
@@ -137,7 +172,13 @@ private:
     void stand(Walker& w, double lo, double hi);
     void react(Walker& w);
     void lookAtPlayer(Walker& w, double dt, const Scene& scene);
+    void runFrom(Walker& w, double x, double z, double seconds);
+    bool brave(size_t slot) const;
+    int nearestNode(double x, double z, double within) const;
+    void fight(Walker& w, double dt, const CrowdPace& pace);
     const WalkGraph* graph_ = nullptr;
+    uint32_t seed_ = 1;
+    double playerX_ = 1e9, playerZ_ = 1e9;
     std::vector<CrowdPace> pace_;
     std::vector<Walker> walkers_;
     std::vector<int> seatTaken_;

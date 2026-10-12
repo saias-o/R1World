@@ -408,3 +408,125 @@ TEST(Crowd, people_look_up_at_the_player_passing_in_front_not_behind) {
     CHECK(behind == 0);
     CHECK(looked * 2 >= tried);
 }
+
+// ── a fight ─────────────────────────────────────────────────────────────────
+
+TEST(Crowd, a_gunshot_sends_everyone_near_running_and_spares_the_far) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 5, 30);
+    crowd.scare(0, 0, 20, 8);
+    int running = 0;
+    for (const auto& w : crowd.walkers()) {
+        if (!w.alive) continue;
+        const bool near = std::hypot(w.x, w.z) <= 20;
+        if (near) CHECK(w.activity == Activity::Panic);
+        running += w.activity == Activity::Panic;
+    }
+    CHECK(running >= 1);
+    CHECK(std::string(clipOf(Activity::Panic)) == "run");
+    // Away from the shot, then back to walking.
+    Crowd::Scene scene;
+    scene.eyeZ = 100;
+    std::vector<double> before;
+    for (const auto& w : crowd.walkers()) before.push_back(std::hypot(w.x, w.z));
+    for (int frame = 0; frame < 30; ++frame) crowd.update(1.0 / 30, scene);
+    int further = 0;
+    for (size_t i = 0; i < crowd.walkers().size(); ++i) {
+        const auto& w = crowd.walkers()[i];
+        if (w.alive && w.activity == Activity::Panic && w.link >= 0) further += std::hypot(w.x, w.z) > before[i];
+    }
+    CHECK(further >= 1);
+    for (int frame = 0; frame < 30 * 15; ++frame) crowd.update(1.0 / 30, scene);
+    for (const auto& w : crowd.walkers()) CHECK(!w.alive || w.activity != Activity::Panic);
+}
+
+TEST(Crowd, a_body_knocked_down_stays_put_until_it_gets_up) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 5, 30);
+    const int i = alone(crowd, true);
+    CHECK(i >= 0);
+    const Walker& w = crowd.walkers()[size_t(i)];
+    CHECK(crowd.knockDown(size_t(i)));
+    CHECK(!crowd.knockDown(size_t(i)));
+    CHECK(w.activity == Activity::Down);
+    CHECK(!Crowd::offGraph(w));
+    CHECK(!crowd.bump(size_t(i), 1, 0, 5));  // a body on the ground is not jostled
+    const double x = w.x, z = w.z;
+    Crowd::Scene scene;
+    scene.eyeZ = 100;
+    for (int frame = 0; frame < 90; ++frame) crowd.update(1.0 / 30, scene);
+    CHECK(w.alive && w.activity == Activity::Down && w.x == x && w.z == z);
+    // Up a metre from where it fell, it makes its way back to the paths.
+    CHECK(crowd.getUp(size_t(i), x + 1, w.y, z, 0));
+    CHECK(w.activity != Activity::Down);
+    CHECK(Crowd::offGraph(w));
+    for (int frame = 0; frame < 30 * 8; ++frame) crowd.update(1.0 / 30, scene);
+    CHECK(!w.alive || !Crowd::offGraph(w));
+}
+
+TEST(Crowd, the_dead_stay_down_and_are_cleared_only_out_of_sight) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 5, 30);
+    const int i = alone(crowd, true);
+    CHECK(i >= 0);
+    const Walker& w = crowd.walkers()[size_t(i)];
+    CHECK(!crowd.damage(size_t(i), 60));
+    CHECK(crowd.damage(size_t(i), 60));
+    CHECK(!crowd.damage(size_t(i), 60));
+    CHECK(w.dead);
+    CHECK(crowd.knockDown(size_t(i)));
+    CHECK(!crowd.getUp(size_t(i), w.x, w.y, w.z, 0));
+    // Looked at, it stays past the corpse time; looked away from, it goes.
+    Crowd::Scene scene;
+    scene.eyeX = w.x; scene.eyeZ = w.z + 40;
+    scene.faceX = 0; scene.faceZ = -1;  // facing it
+    for (int frame = 0; frame < int(30 * (Crowd::kCorpseSeconds + 5)); ++frame) crowd.update(1.0 / 30, scene);
+    CHECK(w.alive);
+    scene.faceZ = 1;  // turned away
+    crowd.update(1.0 / 30, scene);
+    // Cleared; the slot may already hold someone new, walking.
+    CHECK(!w.alive || (!w.dead && w.activity != Activity::Down));
+}
+
+TEST(Crowd, the_brave_fight_back_and_close_in_the_rest_run) {
+    Street s;
+    const WalkGraph g = WalkGraph::from(s.cook());
+    Crowd crowd = settled(g, 5, 30);
+    int brave = -1, timid = -1;
+    for (size_t i = 0; i < crowd.walkers().size(); ++i) {
+        const Walker& w = crowd.walkers()[i];
+        if (!w.alive || w.link < 0 || std::abs(w.x) > 60) continue;
+        if (w.brave && brave < 0) brave = int(i);
+        if (!w.brave && timid < 0) timid = int(i);
+    }
+    CHECK(brave >= 0 && timid >= 0);
+    // The player four metres from each, on foot.
+    Crowd::Scene scene;
+    scene.eyeZ = 100;
+    const Walker& b = crowd.walkers()[size_t(brave)];
+    scene.playerX = b.x + 4; scene.playerZ = b.z;
+    crowd.update(1.0 / 30, scene);
+    crowd.provoke(size_t(brave));
+    CHECK(b.activity == Activity::Fight);
+    CHECK(Crowd::offGraph(b));
+    const uint32_t attacks = b.attacks;
+    for (int frame = 0; frame < 30 * 4; ++frame) crowd.update(1.0 / 30, scene);
+    CHECK(std::hypot(b.x - scene.playerX, b.z - scene.playerZ) <= Crowd::kFightReach + 0.05);
+    CHECK(b.attacks > attacks);
+    CHECK(std::sin(b.heading) > 0.9);  // facing him, east
+    // Him gone into a car: the fight is over.
+    scene.playerX = scene.playerZ = 1e9;
+    crowd.update(1.0 / 30, scene);
+    CHECK(b.activity != Activity::Fight);
+
+    const Walker& t = crowd.walkers()[size_t(timid)];
+    scene.playerX = t.x + 3; scene.playerZ = t.z;
+    crowd.update(1.0 / 30, scene);
+    if (t.alive && t.activity != Activity::Down) {
+        crowd.provoke(size_t(timid));
+        CHECK(t.activity == Activity::Panic);
+    }
+}

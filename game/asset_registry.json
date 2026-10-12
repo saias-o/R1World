@@ -605,6 +605,11 @@
             "path": "assets/world/relief/10_-90.r1relief",
             "type": "Unknown"
         },
+        "11337684671102145212": {
+            "hash": 14816834655355736553,
+            "path": "assets/audio/combat/car_hit.wav",
+            "type": "Unknown"
+        },
         "11347265170864036363": {
             "hash": 434499305963756321,
             "path": "assets/models/humans/female_adult_14.glb",
@@ -899,6 +904,11 @@
             "hash": 4749093788149579426,
             "path": "assets/models/signs/street/blade_middle-r1.glb",
             "type": "Mesh"
+        },
+        "1204495422629604972": {
+            "hash": 8423293119459134659,
+            "path": "assets/audio/combat/bullet_impact.wav",
+            "type": "Unknown"
         },
         "12057630593147421748": {
             "hash": 2198512553149548541,
@@ -2385,6 +2395,11 @@
             "path": "assets/world/relief/20_30.r1relief",
             "type": "Unknown"
         },
+        "15546030515911855579": {
+            "hash": 2099983255651763594,
+            "path": "assets/audio/combat/punch_hit.wav",
+            "type": "Unknown"
+        },
         "15556823660141185662": {
             "hash": 9326661359347252162,
             "path": "assets/models/signs/faces/blade_right-r1.png",
@@ -2579,6 +2594,11 @@
             "hash": 17576434372254022325,
             "path": "assets/models/aircraft/widebody_far.glb",
             "type": "Mesh"
+        },
+        "16028349133955101725": {
+            "hash": 17251268278296417368,
+            "path": "assets/audio/combat/dry_fire.wav",
+            "type": "Unknown"
         },
         "1603896489669978968": {
             "hash": 6271810807875847883,
@@ -2869,6 +2889,11 @@
             "hash": 9242731094720133082,
             "path": "assets/textures/surfaces/pavement_mr.jpg",
             "type": "Texture"
+        },
+        "16908187173177390841": {
+            "hash": 4194308361323383764,
+            "path": "assets/audio/combat/sounds.json",
+            "type": "Unknown"
         },
         "16928747492185631616": {
             "hash": 6580967098117827090,
@@ -3935,6 +3960,11 @@
             "path": "assets/world/relief/-20_-130.r1relief",
             "type": "Unknown"
         },
+        "2946645158535582847": {
+            "hash": 7493513678474335415,
+            "path": "assets/audio/combat/pistol_shot.wav",
+            "type": "Unknown"
+        },
         "2950339856756560050": {
             "hash": 10153314693563972370,
             "path": "assets/world/relief/60_-140.r1relief",
@@ -4203,6 +4233,11 @@
         "3560652335459436945": {
             "hash": 13051578592031589612,
             "path": "assets/world/relief/30_140.r1relief",
+            "type": "Unknown"
+        },
+        "3572275432944637958": {
+            "hash": 18057613171954599052,
+            "path": "assets/audio/combat/body_fall.wav",
             "type": "Unknown"
         },
         "3573493971231466178": {
@@ -4694,6 +4729,11 @@
             "hash": 5525194153959170927,
             "path": "assets/models/external/nature_selected/urban_tree.glb",
             "type": "Mesh"
+        },
+        "4749142925583238698": {
+            "hash": 12278799965675715651,
+            "path": "assets/audio/combat/reload.wav",
+            "type": "Unknown"
         },
         "475104852480623884": {
             "hash": 15759277754833937810,
@@ -5198,6 +5238,11 @@
         "6102771154208341761": {
             "hash": 5008981462732593845,
             "path": "assets/world/relief/60_90.r1relief",
+            "type": "Unknown"
+        },
+        "6133471860479118934": {
+            "hash": 3007976836558444863,
+            "path": "assets/audio/combat/swing.wav",
             "type": "Unknown"
         },
         "613620264753253311": {

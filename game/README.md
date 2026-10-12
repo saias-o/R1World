@@ -1842,6 +1842,50 @@ person who has left is disabled and leaves the physics. Near model above 3.5%
 of screen height (about 35 m). Within 12 m a pose every frame, further at 15, 8
 and 4 Hz, held in between (`Animator::setPoseRate(hz, PoseRateMode::Hold)`).
 
+## The fight (Fun update, 13 October 2026)
+
+Fists and a pistol, in the spirit of GTA III. **Clic** punches or fires,
+**clic droit** aims the pistol over the right shoulder, **1 / 2** switch fists
+and pistol, **E** reloads (an empty magazine reloads by itself).
+
+- **Rules** (`native/combat.hpp`, `r1test Combat`): 100 health; punches of
+  14, the third of a combo a hook (x1.8) that knocks down; a 17-round pistol,
+  34 a round, x3.2 to the head; a car takes the legs from about 9 km/h and
+  kills past 50 km/h; a fall from about 2 m hurts, from about 9 m kills.
+- **Bodies**: every passer-by and the player carry Saida's `RagdollBehaviour`
+  (eleven capsules, `native/combat_kit.hpp` fits it to the Rocketbox biped's
+  A-pose). A knocked-down body tumbles in Jolt, freezes once still, and the
+  living get up after 2.2 s; the dead stay until out of sight (45 s). At most
+  eight tumble at once (`kLiveRagdolls`); the oldest is frozen, never refused.
+  A refusal by a full physics world is logged and fails the smoke.
+- **The crowd** (`gen/crowd.*`): a shot sends everyone within 55 m running, a
+  fight everyone within 14 m; about one passer-by in five (a hash of tile and
+  slot) fights back, closing in at a run and punching every second or so.
+- **Cars**: whoever stands in the path of the player's car is thrown over the
+  bonnet by the solver; a car touching the player on foot knocks him down.
+- **Player**: hurt, knocked down, he gets up where he lies; dead, he wakes
+  outside the nearest mapped hospital, clinic or doctor's (OSM, the interiors'
+  `clinic` recipe), or where he fell when none is resident.
+- **Arms and pistol**: `TwoBoneIKModifier` reaches the punch to the target's
+  head and holds the pistol on the crosshair; the pistol is drawn by the
+  project (two black finishes, albedo 0.04-0.05) and held by
+  `BoneAttachmentBehaviour` on the right hand, its grip measured on the rig.
+  The player's scan now has one Animator instead of three.
+- **Effects and sounds**: pooled particle bursts (flash, smoke, dust, sparks,
+  blood) and a muzzle light; eight sounds synthesised by
+  `python -m r1.combat_sounds` (standard library, seeded, project-made) and
+  preloaded so a shot never reads the disk.
+- **Cost**: nothing is simulated or posed until a fight starts; the HUD (health,
+  weapon, ammo) changes only when a value does, on the existing half-second tick.
+
+Verified offline: `r1test` (372 passed; the three failures Cook, FarRelief and
+Bridges also fail at the previous commit), Saida's `saida_ragdoll_tests`, and
+the smoke at Paris (night, no crowd: fight skipped) and at Vannes
+(`R1WORLD_SMOKE_HOUR=13:00 python tools\play_world.py --smoke --spawn -2.76022 47.6573`:
+a passer-by knocked down came to rest in 1.7 s, a pistol round fired, then the
+drive and the walk passed). Not measured yet: frame time during a fight on the
+MX450, the look of falls and of the pistol in the hand.
+
 ## Physics
 
 All runtime collision is the engine's (Jolt through Saida); the game has no

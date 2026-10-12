@@ -54,4 +54,15 @@ input { display: inline-block; width: 150px; height: 28px; padding: 8px; backgro
 #stream-status { position: absolute; top: 80px; left: 32px; width: 580px; background-color: #142934; padding: 8px 14px; font-size: 14px; }
 #local-conditions { position: absolute; top: 28px; right: 32px; width: 520px; background-color: #142934; padding: 10px 14px; font-size: 14px; }
 #controls { position: absolute; bottom: 28px; right: 32px; width: 940px; background-color: #142934; padding: 10px 16px; font-size: 15px; }
-#crosshair { position: absolute; left: 714px; top: 440px; font-size: 20px; }
+#crosshair { display: none; position: absolute; left: 714px; top: 440px; font-size: 20px; color: #f4fbf3; }
+#combat { position: absolute; top: 128px; right: 32px; width: 250px; background-color: #142934; padding: 10px 14px; }
+#weapon-name { font-size: 18px; font-weight: bold; letter-spacing: 1px; }
+#weapon-ammo { font-size: 15px; color: #d5f5a4; height: 20px; }
+#health-row { margin-top: 6px; height: 18px; }
+#health-bar { display: inline-block; width: 196px; height: 10px; background-color: #2a3f48; vertical-align: middle; }
+#health-fill { width: 196px; height: 10px; background-color: #d5f5a4; }
+#health-value { display: inline-block; width: 36px; margin-left: 8px; font-size: 14px; vertical-align: middle; }
+#hurt { display: none; position: absolute; left: 0; top: 0; width: 1404px; height: 864px; border: 18px #a8261e; opacity: 0.5; }
+#wasted { display: none; position: absolute; top: 330px; left: 0; width: 1440px; text-align: center; }
+#wasted-title { font-size: 72px; font-weight: bold; color: #e8664f; letter-spacing: 8px; }
+#wasted-detail { margin-top: 10px; font-size: 20px; color: #edf3ee; }

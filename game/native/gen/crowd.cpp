@@ -407,6 +407,11 @@ const char* clipOf(Activity a) {
         case Activity::Shrug: return "shrug";
         case Activity::Angry: return "angry";
         case Activity::Dust: return "dust";
+        // Held by the game's ragdoll; the clip underneath is never seen.
+        case Activity::Down: return "idle";
+        case Activity::Panic: return "run";
+        // Squared up to the player; closing in, the game plays the run.
+        case Activity::Fight: return "angry";
     }
     return "idle";
 }
@@ -425,6 +430,7 @@ void Crowd::reset(const WalkGraph* graph, uint32_t seed, std::vector<CrowdPace> 
         spawnChoices_.push_back({spawnDemand_, int(i)});
     }
     state_ = (uint64_t(seed) << 1) | 1;
+    seed_ = seed;
     wanted_ = 0;
 }
 
@@ -468,7 +474,8 @@ void Crowd::place(Walker& w) const {
     w.y = from.y + (to.y - from.y) * t;
     // Across a street the pavement's 15 cm kerb is stepped down.
     if (l.crossing && t > 0.12 && t < 0.88) w.y -= 0.15;
-    if (w.activity == Activity::Walk || w.activity == Activity::Flee) w.heading = std::atan2(dx, -dz);
+    if (w.activity == Activity::Walk || w.activity == Activity::Flee || w.activity == Activity::Panic)
+        w.heading = std::atan2(dx, -dz);
 }
 
 void Crowd::arrive(size_t slot, int node) {
@@ -500,6 +507,12 @@ void Crowd::arrive(size_t slot, int node) {
     if (w.activity == Activity::Walk && !g.links[next].crossing && random() < 0.06) stand(w, 4.0, 14.0);
 }
 
+// Whether the person in `slot` fights back: a hash of the tile and the slot,
+// so it costs the simulation none of its own draws.
+bool Crowd::brave(size_t slot) const {
+    return ((uint32_t(slot) * 2654435761u) ^ (seed_ * 40503u)) % 100u < kBravePercent;
+}
+
 bool Crowd::spawn(size_t slot, const Scene& scene) {
     const auto& g = *graph_;
     if (g.links.empty()) return false;
@@ -524,6 +537,7 @@ bool Crowd::spawn(size_t slot, const Scene& scene) {
         const int s = int(random() * g.seats.size()) % int(g.seats.size());
         if (seatTaken_[s] < 0 && activeSeat(g.seats[s]) && acceptable(g.seats[s].x, g.seats[s].z)) {
             w = Walker{};
+            w.brave = brave(slot);
             w.alive = true; w.activity = Activity::Sit; w.seat = s; w.timer = 25.0 + 60.0 * random();
             seatTaken_[s] = int(slot);
             place(w);
@@ -542,6 +556,7 @@ bool Crowd::spawn(size_t slot, const Scene& scene) {
         const auto &a = g.nodes[link.a], &b = g.nodes[link.b];
         if (!acceptable(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) continue;
         w = Walker{};
+        w.brave = brave(slot);
         w.alive = true; w.link = l; w.forward = random() < 0.5; w.along = t * link.length;
         w.side = 0.35 + 0.4 * random();
         const double r = random();
@@ -586,17 +601,157 @@ void Crowd::react(Walker& w) {
 double Crowd::speedAlong(size_t slot, double dirX, double dirZ) const {
     if (slot >= walkers_.size() || !walkers_[slot].alive) return 0;
     const Walker& w = walkers_[slot];
-    if (w.activity != Activity::Walk && w.activity != Activity::Flee) return 0;
+    const bool running = w.activity == Activity::Flee || w.activity == Activity::Panic ||
+                         (w.activity == Activity::Fight && w.closing);
+    if (w.activity != Activity::Walk && !running) return 0;
     const CrowdPace& pace = pace_[slot % pace_.size()];
-    const double speed = w.activity == Activity::Flee ? pace.run : pace.walk;
+    const double speed = running ? pace.run : pace.walk;
     return speed * (std::sin(w.heading) * dirX - std::cos(w.heading) * dirZ);
+}
+
+int Crowd::nearestNode(double x, double z, double within) const {
+    int best = -1;
+    double bestD = within;
+    for (size_t n = 0; n < graph_->nodes.size(); ++n) {
+        const auto& node = graph_->nodes[n];
+        if (node.links.empty()) continue;
+        const double d = std::hypot(node.x - x, node.z - z);
+        if (d < bestD) { bestD = d; best = int(n); }
+    }
+    return best;
+}
+
+// Away from (x, z): along the path when on one, reversing if it leads toward
+// the danger; off a bench or off the paths, to the nearest node first.
+void Crowd::runFrom(Walker& w, double x, double z, double seconds) {
+    if (w.seat >= 0) { seatTaken_[w.seat] = -1; w.seat = -1; w.link = -1; }
+    if (w.partner >= 0) {
+        if (w.partner < int(walkers_.size())) walkers_[w.partner].partner = -1;
+        w.partner = -1;
+    }
+    if (w.link >= 0) {
+        const auto& l = graph_->links[w.link];
+        const auto& to = graph_->nodes[w.forward ? l.b : l.a];
+        if ((to.x - w.x) * (x - w.x) + (to.z - w.z) * (z - w.z) > 0) {
+            w.forward = !w.forward;
+            w.along = l.length - w.along;
+        }
+    } else if (w.target < 0) {
+        w.target = nearestNode(w.x, w.z, 40.0);
+        if (w.target < 0) { w.alive = false; return; }
+    }
+    w.activity = Activity::Panic;
+    w.timer = seconds * (0.8 + 0.4 * random());
+    w.fearX = x; w.fearZ = z;
+    w.dodge = w.dodgeWanted = 0;
+}
+
+void Crowd::scare(double x, double z, double radius, double seconds) {
+    if (!graph_) return;
+    for (Walker& w : walkers_) {
+        if (!w.alive || w.activity == Activity::Down || w.activity == Activity::Fight) continue;
+        if (std::hypot(w.x - x, w.z - z) > radius) continue;
+        runFrom(w, x, z, seconds);
+    }
+}
+
+bool Crowd::damage(size_t slot, double amount) {
+    if (slot >= walkers_.size() || !walkers_[slot].alive || walkers_[slot].dead || !(amount > 0)) return false;
+    Walker& w = walkers_[slot];
+    w.health = std::max(0.0, w.health - amount);
+    if (w.health > 0) return false;
+    w.dead = true;
+    return true;
+}
+
+bool Crowd::knockDown(size_t slot) {
+    if (slot >= walkers_.size()) return false;
+    Walker& w = walkers_[slot];
+    if (!w.alive || w.activity == Activity::Down) return false;
+    if (w.seat >= 0) { seatTaken_[w.seat] = -1; w.seat = -1; }
+    if (w.partner >= 0) {
+        if (w.partner < int(walkers_.size())) walkers_[w.partner].partner = -1;
+        w.partner = -1;
+    }
+    w.activity = Activity::Down;
+    w.downTimer = 0;
+    w.closing = false;
+    w.pushX = w.pushZ = 0;
+    w.look = w.lookTimer = 0;
+    return true;
+}
+
+bool Crowd::getUp(size_t slot, double x, double y, double z, double heading) {
+    if (!graph_ || slot >= walkers_.size()) return false;
+    Walker& w = walkers_[slot];
+    if (!w.alive || w.dead || w.activity != Activity::Down) return false;
+    w.x = x; w.y = y; w.z = z; w.heading = heading;
+    w.link = -1; w.offX = w.offZ = 0; w.dodge = w.dodgeWanted = 0;
+    w.target = nearestNode(x, z, 40.0);
+    if (w.target < 0) { w.alive = false; return false; }
+    w.activity = Activity::Walk;
+    provoke(slot);
+    return true;
+}
+
+void Crowd::provoke(size_t slot) {
+    if (!graph_ || slot >= walkers_.size()) return;
+    Walker& w = walkers_[slot];
+    if (!w.alive || w.dead || w.activity == Activity::Down) return;
+    const bool near = playerX_ < 1e8 && std::hypot(playerX_ - w.x, playerZ_ - w.z) < kFightLeash * 0.5;
+    if (w.brave && near) {
+        if (w.activity == Activity::Fight) return;
+        if (w.seat >= 0) { seatTaken_[w.seat] = -1; w.seat = -1; }
+        if (w.partner >= 0) {
+            if (w.partner < int(walkers_.size())) walkers_[w.partner].partner = -1;
+            w.partner = -1;
+        }
+        w.activity = Activity::Fight;
+        w.link = -1;
+        w.fightTimer = 0;
+        w.attackTimer = 0.5 + 0.4 * random();
+        w.lookTimer = kFightSeconds;
+        return;
+    }
+    if (playerX_ < 1e8) runFrom(w, playerX_, playerZ_, 9.0);
+}
+
+// Going for the player: straight at him at a run, off the paths; within
+// reach, squared up, a punch every second or so. Out of reach for too long,
+// or him gone (in a car, out of sight), back to the nearest path.
+void Crowd::fight(Walker& w, double dt, const CrowdPace& pace) {
+    w.fightTimer += dt;
+    const double px = playerX_ - w.x, pz = playerZ_ - w.z, d = std::hypot(px, pz);
+    if (playerX_ > 1e8 || d > kFightLeash || w.fightTimer > kFightSeconds) {
+        w.closing = false;
+        w.target = nearestNode(w.x, w.z, 40.0);
+        if (w.target < 0) { w.alive = false; return; }
+        w.activity = Activity::Walk;
+        w.link = -1;
+        return;
+    }
+    if (d > 1e-6) w.heading = std::atan2(px, -pz);
+    w.closing = d > kFightReach;
+    if (w.closing) {
+        const double step = std::min(pace.run * dt, d - kFightReach * 0.9);
+        w.x += px / d * step;
+        w.z += pz / d * step;
+        w.attackTimer = std::max(w.attackTimer, 0.25);
+        return;
+    }
+    if ((w.attackTimer -= dt) <= 0) {
+        ++w.attacks;
+        w.attackTimer = 1.0 + 0.6 * random();
+    }
 }
 
 bool Crowd::bump(size_t slot, double dirX, double dirZ, double speed) {
     if (slot >= walkers_.size()) return false;
     Walker& w = walkers_[slot];
-    // A bench holds its sitter, and a bump lasts a moment.
-    if (!w.alive || w.activity == Activity::Sit || speed <= kBumpSpeed || w.bumpCool > 0) return false;
+    // A bench holds its sitter, and a bump lasts a moment. A body on the
+    // ground or squared up to fight is past being jostled.
+    if (!w.alive || w.activity == Activity::Sit || w.activity == Activity::Down || w.activity == Activity::Fight ||
+        speed <= kBumpSpeed || w.bumpCool > 0) return false;
     const double n = std::hypot(dirX, dirZ);
     if (n < 1e-9) return false;
     dirX /= n; dirZ /= n;
@@ -657,24 +812,39 @@ void Crowd::lookAtPlayer(Walker& w, double dt, const Scene& scene) {
 void Crowd::update(double dt, const Scene& scene) {
     if (!graph_) return;
     const auto& g = *graph_;
+    playerX_ = scene.playerX; playerZ_ = scene.playerZ;
     if (int(walkers_.size()) < wanted_) walkers_.resize(size_t(wanted_));
     for (size_t i = 0; i < walkers_.size(); ++i) {
         Walker& w = walkers_[i];
         if (!w.alive) continue;
         const double far = std::hypot(w.x - scene.eyeX, w.z - scene.eyeZ);
+        const bool behind = far > kSpawnNear &&
+                            ((w.x - scene.eyeX) * scene.faceX + (w.z - scene.eyeZ) * scene.faceZ) < 0;
+        if (w.activity == Activity::Down) {
+            // A body stays where it fell while anyone could see it: cleared
+            // only far away, or dead long enough and behind the camera.
+            w.downTimer += dt;
+            if (far > kDespawn || (w.dead && w.downTimer > kCorpseSeconds && behind)) w.alive = false;
+            continue;
+        }
         // Too far, or more people than the hour wants: gone, out of sight.
         const bool surplus = int(i) >= wanted_;
-        if (far > kDespawn || (surplus && far > kSpawnNear &&
-                               ((w.x - scene.eyeX) * scene.faceX + (w.z - scene.eyeZ) * scene.faceZ) < 0)) {
+        if (far > kDespawn || (surplus && behind && w.activity != Activity::Fight)) {
             if (w.seat >= 0) seatTaken_[w.seat] = -1;
             if (w.partner >= 0 && w.partner < int(walkers_.size())) walkers_[w.partner].partner = -1;
             w.alive = false;
             continue;
         }
         const CrowdPace& pace = pace_[i % pace_.size()];
+        if (w.activity == Activity::Fight) {
+            fight(w, dt, pace);
+            if (!w.alive) continue;
+            if (w.activity == Activity::Fight) { lookAtPlayer(w, dt, scene); continue; }
+        }
         // A car coming through: everyone standing near it runs for it.
         const double carGap = std::hypot(w.x - scene.carX, w.z - scene.carZ);
-        if (scene.carSpeed > 3.0 && carGap < 7.0 && w.link >= 0 && w.activity != Activity::Sit) {
+        if (scene.carSpeed > 3.0 && carGap < 7.0 && w.link >= 0 && w.activity != Activity::Sit &&
+            w.activity != Activity::Panic) {
             if (w.activity != Activity::Flee) {
                 const auto& l = g.links[w.link];
                 const auto& to = g.nodes[w.forward ? l.b : l.a];
@@ -725,9 +895,12 @@ void Crowd::update(double dt, const Scene& scene) {
                     w.activity = Activity::Walk;
                 }
                 break;
-            case Activity::Walk: case Activity::Flee: {
-                const double speed = w.activity == Activity::Flee ? pace.run : pace.walk;
-                if (w.activity == Activity::Flee && (w.timer -= dt) <= 0) w.activity = Activity::Walk;
+            case Activity::Down: case Activity::Fight:
+                break;
+            case Activity::Walk: case Activity::Flee: case Activity::Panic: {
+                const bool running = w.activity == Activity::Flee || w.activity == Activity::Panic;
+                const double speed = running ? pace.run : pace.walk;
+                if (running && (w.timer -= dt) <= 0) w.activity = Activity::Walk;
                 if (w.link < 0) {
                     // Off the graph, to a node (leaving a bench).
                     if (w.target < 0) { w.alive = false; break; }
@@ -771,7 +944,8 @@ void Crowd::update(double dt, const Scene& scene) {
                     arrive(i, w.forward ? l.b : l.a);
                     if (!w.alive) break;
                     w.along += over;
-                    if (w.activity != Activity::Walk && w.activity != Activity::Flee) break;
+                    if (w.activity != Activity::Walk && w.activity != Activity::Flee &&
+                        w.activity != Activity::Panic) break;
                 }
                 break;
             }
@@ -783,7 +957,7 @@ void Crowd::update(double dt, const Scene& scene) {
         w.pushX *= fade; w.pushZ *= fade;
         if (w.link >= 0) { w.offX += w.pushX * dt; w.offZ += w.pushZ * dt; }
         else { w.x += w.pushX * dt; w.z += w.pushZ * dt; }
-        if (w.activity == Activity::Walk || w.activity == Activity::Flee) {
+        if (w.activity == Activity::Walk || w.activity == Activity::Flee || w.activity == Activity::Panic) {
             const double back = std::exp(-1.2 * dt);
             w.offX *= back; w.offZ *= back;
             w.dodge += (w.dodgeWanted - w.dodge) * (1 - std::exp(-3.0 * dt));

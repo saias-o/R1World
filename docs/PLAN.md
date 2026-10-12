@@ -434,7 +434,14 @@ Chacune garde les règles du projet : rien ne dégrade un asset existant
 dans le manifeste (I5), et le coût se compte contre l'arène, le CPU, le GPU,
 la RAM et la VRAM de la machine de référence (I4).
 
-### Fun update — à traiter plus tard
+### Fun update — première version livrée le 13 octobre 2026
+
+Livré (détail et preuves dans `game/README.md`, « The fight ») : poings en
+combo, pistolet visé à l'épaule, ragdolls du moteur pour les passants et le
+joueur, voiture qui renverse, passants qui fuient ou ripostent, santé, chute,
+mort et réveil à l'hôpital OSM le plus proche. Reste : animations de relevé
+enregistrées, d'autres armes, conséquences policières, qualification du temps
+de frame en combat sur la machine de référence.
 
 - **Rendre le jeu plus amusant à jouer**, avec des interactions dans l'esprit
   de GTA III.

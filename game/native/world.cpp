@@ -61,6 +61,8 @@
 #include "weather.hpp"
 #include "forced_time.hpp"
 #include "density_policy.hpp"
+#include "combat.hpp"
+#include "combat_kit.hpp"
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -129,6 +131,9 @@ constexpr double kPartUploadMs=3.,kPropImportMs=2.,kMountTickMs=4.;
 constexpr double kBuildingNearLoad=75.,kBuildingNearRelease=85.;
 constexpr size_t kStreamRequestLimit=25; // the world service's bounded priority list
 constexpr double kOnFootFollow=3.8,kDrivingFollow=8.5;
+// Aiming, the camera closes in over the right shoulder: how far behind, and
+// how far to the side.
+constexpr double kAimFollow=1.9,kAimShoulder=.42;
 // One message for the whole wait after Go: every change of the status line
 // re-renders the interface, a quarter of a second on the map screen.
 constexpr const char* kPreparing="Préparation du terrain de départ… Vous pouvez changer de destination.";
@@ -240,7 +245,12 @@ constexpr uint32_t kInteriorBodies=2*192;
 // The player's feet and car, and the cars left standing (boats and aircraft
 // carry no collider).
 constexpr uint32_t kPlayerBodies=2+uint32_t(kAbandonedCars);
-constexpr uint32_t kPhysicsBodies=kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies;
+// Bodies thrown down at once (World::knockDown): past this, the oldest still
+// tumbling is frozen where it lies -- never refused. Eleven bodies each
+// (r1::rocketboxRagdoll), and the player's own.
+constexpr size_t kLiveRagdolls=8;
+constexpr uint32_t kCombatBodies=uint32_t(kLiveRagdolls+1)*11;
+constexpr uint32_t kPhysicsBodies=kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies+kCombatBodies;
 std::vector<Tile> polarNearby(double lon,double lat) {
     const Tile center=tileAt(lon,lat);
     std::vector<std::pair<double,Tile>> found;
@@ -462,6 +472,13 @@ struct Person {
     uint32_t bumps=0;            // the walker's bumps already staggered
     double yaw=0; bool shown=false;  // the heading drawn, eased toward the walker's
     size_t kind=0;
+    // A fight (World::knockDown, World::personAttack): the engine's ragdoll
+    // that takes the body when it falls, the arms that punch, and the clock
+    // of the punch thrown at the player and of the time spent lying still.
+    saida::RagdollBehaviour* ragdoll=nullptr;
+    saida::TwoBoneIKModifier* arms[2]{nullptr,nullptr};  // left, right
+    uint32_t attacks=0; double punch=-1; int punchHand=1; bool struck=false;
+    double lying=0;
 };
 
 struct Loaded {
@@ -862,6 +879,11 @@ class World : public Rml::EventListener {
                 saida::Log::error("[World crowd] ",kind->model," lacks the spine, neck, head or eye bones the gaze and the "
                                   "stagger turn (python -m r1.humans keeps them): its people will neither look nor stagger");
         }
+        // Their arms for a fight, and their fall: built when first needed
+        // (RagdollBehaviour), nothing simulated until someone is knocked down.
+        person.arms[0]=animator->addModifier<saida::TwoBoneIKModifier>(*kind->rig,r1::rocketboxArm(false));
+        person.arms[1]=animator->addModifier<saida::TwoBoneIKModifier>(*kind->rig,r1::rocketboxArm(true));
+        person.ragdoll=root->addBehaviour<saida::RagdollBehaviour>(ragdollProfile);
         for(const auto& [level,meshes]:kind->levels) {
             auto holder=std::make_unique<saida::Node>(level);
             for(const auto& m:meshes) {
@@ -1012,6 +1034,7 @@ class World : public Rml::EventListener {
     void meetPeople() {
         for(const auto& contact:feet->contacts()) {
             if(!contact.node)continue;
+            if(hitByVehicle(contact))return;
             for(auto tile:ring) {
                 auto found=loaded.find(tile.key());
                 if(found==loaded.end())continue;
@@ -1059,10 +1082,15 @@ class World : public Rml::EventListener {
             }
             // Disabled rather than hidden: nobody animates a person who is not
             // there, and their capsule leaves the physics with them.
-            if(!live){if(p.node->enabled())p.node->setEnabled(false);p.shown=false;continue;}
+            if(!live){if(p.node->enabled())p.node->setEnabled(false);p.shown=false;p.punch=-1;continue;}
             if(!p.node->enabled())p.node->setEnabled(true);
             const r1::Walker& w=walkers[i];
-            double y=w.y;
+            // On the ground, the ragdoll holds the body (World::knockDown).
+            if(personDown(tile,i,p,w,dt))continue;
+            if(p.body&&!p.body->enabled())p.body->setEnabled(true);
+            // Off the paths -- going for the player, back to a path after a
+            // fall -- they walk on the ground itself.
+            double y=r1::Crowd::offGraph(w)?groundUnder(tile,w.x,w.z,w.y):w.y;
             if(w.activity==r1::Activity::Sit)y-=crowdKinds[p.kind].seatDrop;
             p.node->transform().position=glm::vec3(float(w.x),float(y),float(w.z));
             // A body turns rather than snaps: round a corner, or round to
@@ -1085,7 +1113,7 @@ class World : public Rml::EventListener {
                     p.gaze->lookAt(glm::inverse(facing)*(glm::vec3(*head)-p.node->transform().position)/float(humanScale));
                 else p.gaze->release();
             }
-            const char* clip=r1::clipOf(w.activity);
+            const char* clip=w.activity==r1::Activity::Fight&&w.closing?"run":r1::clipOf(w.activity);
             if(std::strcmp(clip,p.clip)!=0){p.animator->play(clip);p.clip=clip;}
             // Animation LOD: a pose every frame close by; further out the pose
             // is resampled at 15, 8 and 4 Hz and held in between, which costs
@@ -1096,7 +1124,740 @@ class World : public Rml::EventListener {
                 p.animator->setPoseRate(rate,saida::Animator::PoseRateMode::Hold);
                 p.poseRate=rate;
             }
+            personAttack(tile,i,p,w,dt);
         }
+    }
+    // ── the fight ───────────────────────────────────────────────────────────
+    //
+    // The Fun update (PLAN §8): GTA III's street on the real one. Fists and a
+    // pistol; passers-by who fall, run, or square up and fight back; a car
+    // that throws whoever it hits over its bonnet; a player who can be hurt,
+    // knocked down, and wake up at the nearest mapped hospital. The rules are
+    // native/combat.hpp; the engine gives the falls (RagdollBehaviour), the
+    // arms (TwoBoneIKModifier) and the pistol in the hand (BoneAttachment).
+    r1::combat::Arsenal arsenal; r1::combat::Health health; r1::combat::Punch punch;
+    r1::CombatEffects effects; r1::CombatSounds sounds;
+    saida::RagdollProfile ragdollProfile=r1::rocketboxRagdoll();
+    saida::Node* playerBody=nullptr; saida::Transform playerBodyRest;
+    saida::RagdollBehaviour* playerRagdoll=nullptr;
+    saida::TwoBoneIKModifier* playerArms[2]{nullptr,nullptr};  // left, right
+    saida::Node* pistol=nullptr; saida::Transform pistolGrip;
+    float playerReach=.55f;  // shoulder to wrist, the rig's metres
+    bool aiming=false,wasFire=false,wasReloadKey=false; double aimBlend=0;
+    bool wasWeaponKey[2]{};
+    double fightClock=0,arrivalClock=0;
+    bool playerDown=false,wasted=false; double downClock=0;
+    std::string punchTileKey; size_t punchSlot=0; bool punchAimed=false;  // whom a punch is thrown at
+    double hurtShown=-1e9,recoil=0;
+    size_t ragdollRefused=0;
+    std::string respawnSaid;
+    bool smokeFought=false,smokeFighting=false; double smokeFightTime=0; int smokeFightPhase=0;
+    std::string smokeFightTile; size_t smokeFightSlot=0;
+
+    // The player's scan arrives as one MeshNode per material, each with an
+    // Animator of its own (GLTFLoader): one pose evaluated three times, and
+    // three skeletons a ragdoll or a held pistol would have to keep together.
+    // Like a passer-by (World::makePerson), the body becomes one node with one
+    // Animator over the scan's meshes.
+    void unifyPlayerBody() {
+        if(animators.empty()||!animators.front()->rig())return;
+        saida::Animator* source=animators.front();
+        saida::Node* model=nullptr;
+        for(auto& c:player->children())
+            for(saida::Node* n=source->node();n&&!model;n=n->parent())if(n==c.get())model=c.get();
+        if(!model)return;
+        auto body=std::make_unique<saida::Node>("player-body");
+        body->transform()=model->transform();
+        auto* animator=body->addBehaviour<saida::Animator>();
+        animator->setRig(const_cast<saida::Rig*>(source->rig()));
+        for(const auto& [name,clip]:source->clips())animator->addClip(name,clip);
+        std::function<void(saida::Node&,const saida::Transform&)> walk=[&](saida::Node& n,const saida::Transform& above) {
+            saida::Transform here;
+            here.rotation=above.rotation*n.transform().rotation;
+            here.scale=above.scale*n.transform().scale;
+            here.position=above.position+above.rotation*(above.scale*n.transform().position);
+            if(n.mesh()) {
+                auto mesh=std::make_unique<saida::MeshNode>(n.name(),n.mesh(),n.material());
+                mesh->transform()=here;
+                if(auto* shown=dynamic_cast<saida::MeshNode*>(&n))mesh->castShadows()=shown->castShadows();
+                body->addChild(std::move(mesh));
+            }
+            for(auto& c:n.children())walk(*c,here);
+        };
+        for(auto& c:model->children())walk(*c,saida::Transform{});
+        model->setEnabled(false);
+        const size_t before=animators.size();
+        playerBody=player->addChild(std::move(body));
+        playerBodyRest=playerBody->transform();
+        animators={animator};
+        saida::Log::info("[World player] one body: one Animator over ",playerBody->children().size(),
+                         " meshes (the scan imported ",before,")");
+    }
+    void setupCombat() {
+        if(!playerBody){playerBody=animators.front()->node();playerBodyRest=playerBody->transform();}
+        auto* animator=animators.front();
+        const saida::Rig& rig=*animator->rig();
+        playerArms[0]=animator->addModifier<saida::TwoBoneIKModifier>(rig,r1::rocketboxArm(false));
+        playerArms[1]=animator->addModifier<saida::TwoBoneIKModifier>(rig,r1::rocketboxArm(true));
+        if(!playerArms[0]->valid()||!playerArms[1]->valid())
+            throw std::runtime_error("Player skeleton lacks the arm chains a punch reaches with");
+        playerReach=r1::armLength(rig,true);
+        playerRagdoll=playerBody->addBehaviour<saida::RagdollBehaviour>(ragdollProfile);
+        if(!r1::pistolGrip(rig,pistolGrip))throw std::runtime_error("Player skeleton lacks the hand and fingers a pistol is held in");
+        if(auto built=r1::buildPistol(engine.resources())) {
+            built->addBehaviour<saida::BoneAttachmentBehaviour>("Bip01 R Hand",pistolGrip);
+            pistol=playerBody->addChild(std::move(built));
+            pistol->setVisible(false);
+        }
+        effects.build(engine.sceneTree().world());
+        sounds.load();
+        saida::Log::info("[World combat] ready: ",ragdollProfile.parts.size()," bodies per ragdoll, ",kLiveRagdolls,
+                         " tumbling at once; arm ",playerReach," m");
+    }
+
+    // A tile-frame point's ground: what a passer-by off the paths stands on.
+    double groundUnder(const Loaded& tile,double x,double z,double fallback) {
+        const glm::dvec3 local(x,fallback,z);
+        const auto point=tile.frame.origin+tile.frame.basis*local;
+        const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+        if(!this->tile(geo.x,geo.y))return fallback;
+        const double h=height(geo.x,geo.y,geo.z+.5);
+        if(!std::isfinite(h))return fallback;
+        return tile.frame.local(ecef(geo.x,geo.y,h)).y;
+    }
+    // Scene-frame point to geodetic, and the height of the ground there.
+    glm::dvec3 sceneToGeo(const glm::vec3& p) const {
+        const auto point=origin.origin+origin.basis*glm::dvec3(p);
+        const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+        return {geo.x,geo.y,geo.z};
+    }
+    float sceneGround(const glm::vec3& p) {
+        const auto geo=sceneToGeo(p);
+        if(!tile(geo.x,geo.y))return p.y;
+        const double h=height(geo.x,geo.y,geo.z+.5);
+        return std::isfinite(h)?float(origin.local(ecef(geo.x,geo.y,h)).y):p.y;
+    }
+    Loaded* tileByKey(const std::string& key) {
+        auto found=loaded.find(key);
+        return found==loaded.end()?nullptr:&found->second;
+    }
+    static glm::vec3 nodePosition(const saida::Node& n) { return glm::vec3(n.worldTransform()[3]); }
+    // A scene direction to the tile frame (both are tangent frames a few km apart at most).
+    glm::dvec3 toTile(const Loaded& tile,const glm::vec3& v) const {
+        return glm::transpose(tile.frame.basis)*origin.basis*glm::dvec3(v);
+    }
+
+    // ── bodies on the ground ──
+
+    // Off their feet: the crowd stops walking them, their capsule leaves the
+    // physics, and the engine's ragdoll takes the body, moving at `velocity`
+    // (scene frame), turning at `spin`. Past kLiveRagdolls tumbling at once,
+    // the one down longest is frozen where it lies. A world too full for the
+    // bodies is said (CLAUDE.md rule 3), and the person only staggers.
+    bool knockDown(Loaded& tile,size_t slot,const glm::vec3& velocity,const glm::vec3& spin) {
+        if(slot>=tile.people.size())return false;
+        Person& p=tile.people[slot];
+        if(!p.node||!p.ragdoll)return false;
+        if(p.ragdoll->simulating())return true;
+        limitRagdolls();
+        if(p.body)p.body->setEnabled(false);
+        if(!p.ragdoll->activate(velocity,spin)) {
+            if(ragdollRefused++==0)
+                saida::Log::error("[World combat] a knocked-down body was refused by the physics world (kCombatBodies ",
+                                  kCombatBodies," of kPhysicsBodies ",kPhysicsBodies,"): the person only staggers");
+            if(p.body)p.body->setEnabled(true);
+            text("stream-status","Monde physique plein : la chute n’a pas pu être simulée.");
+            return false;
+        }
+        tile.crowd.knockDown(slot);
+        p.lying=0;p.punch=-1;
+        for(auto* arm:p.arms)if(arm)arm->release();
+        if(p.gaze)p.gaze->release();
+        return true;
+    }
+    void limitRagdolls() {
+        size_t live=0;saida::RagdollBehaviour* oldest=nullptr;
+        for(auto tile:ring) {
+            auto* t=tileByKey(tile.key());if(!t)continue;
+            for(auto& p:t->people) {
+                if(!p.ragdoll||!p.ragdoll->simulating())continue;
+                ++live;
+                if(!oldest||p.ragdoll->simulatedSeconds()>oldest->simulatedSeconds())oldest=p.ragdoll;
+            }
+        }
+        if(live>=kLiveRagdolls&&oldest)oldest->freeze();
+        SAIDA_PROFILE_COUNTER("World/RagdollsTumbling",double(live));
+    }
+    // A body down: its node is the ragdoll's. Once still for a moment, the
+    // living get up -- the pose blends back to the animation where the body
+    // lies -- and go back to the paths, fists up or running.
+    bool personDown(Loaded& tile,size_t slot,Person& p,const r1::Walker& w,double dt) {
+        if(w.activity!=r1::Activity::Down) {
+            // Back on their feet and blending out: the crowd walks them again.
+            return false;
+        }
+        if(!p.ragdoll)return true;
+        const auto state=p.ragdoll->state();
+        if(state==saida::RagdollBehaviour::State::Animated) {
+            // Down without a body to show (a ragdoll the world refused, or
+            // released by a disable): stood up where they are.
+            const glm::vec3 at=p.node->transform().position;
+            tile.crowd.getUp(slot,at.x,at.y,at.z,p.yaw);
+            return false;
+        }
+        if(w.dead||state==saida::RagdollBehaviour::State::Simulated)return true;
+        if(state==saida::RagdollBehaviour::State::Frozen&&(p.lying+=dt)>=r1::combat::kLieSeconds) {
+            const glm::vec3 at=nodePosition(*p.node);
+            p.ragdoll->blendOut(float(r1::combat::kStandSeconds),sceneGround(at));
+            const glm::vec3 local=p.node->transform().position;
+            const glm::vec3 front=p.node->transform().rotation*glm::vec3(0,0,1);
+            p.yaw=std::atan2(front.x,-front.z);p.shown=true;
+            tile.crowd.getUp(slot,local.x,local.y,local.z,p.yaw);
+            p.clip="";
+            return false;
+        }
+        return true;
+    }
+
+    // ── a passer-by's punch ──
+
+    // A fighter's punch (r1::Crowd counts them): the arm goes out at the
+    // player's head and lands if he is still in reach.
+    void personAttack(Loaded& tile,size_t slot,Person& p,const r1::Walker& w,double dt) {
+        (void)slot;
+        if(w.attacks!=p.attacks) {
+            if(w.attacks>p.attacks&&p.punch<0){p.punch=0;p.punchHand^=1;p.struck=false;}
+            p.attacks=w.attacks;
+        }
+        if(p.punch<0)return;
+        p.punch+=dt;
+        auto* arm=p.arms[p.punchHand];
+        const double reach=r1::combat::Punch::extensionAt(p.punch);
+        if(arm&&player->enabled()) {
+            const glm::mat4 toObject=glm::inverse(p.node->worldTransform());
+            const glm::vec3 head=player->transform().position+glm::vec3(0.f,float(playerHeight*.9),0.f);
+            const glm::vec3 target=glm::vec3(toObject*glm::vec4(head,1.f));
+            arm->reach(target,float(reach));arm->setWeightNow(float(reach));
+            arm->setPole({p.punchHand?-.5f:.5f,.9f,-.3f});
+        }
+        if(!p.struck&&p.punch>=r1::combat::Punch::kStrike) {
+            p.struck=true;
+            const glm::vec3 from=nodePosition(*p.node),to=player->transform().position;
+            const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown;
+            if(onFoot&&glm::length(glm::vec2(to.x-from.x,to.z-from.z))<r1::Crowd::kFightReach+.45) {
+                sounds.play(r1::CombatSounds::Punch,glm::length(camera->transform().position-to));
+                hurtPlayer(r1::combat::kFists.damage*.65,glm::normalize(glm::vec3(to.x-from.x,0.f,to.z-from.z)+glm::vec3(0,.001f,0)),"un passant");
+            } else sounds.play(r1::CombatSounds::Swing,glm::length(camera->transform().position-from),.6f);
+        }
+        if(p.punch>=r1::combat::Punch::kRecover){p.punch=-1;if(arm)arm->release();}
+        (void)tile;
+    }
+
+    // ── the player hurt ──
+
+    void hurtPlayer(double damage,const glm::vec3& push,const char* by) {
+        if(wasted||!player->enabled())return;
+        const bool killed=health.take(damage);
+        for(size_t i=0;i<animators.size()&&i<playerImpacts.size();++i) {
+            glm::mat3 body(animators[i]->node()->worldTransform());
+            for(int c=0;c<3;++c)body[c]=glm::normalize(body[c]);
+            playerImpacts[i]->push(glm::transpose(body)*push,float(std::min(9.,2.+damage*.25)));
+        }
+        hurtShown=fightClock;
+        saida::Log::info("[World combat] player hurt by ",by,": ",damage," (health ",health.hp,")");
+        if(killed)knockPlayerDown(push*3.f+glm::vec3(0,1.f,0),glm::cross(glm::vec3(0,1,0),push)*2.f,true);
+    }
+    // Off his feet: the ragdoll takes his body, his feet leave the physics.
+    void knockPlayerDown(const glm::vec3& velocity,const glm::vec3& spin,bool killed) {
+        if(playerDown){if(killed)wasted=true;return;}
+        if(aiming)setAiming(false);
+        for(auto* arm:playerArms)if(arm)arm->release();
+        if(!playerRagdoll->activate(velocity,spin)) {
+            if(ragdollRefused++==0)
+                saida::Log::error("[World combat] the player's fall was refused by the physics world (kCombatBodies ",kCombatBodies,")");
+            if(killed){wasted=true;playerDown=true;downClock=0;}
+            return;
+        }
+        playerDown=true;wasted=killed;downClock=0;
+        sounds.play(r1::CombatSounds::Fall,followDistance,.8f);
+        if(killed)showWasted(true);
+    }
+    void landed(double speed) {
+        if(fightClock-arrivalClock<4.)return;  // a spawn settling on the relief is not a fall
+        const double damage=r1::combat::fallDamage(speed);
+        if(damage<=0)return;
+        sounds.play(r1::CombatSounds::Fall,followDistance,std::min(1.,speed/12.));
+        hurtPlayer(damage,glm::vec3(0,-1,0),"la chute");
+        if(!playerDown&&damage>=35)knockPlayerDown(glm::vec3(0,-1.f,0),glm::vec3(0),false);
+    }
+    // A car the engine says his feet touched, closing on him: thrown.
+    bool hitByVehicle(const saida::CharacterBodyNode::Contact& contact) {
+        if(contact.node->name()!=r1::VehicleRuntime::kBodyName||!contact.node->physicsWorld())return false;
+        const glm::vec3 velocity=contact.node->physicsWorld()->linearVelocity(contact.node->bodyId());
+        const glm::vec3 mine(float(footEast),0.f,float(-footNorth));
+        const float closing=glm::dot(velocity-mine,glm::normalize(contact.normal));
+        const auto hit=r1::combat::carImpact(closing);
+        if(!hit.knockDown||playerDown)return false;
+        const float speed=glm::length(velocity);
+        const glm::vec3 along=speed>.1f?velocity/speed:glm::normalize(contact.normal);
+        sounds.play(r1::CombatSounds::CarHit,followDistance);
+        const bool killed=health.take(hit.damage);
+        hurtShown=fightClock;
+        saida::Log::info("[World combat] player hit by a car at ",closing," m/s: ",hit.damage," (health ",health.hp,")");
+        knockPlayerDown(velocity*.8f+glm::vec3(0,1.f+.12f*speed,0),glm::cross(along,glm::vec3(0,1,0))*std::clamp(speed*.5f,2.f,8.f),killed);
+        return true;
+    }
+    // Where the camera looks while he is down: his pelvis.
+    glm::vec3 downAnchor() const {
+        if(playerRagdoll&&playerRagdoll->ragdoll()&&playerRagdoll->simulating())return playerRagdoll->ragdoll()->rootPosition();
+        return nodePosition(*playerBody);
+    }
+    // Down and still, he gets up where he lies; dead, he wakes at a hospital.
+    void updatePlayerDown(double dt) {
+        downClock+=dt;
+        const auto state=playerRagdoll->state();
+        if(wasted) {
+            if(downClock>=r1::combat::kWastedSeconds)respawn();
+            return;
+        }
+        if(state==saida::RagdollBehaviour::State::Frozen&&downClock>=r1::combat::kPlayerLieSeconds) {
+            playerRagdoll->blendOut(float(r1::combat::kStandSeconds),sceneGround(nodePosition(*playerBody)));
+            // His node is where his body now stands; his body back at rest
+            // under it, the same place on screen.
+            const glm::mat4 bodyWorld=player->transform().matrix()*playerBody->transform().matrix();
+            const glm::mat4 standing=bodyWorld*glm::inverse(playerBodyRest.matrix());
+            const glm::vec3 at(standing[3]);
+            glm::mat3 axes(standing);for(int c=0;c<3;++c)axes[c]=glm::normalize(axes[c]);
+            const auto geo=sceneToGeo(at);
+            lon=geo.x;lat=geo.y;alt=height(lon,lat,geo.z+.5);if(!std::isfinite(alt))alt=geo.z;
+            jumpOffset=jumpVelocity=0;
+            player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+.06)));
+            player->transform().rotation=glm::normalize(glm::quat_cast(axes));
+            playerBody->transform()=playerBodyRest;
+            // The ragdoll put the snapshot in the body node's frame where it
+            // stood; that frame is now the rest one, through the player node.
+            const glm::vec3 front=player->transform().rotation*glm::vec3(0,0,1);
+            yaw=wrap(std::atan2(front.x,-front.z)/rad);
+            return;
+        }
+        if(state==saida::RagdollBehaviour::State::Animated){playerDown=false;downClock=0;}
+    }
+    // The nearest mapped hospital, clinic or doctor's (gen/interior_uses.cpp
+    // names them all "clinic"), across the resident tiles: he wakes outside
+    // its door. With none mapped near, where he fell, and the screen says so.
+    void respawn() {
+        const glm::dvec3 here=ecef(lon,lat,alt);
+        double best=1e30;glm::dvec2 at(lon,lat);std::string name;
+        for(auto& [key,t]:loaded)for(const auto& room:t.interiors) {
+            if(room.plan.recipe!="clinic")continue;
+            const r1::P2 out{room.plan.door.x-room.plan.inward.x*2.5,room.plan.door.y-room.plan.inward.y*2.5};
+            const glm::dvec3 local(out.x,room.plan.floor,out.y);
+            const auto point=t.frame.origin+t.frame.basis*local;
+            const double d=glm::length(point-here);
+            if(d<best) {
+                best=d;const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+                at={geo.x,geo.y};name=room.plan.name.empty()?"l’hôpital":room.plan.name;
+            }
+        }
+        playerRagdoll->release();
+        playerBody->transform()=playerBodyRest;
+        playerDown=wasted=false;downClock=0;
+        health.restore();
+        lon=at.x;lat=at.y;alt=height(lon,lat);jumpOffset=jumpVelocity=0;
+        player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+.06)));
+        arrivalClock=fightClock;
+        request(lon,lat);
+        respawnSaid=best<1e29?"Réveil devant "+name+".":"Aucun hôpital cartographié à proximité : réveil sur place.";
+        saida::Log::info("[World combat] respawn ",best<1e29?"at "+name:std::string("where he fell")," (",lon,", ",lat,")");
+        showWasted(false);
+        text("stream-status",respawnSaid);
+    }
+    void showWasted(bool show) {
+        style("wasted","display",show?"block":"none");
+        if(show)text("wasted-detail","Réveil à l’hôpital le plus proche…");
+    }
+
+    // ── the player's weapons ──
+
+    void setAiming(bool on) {
+        aiming=on;
+        style("crosshair","display",on?"block":"none");
+        if(!on)for(auto* arm:playerArms)if(arm){arm->release();arm->clearTipRotation();}
+    }
+    void selectWeapon(r1::combat::Weapon wanted) {
+        if(arsenal.held()==wanted)return;
+        arsenal.select(wanted);
+        if(pistol)pistol->setVisible(wanted==r1::combat::Weapon::Pistol);
+        if(wanted!=r1::combat::Weapon::Pistol&&aiming)setAiming(false);
+    }
+    // The physics filter of a shot or a punch: everything but his own feet.
+    saida::QueryFilter combatFilter() const {
+        saida::QueryFilter filter;filter.ignoreInner=feet->innerBodyId();
+        return filter;
+    }
+    // A passer-by, by the capsule or ragdoll part a query hit.
+    bool personByBody(const saida::RaycastHit& hit,Loaded*& outTile,size_t& outSlot) {
+        auto* physics=engine.sceneTree().world().physics();if(!physics)return false;
+        auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body));
+        for(auto tile:ring) {
+            auto* t=tileByKey(tile.key());if(!t)continue;
+            for(size_t i=0;i<t->people.size();++i) {
+                const Person& p=t->people[i];
+                if(!p.node||!p.node->enabled())continue;
+                if((node&&p.body==node)||(p.ragdoll&&p.ragdoll->ragdoll()&&p.ragdoll->ragdoll()->partOf(hit.body)>=0)) {
+                    outTile=t;outSlot=i;return true;
+                }
+            }
+        }
+        return false;
+    }
+    // Witnesses: everyone near a blow or a shot runs from it.
+    void alarm(const glm::vec3& at,double radius,double seconds) {
+        for(auto tile:ring) {
+            auto* t=tileByKey(tile.key());if(!t)continue;
+            const glm::dvec3 local=t->frame.local(origin.origin+origin.basis*glm::dvec3(at));
+            t->crowd.scare(local.x,local.z,radius,seconds);
+        }
+    }
+    // A person struck (fist or round): health, then a stagger, a fall or death.
+    void strikePerson(Loaded& tile,size_t slot,double damage,const glm::vec3& direction,const glm::vec3& point,
+                      float impulse,bool always) {
+        Person& p=tile.people[slot];
+        const auto& walkers=tile.crowd.walkers();
+        if(slot>=walkers.size()||!walkers[slot].alive)return;
+        const bool wasDown=walkers[slot].activity==r1::Activity::Down;
+        tile.crowd.damage(slot,damage);
+        const r1::Walker& w=walkers[slot];
+        effects.burst(r1::CombatEffects::Blood,point);
+        if(wasDown) {
+            // Already on the ground: a round moves the body again.
+            if(p.ragdoll&&p.ragdoll->state()!=saida::RagdollBehaviour::State::Simulated){limitRagdolls();p.ragdoll->activate();}
+            if(p.ragdoll)p.ragdoll->applyImpulse(direction*impulse,point);
+            p.lying=0;
+            return;
+        }
+        if(always||w.dead||w.health<100.*r1::combat::kKnockDownBelow) {
+            const glm::vec3 spin=glm::cross(glm::vec3(0,1,0),direction)*2.5f;
+            if(knockDown(tile,slot,direction*2.2f+glm::vec3(0,.6f,0),spin)) {
+                p.ragdoll->applyImpulse(direction*impulse,point);
+                sounds.play(r1::CombatSounds::Fall,glm::length(camera->transform().position-point),.7f);
+            }
+            return;
+        }
+        if(p.impact) {
+            const glm::quat facing=p.node->transform().rotation;
+            const glm::dvec3 d=toTile(tile,direction);
+            p.impact->push(glm::inverse(facing)*glm::vec3(float(d.x),0.f,float(d.z)),7.f);
+        }
+        tile.crowd.provoke(slot);
+    }
+
+    void throwPunch() {
+        if(!punch.throwAt(fightClock))return;
+        sounds.play(r1::CombatSounds::Swing,followDistance,.7f);
+        // The nearest person in front within reach, their head the target.
+        const glm::vec3 me=player->transform().position;
+        const glm::vec3 ahead(float(std::sin(yaw*rad)),0.f,float(-std::cos(yaw*rad)));
+        double best=r1::combat::kFists.range*kPeopleVehicleResize+.25;punchAimed=false;
+        for(auto tile:ring) {
+            auto* t=tileByKey(tile.key());if(!t)continue;
+            const auto& walkers=t->crowd.walkers();
+            for(size_t i=0;i<t->people.size()&&i<walkers.size();++i) {
+                const Person& p=t->people[i];
+                if(!p.node||!p.node->enabled()||!walkers[i].alive||walkers[i].activity==r1::Activity::Down)continue;
+                const glm::vec3 d=nodePosition(*p.node)-me;
+                const double flat=std::hypot(d.x,d.z);
+                if(flat>=best||flat<1e-3)continue;
+                if((d.x*ahead.x+d.z*ahead.z)/flat<.45)continue;
+                best=flat;punchTileKey=tile.key();punchSlot=i;punchAimed=true;
+            }
+        }
+        // Squared up to whom he hits.
+        if(punchAimed)if(auto* t=tileByKey(punchTileKey)) {
+            const glm::vec3 d=nodePosition(*t->people[punchSlot].node)-me;
+            yaw=wrap(std::atan2(d.x,-d.z)/rad);
+        }
+    }
+    void landPunch() {
+        Loaded* t=punchAimed?tileByKey(punchTileKey):nullptr;
+        if(!t||punchSlot>=t->people.size()||!t->people[punchSlot].node)return;
+        const Person& p=t->people[punchSlot];
+        const glm::vec3 me=player->transform().position,them=nodePosition(*p.node);
+        glm::vec3 d=them-me;d.y=0;
+        if(glm::length(d)>r1::combat::kFists.range*kPeopleVehicleResize+.4)return;  // they stepped out of reach
+        d=glm::normalize(d);
+        const glm::vec3 point=them+glm::vec3(0.f,float(playerHeight*(punch.hook()?.82:.88)),0.f);
+        sounds.play(r1::CombatSounds::Punch,followDistance);
+        alarm(them,r1::combat::kFightSeen,6.);
+        strikePerson(*t,punchSlot,punch.damage(),d,point,float(r1::combat::kFists.impulse*(punch.hook()?1.6:1.)),punch.hook());
+    }
+
+    void fire() {
+        const auto result=arsenal.pull();
+        if(result==r1::combat::Arsenal::Trigger::Empty){sounds.play(r1::CombatSounds::DryFire);if(arsenal.reloading())sounds.play(r1::CombatSounds::Reload,0,.8f);return;}
+        if(result!=r1::combat::Arsenal::Trigger::Fired)return;
+        if(arsenal.reloading())sounds.play(r1::CombatSounds::Reload,0,.8f);
+        auto* physics=engine.sceneTree().world().physics();
+        const glm::vec3 eye=camera->transform().position;
+        // Aim error grows with movement and with the last shot's recoil.
+        static uint32_t spreadSeed=0x9e3779b9u;
+        auto random=[&]{spreadSeed^=spreadSeed<<13;spreadSeed^=spreadSeed>>17;spreadSeed^=spreadSeed<<5;return double(spreadSeed)/4294967296.;};
+        const double spread=r1::combat::kPistol.spread*(1+2.5*std::min(1.,std::hypot(footEast,footNorth)/3.)+recoil*4);
+        const double a=random()*6.283185307179586,rr=std::sqrt(random())*spread;
+        const glm::quat jitter=glm::angleAxis(float(rr*std::cos(a)),glm::vec3(0,1,0))*glm::angleAxis(float(rr*std::sin(a)),glm::vec3(1,0,0));
+        const glm::vec3 look=glm::normalize(camera->transform().rotation*(jitter*glm::vec3(0,0,-1)));
+        const float range=float(r1::combat::kPistol.range);
+        glm::vec3 aimPoint=eye+look*range;
+        if(physics){const auto hit=physics->raycast(eye+look*float(followDistance*.8),look,range,combatFilter());if(hit.hit)aimPoint=hit.point;}
+        // The round leaves the muzzle for whatever the camera put under the
+        // crosshair; a wall between the two takes it instead.
+        const glm::vec3 muzzle=pistol?glm::vec3(pistol->worldTransform()*glm::vec4(r1::kPistolMuzzle,1.f)):eye;
+        const glm::vec3 path=aimPoint-muzzle;
+        const float length=glm::length(path);
+        effects.muzzle(muzzle);
+        sounds.play(r1::CombatSounds::Shot);
+        recoil=std::min(1.,recoil+.55);
+        pitch=std::clamp(pitch+1.1,-65.,25.);
+        alarm(player->transform().position,r1::combat::kGunshotHeard,10.);
+        if(!physics||length<1e-3)return;
+        const glm::vec3 dir=path/length;
+        const auto hit=physics->raycast(muzzle,dir,length+.05f,combatFilter());
+        if(!hit.hit)return;
+        const double heard=glm::length(eye-hit.point);
+        Loaded* t=nullptr;size_t slot=0;
+        if(personByBody(hit,t,slot)) {
+            const float feet=nodePosition(*t->people[slot].node).y;
+            const bool head=hit.point.y-feet>float(playerHeight*.84);
+            strikePerson(*t,slot,r1::combat::kPistol.damage*(head?r1::combat::kPistol.headMultiplier:1.),dir,hit.point,
+                         float(r1::combat::kPistol.impulse),true);
+            sounds.play(r1::CombatSounds::Impact,heard,.5f);
+            return;
+        }
+        auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body));
+        if(node&&node->name()==r1::VehicleRuntime::kBodyName) {
+            effects.burst(r1::CombatEffects::Sparks,hit.point);
+            if(auto* dent=node->getBehaviour<saida::DeformableMeshBehaviour>()) {
+                const glm::mat4 toBody=glm::inverse(node->worldTransform());
+                dent->applyImpact(glm::vec3(toBody*glm::vec4(hit.point,1.f)),glm::normalize(glm::vec3(toBody*glm::vec4(dir,0.f))),
+                                  dent->yieldEnergy*4.f);
+            }
+            physics->applyImpulse(hit.body,dir*float(r1::combat::kPistol.impulse),hit.point);
+            sounds.play(r1::CombatSounds::Impact,heard);
+            return;
+        }
+        effects.burst(r1::CombatEffects::Dust,hit.point+hit.normal*.03f);
+        // A loose body is pushed; a static one absorbs it (PhysicsWorld).
+        physics->applyImpulse(hit.body,dir*float(r1::combat::kPistol.impulse),hit.point);
+        sounds.play(r1::CombatSounds::Impact,heard);
+    }
+
+    // The arms each frame: the aim holds the pistol on the crosshair, a punch
+    // reaches for its target, and both ease out when done.
+    void poseArms() {
+        auto* animator=animators.front();
+        if(!animator||!playerBody)return;
+        const glm::mat4 toObject=glm::inverse(playerBody->worldTransform());
+        const auto& pose=animator->globalPose().globalMatrices;
+        const saida::Rig& rig=*animator->rig();
+        const int shoulderBone[2]={rig.findBoneIndex("Bip01 L UpperArm"),rig.findBoneIndex("Bip01 R UpperArm")};
+        if(shoulderBone[0]<0||shoulderBone[1]<0||pose.size()<rig.boneCount())return;
+        const glm::vec3 shoulder[2]={glm::vec3(pose[size_t(shoulderBone[0])][3]),glm::vec3(pose[size_t(shoulderBone[1])][3])};
+        if(aiming&&arsenal.held()==r1::combat::Weapon::Pistol) {
+            const glm::vec3 look=camera->transform().rotation*glm::vec3(0,0,-1);
+            glm::vec3 aim=glm::normalize(glm::vec3(toObject*glm::vec4(look,0.f)));
+            const glm::vec3 up(0,1,0);
+            // Out in front at eye height, the arm nearly straight.
+            const glm::vec3 grip=shoulder[1]+aim*(playerReach*.9f)+glm::vec3(-.05f,.0f,0.f);
+            glm::vec3 side=glm::cross(up,aim);if(glm::dot(side,side)<1e-6f)side=glm::vec3(1,0,0);
+            side=glm::normalize(side);
+            const glm::vec3 top=glm::cross(aim,side);
+            glm::mat3 gun;gun[0]=side;gun[1]=top;gun[2]=aim;
+            const glm::quat hand=glm::normalize(glm::quat_cast(gun)*glm::inverse(pistolGrip.rotation));
+            playerArms[1]->reach(grip);playerArms[1]->setTipRotation(hand);
+            playerArms[1]->setPole(shoulder[1]+glm::vec3(-.4f,-.5f,-.2f));
+            // The other hand cups the grip.
+            playerArms[0]->reach(grip+side*.035f-top*.045f-aim*.02f);playerArms[0]->clearTipRotation();
+            playerArms[0]->setPole(shoulder[0]+glm::vec3(.4f,-.6f,-.1f));
+            return;
+        }
+        for(int h=0;h<2;++h) {
+            auto* arm=playerArms[h];
+            const bool throwing=punch.active()&&(punch.rightHand()==(h==1));
+            if(!throwing){if(arm->weight()>0)arm->release();continue;}
+            glm::vec3 target=shoulder[h]+glm::vec3(h?-.08f:.08f,.05f,playerReach*.95f);
+            if(Loaded* t=punchAimed?tileByKey(punchTileKey):nullptr)if(punchSlot<t->people.size()&&t->people[punchSlot].node) {
+                const glm::vec3 head=nodePosition(*t->people[punchSlot].node)+glm::vec3(0.f,float(playerHeight*(punch.hook()?.8:.88)),0.f);
+                target=glm::vec3(toObject*glm::vec4(head,1.f));
+            }
+            const float w=float(punch.extension());
+            arm->clearTipRotation();arm->reach(target,w);arm->setWeightNow(w);
+            arm->setPole(shoulder[h]+glm::vec3(h?-.45f:.45f,-.35f,-.25f));
+        }
+    }
+
+    // A car driven into people: whoever stands in its path is thrown over
+    // the bonnet, harder the faster it goes.
+    void runOverPeople(double dt) {
+        if(!driving||!car||std::abs(carSpeed)<2.5)return;
+        auto* body=r1::VehicleRuntime::body(*car);
+        if(!body||!body->physicsWorld())return;
+        const glm::vec3 velocity=body->physicsWorld()->linearVelocity(body->bodyId());
+        const float speed=glm::length(velocity);
+        if(speed<2.5f)return;
+        const auto& spec=vehicleSpec(*car);
+        const glm::mat4 world=car->worldTransform();
+        const glm::mat4 toCar=glm::inverse(world);
+        const float halfWidth=float(spec.width*.5+.25),halfLength=float(spec.length*.5),reach=float(speed*dt*1.6+.35);
+        const glm::vec3 dir=velocity/speed;
+        for(auto tile:ring) {
+            auto* t=tileByKey(tile.key());if(!t)continue;
+            const auto& walkers=t->crowd.walkers();
+            for(size_t i=0;i<t->people.size()&&i<walkers.size();++i) {
+                Person& p=t->people[i];
+                if(!p.node||!p.node->enabled()||!walkers[i].alive||walkers[i].activity==r1::Activity::Down)continue;
+                const glm::vec3 at=nodePosition(*p.node);
+                const glm::vec3 local=glm::vec3(toCar*glm::vec4(at,1.f));
+                if(std::abs(local.x)>halfWidth||local.y<-1.f||local.y>float(spec.height+.5))continue;
+                if(local.z<-halfLength-reach||local.z>halfLength+reach)continue;
+                if(glm::dot(at-glm::vec3(world[3]),dir)<0.f)continue;  // behind the car as it goes
+                const auto hit=r1::combat::carImpact(speed);
+                if(!hit.knockDown)continue;
+                t->crowd.damage(i,hit.damage);
+                // Legs taken forward, the body over the bonnet.
+                const glm::vec3 spin=glm::cross(dir,glm::vec3(0,1,0))*std::clamp(speed*.55f,2.f,9.f);
+                if(knockDown(*t,i,velocity*.85f+glm::vec3(0,1.2f+.1f*speed,0),spin)) {
+                    sounds.play(r1::CombatSounds::CarHit,followDistance);
+                    effects.burst(r1::CombatEffects::Blood,at+glm::vec3(0.f,float(playerHeight*.5),0.f));
+                    alarm(at,r1::combat::kFightSeen*1.5,8.);
+                    saida::Log::info("[World combat] a passer-by run over at ",speed*3.6," km/h, damage ",hit.damage);
+                }
+            }
+        }
+    }
+
+    void updateCombat(double dt) {
+        SAIDA_PROFILE_SCOPE("World/Combat");
+        fightClock+=dt;
+        recoil=std::max(0.,recoil-dt*2.2);
+        arsenal.update(dt);
+        effects.update(float(dt));
+        runOverPeople(dt);
+        if(playerDown)updatePlayerDown(dt);
+        const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown&&player->enabled();
+        auto& w=engine.window();
+        if(!onFoot||menu||smoke) {
+            if(aiming)setAiming(false);
+            wasFire=w.mouseButtonDown(GLFW_MOUSE_BUTTON_LEFT);
+            if(!onFoot)for(auto* arm:playerArms)if(arm&&arm->weight()>0&&!playerDown)arm->release();
+            if(onFoot&&smoke)poseArms();
+            return;
+        }
+        const bool keys[2]={w.keyDown(GLFW_KEY_1),w.keyDown(GLFW_KEY_2)};
+        if(keys[0]&&!wasWeaponKey[0])selectWeapon(r1::combat::Weapon::Fists);
+        if(keys[1]&&!wasWeaponKey[1])selectWeapon(r1::combat::Weapon::Pistol);
+        wasWeaponKey[0]=keys[0];wasWeaponKey[1]=keys[1];
+        const bool reloadKey=w.keyDown(GLFW_KEY_E);
+        if(reloadKey&&!wasReloadKey&&arsenal.reload())sounds.play(r1::CombatSounds::Reload,0,.8f);
+        wasReloadKey=reloadKey;
+        const bool wantAim=arsenal.held()==r1::combat::Weapon::Pistol&&w.mouseButtonDown(GLFW_MOUSE_BUTTON_RIGHT);
+        if(wantAim!=aiming)setAiming(wantAim);
+        const bool fireDown=w.mouseButtonDown(GLFW_MOUSE_BUTTON_LEFT);
+        if(fireDown&&!wasFire) {
+            if(arsenal.held()==r1::combat::Weapon::Fists){if(arsenal.pull()==r1::combat::Arsenal::Trigger::Fired)throwPunch();}
+            else fire();
+        }
+        wasFire=fireDown;
+        if(punch.update(dt))landPunch();
+        // Aiming, he faces where the camera looks.
+        if(aiming)player->transform().rotation=glm::slerp(player->transform().rotation,
+            glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0)),float(1-std::exp(-18*dt)));
+        else if(punch.active())player->transform().rotation=glm::slerp(player->transform().rotation,
+            glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0)),float(1-std::exp(-20*dt)));
+        poseArms();
+    }
+
+    // The fight's HUD: health and weapon, changed only when they change (the
+    // interface is rasterised whole on every change, WebCanvasNode).
+    void combatHud() {
+        const int hp=int(std::ceil(health.hp));
+        style("health-fill","width",std::to_string(int(std::round(health.fraction()*196)))+"px");
+        style("health-fill","background-color",hp>30?"#d5f5a4":"#e8664f");
+        text("health-value",std::to_string(hp));
+        const bool pistolHeld=arsenal.held()==r1::combat::Weapon::Pistol;
+        text("weapon-name",r1::combat::spec(arsenal.held()).name);
+        text("weapon-ammo",pistolHeld?(arsenal.reloading()?"Rechargement…":std::to_string(arsenal.loaded())+" / "+std::to_string(arsenal.reserve())):"");
+        style("hurt","display",fightClock-hurtShown<.45?"block":"none");
+    }
+
+    // ── the smoke's fight ──
+    //
+    // After the walk: the nearest passer-by is knocked down by the code path a
+    // punch or a car takes, and must tumble in the engine's physics, come to
+    // rest, and freeze; a round fired at the ground must land. A refusal at
+    // any step names itself (CLAUDE.md rule 3).
+    void startSmokeFight() {
+        smokeFought=true;
+        // People appear out of sight (r1::Crowd::kSpawnNear and beyond): the
+        // nearest anywhere in the neighbourhood will do for the physics.
+        const glm::vec3 me=player->transform().position;
+        const double reach=r1::Crowd::kDespawn;
+        double best=reach;
+        for(auto& [key,t]:loaded) {
+            const auto& walkers=t.crowd.walkers();
+            for(size_t i=0;i<t.people.size()&&i<walkers.size();++i) {
+                if(!t.people[i].node||!t.people[i].node->enabled()||!walkers[i].alive)continue;
+                const double d=glm::length(nodePosition(*t.people[i].node)-me);
+                if(d<best){best=d;smokeFightTile=key;smokeFightSlot=i;}
+            }
+        }
+        if(best>=reach) {
+            saida::Log::info("[World E2E] fight: nobody in the neighbourhood to knock down; skipped");
+            if(!smokeDroveOnce&&!onSeaIce(lon,lat))startSmokeDrive();else smokeFinishPhase();
+            return;
+        }
+        Loaded* t=tileByKey(smokeFightTile);
+        const glm::vec3 d=glm::normalize(nodePosition(*t->people[smokeFightSlot].node)-me+glm::vec3(0,.001f,0));
+        if(!knockDown(*t,smokeFightSlot,d*3.f+glm::vec3(0,1.5f,0),glm::cross(glm::vec3(0,1,0),d)*3.f)) {
+            saida::Log::error("[World E2E] FAIL fight: the knocked-down body did not enter the physics");
+            testFailed=true;engine.sceneTree().quit();return;
+        }
+        selectWeapon(r1::combat::Weapon::Pistol);
+        smokeFighting=true;smokeFightTime=0;smokeFightPhase=0;
+        saida::Log::info("[World E2E] fight: knocked down a passer-by ",best," m away");
+    }
+    void runSmokeFight(double dt) {
+        smokeFightTime+=dt;
+        Loaded* t=tileByKey(smokeFightTile);
+        if(!t||smokeFightSlot>=t->people.size()||!t->people[smokeFightSlot].ragdoll) {
+            saida::Log::error("[World E2E] FAIL fight: the knocked-down body's tile left before it came to rest");
+            testFailed=true;engine.sceneTree().quit();return;
+        }
+        auto* ragdoll=t->people[smokeFightSlot].ragdoll;
+        if(smokeFightPhase==0) {
+            if(ragdoll->state()==saida::RagdollBehaviour::State::Simulated&&smokeFightTime<8.)return;
+            const auto state=ragdoll->state();
+            if(state==saida::RagdollBehaviour::State::Simulated) {
+                saida::Log::error("[World E2E] FAIL fight: the body still tumbles after 8 s (fastest part ",
+                                  ragdoll->ragdoll()->fastestSpeed()," m/s)");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            saida::Log::info("[World E2E] fight: the body came to rest in ",smokeFightTime," s (",
+                             state==saida::RagdollBehaviour::State::Frozen?"frozen":"getting up",")");
+            const size_t magazine=size_t(arsenal.loaded());
+            fire();
+            if(size_t(arsenal.loaded())+1!=magazine) {
+                saida::Log::error("[World E2E] FAIL fight: the pistol did not fire (",arsenal.loaded()," of ",magazine,")");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            smokeFightPhase=1;smokeFightTime=0;
+            return;
+        }
+        if(smokeFightTime<1.)return;
+        selectWeapon(r1::combat::Weapon::Fists);
+        smokeFighting=false;
+        saida::Log::info("[World E2E] PASS fight: knock-down, rest and a pistol round");
+        if(!smokeDroveOnce&&!onSeaIce(lon,lat)){startSmokeDrive();return;}
+        smokeFinishPhase();
     }
     size_t crowdWanted() const {
         size_t n=0;
@@ -5796,6 +6557,7 @@ public:
         loadHumans();
         // The body is drawn at the people's scale; its height is the manifest's.
         for(auto& child:player->children())child->transform().scale=glm::vec3(float(humanScale));
+        unifyPlayerBody();
         for(auto* a:animators) {
             for(auto clip:{"idle","run","sprint","jump"})
                 if(!a->clips().count(clip))throw std::runtime_error(std::string("Player animation missing: ")+clip);
@@ -5806,6 +6568,7 @@ public:
         }
         player->setEnabled(false);
         saida::Log::info("[World player] model ready, animators=",animators.size());
+        setupCombat();
         car=e.sceneTree().firstInGroup("vehicle");
         if(!car)throw std::runtime_error("Earth scene is missing the player's car");
         car->setEnabled(false);
@@ -5950,6 +6713,13 @@ public:
         testClick("options-back",false);
         if(optionsOpen)return fail("Retour did not close the screen");
         saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored)");
+        // A street by day for the walk and the fight: R1WORLD_SMOKE_HOUR=HH:MM
+        // forces the local hour as the Options screen would. Night empties it.
+        if(const char* hour=std::getenv("R1WORLD_SMOKE_HOUR")) {
+            const auto minutes=r1::parseClockTime(hour);
+            if(!minutes)return fail(std::string("R1WORLD_SMOKE_HOUR '")+hour+"' is not HH:MM");
+            forceTime(minutes);
+        }
         return true;
     }
     // The driver's own two phases, kept out of update() so the flow reads:
@@ -6843,6 +7613,7 @@ public:
         double f=(w.keyDown(GLFW_KEY_W)||w.keyDown(GLFW_KEY_Z)?1.:0.)-(w.keyDown(GLFW_KEY_S)?1.:0.);
         double r=(w.keyDown(GLFW_KEY_D)?1.:0.)-(w.keyDown(GLFW_KEY_A)||w.keyDown(GLFW_KEY_Q)?1.:0.);
         if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
+        if(playerDown){f=r=0;}  // on the ground, he does not walk
         if(retailTest())f=r=0;
         if(performanceSmoke){f=r=0;smokeStarted=false;}
         if(trafficValidation_){f=r=0;smokeStarted=false;}
@@ -6855,7 +7626,7 @@ public:
         // One door key for both directions, and the refusals are inside
         // enterCar/leaveCar so that every one of them says something.
         bool doorKey=w.keyDown(GLFW_KEY_F);
-        if(doorKey&&!wasEnterKey) {
+        if(doorKey&&!wasEnterKey&&!playerDown) {
             if(driving)leaveCar();
             else if(sailing){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
             else if(piloting)leaveAircraft();
@@ -6885,7 +7656,8 @@ public:
         stagger=std::max(0.,stagger-dt);
         // His feet are a body while he is: not at the wheel, at the helm or
         // at the controls, where people meet the vehicle instead.
-        if(feet->enabled()!=player->enabled())feet->setEnabled(player->enabled());
+        // Down, his body is the ragdoll's and his feet leave the physics.
+        if(feet->enabled()!=(player->enabled()&&!playerDown))feet->setEnabled(player->enabled()&&!playerDown);
         if(driving) {
             if(smokeDriving){f=smokeBrake?-1.:1.;r=0;}
             driveCar(dt,f,r,w.keyDown(GLFW_KEY_SPACE)&&!smokeDriving);
@@ -6925,7 +7697,7 @@ public:
             }
             if(moving)request(lon,lat);
         } else if(length>0&&jumpOffset<3.) {  // falling from higher, he cannot steer
-            double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?7.:2.8;
+            double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)&&!aiming?7.:2.8;
             // A stride broken by running into someone (World::staggerPlayer).
             if(stagger>0)speed*=.35;
             double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
@@ -6954,7 +7726,9 @@ public:
             const auto nudged=moveFeet(0,0,dt);
             if(tile(nudged.x,nudged.y)&&!onWater(nudged.x,nudged.y,alt)){lon=nudged.x;lat=nudged.y;alt=std::max(height(lon,lat,alt),nudged.z);}
         }
-        if(glm::length(origin.local(ecef(lon,lat,alt)))>kRebaseDistance)rebaseOrigin();
+        // Not while he lies in the ragdoll: its bodies follow his node, which
+        // the rebase does not carry. He is up again in a few seconds.
+        if(!playerDown&&glm::length(origin.local(ecef(lon,lat,alt)))>kRebaseDistance)rebaseOrigin();
         if(!driving&&!sailing&&!piloting) {
             if(swimming) {
                 jumpOffset=jumpVelocity=0;wasJump=false;
@@ -6979,7 +7753,7 @@ public:
                     if(jumpVelocity<-5.&&tile(lon,lat)&&onWater(lon,lat,alt)) {
                         swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);
                         text("stream-status","À l'eau — nagez vers la rive.");
-                    }
+                    } else if(jumpVelocity<0)landed(-jumpVelocity);
                     jumpOffset=0;jumpVelocity=0;
                 }
                 if(jumpOffset>0) {
@@ -6989,6 +7763,7 @@ public:
                     if(resolved<jumpOffset-.01&&jumpVelocity>0)jumpVelocity=0;
                     jumpOffset=std::max(0.,resolved);
                     if(jumpVelocity<0&&feet->isOnFloor()) {
+                        landed(-jumpVelocity);
                         alt+=jumpOffset;jumpOffset=jumpVelocity=0;
                     }
                 }
@@ -7001,6 +7776,7 @@ public:
         placeCar();
         placeBoats();
         placeAircraft(dt);
+        updateCombat(dt);
         if(smokeStarted&&worldCapture.pngPath.empty()){
             smokeRan=smokeRan||(moving&&animators.front()->currentClip()=="run");
             smokeJumped=smokeJumped||(jumpOffset>.5&&animators.front()->currentClip()=="jump");
@@ -7013,14 +7789,20 @@ public:
         // A boat's camera stands off by its own length: a container ship is
         // two hundred metres of hull, and eight metres behind its bridge is
         // inside it.
+        // Aiming, the camera closes in over his right shoulder.
+        aimBlend+=((aiming?1.:0.)-aimBlend)*(1-std::exp(-12*dt));
         const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
                               :piloting?plane.type->length*.9+10.
-                              :driving?std::max(kDrivingFollow,vehicleSpec(*car).length*.7+5.):kOnFootFollow;
-        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?playerHeight*1.17:playerHeight*.89;
+                              :driving?std::max(kDrivingFollow,vehicleSpec(*car).length*.7+5.)
+                              :kOnFootFollow+(kAimFollow-kOnFootFollow)*aimBlend;
+        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?playerHeight*1.17
+                        :playerDown?playerHeight*.35:playerHeight*(.89+.06*aimBlend);
         const glm::vec3 anchor=sailing&&boat.node?boat.node->transform().position
                               :piloting&&plane.node?plane.node->transform().position
-                              :driving?car->transform().position:player->transform().position;
-        const glm::vec3 target=anchor+glm::vec3(0,eye,0);
+                              :driving?car->transform().position
+                              :playerDown?downAnchor():player->transform().position;
+        const glm::vec3 target=anchor+glm::vec3(0,eye,0)
+            +camera->transform().rotation*glm::vec3(float(kAimShoulder*aimBlend),0.f,0.f);
         const glm::vec3 backward=camera->transform().rotation*glm::vec3(0,0,1);
         double clear=maxFollow;
         if(auto* physics=engine.sceneTree().world().physics()) {
@@ -7216,11 +7998,13 @@ public:
                     if(in){retailPlace="Parking de "+lot.name;break;}}
             }
             if(!retailPlace.empty())mode=" · "+retailPlace+mode;
+            combatHud();
             text("stream-status",std::to_string(loaded.size())+" tuiles actives"+mode
                  +(fast?" · détail réduit à cette vitesse":"")
                  +(physicsRefused?" · collisions incomplètes : le monde physique est plein":""));
         }
         if(performanceSmoke){runPerformanceSmoke(delta);return;}
+        if(smokeFighting){runSmokeFight(dt);return;}
         if(trafficValidation_){validateTraffic(dt);return;}
         if(smokeWaterSpawn&&smokeWalk>1.5) {
             const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
@@ -7255,7 +8039,12 @@ public:
             }
             saida::Log::info("[World E2E] crowd: ",crowdLive()," people of ",crowdWanted(),
                              " asked for at ",localSolarHour(),"h solar (factor ",crowdFactor(),"), bumps ",playerBumps);
+            if(ragdollRefused>0) {
+                saida::Log::error("[World E2E] FAIL combat: ",ragdollRefused," knocked-down bodies refused by the physics world");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
             smokeStarted=false;
+            if(!smokeFought&&crowdLive()>0){startSmokeFight();return;}
             if(!smokeDroveOnce&&!onSeaIce(lon,lat)){startSmokeDrive();return;}
             if(!smokeDroveOnce)saida::Log::info("[World E2E] on the sea ice: no car to drive, the walk is the test");
             smokeFinishPhase();

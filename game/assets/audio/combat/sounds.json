@@ -1,0 +1,39 @@
+{
+ "generatedBy": "game/tools/r1/combat_sounds.py",
+ "license": "CC0-1.0 (project-made)",
+ "rate": 44100,
+ "sounds": {
+  "pistol_shot": {
+   "file": "assets/audio/combat/pistol_shot.wav",
+   "seconds": 1.1
+  },
+  "punch_hit": {
+   "file": "assets/audio/combat/punch_hit.wav",
+   "seconds": 0.25
+  },
+  "swing": {
+   "file": "assets/audio/combat/swing.wav",
+   "seconds": 0.26
+  },
+  "body_fall": {
+   "file": "assets/audio/combat/body_fall.wav",
+   "seconds": 0.7
+  },
+  "car_hit": {
+   "file": "assets/audio/combat/car_hit.wav",
+   "seconds": 0.6
+  },
+  "dry_fire": {
+   "file": "assets/audio/combat/dry_fire.wav",
+   "seconds": 0.09
+  },
+  "reload": {
+   "file": "assets/audio/combat/reload.wav",
+   "seconds": 0.75
+  },
+  "bullet_impact": {
+   "file": "assets/audio/combat/bullet_impact.wav",
+   "seconds": 0.22
+  }
+ }
+}
