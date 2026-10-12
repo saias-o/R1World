@@ -196,7 +196,8 @@ InteriorLayout layoutInterior(const InteriorPlan& p) {
     return out;
 }
 std::vector<MeshPart> buildShopfront(const InteriorPlan& p) {
-    Mesh shell(UvMode::Slope),metal,accent,glass;
+    Mesh shell(UvMode::Facade),metal,accent,glass;
+    shell.facadeRepeat={2,1}; // Native 1024 x 512 scan, eight 12.5 cm boards.
     const double h=p.ceiling-p.floor;
     // Hollow shell follows the actual footprint, with a real opening in one edge.
     for(size_t e=0;e<p.ring.size();++e) {
@@ -228,7 +229,15 @@ std::vector<MeshPart> buildShopfront(const InteriorPlan& p) {
     box(metal,p,center,-.85,2.72,len,1.9,.12);
     for(double u:{-p.width/2,p.width/2})box(metal,p,u,0,1.3,.1,.14,2.6);
     box(metal,p,0,0,2.6,p.width+.2,.22,.13);
-    auto wall=mineral("Retail mineral cladding",{.28,.27,.25,1},.85);
+    // Two clean wood finishes, selected from the stable shop identity. Share
+    // their scan/maps and batch each finish across all shops in a tile.
+    // The offline map averages .5 per channel, hence twice the linear albedo.
+    const bool dark=seeded(p.id,0x574F4F44LL).random()<.5;
+    auto wall=plain(dark?"Retail dark wood cladding":"Retail light wood cladding",
+        dark?std::array<double,4>{.24,.12,.055,1}:std::array<double,4>{.60,.40,.22,1},1);
+    wall.baseColorTexture="assets/textures/interiors/wood_albedo.jpg";
+    wall.normalTexture="assets/textures/interiors/wood_normal.jpg";
+    wall.metallicRoughnessTexture="assets/textures/interiors/wood_mr.png";
     auto paint=plain("Retail fascia",p.recipe=="bakery"?std::array<double,4>{.19,.065,.028,1}:
         p.recipe=="fashion"?std::array<double,4>{.035,.045,.052,1}:std::array<double,4>{.028,.105,.085,1});
     std::string brand=p.name;

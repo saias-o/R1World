@@ -105,6 +105,24 @@ TEST(Retail, shopfront_contains_a_real_hole_not_a_door_drawn_on_a_wall) {
             CHECK(!pointInTriangle({0,p.floor+1},{a.x,a.y},{b.x,b.y},{c.x,c.y}));
     }
 }
+TEST(Retail, wood_finish_is_stable_for_shop_identity_and_ignores_visit_order) {
+    auto p=room();std::map<int64_t,Material> first;
+    for(int64_t id=-16;id<16;++id) {
+        p.id=id;first.emplace(id,buildShopfront(p).front().material);
+    }
+    for(int64_t id=15;id>=-16;--id) {
+        p.id=id;auto reloaded=InteriorPlan::read(p.json());
+        reloaded.name="Another display name";
+        CHECK(buildShopfront(reloaded).front().material==first.at(id));
+    }
+    // Serialized models carry normals/tangents as well as the wood's colour:
+    // otherwise the exported game loses the joints' relief.
+    const auto bytes=writeGlb(buildShopfront(p));
+    const std::string glb(bytes.begin(),bytes.end());
+    CHECK(glb.find("TANGENT")!=std::string::npos);
+    CHECK(glb.find("wood_normal.jpg")!=std::string::npos);
+    CHECK(glb.find("wood_mr.png")!=std::string::npos);
+}
 TEST(Retail, large_rooms_distribute_shared_furniture_across_the_floor) {
     auto p=room();p.ring={{-35,0},{35,0},{35,65},{-35,65}};
     const auto layout=layoutInterior(p);
@@ -173,13 +191,15 @@ TEST(Retail, a_street_of_shops_is_one_part_per_material_not_four_per_shop) {
     std::vector<const OsmWay*> enriched;for(auto& w:shops)enriched.push_back(&w);
     const auto built=buildBuildings(enriched,ground,profileFor(2.35,48.85),{},-1,0,{},{});
     CHECK(built.interiors.size()==12);
-    size_t parts=0,vertices=0,expected=0;std::set<std::string> fascias;
+    size_t parts=0,vertices=0,expected=0;std::set<std::string> fascias,walls;
     for(const auto& part:built.parts)if(part.name.rfind("Shop ",0)==0) {
         ++parts;vertices+=part.mesh.vertexCount();
         if(part.name=="Shop fascia")fascias.insert(part.material.name+std::to_string(part.material.color[0]));
+        if(part.name=="Shop shell")walls.insert(part.material.name);
     }
     for(const auto& p:built.interiors)for(const auto& part:buildShopfront(p))expected+=part.mesh.vertexCount();
     CHECK(fascias.size()==2);
-    CHECK(parts==3+fascias.size());
+    CHECK(walls.size()==2);
+    CHECK(parts==2+walls.size()+fascias.size());
     CHECK(vertices==expected);
 }

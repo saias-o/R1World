@@ -1315,6 +1315,11 @@
             "path": "assets/models/external/nature_cards/fir_sapling.glb",
             "type": "Mesh"
         },
+        "12958649720157278227": {
+            "hash": 9665212822611376394,
+            "path": "assets/textures/interiors/wood_mr.png",
+            "type": "Texture"
+        },
         "12965886762534459801": {
             "hash": 8918148959295954256,
             "path": "assets/world/relief/-90_20.r1relief",
@@ -3745,6 +3750,11 @@
             "path": "assets/world/relief/0_10.r1relief",
             "type": "Unknown"
         },
+        "2474145341756021640": {
+            "hash": 194017128131765882,
+            "path": "assets/textures/interiors/wood_normal.jpg",
+            "type": "Texture"
+        },
         "2482294879918207624": {
             "hash": 5537844667250219054,
             "path": "assets/world/landmarks/pyramid_of_menkaure-r3-lod2.glb",
@@ -4809,6 +4819,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/80_110.r1relief",
             "type": "Unknown"
+        },
+        "5041945871092843654": {
+            "hash": 11609783729522602697,
+            "path": "assets/textures/interiors/wood_albedo.jpg",
+            "type": "Texture"
         },
         "508706331315757587": {
             "hash": 7212113240552767805,
@@ -5971,7 +5986,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 7567079265169141511,
+            "hash": 11814378629638692076,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },

@@ -1012,13 +1012,47 @@ supersampled twice, into shared albedo/alpha and normal/visibility atlases and a
 the source's alpha-tested geometry at 512². This static occlusion preserves
 canopy cavities and contrast without baking a particular sun direction.
 Adjacent azimuths blend; elevation selects the nearest view. No sun is baked.
-Saida shades this Far with occluded ambient and live Lambert directional light
-using normals in each instance's authored frame. It performs two albedo and two
-normal/visibility reads, and skips MR maps, PBR, IBL, GI and runtime shadow
+Saida shades this Far with the same flat ambient fill as Mid, occluded diffuse
+sky SH and live Lambert directional light using normals in each instance's
+authored frame. Static hemisphere visibility attenuates sky SH, but never the
+flat ambient fallback or the sun. The game's sun cycle supplies diffuse sky
+light via ambient with diffuse IBL off; applying atlas visibility to that fill
+made shaded Far trees almost black. Diffuse sky SH follows the scene's IBL
+settings, rotations and sky crossfade, with no extra texture reads. It performs
+two albedo and two normal/visibility reads, and skips MR maps, full PBR,
+specular IBL, GI and runtime shadow
 sampling. Billboards without a normal atlas keep the former broad volume
 lighting and its two-read cost.
 Far does not cast shadows; Near/Mid and trunk collisions are retained.
 Other species keep their existing cards.
+
+The shared urban Far prototype uses the engine's existing normal/volume
+lighting blend at 0.5. Filtered atlas normals cannot retain the distribution
+of leaf orientations within a canopy pixel: a strict surface Lambert response
+can leave an entire backlit crown dark. Half the volume response keeps this
+representation lit while the atlas normals retain contrast. This is set once
+on the shared material in code; source textures, geometry and albedo stay intact.
+
+The 12 October Far lighting correction matches Mid's ambient fill and removes
+static hemisphere occlusion from direct sunlight, with the 0.5 normal/volume
+blend above. An identical-light Near/Mid/Far comparison confirms the
+brighter canopy without changing any model, atlas, albedo or LOD threshold.
+The engine's 23 native billboard pixel cases pass, including mesh/impostor
+ambient parity, separation of direct/sky occlusion and diffuse sky color/crossfade; native and Web
+shaders compile, and the translated pipeline validates in Chrome WebGPU.
+An offline Paris capture also completes (`paris-final.png`); the intermediate
+ambient-only change remained too dark and is not the final visual result.
+CTest remains 94/95: the existing
+failure is the unknown Git build identity in this sandbox. Captures, the
+isolated shader comparison script and measurements are in
+`generated/tree-far-lighting-fix`; whole-world/headset performance is not
+qualified by that synthetic scene.
+The final 861-tree fixture (20 Mid, 841 Far, 1280×720, same executable and
+camera/light) measures median GPU frame 4.492 → 4.801 ms over samples 100–219.
+This single pair is a small increase, not a performance gain; the Far still
+uses four atlas reads and the existing volume blend. The exported fixture
+mirrors the game's shared-material weight in its shader because it does not
+run `World::prototype`; no authored model or texture is rewritten.
 
 Regenerate only this Far with `python -m r1.tree_impostor` from `tools`
 (NumPy, Pillow, ModernGL and an OpenGL 3.3 context required). Running
@@ -1120,8 +1154,12 @@ architecture is invented. A funeral home keeps its building.
   timed out waiting for them. It is now 36.
 
 Glazing is frames and reflection strips: the renderer has no sorted transparent
-pass. `python -m r1.retail_materials` rebuilds the dedicated plaster finish and
-the fascia letter coverage.
+pass. Shop walls use clean, warm pine cladding from the CC0 WoodSiding009 scan:
+native 1024 × 512 colour, tangent-space normals and roughness, with a 2 × 1 m
+repeat (eight horizontal boards). A stable choice from the shop identity alternates
+light pine and dark brown finishes. Shops share the same three maps and batch
+by finish. `python -m r1.retail_materials` rebuilds that finish, the plaster used
+by interior floors and the fascia letter coverage; it uses local sources only.
 
 ### Interiors (generator v25)
 
@@ -1835,6 +1873,98 @@ Engine fixes this game found, each with its regression test in Saida:
   after). Box, sphere and capsule shapes now read no mesh.
 
 ## Performance
+
+### Code audit on the MX450, 12 October 2026
+
+Optimized native Vulkan runs, offline, hidden 1920 × 1080 windows. The original
+executable was retained before changing the code. Each comparison uses the same
+spawn, camera, fixed Sun and clear inspection weather, with nine resident tiles;
+no model, texture, density setting or LOD distance was changed. The captures arm
+only after tile/prop readiness, then record another 300 frames in Paris or 150
+in Vannes. Statistics select the last 250/100 frames and exclude the last two
+capture/readback frames. Traffic remains live, so node/body counts vary slightly
+between runs. These are local stationary-view measurements, not a whole-world
+30 fps qualification or a controlled estimate of each patch's separate gain.
+
+| View | Original median / p95 | Final median / p95 | FPS from median frame time |
+|---|---:|---:|---:|
+| Paris, street view | 77.87 / 97.77 ms | 49.76 / 58.09 ms | 12.8 → 20.1 |
+| Vannes, harbour view | 82.39 / 87.92 ms | 54.01 / 69.26 ms | 12.1 → 18.5 |
+
+The main CPU cost is traversing the resident hierarchy, including stationary
+and hidden LOD nodes: about 93,000 nodes in Paris and 102,000 in Vannes. The
+camera used to scan all enabled nodes every frame (14.91/16.03 ms in the original
+views); the engine now indexes cameras and compares hierarchy paths only for
+priority ties. Final camera selection costs about 0.01 ms. Local TRS matrices
+are cached by component values, preserving edits through retained `Transform&`
+references and independent world propagation. This still scans the node tree.
+R1World also registers its post-physics camera hook only while driving: at rest
+on foot it previously returned immediately, but the engine still traversed the
+entire scene a third time (13.65/16.34 ms in the intermediate runs). The hook
+remains active while driving, when camera correction needs that propagation.
+
+| Remaining CPU scope, mean per frame | Paris | Vannes |
+|---|---:|---:|
+| Two transform walks, before/after physics | 29.46 ms | 34.56 ms |
+| Renderer scene gathering, including draw-list construction | 11.67 ms | 12.50 ms |
+| Building LOD scheduling | 1.68 ms | 2.23 ms |
+| Jolt solver, one fixed step in these capture windows | 0.92 ms | 0.67 ms |
+| Traffic gameplay | 0.49 ms | 0.40 ms |
+| Interior streaming/doors | 0.14 ms | 0.20 ms |
+
+`Physics/SceneStep` includes `Scene/PostPhysicsTransforms`: its large inclusive
+number is not the cost of collision solving alone. Stable tile polling is cheap
+(about 0.05 ms/frame in Paris), but arrival is not: the final Paris log records
+individual tile mounts of 22–44 ms, and the original captures had mounts up to
+76 ms. `World::shape` creates the collider nodes and every building's parent,
+three LOD holders and behaviour synchronously; `activate` then installs the
+tile's runtime systems. Cooking runs on workers, but publishing this hierarchy
+can exceed the whole-frame budget on the main thread.
+
+GPU frame time remains about 36.7 ms in Paris and 36.4 ms in Vannes. New feature
+timestamp spans point at `TerrainRingsFeature` (17.9/18.9 ms), followed by grass
+(4.8/1.1 ms) and water (0.05/2.8 ms). These TOP/BOTTOM pipeline timestamp spans
+can overlap preceding work and must not be added or treated as isolated feature
+costs; an A/B run is needed to quantify an exclusive terrain saving. The code
+does nevertheless submit a full 128² × 6 procedural vertex grid for each
+present relief level. Resident-tile holes are discarded in the fragment shader,
+after vertex height, normal and surface sampling. Compacting wholly covered
+cells before drawing, sharing repeated grid vertices and preserving the exact
+boundary/morphing rules are code optimization candidates; reducing the assets
+is not what this audit changed.
+
+Next code priorities are incremental transform propagation with the existing
+mutable-transform contract preserved, measuring/compacting terrain submissions,
+and budgeting tile hierarchy/collider publication across frames. Building LOD
+scheduling also sorts all candidates every frame even when no uploads are
+needed, but it is smaller than the transform and renderer costs above.
+
+Reproducible evidence is in `generated/code-perf-audit/`: original, intermediate
+and final traces, PNGs, summaries and logs. `tools/analyze_profile.py` reads the
+Chrome traces without adding nested CPU scopes together, for example:
+
+```powershell
+python tools/analyze_profile.py generated/code-perf-audit/paris-final.json --tail 250 --skip-last 2
+```
+
+The native engine and game compile. Native runtime reflection passes (31 nodes,
+23 behaviours, 269 properties), and the streaming GPU suite passes 301 checks,
+including cache edits, world propagation and reparented camera ties. CTest passes
+94/95 with workspace `TEMP`/`TMP`; the remaining crash-reporter assertion is the
+configured build identity `SAIDA_BUILD_COMMIT="unknown"` after CMake could not
+read the protected submodule Git metadata. The initial six temporary-file
+failures disappear when `TEMP`/`TMP` points inside the workspace.
+
+The two final gameplay smoke attempts pass running, jumping, ground/seam checks,
+driving and moving exit, then both fail `took over a different car than the one
+reached`. A recheck with the retained original executable reproduces that exact
+failure; the first original audit smoke had passed. `runSmokeTakeover` chooses
+the first live traffic car and stands 2.5 m east of it without ensuring that
+another car is not closer, while `enterCar` deliberately chooses the nearest.
+The complete gameplay smoke is therefore not green; a non-ambiguous target
+fixture remains to be qualified, without relaxing the takeover/ownership checks.
+
+### Historical measurements
 
 Measured on the Paris smoke with `--profile` (25 September 2026): a frame is
 4.5 ms of CPU work plus 12.8 ms waiting for the frame cap; 63 animators cost

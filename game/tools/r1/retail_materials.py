@@ -1,10 +1,13 @@
-"""Bake shop finishes from the existing CC0 scan and our lettering atlas.
+"""Bake shop finishes from the existing CC0 scans and our lettering atlas.
 
 Run with python -m r1.retail_materials from game/tools. No download, no runtime
-image processing. The mineral finish averages 0.5 in linear colour; materials
-multiply it by twice their intended albedo. Keep the scan's native resolution.
+image processing. Both finishes average 0.5 per channel in linear colour;
+materials multiply them by twice their intended albedo. Keep the scans' native
+resolution. The mineral finish is still used for interior floors.
 """
+from io import BytesIO
 from pathlib import Path
+from zipfile import ZipFile
 
 import numpy as np
 from PIL import Image
@@ -22,6 +25,26 @@ def bake():
     linear = np.clip(.5 + .22 * (linear / linear.mean(axis=(0, 1)) - 1), 0, 1)
     encoded = np.where(linear <= .0031308, linear * 12.92, 1.055 * linear ** (1 / 2.4) - .055)
     Image.fromarray(np.rint(encoded * 255).astype("uint8")).save(target / "mineral_albedo.jpg", quality=95)
+
+    # Fresh planed pine boards, not the weathered planks used by decks. Keep
+    # the full photographed grain/joint contrast and all three 1K PBR maps.
+    archive = ROOT / "data/source-assets/textures/WoodSiding009/WoodSiding009_1K-JPG.zip"
+    with ZipFile(archive) as scan:
+        def read_map(kind):
+            return Image.open(BytesIO(scan.read(f"WoodSiding009_1K-JPG_{kind}.jpg"))).convert("RGB")
+
+        srgb = np.asarray(read_map("Color"), dtype=np.float64) / 255
+        linear = np.where(srgb <= .04045, srgb / 12.92, ((srgb + .055) / 1.055) ** 2.4)
+        linear = np.clip(.5 * linear / linear.mean(axis=(0, 1)), 0, 1)
+        encoded = np.where(linear <= .0031308, linear * 12.92, 1.055 * linear ** (1 / 2.4) - .055)
+        Image.fromarray(np.rint(encoded * 255).astype("uint8")).save(target / "wood_albedo.jpg", quality=95)
+        # OpenGL tangent-space normals, copied without another lossy encode.
+        (target / "wood_normal.jpg").write_bytes(scan.read("WoodSiding009_1K-JPG_NormalGL.jpg"))
+        roughness = np.asarray(read_map("Roughness"))[:, :, 0]
+        mr = np.zeros((*roughness.shape, 3), dtype="uint8")
+        mr[:, :, 0] = 255
+        mr[:, :, 1] = roughness
+        Image.fromarray(mr).save(target / "wood_mr.png")
 
     atlas = ROOT / "game/assets/models/signs/faces/blade_glyphs-r1.png"
     pixels = np.asarray(Image.open(atlas).convert("RGB"), dtype=np.float64)

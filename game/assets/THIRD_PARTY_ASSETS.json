@@ -226,12 +226,15 @@
       "author": "ambientCG (Lennart Demes)",
       "source": "https://ambientcg.com/view?id=WoodSiding009",
       "license": "CC0 1.0",
-      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py)",
+      "modified": "Colour normalised to the palette albedo, resized; walls baked into bay sheets with a window of the facade kit, and a height map for parallax (r1/surfaces.py). Also clean retail cladding at native 1K: colour normalised to 0.5 linear per channel, original NormalGL and roughness packed in the green channel with zero metalness (r1/retail_materials.py).",
       "files": [
         "assets/textures/facades/siding_and_window_albedo.jpg",
         "assets/textures/facades/siding_and_window_mr.jpg",
         "assets/textures/facades/siding_and_window_normal.jpg",
-        "assets/textures/facades/siding_and_window_height.jpg"
+        "assets/textures/facades/siding_and_window_height.jpg",
+        "assets/textures/interiors/wood_albedo.jpg",
+        "assets/textures/interiors/wood_normal.jpg",
+        "assets/textures/interiors/wood_mr.png"
       ]
     },
     {

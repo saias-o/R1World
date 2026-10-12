@@ -918,6 +918,7 @@ class World : public Rml::EventListener {
         return factor;
     }
     void updateCrowd(float delta) {
+        SAIDA_PROFILE_SCOPE("World/Crowd");
         if(crowdKinds.empty())return;
         size_t remaining=kCrowdPeople;
         const double factor=crowdFactor();
@@ -2416,8 +2417,11 @@ class World : public Rml::EventListener {
         if(driving){lon=carLon;lat=carLat;alt=carAlt;yaw=carYaw;}
     }
 public:
+    bool needsAfterSimulation() const {
+        return driving&&car&&!pending&&playing&&(worldCapture.pngPath.empty()||!captureView.set);
+    }
     void afterSimulation(float) {
-        if(!driving||!car||pending||!playing||(!worldCapture.pngPath.empty()&&captureView.set))return;
+        if(!needsAfterSimulation())return;
         auto* body=r1::VehicleRuntime::body(*car);
         if(!body||!body->physicsWorld()||body->kinematic)return;
         glm::vec3 position;glm::quat rotation;
@@ -3985,6 +3989,7 @@ private:
         return obstacle;
     }
     void updateTraffic(float delta) {
+        SAIDA_PROFILE_SCOPE("World/Traffic");
         if(!debugTraffic||fleet.empty())return;
         const float trafficDelta=std::clamp(delta,0.f,.25f);
         trafficTime_+=trafficDelta;
@@ -4249,6 +4254,7 @@ private:
     // The player and the car push the grass aside where they pass.
     static constexpr float kWalkerBend=0.45f,kCarBend=1.6f;
     void bendGrass() {
+        SAIDA_PROFILE_SCOPE("World/Grass");
         if(!debugGrass)return;
         const auto at=[](saida::Node* n){return glm::vec3(n->worldTransform()[3]);};
         const bool walking=player&&player->isActiveInHierarchy();
@@ -4352,6 +4358,7 @@ private:
     // Only requested representations occupy the arena. The tiny Far stays as
     // a fallback while a closer level uploads; physical shells never change.
     void updateBuildingLods() {
+        SAIDA_PROFILE_SCOPE("World/BuildingLods");
         // An abandoned upload is protected by the resource cache until its
         // job finishes. Sweep once more then, so it cannot retain arena space.
         if(buildingTrimPending&&engine.resources().assetLoadsSettled()) {trim();buildingTrimPending=false;}
@@ -4458,6 +4465,7 @@ private:
     // Only two nearby interiors occupy the shared arena. A room containing
     // the player is pinned until they leave; hysteresis prevents door thrashing.
     void updateInteriors(double dt) {
+        SAIDA_PROFILE_SCOPE("World/Interiors");
         struct Candidate { Loaded* tile; LiveInterior* room; double distance; };
         std::vector<Candidate> candidates;bool released=false;size_t active=0;
         const auto playerEcef=ecef(lon,lat,alt);
@@ -4903,6 +4911,20 @@ private:
                     mesh->setMaterial(engine.resources().getMaterial(desc));
                 });
             }
+            if(path=="assets/models/external/nature_selected/urban_tree_far.glb") {
+                // A filtered atlas normal cannot represent every leaf direction
+                // in a canopy pixel. Keep half the engine's volume response so
+                // backlit crowns retain scattered light, while atlas normals
+                // still supply contrast. The source albedo and atlas stay intact.
+                imported->traverse([&](saida::Node& n,const glm::mat4&){
+                    auto* mesh=dynamic_cast<saida::MeshNode*>(&n);
+                    if(!mesh||!mesh->material())return;
+                    auto desc=mesh->material()->desc();
+                    if(!desc.billboardColumns)return;
+                    desc.normalStrength=.5f;
+                    mesh->setMaterial(engine.resources().getMaterial(desc));
+                });
+            }
             found=prototypes->addChild(std::move(imported));
             prototypeLoads.erase(path);
         }
@@ -4991,6 +5013,7 @@ private:
     // is the cheapest of the plan's levers and the only one that costs nothing
     // when standing still.
     void updateNature(double reach) {
+        SAIDA_PROFILE_SCOPE("World/Nature");
         for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles){
             const auto pos=t.frame.local(ecef(lon,lat,alt));
             for(Plant& plant:t.vegetation){
@@ -5212,6 +5235,7 @@ private:
         engine.sceneTree().world().rebaseSubtreeTo(*farRelief.node,position,rotation);
     }
     void updateFarRelief() {
+        SAIDA_PROFILE_SCOPE("World/FarRelief");
         // Where it cannot be drawn: before a spawn, over the pack (whose own
         // far field is the horizon there), and past the Mercator images' 85 degrees.
         const bool wanted=playing&&!pending&&!farPack.node&&std::abs(lat)<84.5;
@@ -5348,6 +5372,7 @@ private:
     // `roadside`: only what is read from the road -- the signs, which the
     // tile lists before its furniture -- for a driver above 15 km/h.
     void streamProps(bool roadside=false) {
+        SAIDA_PROFILE_SCOPE("World/StreamProps");
         const auto start=std::chrono::steady_clock::now();
         // Scene/GPU APIs stay on the render thread. Yield between objects;
         // CPU model requests yield; node instantiation retains a soft budget.
@@ -5524,6 +5549,7 @@ private:
         return true;
     }
     void stream() {
+        SAIDA_PROFILE_SCOPE("World/StreamTiles");
         double x=(pending||warming)?pickLon:lon,y=(pending||warming)?pickLat:lat;
         auto want=orderedNearby(x,y);std::set<std::string> wanted;for(auto t:want)wanted.insert(t.key());
         std::set<std::string> keep=wanted;
@@ -6651,6 +6677,7 @@ public:
         testFailed=true;engine.sceneTree().quit();return true;
     }
     void update(float delta) {
+        SAIDA_PROFILE_SCOPE("World/Update");
         const auto now=std::chrono::steady_clock::now();
         const double frameSeconds=lastFrame.time_since_epoch().count()
             ?std::chrono::duration<double>(now-lastFrame).count():0.;
@@ -7395,8 +7422,13 @@ int main(int argc,char** argv) {
                 throw std::runtime_error("--weather requires cloud in [0,1], nonnegative rain and visibility");
             world.inspectConditions(conditions);
         }
-        engine.setOnFrame([&](float dt){world.update(dt);});
-        engine.setAfterSimulation([&](float dt){world.afterSimulation(dt);});
+        const saida::Engine::FrameFn followPhysics=[&](float dt){world.afterSimulation(dt);};
+        engine.setOnFrame([&](float dt){
+            world.update(dt);
+            // Only driving changes the pose after physics. An empty hook also
+            // skips the engine's full transform propagation for that stage.
+            engine.setAfterSimulation(world.needsAfterSimulation()?followPhysics:saida::Engine::FrameFn{});
+        });
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
         engine.run();return engine.captureFailed()||world.failed()?1:0;
     }catch(const std::exception& e){saida::Log::error("R1World: ",e.what());return 1;}
