@@ -18,10 +18,12 @@ struct VehicleDynamics {
 inline VehicleDynamics vehicleDynamics(const std::string& kind) {
     struct Entry { const char* kind; VehicleDynamics dynamics; };
     static constexpr std::array<Entry,7> profiles{{
-        {"city",{1100,8.5f,12,10,28,65000}}, {"sedan",{1500,8,12,10,32,85000}},
-        {"suv",{1900,7,11,9,30,105000}}, {"offroad",{2100,7,10,9,27,115000}},
-        {"sport",{1350,11,14,12,42,75000}}, {"truck",{9000,3.5f,7,6,25,300000}},
-        {"bus",{12000,3,7,6,25,400000}}
+        // Top speeds about 15% under the first tuning (13 October 2026): a
+        // city car tops out near 86 km/h, a sports car near 130.
+        {"city",{1100,8.5f,12,10,24,65000}}, {"sedan",{1500,8,12,10,27,85000}},
+        {"suv",{1900,7,11,9,25.5f,105000}}, {"offroad",{2100,7,10,9,23,115000}},
+        {"sport",{1350,11,14,12,36,75000}}, {"truck",{9000,3.5f,7,6,21,300000}},
+        {"bus",{12000,3,7,6,21,400000}}
     }};
     for(const auto& profile:profiles)if(kind==profile.kind)return profile.dynamics;
     return profiles.front().dynamics;
@@ -46,6 +48,7 @@ public:
     static constexpr float kGroundDamping = 14.f;    // was 8  — bleeds roll rate faster
     static constexpr float kInertiaMultiplier = 3.5f; // was 2.2 — heavier, harder to spin over
     static constexpr float kBodyClearance = .06f;
+    static constexpr float kBumpLaunchSpeed = .9f, kBumpSpin = 1.2f, kBumpReach = .45f;
     static constexpr float kDemotionVerticalSpeed = .5f;
     static constexpr float kDemotionAngularSpeed = .35f;
     static constexpr float kWheelContactHeightFraction=.5f,kWheelContactNormalUp=.7f,kWheelContactEnergyFraction=.1f;
@@ -97,6 +100,9 @@ public:
         drive->slopeAssist=kPoweredSlopeAssist;
         drive->groundStability=kGroundStability;drive->groundDamping=kGroundDamping;
         drive->selfRightAcceleration=16.f;
+        // The wheels are rigid spheres: a road seam would kick the car into the
+        // air and roll it. A suspension's worth of give (SurfaceDrive).
+        drive->bumpLaunchSpeed=kBumpLaunchSpeed;drive->bumpSpin=kBumpSpin;drive->bumpReach=kBumpReach;
         drive->lateralAcceleration=profile.grip;drive->maxSpeed=profile.maximumSpeed;
         drive->wheelbase=dimensions.wheelbase;drive->groundReach=dimensions.height*.5f+kBodyClearance;
         while(!root.children().empty())rigid->addChild(root.detachChild(root.children().front().get()));
