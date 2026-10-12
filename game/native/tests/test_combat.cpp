@@ -118,8 +118,9 @@ TEST(Combat, a_car_nudges_at_walking_pace_floors_at_town_speed_and_kills_fast) {
     for (double v = 2.5; v < 20; v += 0.5) CHECK(carImpact(v + 0.5).damage >= carImpact(v).damage);
 }
 
-TEST(Combat, a_short_drop_is_free_a_long_one_kills) {
-    CHECK(fallDamage(6.3) == 0);   // two metres
-    CHECK(fallDamage(10) > 0 && fallDamage(10) < 100);
-    CHECK(fallDamage(13) == 100);  // about nine metres
+TEST(Combat, a_jump_or_a_short_drop_is_free_a_long_one_kills) {
+    CHECK(fallDamage(std::sqrt(2 * 22. * 1.5)) == 0);  // the walk's own jump
+    CHECK(fallDamage(10.4) == 0);                      // about 2.5 m
+    CHECK(fallDamage(15) > 0 && fallDamage(15) < 100);
+    CHECK(fallDamage(21) == 100);                      // about ten metres
 }

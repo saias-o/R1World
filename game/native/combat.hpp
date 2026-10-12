@@ -174,11 +174,13 @@ inline CarHit carImpact(double speed) {
     return {true, damage};
 }
 
-// Landing from a fall at `speed` m/s downward. A two-metre drop (6.3 m/s) is
-// nothing; about eight metres (12.5 m/s) kills.
+// Landing from a fall at `speed` m/s downward, under the walk's arcade
+// gravity of 22 m/s2 (native/world.cpp): a jump lands at 8.1 m/s and a
+// two-and-a-half-metre drop at 10.5, both nothing; about nine metres (20 m/s)
+// kills.
 inline double fallDamage(double speed) {
     speed = std::abs(speed);
-    constexpr double kHarmless = 7.0, kLethal = 12.5;
+    constexpr double kHarmless = 10.5, kLethal = 20.0;
     if (speed <= kHarmless) return 0;
     return std::min(100.0, 100.0 * (speed - kHarmless) / (kLethal - kHarmless));
 }
