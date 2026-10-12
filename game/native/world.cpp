@@ -249,6 +249,8 @@ constexpr uint32_t kPlayerBodies=2+uint32_t(kAbandonedCars);
 // tumbling is frozen where it lies -- never refused. Eleven bodies each
 // (r1::rocketboxRagdoll), and the player's own.
 constexpr size_t kLiveRagdolls=8;
+// Seconds a body may tumble before it is frozen where it lies.
+constexpr double kLongestTumble=6.;
 constexpr uint32_t kCombatBodies=uint32_t(kLiveRagdolls+1)*11;
 constexpr uint32_t kPhysicsBodies=kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies+kCombatBodies;
 std::vector<Tile> polarNearby(double lon,double lat) {
@@ -1305,7 +1307,11 @@ class World : public Rml::EventListener {
             tile.crowd.getUp(slot,at.x,at.y,at.z,p.yaw);
             return false;
         }
-        if(w.dead||state==saida::RagdollBehaviour::State::Simulated)return true;
+        if(state==saida::RagdollBehaviour::State::Simulated) {
+            if(p.ragdoll->simulatedSeconds()>=kLongestTumble)p.ragdoll->freeze();
+            return true;
+        }
+        if(w.dead)return true;
         if(state==saida::RagdollBehaviour::State::Frozen&&(p.lying+=dt)>=r1::combat::kLieSeconds) {
             const glm::vec3 at=nodePosition(*p.node);
             p.ragdoll->blendOut(float(r1::combat::kStandSeconds),sceneGround(at));
@@ -1393,9 +1399,10 @@ class World : public Rml::EventListener {
     // A car the engine says his feet touched, closing on him: thrown.
     bool hitByVehicle(const saida::CharacterBodyNode::Contact& contact) {
         if(contact.node->name()!=r1::VehicleRuntime::kBodyName||!contact.node->physicsWorld())return false;
+        // Only the car's own motion toward him counts: running into a parked
+        // car is his speed, not a blow.
         const glm::vec3 velocity=contact.node->physicsWorld()->linearVelocity(contact.node->bodyId());
-        const glm::vec3 mine(float(footEast),0.f,float(-footNorth));
-        const float closing=glm::dot(velocity-mine,glm::normalize(contact.normal));
+        const float closing=glm::dot(velocity,glm::normalize(contact.normal));
         const auto hit=r1::combat::carImpact(closing);
         if(!hit.knockDown||playerDown)return false;
         const float speed=glm::length(velocity);
@@ -1420,7 +1427,10 @@ class World : public Rml::EventListener {
             if(downClock>=r1::combat::kWastedSeconds)respawn();
             return;
         }
-        if(state==saida::RagdollBehaviour::State::Frozen&&downClock>=r1::combat::kPlayerLieSeconds) {
+        // A body pinned against a car or a wall may never come to rest: it is
+        // frozen where it lies after a while rather than kept on the ground.
+        if(state==saida::RagdollBehaviour::State::Simulated&&downClock>=kLongestTumble)playerRagdoll->freeze();
+        if(playerRagdoll->state()==saida::RagdollBehaviour::State::Frozen&&downClock>=r1::combat::kPlayerLieSeconds) {
             playerRagdoll->blendOut(float(r1::combat::kStandSeconds),sceneGround(nodePosition(*playerBody)));
             // His node is where his body now stands; his body back at rest
             // under it, the same place on screen.

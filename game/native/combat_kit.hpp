@@ -188,7 +188,7 @@ public:
             auto* e = world.createChild<saida::ParticleSystemNode>();
             e->setName(std::string("combat-") + names()[kind]);
             e->looping = false;
-            e->playing = true;
+            e->playing = false;  // burst() starts it
             e->spawnRate = 0.f;
             e->shape = saida::ParticleSystemNode::Shape::Cone;
             switch (kind) {
@@ -231,7 +231,8 @@ public:
                     break;
                 default: break;
             }
-            e->applyEffectPreset();
+            // No applyEffectPreset(): it would replace every setting above
+            // with its class's defaults, a looping fountain at the origin.
             emitters_[kind] = e;
         };
         for (int k = 0; k < Kinds; ++k) make(Kind(k));
