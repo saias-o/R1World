@@ -4,8 +4,9 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 11 octobre 2026, générateur v46 : réseau routier directionnel,
-feux et trafic physique proche, chocs et déformation par instance ; maisons de village mitoyennes,
+État relu le 13 octobre 2026, générateur v47 : réseau routier directionnel,
+feux dédupliqués par approche et lignes d'arrêt partagées avec la simulation,
+gabarits réels à l'apparition du trafic physique proche, chocs et déformation par instance ; maisons de village mitoyennes,
 annexes cadastrales basses, toitures en pente suivant les emprises irrégulières ;
 sols manquants déterminés par la
 densité et la hauteur finale prédite des bâtiments, avec règles régionales et

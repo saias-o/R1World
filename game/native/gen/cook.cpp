@@ -383,12 +383,27 @@ CookedTile cookTile(const Observations& in) {
     }
     const auto roadside = contextualRoads(grades.roads, osm.buildings, anchor);
     const std::vector<OsmWay> roads = clipRoads(roadside, bounds);
+    std::map<P2, double> laneLevels = grades.levels;
+    for (const OsmWay& w : roads)
+        if (taggedYes(w.tags, "bridge") || has(w.tags, "r1:raised"))
+            for (const P2& p : w.points)
+                if (!laneLevels.count(p))
+                    if (auto level = grades.levelAt(p)) laneLevels[p] = *level;
+    const GroundAt roadGround = [&](double lon, double lat) {
+        auto it = laneLevels.find({lon, lat});
+        return it == laneLevels.end() ? ground(lon, lat) : anchor.toEngine(lon, lat, it->second);
+    };
+    nlohmann::json laneGraph = buildLaneGraph(roads, roadGround, int(buildings.size()), center.x, center.y,
+                                           osm.features, osm.turnRestrictions);
     // The streets lie on the ground drawn, above the sea it meets.
     StreetOutput streets = buildStreets(roadside, osm.features, elevations,
                                         anchor, footprints,
                                         [&](int r, int c, double h) { return cells.roadLevel(r, c, h); },fuelCountry,
-                                        sea ? clip::unite(inland,projectWater(sea->region,anchor)) : inland);
+                                        sea ? clip::unite(inland,projectWater(sea->region,anchor)) : inland,&laneGraph);
     streets.stats["countrySource"]=osm.country.empty()?"bundled borders":"OSM boundary (ISO3166-1)";
+    const auto markedLanes=streets.stats.at("trafficMarkedLanes").get<std::vector<size_t>>();
+    for(auto& control:laneGraph["controls"])
+        control["stopLineDrawn"]=std::find(markedLanes.begin(),markedLanes.end(),control["lane"].get<size_t>())!=markedLanes.end();
     std::vector<InteriorPlan> stores;
     for(const auto& p:built.interiors)if(retailInterior(p.recipe))stores.push_back(p);
     const ParkingOutput parking=buildRetailParking(osm,stores,footprints,elevations,anchor);
@@ -412,20 +427,6 @@ CookedTile cookTile(const Observations& in) {
         const P3 a = ground(w.points.front().x, w.points.front().y), b = ground(w.points.back().x, w.points.back().y);
         roadSegments.push_back({{a.x, a.z}, {b.x, b.z}});
     }
-    // Traffic drives over the bridges, at the level they were solved at, cut
-    // pieces at the tile's edge included.
-    std::map<P2, double> laneLevels = grades.levels;
-    for (const OsmWay& w : roads)
-        if (taggedYes(w.tags, "bridge") || has(w.tags, "r1:raised"))
-            for (const P2& p : w.points)
-                if (!laneLevels.count(p))
-                    if (auto level = grades.levelAt(p)) laneLevels[p] = *level;
-    const GroundAt roadGround = [&](double lon, double lat) {
-        auto it = laneLevels.find({lon, lat});
-        return it == laneLevels.end() ? ground(lon, lat) : anchor.toEngine(lon, lat, it->second);
-    };
-    nlohmann::json laneGraph = buildLaneGraph(roads, roadGround, int(buildings.size()), center.x, center.y,
-                                           osm.features, osm.turnRestrictions);
     Works works = buildWorks(osm.maritime, lightFeatures, ground, anchor, cells, harbour);
     // Runways, taxiways, aprons and what is parked on them; one helicopter
     // per military base. Nothing parks in water, inside the tile or out.

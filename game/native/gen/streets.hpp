@@ -79,6 +79,7 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
                           const std::vector<Ring>& footprints,
                           const std::function<double(int, int, double)>& adjust = {},
                           const std::string& country = {},
-                          const clip::Paths64& vergeExclusions = {});
+                          const clip::Paths64& vergeExclusions = {},
+                          const nlohmann::json* traffic = nullptr);
 
 }  // namespace r1

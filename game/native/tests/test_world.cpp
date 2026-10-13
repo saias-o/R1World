@@ -284,6 +284,23 @@ TEST(Streets, the_ground_they_cover_is_said) {
     CHECK(clip::contains(out.ground, P2{0, 0}) && clip::contains(out.ground, P2{0, 4.5}));
     CHECK(!clip::contains(out.ground, P2{0, 10}));
 }
+TEST(Streets,signal_stop_lines_use_the_same_positions_as_the_lane_controls) {
+    Slope s;
+    const GroundAt ground=[&](double lon,double lat){return s.anchor.toEngine(lon,lat,s.grid.sample(lon,lat));};
+    const std::vector<OsmNode> signals{{42,0.0005,0,{{"highway","traffic_signals"}}}};
+    const auto graph=buildLaneGraph({s.road},ground,0,0,0,signals);
+    const auto out=buildStreets({s.road},signals,s.grid,s.anchor,{}, {},"FR",{},&graph);
+    CHECK(out.stats["trafficStopLines"]==1);
+    CHECK(out.stats["trafficMarkedLanes"].size()==1);
+    const auto* markings=part(out.parts,"Traffic stop-line markings");
+    CHECK(markings&&!markings->mesh.empty());
+    const auto& centre=graph["controls"][0]["stopPosition"];
+    const double x=centre[0],z=centre[2];
+    for(const auto& v:markings->mesh.positions) {
+        CHECK(std::abs(v.x-x)<.201);
+        CHECK(std::abs(v.z-z)<1.501);
+    }
+}
 TEST(Streets, a_zebra_needs_a_surveyed_marking) {
     Slope s;
     for (const auto& [marking, expected] : std::vector<std::pair<std::string, int>>{{"zebra", 1}, {"no", 0}, {"yes", 0}}) {
@@ -291,6 +308,17 @@ TEST(Streets, a_zebra_needs_a_surveyed_marking) {
         CHECK(out.stats["zebraCrossingsTagged"] == expected);
         CHECK(bool(part(out.parts, "Surveyed zebra crossings")) == bool(expected));
     }
+}
+TEST(Streets,an_off_carriageway_stop_line_is_not_advertised_as_drawn) {
+    Slope s;
+    const GroundAt ground=[&](double lon,double lat){return s.anchor.toEngine(lon,lat,s.grid.sample(lon,lat));};
+    const std::vector<OsmNode> signals{{42,0.0005,0,{{"highway","traffic_signals"}}}};
+    auto graph=buildLaneGraph({s.road},ground,0,0,0,signals);
+    graph["controls"][0]["stopPosition"]={80,10,40};
+    const auto out=buildStreets({s.road},signals,s.grid,s.anchor,{}, {},"FR",{},&graph);
+    CHECK(out.stats["trafficStopLines"]==0);
+    CHECK(out.stats["trafficMarkedLanes"].empty());
+    CHECK(!part(out.parts,"Traffic stop-line markings"));
 }
 TEST(Streets, pavement_is_cut_out_of_building_footprints) {
     Slope s;

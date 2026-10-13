@@ -60,3 +60,61 @@ TEST(VehicleTraffic,short_connectors_do_not_disconnect_the_road) {
     CHECK(graph["lanes"][0][1]==graph["lanes"][2][0]);
     CHECK(graph["lanes"][2][1]==graph["lanes"][4][0]);
 }
+TEST(VehicleTraffic,successive_signal_observations_share_one_junction_approach) {
+    auto east=road(10,{{"highway","primary"}});
+    east.points={{-.001,0},{-.00001,0},{0,0},{.001,0}};
+    auto north=road(11,{{"highway","primary"}});
+    north.points={{0,-.001},{0,0},{0,.001}};
+    const std::vector<OsmNode> features{{25,-.00008,0,{{"highway","traffic_signals"}}},
+        {26,-.0001,0,{{"highway","traffic_signals"}}}};
+    const auto graph=buildLaneGraph({east,north},ground,0,2,48,features);
+    CHECK(graph["signals"].size()==1);
+    CHECK(graph["controls"].size()==4);
+    const auto& control=graph["controls"][0];
+    const auto& lane=graph["lanes"][control["lane"].get<size_t>()];
+    const auto& end=graph["nodes"][lane[1].get<size_t>()];
+    NEAR(end[0].get<double>(),0,1e-6);
+    CHECK(control["stopPosition"][0].get<double>() < -3.);
+    CHECK(lane[15].get<double>()>3.);
+    CHECK(control["markingsSource"]=="inferred from surveyed control");
+}
+TEST(VehicleTraffic,a_junction_signal_controls_one_way_incoming_approaches) {
+    auto east=road(10,{{"highway","primary"},{"oneway","yes"}});
+    east.points={{-.001,0},{0,0},{.001,0}};
+    auto north=road(11,{{"highway","primary"},{"oneway","yes"}});
+    north.points={{0,-.001},{0,0}};
+    const auto graph=buildLaneGraph({east,north},ground,0,2,48,{{25,0,0,{{"highway","traffic_signals"}}}});
+    CHECK(graph["signals"].size()==1);
+    CHECK(graph["controls"].size()==2);
+    for(const auto& control:graph["controls"])
+        CHECK(control["stopPosition"].size()==3);
+}
+TEST(VehicleTraffic,divided_junctions_have_no_signal_on_the_internal_connector) {
+    auto east=road(10,{{"highway","primary"}});
+    east.points={{-.001,0},{0,0},{.00006,0},{.001,0}};
+    auto north=road(11,{{"highway","primary"}});
+    north.points={{0,-.001},{0,0},{0,.001}};
+    auto south=road(12,{{"highway","primary"}});
+    south.points={{.00006,-.001},{.00006,0},{.00006,.001}};
+    const auto graph=buildLaneGraph({east,north,south},ground,0,2,48,
+        {{25,0,0,{{"highway","traffic_signals"}}},{26,.00006,0,{{"highway","traffic_signals"}}}});
+    CHECK(graph["signals"].size()==1);
+    for(const auto& control:graph["controls"]) {
+        const auto& lane=graph["lanes"][control["lane"].get<size_t>()];
+        const auto& a=graph["nodes"][lane[0].get<size_t>()];
+        const auto& b=graph["nodes"][lane[1].get<size_t>()];
+        CHECK(std::hypot(a[0].get<double>()-b[0].get<double>(),a[2].get<double>()-b[2].get<double>())>10.);
+    }
+}
+TEST(VehicleTraffic,stop_lines_trace_the_approach_instead_of_extending_a_short_bend) {
+    auto curved=road(10,{{"highway","primary"}});
+    curved.points={{-.001,0},{-.00003,0},{0,.00003}};
+    const auto graph=buildLaneGraph({curved},ground,0,2,48,
+        {{25,0,.00003,{{"highway","traffic_signals"}}},{26,-.00008,0,{{"highway","crossing"}}}});
+    CHECK(graph["controls"].size()==1);
+    const auto& site=graph["controls"][0];
+    NEAR(site["stopDirection"][0].get<double>(),1.,1e-6);
+    NEAR(site["stopDirection"][1].get<double>(),0.,1e-6);
+    CHECK(site["stopPosition"][0].get<double>()<-8.);
+    CHECK(std::abs(site["stopPosition"][2].get<double>())<2.5);
+}

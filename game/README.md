@@ -40,6 +40,18 @@ whole-Earth image is a 4096 × 2048 Natural Earth overview; zooming switches to
 OpenStreetMap tiles at their native resolution, up to level 19 (**Vue rue**).
 Map tiles are cached in `cache/map-tiles/osm/`.
 
+The zoom buttons advance one level per gesture, including a long hold. Menu
+actions run on `mousedown`; their matching `click` is deduplicated without a
+time limit. Saida preserves sampled mouse button history across UI consumption
+so a held button is not mistaken for a fresh press on every frame.
+The WebCanvas bridge also leaves click generation to RmlUi instead of adding a
+second artificial click on release. Verified on 13 October 2026 with the real
+menu zoom smoke, Saida's input/UI tests and native runtime contract. Native
+CTest passes 96/97; the remaining crash-reporter test rejects the already
+documented unknown configured Git build identity.
+The Web player and authoring WASM builds also pass, as does the authoring
+Node smoke; these build checks do not claim browser menu interaction coverage.
+
 | Key | On foot | In a car | In an aircraft |
 |---|---|---|---|
 | ZQSD / WASD | walk | drive | see [Flying](#flying) |
@@ -143,6 +155,10 @@ download).
 
 Every in-game check runs with the window hidden:
 
+`R1WORLD_MENU_SMOKE=1` runs only the menu zoom regression and exits: single
+click, long hold, rapid clicks, zoom-out, bounds and reset. It needs no world
+spawn; the same checks also run at the beginning of `--smoke`.
+
 ```powershell
 $env:SAIDA_WINDOW_HIDDEN = "1"
 python tools\play_world.py --smoke --spawn 2.3522 48.8566
@@ -233,11 +249,12 @@ resident tiles, and its silhouettes inherit the elevation source's resolution.
 
 Four assertions of `--spawn2` exist because of bugs that shipped:
 
-- **The press, not the click.** Hovering a `ui-hit` element makes the engine
-  consume the mouse, so RmlUi never receives the `Up` that makes a `click`. The
-  menu acts on `mousedown` too (as `engine/VerticalSlice/ui/main_menu.js`
-  does), deduplicated; the driver fires a press without a release, and
-  separately requires a full press-and-release to act exactly once.
+- **The press and its matching click act once.** The menu acts on `mousedown`
+  immediately and deduplicates its matching `click`, including long holds.
+  The driver fires a press without a release, and separately requires a full
+  press-and-release to act exactly once. Mouse consumption previously erased
+  hardware history, repeating held presses and losing releases; this is now
+  corrected in Saida's shared input sampler.
 - **The Sun took the observer.** The spawn fails if `setObserver` was refused;
   otherwise the scene quietly lights the wrong hemisphere.
 - **The second Go** must reach a complete spawn, not a stalled counter.
@@ -1754,12 +1771,82 @@ binary. Its tests run alone:
   joins the world; the car you left stays where you left it. Six abandoned cars
   are kept; a teleport clears them.
 
-Generator v46 / traffic schema 2 preserves short road connectors, directional lane counts, offsets,
+Generator v47 / traffic schema 3 preserves short road connectors, directional lane counts, offsets,
 road identity, turn masks and layer separation. Speed tags accept km/h and mph.
 Observed traffic-signal, stop and give-way nodes attach to nearby lanes; their
 assignment and signal timing are explicitly inferred. Static via-node `no_` and
 `only_` restrictions are read; conditional, exception and via-way restrictions
 are unsupported. The old OSM query cache is refreshed under query version 15.
+
+Signal observations attach to the incoming junction approach rather than every
+nearby shape segment. Repeated observations are deduplicated; adjacent junction
+nodes linked within their carriageway mouths share a program, and internal
+connectors have no second signal. Posts share one assembly per program and
+approach group, use the outermost incoming stop position and belong to one
+streamed tile. A roadside farther than 10 m from the lane is refused explicitly.
+All incoming approaches of an observed controlled junction share its program,
+including heads not individually tagged in OSM; these assignments remain inferred.
+Each controlled lane carries a stop setback and `stopPosition`, inferred from
+the surveyed control, intersecting carriageway widths and observed crossings.
+Setbacks trace preceding lane segments; `stopDirection` and `stopWidth` keep
+the pole and painted line aligned with the actual road through short bends.
+The same position places the pole, drives braking and paints a 40 cm stop line
+across the lane, clipped to actual asphalt/cobbles and draped above the surface.
+The producer records `stopLineDrawn`; a post without drawable road marking is
+omitted explicitly rather than shown without its line.
+Observed zebra crossings remain separate; the generator does not invent them.
+`r1cook --glb` also exports `.traffic.json` for auditing controls and positions.
+
+Drivers anticipate controls and queues across short segments and bends, and clear a junction once
+committed on green or an amber too close to stop. At road ends they brake;
+offscreen completed physical trips retire instead of becoming permanent queue
+leaders. A region transfer still keeps its live node and identity. The fleet
+supplies actual dimensions before spawn clearance through `Flow::setSpawnSize`;
+a recycled slot uses the model matching its new trip's dimensions. Long buses
+therefore cannot appear using a compact car's clearance. A stable `vehicleSeed`
+keeps model selection aligned with those dimensions while the routing seed changes.
+Birth clearance uses the resolved curve pose and excludes junction mouths and
+stop-line areas; short straight shape segments remain driveable and spawnable.
+Only a queue's eligible head competes for junction priority.
+Region handoffs follow the current road's exit, so an early-adopted body is not
+returned to its old region before its centre crosses the boundary. Neighbouring
+regions supply live vehicle footprints to each other while the body crosses;
+changing its owner does not make it invisible to the upstream queue.
+`R1WORLD_TRAFFIC_VALIDATE=1` reports individual waiting vehicles and fails if a
+physical car within 60 m of the observer stays below 0.1 m/s for over 60 seconds.
+`R1WORLD_TRAFFIC_SECONDS` extends the test duration (60 to 300 seconds); the
+smoke timeout includes loading and frame-rate overhead.
+
+Verification on 13–14 October 2026: the standalone traffic suite, eleven lane-graph
+cases and nineteen street cases pass. The offline 60-second Paris traffic run
+reports 50 live cars at peak, 36 moving at peak and a mean 15.86 moving across
+the 30–60 s samples, against 11.29 before the changes (about 40% more). Its final
+sample has no junction/blocked-exit stops and no dead-end trips; one physical
+incident is recorded. The final build also passes a daytime 60-second check:
+51 live cars and 35 moving at peak, 11.71 moving on average after 30 seconds,
+zero incidents throughout and no junction/blocked-exit stops in its final sample.
+Menu clicks pass their regression and the stopped character has zero horizontal
+drift after walking. The earlier full generator run reports 375 passes and
+the same four failures already recorded below (resident target, FarRelief,
+paired bridge decks and the country-map fixture). These are local Paris checks,
+not a qualification of every city or the MX450 frame budget.
+
+The reported queue at Paris 48.857268, 2.352571 exposed a region-boundary
+regression missed by the neighbourhood motion average: early handoff repeatedly
+returned the body to its old region and reset its route. Waiting exceeded
+156 simulated seconds. Fixing ownership alone still caused seam collisions
+because the upstream region lost sight of the transferred body. Forward-only
+handoff plus neighbouring vehicle footprints passes the final main executable's
+120-second offline daytime run on 14 October 2026: no physical vehicle within
+60 m waits over 60 seconds (largest sampled local wait 15.9 seconds), 35 moving
+cars at peak and 11.16 moving on average after warmup. The standalone suite
+passes the short-entry and two-region queue/restart regressions. One disabling
+incident remains about 120 m west of the observer, after the next junction;
+this check establishes the reported seam queue fix, not collision-free traffic
+throughout the neighbourhood. Logs: `generated/traffic-deadlock-before.log`,
+`generated/traffic-deadlock-after.log` (ownership-only intermediate failure),
+`generated/traffic-deadlock-final-validation.log` (final PASS).
+
 
 Signal meshes share a cylindrical galvanized pole, mounting brackets, a rounded
 black housing, three domed circular lenses under visors and a lower repeater.
@@ -1811,6 +1898,25 @@ player stands 1.24 m at 0.68 runtime scale (the authored scale 0.8 multiplied
 by `kPeopleVehicleResize=0.85`). Run and sprint retain 2.8 and 7 m/s with
 faster playback through engine clip views, so the feet stay planted. Crowd
 paces, seated offsets and all human capsules follow the smaller size.
+On supported ground the player requests no downward velocity: the engine's
+floor sticking keeps contact with slopes, steps and furniture. The former
+constant -2 m/s downward request projected into downhill movement after
+releasing the walking keys. Unsupported feet still receive that downward
+request, and jumping keeps its existing vertical movement.
+
+`R1WORLD_IDLE_SMOKE=1` with `--smoke --spawn 2.3522 48.8566` walks for one
+second, releases movement for thirteen seconds, then checks maximum horizontal
+drift below 5 mm, grounded feet and the idle clip. Run it offline through
+`tools/play_world.py` with the closed proxies described above; it uses the
+actual streamed Paris terrain and the normal game update.
+The offline check on 13 October 2026 reports zero horizontal drift throughout
+the stopped interval, with grounded feet and the idle clip; the diagnostic
+before the fix drifted about 2 m downhill over that interval. The targeted
+engine character-physics, character-controller and input-consumption tests pass.
+The normal offline Paris smoke also passes running, jumping, landing, follow,
+ground/seam checks, driving and moving exit. It then reproduces the already
+recorded traffic-takeover failure (`took over a different car than the one reached`).
+
 Each tile weights the light, medium and dark scans by
 its country (`assets/world/countries.geojson`), stable per tile and slot,
 balanced between men and women: gameplay defaults, not population statistics.

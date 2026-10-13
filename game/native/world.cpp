@@ -1017,7 +1017,9 @@ class World : public Rml::EventListener {
         // enough within the 350 m it is rebased at.
         const glm::vec3 from(origin.local(ecef(lon,lat,alt+jumpOffset+.06))),to(origin.local(ecef(intended.x,intended.y,alt+jumpOffset+.06)));
         glm::vec3 velocity=(to-from)/float(dt);
-        velocity.y=jumpOffset<=0?-2.f:0.f; // Maintain support on steps and furniture.
+        // The engine sticks supported feet to slopes and steps. A constant
+        // downward velocity on supported ground projects into downhill motion.
+        velocity.y=jumpOffset<=0&&!feet->isOnFloor()?-2.f:0.f;
         feet->transform().position=from;
         const glm::vec3 end=feet->moveAndSlide(velocity,float(dt));
         // Built by its first physics step; one that never is means he walks
@@ -1916,6 +1918,10 @@ class World : public Rml::EventListener {
     // Index work accumulated across refreshes, including render-time LOD changes.
     uint64_t indexedAtFrame=0; double churn=0,churnFrames=0,dirtyFrames=0;
     bool smoke=false,smokeStarted=false,smokeWaterSpawn=false; glm::dvec3 smokeStart;
+    const bool idleSmoke=std::getenv("R1WORLD_IDLE_SMOKE")!=nullptr;
+    bool idleSmokeStopped=false;
+    glm::dvec3 idleSmokeStart{};
+    double idleSmokeDrift=0;
     bool testFailed=false,testResume=false; double testElapsed=0,resumeWait=0;
     // Set when a tile the spawn is waiting for will not fit in the resident
     // budget. Without it the spawn simply never completes: `surroundingReady`
@@ -1923,14 +1929,10 @@ class World : public Rml::EventListener {
     // a data timeout three minutes later blaming the network for a decision
     // this process made in one line. Cleared at the start of every spawn.
     std::string refused;
-    // Hovering a ui-hit element makes UIInteractionSystem consume the mouse,
-    // which clears the button's previous state; isMouseButtonReleased() is then
-    // never true over the menu and RmlUi never receives the Up that makes a
-    // click. VerticalSlice's menu answers this by acting on mousedown as well
-    // (ui/main_menu.js), and so does this one. The pair is deduplicated: a
-    // click arriving just after its own press must not run the action twice --
-    // 'zoom-in' would double the zoom twice for one press.
-    double clock=0,pressedAt=-1; std::string pressedId;
+    // Actions answer the press immediately. Its matching click must not run
+    // them again, even after a long hold or a slow frame; keyboard-generated
+    // clicks without a matching press still activate the control.
+    double clock=0; std::string pressedId;
     std::string cityInput,citySubmitted,cityInFlight;
     double cityChangedAt=0,cityLastRequestAt=-100;
     std::future<std::vector<r1::PlaceChoice>> cityFuture;
@@ -2087,10 +2089,8 @@ class World : public Rml::EventListener {
         cityInFlight=query;cityLastRequestAt=clock;
         cityFuture=std::async(std::launch::async,[query]{return r1::searchPlaceChoices(query);});
     }
-    // release=false is what a real click actually delivers: the engine consumes
-    // the mouse while a ui-hit element is hovered, so the Up frame never reaches
-    // RmlUi. The driver must be able to reproduce that, or it tests a path no
-    // player can take.
+    // Press-only checks immediate activation; a full gesture also checks that
+    // its release/click does not activate the same control a second time.
     void testClick(const std::string& id,bool release=true) {
         auto* element=ui->findElementById(id);
         if(!element)throw std::runtime_error("Missing UI target "+id);
@@ -4515,7 +4515,9 @@ private:
     double trafficValidationTime_=0,trafficValidationReport_=0;
     size_t trafficValidationMoving_=0,trafficValidationLive_=0;
     size_t trafficValidationSteadySamples_=0,trafficValidationSteadyMoving_=0;
-    static constexpr double kTrafficValidationSeconds=60.,kTrafficValidationReportSeconds=5.;
+    bool trafficValidationStuck_=false;
+    double trafficValidationSeconds_=std::getenv("R1WORLD_TRAFFIC_SECONDS")?std::clamp(std::atof(std::getenv("R1WORLD_TRAFFIC_SECONDS")),60.,300.):60.;
+    static constexpr double kTrafficValidationReportSeconds=5.;
     static constexpr double kTrafficValidationWarmupSeconds=30.;
     static constexpr size_t kTrafficValidationMinimumLive=20,kTrafficValidationMinimumMoving=10;
     void validateTraffic(double dt) {
@@ -4530,6 +4532,18 @@ private:
             ++live;moving+=agent.speed>1.f;incidents+=agent.incident;requested+=agent.targetSpeed>1.f;
             if(agent.targetSpeed<.1f)++reasons[size_t(agent.stopReason)];
             deadEnds+=agent.nextLane==UINT32_MAX;
+            if(agent.waiting>10.f) {
+                const auto pose=region.flow.pose(agent);
+                const auto& lane=region.graph.lanes[agent.lane];
+                const auto observer=region.frame.local(ecef(lon,lat,alt));
+                if(agent.external&&agent.waiting>60.f&&std::hypot(pose.position.x-observer.x,pose.position.y-observer.z)<60.)
+                    trafficValidationStuck_=true;
+                saida::Log::info("[World traffic waiter] tile=",key," id=",agent.identity," lane=",agent.lane," next=",agent.nextLane,
+                    " s=",agent.s," remaining=",region.graph.laneLength(agent.lane)-agent.s," wait=",agent.waiting,
+                    " speed=",agent.speed," target=",agent.targetSpeed," reason=",size_t(agent.stopReason)," physical=",agent.external,
+                    " signal=",lane.signal," group=",unsigned(lane.signalGroup)," light=",lane.signal>=0?int(region.graph.signals[lane.signal].light(lane.signalGroup,trafficTime_)):-1,
+                    " x=",pose.position.x," z=",pose.position.y," yaw=",pose.yaw);
+            }
             if(slot<region.cars.size()&&region.cars[slot]&&r1::VehicleRuntime::physical(*region.cars[slot])) {
                 ++physical;const auto* drive=r1::VehicleRuntime::driver(*region.cars[slot]);
                 grounded+=drive->grounded();damaged+=drive->damage>.1f;
@@ -4542,12 +4556,12 @@ private:
             " requested=",requested," physical=",physical," grounded=",grounded," incidents=",incidents," damaged=",damaged);
         saida::Log::info("[World traffic validation] stops following=",reasons[1]," junction=",reasons[2],
             " blockedExit=",reasons[3]," signal=",reasons[4]," stopSign=",reasons[5]," deadEnds=",deadEnds);
-        if(trafficValidationTime_>=kTrafficValidationSeconds) {
+        if(trafficValidationTime_>=trafficValidationSeconds_) {
             // A snapshot can coincide with all-red clearance. Measure sustained
             // motion after warmup instead of requiring a particular final phase.
             const double steadyMoving=trafficValidationSteadySamples_?double(trafficValidationSteadyMoving_)/trafficValidationSteadySamples_:0.;
-            testFailed=trafficValidationLive_<kTrafficValidationMinimumLive||steadyMoving<kTrafficValidationMinimumMoving;
-            saida::Log::info("[World traffic validation] ",testFailed?"FAIL":"PASS"," peak live=",trafficValidationLive_," peak moving=",trafficValidationMoving_," steady moving=",steadyMoving);
+            testFailed=trafficValidationLive_<kTrafficValidationMinimumLive||steadyMoving<kTrafficValidationMinimumMoving||trafficValidationStuck_;
+            saida::Log::info("[World traffic validation] ",testFailed?"FAIL":"PASS"," peak live=",trafficValidationLive_," peak moving=",trafficValidationMoving_," steady moving=",steadyMoving," local persistent stop=",trafficValidationStuck_);
             engine.sceneTree().quit();
         }
     }
@@ -4588,7 +4602,7 @@ private:
         if(!doc.contains("controls"))return;
         using namespace r1::traffic_signal;
         constexpr float kKerbClearance=.45f;
-        constexpr double kMaximumRoadsideReach=40.;
+        constexpr double kMaximumRoadsideReach=10.;
         r1::RoadSurface roadSurface;
         if(auto surface=tile.data.find("roadSurface");surface!=tile.data.end())for(const auto& contour:*surface) {
             r1::Ring ring;
@@ -4601,23 +4615,40 @@ private:
         auto* poleMaterial=engine.resources().getMaterial(pole);
         saida::MaterialDesc casing;casing.baseColor={.018f,.02f,.023f,1};casing.roughness=.5f;
         auto* housingMaterial=resources.getMaterial(casing);
+        auto approachDirection=[&](const json& control) {
+            return control.contains("stopDirection")?
+                saida::traffic::Vec2{control["stopDirection"][0].get<float>(),control["stopDirection"][1].get<float>()}:
+                tile.graph.direction(control.at("lane").get<uint32_t>());
+        };
         std::map<std::pair<uint32_t,uint8_t>,const json*> approaches;
         for(const auto& control:doc.at("controls")) {
             if(control.at("kind")!="traffic_signals")continue;
+            if(!control.value("stopLineDrawn",false)) {
+                saida::Log::warn("[World signals] no drawable stop line for lane ",control.at("lane"),"; post omitted");
+                continue;
+            }
             const auto laneIndex=control.at("lane").get<uint32_t>();
             if(laneIndex>=tile.graph.lanes.size())continue;
             const auto& lane=tile.graph.lanes[laneIndex];if(lane.signal<0)continue;
-            const auto key=std::make_pair(lane.to,lane.signalGroup);
+            const auto key=std::make_pair(uint32_t(lane.signal),lane.signalGroup);
             auto [found,inserted]=approaches.emplace(key,&control);
             if(!inserted) {
-                const auto& existing=tile.graph.lanes[found->second->at("lane").get<uint32_t>()];
-                if(lane.offset>existing.offset)found->second=&control;
+                const auto& existing=*found->second;
+                const auto direction=approachDirection(control);
+                const float side=doc.value("leftHand",false)?-1.f:1.f;
+                const auto& junction=tile.signalPositions[size_t(lane.signal)];
+                auto lateral=[&](const json& candidate) {
+                    const auto& p=candidate.at("stopPosition");
+                    return (p[0].get<float>()-junction.x)*(-direction.y*side)+
+                           (p[2].get<float>()-junction.y)*(direction.x*side);
+                };
+                if(lateral(control)>lateral(existing))found->second=&control;
             }
         }
         for(const auto& [key,control]:approaches) {
             const auto laneIndex=control->at("lane").get<uint32_t>();
             const auto& lane=tile.graph.lanes[laneIndex];
-            const auto direction=tile.graph.direction(laneIndex);
+            const auto direction=approachDirection(*control);
             constexpr float kJunctionMatchTolerance=.1f,kCrossingDirectionCosine=.7f;
             const saida::traffic::Vec2 junction{tile.signalPositions[size_t(lane.signal)].x,tile.signalPositions[size_t(lane.signal)].y};
             float crossingHalfWidth=0.f;
@@ -4629,8 +4660,11 @@ private:
                 crossingHalfWidth=std::max(crossingHalfWidth,std::abs(other.offset)+other.width*.5f);
             }
             const float junctionDistance=saida::traffic::dot(junction-tile.graph.nodes[lane.to],direction);
-            const float setback=std::max(tile.flow.driver.stopLineDistance,crossingHalfWidth+kKerbClearance-junctionDistance);
-            const auto centre=tile.flow.positionOf(laneIndex,tile.graph.laneLength(laneIndex)-setback);
+            const float setback=std::isfinite(lane.stopLineDistance)?lane.stopLineDistance:
+                std::max(tile.flow.driver.stopLineDistance,crossingHalfWidth+kKerbClearance-junctionDistance);
+            const auto centre=control->contains("stopPosition")?
+                saida::traffic::Vec2{control->at("stopPosition")[0].get<float>(),control->at("stopPosition")[2].get<float>()}:
+                tile.flow.positionOf(laneIndex,tile.graph.laneLength(laneIndex)-setback);
             const float side=doc.value("leftHand",false)?-1.f:1.f;
             const auto location=roadSurface.roadside({centre.x,centre.y},{-direction.y*side,direction.x*side},kKerbClearance,kMaximumRoadsideReach);
             if(!location) {
@@ -4642,6 +4676,7 @@ private:
                 saida::Log::warn("[World signals] roadside terrain unavailable for lane ",laneIndex,"; post omitted");
                 continue;
             }
+            if(this->tile(geo.x,geo.y)!=&tile)continue; // one owning tile, even at streamed boundaries
             // The foundation sits on terrain; pavement may cover its foot.
             // A universal pavement lift would leave verge-mounted posts floating.
             const float ground=float(tile.frame.local(ecef(geo.x,geo.y,height(geo.x,geo.y))).y);
@@ -4678,6 +4713,7 @@ private:
                 lane.signal=entry[Signal];lane.signalGroup=entry[Group];lane.stop=entry[Stop];lane.yield=entry[Yield];lane.allowedTurns=entry[AllowedTurns];
             }
             if(entry.size()>Layer)lane.layer=entry[Layer];
+            if(entry.size()>StopDistance)lane.stopLineDistance=entry[StopDistance];
             tile.graph.lanes.push_back(lane);
         }
         if(doc.contains("signals"))for(const auto& entry:doc.at("signals")) {
@@ -4703,6 +4739,10 @@ private:
         // Deterministic per tile, so the same street is the same street on
         // every visit and a capture can be compared with itself.
         tile.flow.reset(&tile.graph,rules,uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u);
+        tile.flow.setSpawnSize([this](uint32_t seed,const saida::traffic::Lane& lane) {
+            const auto& kind=fleet[vehicleKind(seed,lane)];
+            return saida::traffic::VehicleSize{float(kind.length),float(kind.width)};
+        });
         tile.wanted=doc.value("cars",0);
         buildTrafficSignals(tile,doc);
     }
@@ -4800,6 +4840,12 @@ private:
                 l.flow.setPhysicalPose(i,pose,deform&&deform->absorbedEnergy()>=deform->maximumImpactEnergy*r1::VehicleRuntime::kDisablingDamageFraction);
             }
             std::vector<saida::traffic::Obstacle> roadObstacles;
+            // A transferred body can still occupy the old tile's road. Traffic
+            // on either side must see its footprint while ownership changes.
+            for(auto& [otherKey,otherRegion]:loaded)if(&otherRegion!=&l)
+                for(size_t other=0;other<otherRegion.cars.size();++other)
+                    if(otherRegion.cars[other]&&trafficSlotLive(otherRegion,other))
+                        roadObstacles.push_back(vehicleTrafficObstacle(*otherRegion.cars[other],l));
             if(carParked&&car&&!driving)roadObstacles.push_back(vehicleTrafficObstacle(*car,l));
             for(auto& parkedCar:parked)roadObstacles.push_back(vehicleTrafficObstacle(*parkedCar.node,l));
             for(const auto& walker:l.crowd.walkers())if(walker.alive&&walker.link>=0&&walker.along>.75&&l.walks.links[walker.link].crossing)
@@ -4875,11 +4921,16 @@ private:
             auto* destination=tile(geo.x,geo.y);
             const auto& agent=source.flow.agents()[i];
             const float remaining=source.graph.laneLength(agent.lane)-agent.s;
+            constexpr float kBoundaryProbeDistance=2.f;
+            const auto terminal=source.flow.positionOf(agent.lane,source.graph.laneLength(agent.lane))+source.graph.direction(agent.lane)*kBoundaryProbeDistance;
+            const auto ahead=geodeticOf(source,{terminal.x,root->transform().position.y,terminal.y});
+            auto* forwardTile=tile(ahead.x,ahead.y);
+            // Early handoff leaves the centre in the old tile for a few frames.
+            // Ownership follows the road's exit; its entry is never a return
+            // transfer just because the body has not crossed the seam yet.
+            if(destination&&destination!=&source&&destination!=forwardTile)continue;
             if((!destination||destination==&source)&&agent.nextLane==UINT32_MAX&&remaining<source.flow.driver.transferTolerance) {
-                constexpr float kBoundaryProbeDistance=2.f;
-                const auto terminal=source.flow.positionOf(agent.lane,source.graph.laneLength(agent.lane))+source.graph.direction(agent.lane)*kBoundaryProbeDistance;
-                const auto ahead=geodeticOf(source,{terminal.x,root->transform().position.y,terminal.y});
-                destination=tile(ahead.x,ahead.y);
+                destination=forwardTile;
             }
             if(!destination||destination==&source||destination->graph.lanes.empty())continue;
             transferTrafficCar(source,i,*destination);
@@ -4895,10 +4946,14 @@ private:
         resizeTrafficSlots(tile,agents.size());
         for(size_t i=0;i<tile.cars.size();++i) {
             const bool live=trafficSlotLive(tile,i);
+            if(live&&tile.cars[i]&&tile.carIdentities[i]!=agents[i].identity&&
+               tile.carKinds[i]!=vehicleKind(agents[i].vehicleSeed,tile.graph.lanes[agents[i].lane])) {
+                tile.cars[i]->setEnabled(false);tile.cars[i]->queueFree();tile.cars[i]=nullptr;
+            }
             if(!tile.cars[i]) {
                 if(!live)continue;                 // no node until a slot is used
                 const auto& agent=agents[i];
-                tile.carKinds[i]=vehicleKind(agent.seed,tile.graph.lanes[agent.lane]);
+                tile.carKinds[i]=vehicleKind(agent.vehicleSeed,tile.graph.lanes[agent.lane]);
                 auto node=clonePlant(*fleet[tile.carKinds[i]].prototype);
                 vehicleLod(*node);vehicleCollider(*node,fleet[tile.carKinds[i]]);
                 paintCar(*node,paintFor(agent.seed));
@@ -6659,8 +6714,8 @@ public:
     void ProcessEvent(Rml::Event& event) override {
         auto id=event.GetCurrentElement()->GetId();
         const bool press=event.GetType()=="mousedown";
-        if(!press&&id==pressedId&&clock-pressedAt<.5)return;  // already acted on the press
-        if(press){pressedId=id;pressedAt=clock;}
+        if(!press&&id==pressedId){pressedId.clear();return;}
+        if(press)pressedId=id;
         if(id=="map") {
             auto* map=ui->findElementById("map");auto o=map->GetAbsoluteOffset();
             double x=event.GetParameter<float>("mouse_x",0)-o.x,y=event.GetParameter<float>("mouse_y",0)-o.y;
@@ -6699,6 +6754,39 @@ public:
             if(places.count(id)){auto p=places.at(id);select(p.x,p.y);zoomMap(zoom);
                 field("city-query",std::string());showCityChoices({});
                 warming=true;request(pickLon,pickLat);}}
+    }
+    bool smokeZoom() {
+        auto fail=[&](const char* why){
+            saida::Log::error("[World menu E2E] FAIL zoom: ",why," (zoom=",zoom,
+                             ", last press=",pressedId,")");
+            testFailed=true;engine.sceneTree().quit();return false;
+        };
+        const double previousZoom=zoom;
+        zoomMap(1);
+        testClick("zoom-in");
+        if(zoom!=2)return fail("one click must advance one level");
+        testClick("zoom-in",false);
+        if(zoom!=4)return fail("a press must advance one level immediately");
+        // Release after the old half-second deduplication window has elapsed.
+        clock+=1.;
+        auto* element=ui->findElementById("zoom-in");
+        auto p=element->GetAbsoluteOffset();
+        ui->fireMouseEvent(saida::WebCanvasNode::MouseEvent::Up,int(p.x+10),int(p.y+10),
+                           saida::WebCanvasNode::MouseButton::Left);
+        if(zoom!=4)return fail("a long hold must not zoom again on release");
+        for(int i=0;i<3;++i)testClick("zoom-in");
+        if(zoom!=32)return fail("three rapid clicks must advance three levels");
+        for(int i=0;i<5;++i)testClick("zoom-out");
+        if(zoom!=1)return fail("each zoom-out click must retreat one level");
+        testClick("zoom-out");
+        if(zoom!=1)return fail("zoom-out must preserve the whole-Earth lower bound");
+        zoomMap(131072.);testClick("zoom-in");
+        if(zoom!=131072.)return fail("zoom-in must preserve the street-level upper bound");
+        testClick("reset-map");
+        if(zoom!=1)return fail("reset must restore the whole Earth");
+        zoomMap(previousZoom);
+        saida::Log::info("[World menu E2E] PASS zoom: single click, long hold, rapid clicks, zoom-out, bounds and reset");
+        return true;
     }
     // The Options screen, as a player uses it: open it, force an hour, see the
     // Sun take it, have a bad hour refused without losing the good one, go
@@ -7495,6 +7583,9 @@ public:
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
             if(!listeners.empty()) {
                 select(pickLon,pickLat);
+                const bool menuSmoke=std::getenv("R1WORLD_MENU_SMOKE")!=nullptr;
+                if((smoke||menuSmoke)&&!smokeZoom())return;
+                if(menuSmoke){engine.sceneTree().quit();return;}
                 if(smoke) {
                     double sx=pickLon,sy=pickLat;
                     testClick("map");
@@ -7543,7 +7634,7 @@ public:
             saida::Log::error("[World E2E] FAIL ",refused," did not fit the resident vertex budget");
             testFailed=true;engine.sceneTree().quit();return;
         }
-        if(smoke){testElapsed+=delta;if(testElapsed>(hopWanted?420:smokeFly?300:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return;}}
+        if(smoke){testElapsed+=delta;if(testElapsed>(trafficValidation_?trafficValidationSeconds_*3.+120.:hopWanted?420:smokeFly?300:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return;}}
         if(testResume){
             resumeWait+=delta;
             if(resumeWait>.25){
@@ -7623,6 +7714,10 @@ public:
         double f=(w.keyDown(GLFW_KEY_W)||w.keyDown(GLFW_KEY_Z)?1.:0.)-(w.keyDown(GLFW_KEY_S)?1.:0.);
         double r=(w.keyDown(GLFW_KEY_D)?1.:0.)-(w.keyDown(GLFW_KEY_A)||w.keyDown(GLFW_KEY_Q)?1.:0.);
         if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
+        if(idleSmoke&&smokeStarted&&smokeWalk>1.) {
+            f=r=0;
+            if(!idleSmokeStopped){idleSmokeStopped=true;idleSmokeStart=ecef(lon,lat,alt);}
+        }
         if(playerDown){f=r=0;}  // on the ground, he does not walk
         if(retailTest())f=r=0;
         if(performanceSmoke){f=r=0;smokeStarted=false;}
@@ -7752,7 +7847,7 @@ public:
                 playPlayerClip(moving?"run":"idle");
             } else {
                 bool jump=w.keyDown(GLFW_KEY_SPACE);
-                if(smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
+                if(!idleSmoke&&smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
                 if(jump&&!wasJump&&jumpOffset<=0)jumpVelocity=std::sqrt(2*22.*1.5);
                 wasJump=jump;
                 const double previous=jumpOffset;
@@ -8029,7 +8124,19 @@ public:
         if(smokeSailWait||smokeSailing){runSmokeSail(delta);return;}
         if(smokeSwimming){runSmokeSwim(delta);return;}
         if(smokeSeaWait){runSmokeSea(delta);return;}
-        if(smokeStarted&&smokeWalk>4) {
+        if(idleSmoke&&smokeStarted&&idleSmokeStopped) {
+            const auto displacement=origin.local(ecef(lon,lat,alt))-origin.local(idleSmokeStart);
+            idleSmokeDrift=std::max(idleSmokeDrift,std::hypot(displacement.x,displacement.z));
+            if(smokeWalk>14.) {
+                const bool passed=smokeRan&&idleSmokeDrift<.005&&feet->isOnFloor()
+                    &&jumpOffset==0&&animators.front()->currentClip()=="idle";
+                saida::Log::info("[World E2E] ",passed?"PASS":"FAIL",
+                    " stop after walking: idle_horizontal_drift_m=",idleSmokeDrift,
+                    " grounded=",feet->isOnFloor()," clip=",animators.front()->currentClip());
+                testFailed=!passed;smokeStarted=false;engine.sceneTree().quit();return;
+            }
+        }
+        if(!idleSmoke&&smokeStarted&&smokeWalk>4) {
             if(!smokeRan||!smokeJumped||jumpOffset!=0||followDistance<.15||followDistance>kOnFootFollow+.001){
                 saida::Log::error("[World E2E] FAIL player animation/jump/follow");testFailed=true;engine.sceneTree().quit();return;
             }

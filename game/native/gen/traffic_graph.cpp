@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cctype>
 #include <set>
+#include <stdexcept>
 
 namespace r1 {
 namespace {
@@ -70,6 +71,31 @@ uint8_t allowedTurns(const Tags& tags, bool reverse, int number) {
     if(text.find("reverse")!=std::string::npos)mask|=8;
     return mask ? mask : 15;
 }
+struct StopSite { P3 position; P2 direction; double width; };
+StopSite stopSite(const nlohmann::json& lanes,const std::vector<P3>& nodes,size_t laneIndex,double setback,bool leftHand) {
+    size_t current=laneIndex;
+    for(int step=0;step<64;++step) {
+        const auto& lane=lanes[current];
+        const P3 a=nodes[lane[0].get<size_t>()],b=nodes[lane[1].get<size_t>()];
+        const double span=std::hypot(b.x-a.x,b.z-a.z),dx=(b.x-a.x)/span,dz=(b.z-a.z)/span;
+        size_t previous=lanes.size();double best=-1e30;
+        if(setback>span)for(size_t i=0;i<lanes.size();++i) {
+            const auto& candidate=lanes[i];
+            if(candidate[1]!=lane[0]||candidate[0]==lane[1]||candidate[14]!=lane[14])continue;
+            const auto from=nodes[candidate[0].get<size_t>()];
+            const double length=std::hypot(a.x-from.x,a.z-from.z);
+            const double alignment=((a.x-from.x)*dx+(a.z-from.z)*dz)/length;
+            if(alignment<-.7)continue;
+            const double score=alignment+(candidate[6]==lane[6]?20.:0.)+(candidate[7]==lane[7]?10.:0.);
+            if(score>best){best=score;previous=i;}
+        }
+        if(setback>span&&previous!=lanes.size()){setback-=span;current=previous;continue;}
+        const double offset=lane[4].get<double>()*(leftHand?-1.:1.);
+        return {{b.x-dx*setback-dz*offset,b.y+(a.y-b.y)*setback/span,b.z-dz*setback+dx*offset},
+            {dx,dz},lane[5].get<double>()};
+    }
+    throw std::runtime_error("traffic stop line exceeds the bounded approach trace");
+}
 }
 
 nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& ground, int buildings,
@@ -113,7 +139,7 @@ nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& 
                     const double offset=direction ? (number+.5-count*.5)*laneWidth*(leftHand?-1:1) :
                         (leftHand?count-number-.5:number+.5)*laneWidth;
                     lanes.push_back({reverse?second:first,reverse?first:second,pyround(speed,1),weight,
-                        pyround(offset,3),pyround(laneWidth,3),road.id,number,priority,-1,0,false,false,allowedTurns(road.tags,reverse,number),level});
+                        pyround(offset,3),pyround(laneWidth,3),road.id,number,priority,-1,0,false,false,allowedTurns(road.tags,reverse,number),level,2.});
                 }
             };
             append(forward,false);append(backward,true);
@@ -130,22 +156,46 @@ nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& 
         return result;
     };
     std::vector<std::set<int>> approaches(nodes.size());
-    for(const auto& lane:lanes)approaches[lane[1].get<size_t>()].insert(lane[0].get<int>());
+    for(const auto& lane:lanes) {
+        approaches[lane[1].get<size_t>()].insert(lane[0].get<int>());
+        approaches[lane[0].get<size_t>()].insert(lane[1].get<int>());
+    }
+    // Divided carriageways can describe one physical junction with several
+    // nearby graph junctions linked across its mouth. Internal connectors do
+    // not need another stop line or another signal program.
+    std::vector<int> junctionRoot(nodes.size());
+    std::vector<double> junctionHalfWidth(nodes.size(),0.);
+    for(size_t i=0;i<nodes.size();++i)junctionRoot[i]=int(i);
+    for(const auto& lane:lanes)for(int node:{lane[0].get<int>(),lane[1].get<int>()})
+        junctionHalfWidth[node]=std::max(junctionHalfWidth[node],std::abs(lane[4].get<double>())+lane[5].get<double>()*.5);
+    auto root=[&](int node){while(junctionRoot[node]!=node)node=junctionRoot[node];return node;};
+    constexpr double kJunctionMergeClearance=3.;
+    for(const auto& lane:lanes) {
+        const int from=lane[0],to=lane[1];
+        if(approaches[from].size()<3||approaches[to].size()<3)continue;
+        if(std::hypot(nodes[from].x-nodes[to].x,nodes[from].z-nodes[to].z)>
+            junctionHalfWidth[from]+junctionHalfWidth[to]+kJunctionMergeClearance)continue;
+        const int a=root(from),b=root(to);
+        if(a!=b){const bool first=nodeKeys[a]<nodeKeys[b];junctionRoot[first?b:a]=first?a:b;}
+    }
     std::map<uint64_t,int> signalIndices;
+    std::set<std::pair<size_t,std::string>> assignedControls;
     for(const auto& feature:features) {
         const auto kind=tagOr(feature.tags,"highway");
         if(kind!="traffic_signals"&&kind!="stop"&&kind!="give_way")continue;
         const P3 point=ground(feature.lon,feature.lat);
         const int node=nearest(point,kSignalAttachment);
         if(node<0)continue;
-        int signal=-1;
+        int signal=-1,controlledNode=node;
         if(kind=="traffic_signals") {
             int junction=node;double distance=kIntersectionAssociation;
             for(size_t i=0;i<nodes.size();++i)if(approaches[i].size()>2) {
                 const double d=std::hypot(nodes[i].x-point.x,nodes[i].z-point.z);
                 if(d<distance && std::abs(nodes[i].y-point.y)<kLevelWeld){distance=d;junction=int(i);}
             }
+            junction=root(junction);
             const auto key=nodeKeys[junction];
+            controlledNode=junction;
             const auto found=signalIndices.find(key);
             if(found==signalIndices.end()) {
                 signal=int(signals.size());signalIndices[key]=signal;
@@ -155,13 +205,50 @@ nlohmann::json buildLaneGraph(const std::vector<OsmWay>& roads, const GroundAt& 
         }
         for(size_t laneIndex=0;laneIndex<lanes.size();++laneIndex) {
             auto& lane=lanes[laneIndex];
-            if(lane[1].get<int>()!=node)continue;
-            lane[9]=signal;
+            const int endpoint=lane[1];
+            if((kind=="traffic_signals"?root(endpoint):endpoint)!=controlledNode)continue;
+            if(kind=="traffic_signals"&&root(lane[0].get<int>())==controlledNode)continue;
             const P3 a=nodes[lane[0].get<size_t>()],b=nodes[lane[1].get<size_t>()];
+            const double span=std::hypot(b.x-a.x,b.z-a.z),dx=(b.x-a.x)/span,dz=(b.z-a.z)/span;
+            // A surveyed signal establishes a controlled junction. Missing
+            // approach heads are inferred too, or an untagged cross street
+            // would drive through the other approach's red phase.
+            if(kind=="traffic_signals"&&approaches[controlledNode].size()<3&&controlledNode!=root(node)) {
+                const double along=(b.x-point.x)*dx+(b.z-point.z)*dz;
+                const double across=std::abs((b.x-point.x)*dz-(b.z-point.z)*dx);
+                if(along<0||across>lane[traffic_format::Width].get<double>()+3.)continue;
+            }
+            if(!assignedControls.emplace(laneIndex,kind).second)continue;
+            lane[9]=signal;
             lane[10]=std::abs(b.x-a.x)>std::abs(b.z-a.z)?(b.x>a.x?1:3):(b.z<a.z?0:2);
             lane[11]=kind=="stop";lane[12]=kind=="give_way";
+            double setback=2.;
+            if(kind=="traffic_signals")for(const auto& crossing:lanes) {
+                if(crossing[traffic_format::Layer]!=lane[traffic_format::Layer])continue;
+                const int from=crossing[0],to=crossing[1];
+                if(from!=endpoint&&to!=endpoint)continue;
+                const double cx=nodes[to].x-nodes[from].x,cz=nodes[to].z-nodes[from].z;
+                const double length=std::hypot(cx,cz);
+                if(std::abs((cx*dx+cz*dz)/length)>.7)continue;
+                setback=std::max(setback,std::abs(crossing[traffic_format::Offset].get<double>())+
+                    crossing[traffic_format::Width].get<double>()*.5+.75);
+            }
+            // Keep the stop line upstream of an observed pedestrian crossing.
+            if(kind=="traffic_signals")for(const auto& crossing:features) {
+                if(tagOr(crossing.tags,"highway")!="crossing")continue;
+                const auto p=ground(crossing.lon,crossing.lat);
+                const double along=(b.x-p.x)*dx+(b.z-p.z)*dz;
+                const double across=std::abs((b.x-p.x)*dz-(b.z-p.z)*dx);
+                if(along>0&&along<20.&&across<lane[traffic_format::Width].get<double>()+2.)
+                    setback=std::max(setback,along+lengthTag(tag(crossing.tags,"width"),3.)*.5+1.);
+            }
+            lane[traffic_format::StopDistance]=pyround(setback,3);
+            const auto site=stopSite(lanes,nodes,laneIndex,setback,leftHand);
             controls.push_back({{"osm",feature.id},{"lane",laneIndex}, {"kind",kind},
-                {"position",{point.x,point.y,point.z}},{"assignment","inferred"}});
+                {"position",{point.x,point.y,point.z}},
+                {"stopPosition",{pyround(site.position.x,3),site.position.y,pyround(site.position.z,3)}},
+                {"stopDirection",{site.direction.x,site.direction.y}},{"stopWidth",site.width},
+                {"assignment","inferred"},{"markingsSource","inferred from surveyed control"}});
         }
     }
     nlohmann::json turns=nlohmann::json::array();

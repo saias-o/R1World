@@ -5,6 +5,7 @@
 #include "road_details.hpp"
 #include "spatial.hpp"
 #include "terrain.hpp"
+#include "traffic_format.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -275,7 +276,7 @@ void Drape::lay(const clip::Paths64& region, double lift, Mesh& mesh) const {
 StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<OsmNode>& features,
                           const ElevationGrid& elevations, const Anchor& anchor, const std::vector<Ring>& footprints,
                           const std::function<double(int, int, double)>& adjust, const std::string& country,
-                          const clip::Paths64& vergeExclusions) {
+                          const clip::Paths64& vergeExclusions, const nlohmann::json* traffic) {
     using clip::Paths64;
     int sidewalkTagged = 0, sidewalkInferred = 0, zebras = 0, widthsTagged = 0, widthsInferred = 0, graded = 0;
     // A way comes cut into its segments, and a strip per segment left a
@@ -456,6 +457,29 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
         if (inside) ++zebras;
     }
     const Paths64 paint = clip::intersect(clip::unite(stripes), asphalt);
+    Paths64 stopLines;
+    int stopLineCount=0;
+    std::vector<size_t> markedControlLanes;
+    if(traffic)for(const auto& control:traffic->at("controls")) {
+        if(control.at("kind")=="give_way"||!control.contains("stopPosition"))continue;
+        const auto& lane=traffic->at("lanes").at(control.at("lane").get<size_t>());
+        const auto& a=traffic->at("nodes").at(lane[traffic_format::From].get<size_t>());
+        const auto& b=traffic->at("nodes").at(lane[traffic_format::To].get<size_t>());
+        const double dx=control.contains("stopDirection")?control["stopDirection"][0].get<double>():b[0].get<double>()-a[0].get<double>();
+        const double dz=control.contains("stopDirection")?control["stopDirection"][1].get<double>():b[2].get<double>()-a[2].get<double>();
+        const double span=std::hypot(dx,dz),half=std::max(.1,control.value("stopWidth",lane[traffic_format::Width].get<double>())*.5-.15);
+        const auto& centre=control.at("stopPosition");
+        auto p=[&](double along,double across) {
+            return P2{centre[0].get<double>()+(dx*along-dz*across)/span,
+                      centre[2].get<double>()+(dz*along+dx*across)/span};
+        };
+        const auto line=clip::intersect({clip::kMetres.path({p(-.2,-half),p(.2,-half),p(.2,half),p(-.2,half)})},carriageway);
+        if(clip::area(line)>.4*half){
+            stopLines.insert(stopLines.end(),line.begin(),line.end());++stopLineCount;
+            markedControlLanes.push_back(control.at("lane").get<size_t>());
+        }
+    }
+    stopLines=clip::unite(stopLines);
 
     Mesh roadMesh(UvMode::Planar), cobbleMesh(UvMode::Planar), walkMesh(UvMode::Planar),
          gravelMesh(UvMode::Planar), vergeMesh(UvMode::Planar), paintMesh, kerbMesh;
@@ -464,6 +488,8 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
                                 {&paving, &walkMesh, 0.21}, {&paint, &paintMesh, 0.075},
                                 {&gravel, &gravelMesh, 0.025}, {&verges, &vergeMesh, 0.018}};
     for (const Surface& s : surfaces) drape.lay(*s.region, s.lift, *s.mesh);
+    Mesh controlPaint;
+    drape.lay(stopLines,.075,controlPaint);
 
     // Kerbs only where pavement meets carriageway: the paving edges that lie
     // on the carriageway's boundary, chained and simplified.
@@ -545,6 +571,8 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
                            vergeFamily.c_str()},
                           {"Kerbs", &kerbMesh, {0.26, 0.25, 0.23}, nullptr},
                           {"Surveyed zebra crossings", &paintMesh, {0.50, 0.49, 0.46}, nullptr}};
+    if(!controlPaint.empty())out.parts.push_back({"Traffic stop-line markings",smoothSurface(controlPaint),
+        surfaceMaterial("Traffic stop-line markings",{.50,.49,.46},.88,std::nullopt)});
     for (const Spec& s : specs) {
         if (s.mesh->empty()) continue;
         const bool kerb = std::string(s.name) == "Kerbs";
@@ -571,6 +599,8 @@ StreetOutput buildStreets(const std::vector<OsmWay>& roads, const std::vector<Os
                  {"sidewalkAreaM2", pyround(clip::area(paving), 2)},
                  {"surfaceOverlapM2", pyround(clip::area(clip::intersect(asphalt, paving)), 6)}};
     out.stats["lanesTagged"]=lanesTagged;out.stats["linkWays"]=links;out.stats["details"]=details.stats;
+    out.stats["trafficStopLines"]=stopLineCount;
+    out.stats["trafficMarkedLanes"]=markedControlLanes;
     out.stats["softRoadSidesInferred"] = softSides;
     out.stats["gravelShoulderAreaM2"] = pyround(clip::area(gravel), 2);
     out.stats["grassVergeAreaM2"] = pyround(clip::area(verges), 2);

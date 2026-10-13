@@ -157,6 +157,8 @@ int main(int argc, char** argv) {
                 line["manifest"][k] = cooked.manifest[k];
             line["manifest"]["traffic"] = {{"nodes", cooked.manifest["traffic"]["nodes"].size()},
                                            {"lanes", cooked.manifest["traffic"]["lanes"].size()},
+                                           {"signals", cooked.manifest["traffic"]["signals"].size()},
+                                           {"controls", cooked.manifest["traffic"]["controls"].size()},
                                            {"cars", cooked.manifest["traffic"]["cars"]}};
             line["manifest"]["footprints"] = cooked.manifest["footprints"].size();
             const auto& crowd = cooked.manifest["crowd"];
@@ -170,7 +172,9 @@ int main(int argc, char** argv) {
                 s << cooked.props.dump();
                 std::ofstream r(glb + "/" + tile.key() + ".raised.json", std::ios::binary);
                 r << cooked.manifest["raised"].dump();
-                if(!f || !s || !r)throw std::runtime_error("Cannot write cooked geometry to "+glb);
+                std::ofstream t(glb + "/" + tile.key() + ".traffic.json",std::ios::binary);
+                t << cooked.manifest["traffic"].dump();
+                if(!f || !s || !r || !t)throw std::runtime_error("Cannot write cooked geometry to "+glb);
             }
         } catch (const std::exception& e) {
             line["error"] = e.what();
