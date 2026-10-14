@@ -20,6 +20,7 @@
 #include "gardens.hpp"
 #include "ground.hpp"
 #include "beach.hpp"
+#include "grading.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -163,7 +164,10 @@ CookedTile cookTile(const Observations& in) {
     const GroundField field(surveyed, around);
     const GradePlan grades = planGrades(osm, predicted.structures, field, anchor, bounds);
     const ElevationGrid dug = grades.carves.empty() ? ElevationGrid{} : carvedGround(surveyed, grades);
-    const ElevationGrid& elevations = grades.carves.empty() ? surveyed : dug;
+    // The roads left on the ground are graded into it (gen/grading): level
+    // across, smoothed along, banked into the survey beside them.
+    nlohmann::json gradingReport;
+    const ElevationGrid elevations = gradedGround(grades.carves.empty() ? surveyed : dug, osm.roads, grades, field, &gradingReport);
     const GroundAt ground = [&](double lon, double lat) { return groundPoint(lon, lat, elevations, anchor); };
     const auto elevationAt = [&](double lon, double lat) { return elevations.sample(lon, lat); };
 
@@ -381,15 +385,8 @@ CookedTile cookTile(const Observations& in) {
     TerrainGrid drawnGround;
     auto terrain = buildTerrain(bounds, elevations, anchor, classify,
                                 terrainAdjust, &drawnGround);
-    std::vector<MeshPart> terrainParts;
     std::map<std::string, int> groundStats;
-    for (auto& [name, mesh] : terrain) {
-        const Swatch& swatch = groundSwatch(name, profile);
-        groundStats[name] = int(mesh.indices.size() / 3);
-        terrainParts.push_back({"Ground \xE2\x80\x94 " + swatch.name, smoothSurface(mesh),
-                                surfaceMaterial(swatch.name, swatch.color, swatch.roughness,
-                                                groundFamily(name, profile.ground.name, climate))});
-    }
+    for (auto& [name, mesh] : terrain) groundStats[name] = int(mesh.indices.size() / 3);
     const auto roadside = contextualRoads(grades.roads, osm.buildings, anchor);
     const std::vector<OsmWay> roads = clipRoads(roadside, bounds);
     std::map<P2, double> laneLevels = grades.levels;
@@ -430,6 +427,22 @@ CookedTile cookTile(const Observations& in) {
     visibleInland = clip::subtract(visibleInland, streets.ground);
     if (!visibleInland.empty()) Drape(elevations, anchor).lay(visibleInland, 0.12, inlandMesh);
     BridgeOutput bridges = buildBridges(grades, bounds, elevations, anchor,fuelCountry);
+    // A road at its own level wins where it is: the drawn ground is cut under
+    // it, and a cutting joins its edge to higher ground (gen/grading).
+    nlohmann::json cuttingReport;
+    Mesh cuttings = cutUnderRaisedRoads(terrain, bridges.raised, &cuttingReport);
+    gradingReport["cuttings"] = cuttingReport;
+    std::vector<MeshPart> terrainParts;
+    for (auto& [name, mesh] : terrain) {
+        if (mesh.empty()) continue;
+        const Swatch& swatch = groundSwatch(name, profile);
+        terrainParts.push_back({"Ground \xE2\x80\x94 " + swatch.name, smoothSurface(mesh),
+                                surfaceMaterial(swatch.name, swatch.color, swatch.roughness,
+                                                groundFamily(name, profile.ground.name, climate))});
+    }
+    if (!cuttings.empty())
+        terrainParts.push_back({"Road cuttings", std::move(cuttings),
+                                surfaceMaterial("Road cutting", {0.19, 0.17, 0.14}, 0.95, std::string("rock"), true)});
     // Road centre lines in engine metres, so a bench faces its street.
     std::vector<Segment2> roadSegments;
     for (const OsmWay& w : roads) {
@@ -721,7 +734,7 @@ CookedTile cookTile(const Observations& in) {
         }()},
         {"residential", gardens.stats},
         {"predicted", ocean || pack ? nlohmann::json({{"revision", kPredictRevision}, {"signs", 0}}) : predicted.stats},
-        {"bridges", bridges.stats}, {"raised", ocean || pack ? nlohmann::json::array() : bridges.raised}, {"traffic", laneGraph}, {"crowd", crowd},
+        {"bridges", bridges.stats}, {"roadGrading", gradingReport}, {"raised", ocean || pack ? nlohmann::json::array() : bridges.raised}, {"traffic", laneGraph}, {"crowd", crowd},
         {"inference", built.stats.json()},
         {"buildingGeometryLod", buildingLod == BuildingLod::Full ? "full" :
                                 buildingLod == BuildingLod::UnifiedBase ? "unified-base" : "simple-roofline"},

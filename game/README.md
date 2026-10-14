@@ -2534,3 +2534,29 @@ staggered cycles. The cap is 24 live beach visitors within 100 m of the camera,
 is created per frame and distant poses update at lower frequency. Beach spots
 and attendance are inferred, not observations of real people. Separate deck
 chairs and dedicated swimsuit assets remain outside this delivery.
+
+### Road grading (generator v50)
+
+Roads on the ground are graded into the relief (`native/gen/grading.*`): the
+ground under each road is averaged along it over a Gaussian window (12 m for a
+service road to 45 m for a motorway), continued through junctions along the
+straightest way on, so a real climb stays and a bump goes; knots above the
+road's mean count less, so it cuts into a bump. Cut and fill are capped per
+class (8/4 m for expressways down to 2.5/1.5 m for service roads). The
+carriageway and 0.85 of a terrain cell beside it take the road's level; a
+smooth bank, three times as wide as it is high (10-30 m), meets the survey.
+Bridges, embankments, tunnels, digs under bridges, footpaths and sea-level
+ground are left alone. Two tiles do not read the same roads near their seam,
+so grading fades in over 30 m from every tile edge and the seam keeps the
+joined survey.
+
+Where a road stands at its own level (an embankment or a low deck from
+`gen/bridges`) the drawn terrain is cut out under it wherever the ground comes
+within 0.6 m, each triangle keeping its plane, and a rock-coloured cutting face
+joins the road's edge to higher ground beside it.
+
+The manifest's `roadGrading` gives the nodes moved, deepest cut, highest fill,
+the ride along the tile's roads before and after (`rollPer10m`, `acrossSlope`)
+and the cuttings. Measured on Paris centre: across slope 1.7 % -> 0.5 %,
+roll 0.12 -> 0.06 m per 10 m. `r1cook` also prints `groundEdges` to compare a
+seam's two sides.

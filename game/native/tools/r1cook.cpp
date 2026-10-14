@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
             line["props"] = cooked.props.size();
             for (const char* k : {"streets", "inference", "props", "nature", "harbour", "ground", "water", "landmarks",
                                   "landmarkReplacedWays", "boats", "decks", "airports", "aircraft", "osmQueryVersion", "retail", "interiors",
-                                  "fuel", "lettering", "interiorStreaming", "busShelters", "beach", "beachSpots"})
+                                  "fuel", "lettering", "interiorStreaming", "busShelters", "beach", "beachSpots", "roadGrading", "groundEdges"})
                 line["manifest"][k] = cooked.manifest[k];
             line["manifest"]["traffic"] = {{"nodes", cooked.manifest["traffic"]["nodes"].size()},
                                            {"lanes", cooked.manifest["traffic"]["lanes"].size()},
