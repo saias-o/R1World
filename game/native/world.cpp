@@ -44,6 +44,7 @@
 #include "gen/traffic_format.hpp"
 #include "gen/roadside.hpp"
 #include "gen/crowd.hpp"
+#include "gen/beach.hpp"
 #include "gen/appearance.hpp"
 #include "gen/landmarks.hpp"
 #include "gen/palette.hpp"
@@ -111,6 +112,9 @@ constexpr double kCarKerb=.3;           // m above the ground a street surface i
 // at its `scale` times kPeopleVehicleResize; the head stays this fraction
 // of it clear of the water.
 constexpr double kSwimHeadAbove=.33;
+// He swims once this fraction of his height is under the water; below it he
+// wades, walking on the bed.
+constexpr double kSwimDepth=.5;
 // Reduce people and road vehicles by 15% relative to their previous 0.8 scale.
 // Keep the authored assets and clip timings intact; runtime dimensions follow
 // the same resize so doors, cameras and collisions agree with the meshes.
@@ -483,6 +487,14 @@ struct Person {
     double lying=0;
 };
 
+struct BeachVisitor {
+    Person person;
+    saida::Node* furniture=nullptr;
+    int spot=-1;
+    double age=0;
+};
+struct BeachSpot { r1::P3 towel,water; bool parasol=false; };
+
 struct Loaded {
     saida::Node* node=nullptr;
     // The cooked tile this was mounted from. Its manifest and its prop list
@@ -545,6 +557,8 @@ struct Loaded {
     // traffic, for the same reason -- the crowd points at the graph.
     r1::WalkGraph walks; r1::Crowd crowd;
     double crowdEyeX=1e9,crowdEyeZ=1e9,crowdLocalPopulation=0;
+    std::vector<BeachSpot> beachSpots;
+    std::vector<BeachVisitor> beachVisitors;
     std::vector<Person> people;           // keyed by walker slot, pooled
     std::vector<size_t> humanKinds;       // stable avatar per slot in this country
     // The manifest unpacked once at mount, because a frame cannot afford to
@@ -916,6 +930,8 @@ class World : public Rml::EventListener {
         person.animator=animator;
         return true;
     }
+#include "beach_runtime.hpp"
+
     void readCrowd(Loaded& tile) {
         tile.walks=r1::WalkGraph::from(tile.data.value("crowd",json()));
         const uint32_t seed=uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u;
@@ -928,6 +944,11 @@ class World : public Rml::EventListener {
             paces.push_back(crowdKinds[selected].pace);
         }
         tile.crowd.reset(&tile.walks,seed,std::move(paces));
+        for(const auto& spot:tile.data.value("beachSpots",json::array())) {
+            const auto& a=spot.at("towel");const auto& b=spot.at("water");
+            tile.beachSpots.push_back({{a[0],a[1],a[2]},{b[0],b[1],b[2]},spot.value("parasol",false)});
+        }
+        if(!tile.beachSpots.empty())tile.beachVisitors.resize(12);
     }
     // The hour where the player stands, by the Sun: 12 when it is highest.
     double localSolarHour() {
@@ -944,7 +965,7 @@ class World : public Rml::EventListener {
     void updateCrowd(float delta) {
         SAIDA_PROFILE_SCOPE("World/Crowd");
         if(crowdKinds.empty())return;
-        size_t remaining=kCrowdPeople;
+        size_t remaining=kCrowdPeople-beachLive;
         const double factor=crowdFactor();
         for(auto tile:ring) {
             auto found=loaded.find(tile.key());
@@ -1919,6 +1940,12 @@ class World : public Rml::EventListener {
     uint64_t indexedAtFrame=0; double churn=0,churnFrames=0,dirtyFrames=0;
     bool smoke=false,smokeStarted=false,smokeWaterSpawn=false; glm::dvec3 smokeStart;
     const bool idleSmoke=std::getenv("R1WORLD_IDLE_SMOKE")!=nullptr;
+    // R1WORLD_WADE_SMOKE="<lon> <lat>": walk from the spawn to that point and
+    // fail the moment he swims. Across a breakwater, a rock or the swash the
+    // walk must stay a walk while less than half of him is under the water.
+    const char* wadeSmoke=std::getenv("R1WORLD_WADE_SMOKE");
+    std::optional<glm::dvec2> wadeTo;
+    double wadeOverWater=0,wadeDeepest=0;
     bool idleSmokeStopped=false;
     glm::dvec3 idleSmokeStart{};
     double idleSmokeDrift=0;
@@ -1965,6 +1992,7 @@ class World : public Rml::EventListener {
     // Cloud fraction, rain mm/h, visibility metres (zero keeps clear-air
     // extinction). Inspection weather never replaces live observations.
     std::array<double,3> inspectWeather{0.,0.,0.};
+    std::optional<double> inspectTemperature;
     // --camera-altitude <metres>: the viewpoint's heights are above the sea
     // rather than above the player's feet. A capture laid beside a photograph
     // stands where the photographer stood, whatever this build's relief says
@@ -2746,6 +2774,35 @@ class World : public Rml::EventListener {
         if(!t||t->ocean)return 0.;
         return waterCode(*t,x,y)==1?height(x,y):0.;
     }
+    // The ground under the water, where something says what it is. The relief
+    // sources stop at the shore: open sea is 0.0 m, exactly, at every grid
+    // point (Mapzen), and inland water is drawn on its own ground. Only a
+    // shore profile the beach generator sculpted, a rock or a shoal gives the
+    // sea a bed. A grid quad whose four corners all read 0.0 has none.
+    std::optional<double> waterBed(double x,double y) {
+        const auto* t=tile(x,y);
+        if(!t||t->ocean||waterCode(*t,x,y)==1)return std::nullopt;
+        const int n=t->gridSize;
+        const double u=std::clamp((wrap(x)-t->west)/(t->east-t->west),0.,1.)*(n-1);
+        const double v=std::clamp((y-t->south)/(t->north-t->south),0.,1.)*(n-1);
+        const int ix=std::min(n-2,int(u)),iy=std::min(n-2,int(v));
+        const float* g=t->elevation.data()+size_t(iy)*size_t(n)+size_t(ix);
+        if(g[0]==0.f&&g[1]==0.f&&g[n]==0.f&&g[n+1]==0.f)return std::nullopt;
+        return gridHeight(*t,x,y);
+    }
+    // He swims when half of him is under the surface, and walks otherwise:
+    // a rock, a sandbar or the swash is ground. Water whose bed nobody
+    // knows is deep, as it always was. `standing` is where his feet rest,
+    // as the character solver found it: a breakwater, a slipway or a rock
+    // the physics carries above the ground grid is his bed there, though
+    // neither the grid nor `height` knows it.
+    bool deepWater(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
+        if(!onWater(x,y,standing))return false;
+        auto bed=waterBed(x,y);
+        if(const auto* t=tile(x,y);t&&std::isfinite(standing)&&standing>gridHeight(*t,x,y)+.1)
+            bed=std::max(bed.value_or(standing),standing);
+        return !bed||waterLevel(x,y)-*bed>=playerHeight*kSwimDepth;
+    }
     // Collider authoring only: detection and response belong to Saida/Jolt.
     static saida::StaticBodyNode* boxCollider(saida::Node& parent,const std::string& name,
                                             glm::vec3 size,glm::vec3 center) {
@@ -2785,7 +2842,14 @@ class World : public Rml::EventListener {
     // Spawn/exit/parking occupancy uses the engine's scene queries. Movement
     // itself uses the character solver, without a second footprint test.
     bool blocked(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
-        if(onWater(x,y,standing))return true;
+        return onWater(x,y,standing)||obstructed(x,y,standing);
+    }
+    // On foot, only water out of his depth stops him: he wades in the rest.
+    bool footBlocked(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
+        return deepWater(x,y,standing)||obstructed(x,y,standing);
+    }
+    // A wall, a body or a roof over him, water aside.
+    bool obstructed(double x,double y,double standing=std::numeric_limits<double>::quiet_NaN()) {
         const double ground=std::isnan(standing)?height(x,y):standing;
         if(solidAt(x,y,ground+.6)||solidAt(x,y,ground+1.3))return true;
         // A mesh encloses air: an arrival below an opaque roof is not an outdoor
@@ -3162,12 +3226,13 @@ class World : public Rml::EventListener {
         }
         carWaterLevel=waterLevel(x,y);carSinkDepth=0;carSinking=true;
         carLon=x;carLat=y;carAlt=carWaterLevel;carSpeed=0;steerShown=0;
-        driving=false;swimming=true;swimTime=0;swimLean=0;
-        lon=x;lat=y;alt=carWaterLevel;yaw=wrap(carYaw+lookYaw);swimHeading=yaw;
+        // The driver swims out only when the water is over half his height.
+        driving=false;swimming=deepWater(x,y);swimTime=0;swimLean=0;
+        lon=x;lat=y;alt=swimming?carWaterLevel:height(x,y);yaw=wrap(carYaw+lookYaw);swimHeading=yaw;
         lookYaw=0;lookIdle=0;jumpOffset=jumpVelocity=0;
         followDistance=std::min(followDistance,kOnFootFollow);
         player->setEnabled(true);
-        text("stream-status","La voiture coule — nagez vers la rive.");
+        text("stream-status",swimming?"La voiture coule — nagez vers la rive.":"La voiture s'enlise — vous avez pied.");
         saida::Log::info("[World car] sank at ",lon,", ",lat);
         request(lon,lat);
     }
@@ -3341,9 +3406,9 @@ private:
                     const double a=along*sign,o=(boat.beam*.5+off)*side;
                     const auto q=onward(boat.lon,boat.lat,s*a+c*o,c*a-s*o);
                     if(!tile(q.x,q.y))continue;
-                    if(navigable(q.x,q.y)) {
+                    if(deepWater(q.x,q.y)) {
                         if(!water)water=BoatExit{q,true};
-                    } else if(!blocked(q.x,q.y))return BoatExit{q,false};
+                    } else if(!footBlocked(q.x,q.y))return BoatExit{q,false};
                 }
         return water;
     }
@@ -3698,8 +3763,8 @@ private:
                     const double o=(half+off)*side;
                     const auto q=onward(plane.lon,plane.lat,s*along+c*o,c*along-s*o);
                     if(!tile(q.x,q.y))continue;
-                    if(navigable(q.x,q.y)){if(!wet)wet=q;}
-                    else if(!blocked(q.x,q.y))dry=q;
+                    if(deepWater(q.x,q.y)){if(!wet)wet=q;}
+                    else if(!footBlocked(q.x,q.y))dry=q;
                 }
         double x=0,y=0;
         // Over a city the ground beside the fuselage may all be roofs: in the
@@ -3952,8 +4017,10 @@ private:
     using Weather=r1::WeatherState;
     Weather observedWeather;
     Weather effectiveWeather() const {
-        return r1::resolveWeather(observedWeather,localConditions(),forcedWeather,
+        auto sample=r1::resolveWeather(observedWeather,localConditions(),forcedWeather,
             inspectAt?std::optional<std::array<double,3>>(inspectWeather):std::nullopt);
+        if(inspectTemperature){sample.temperature=*inspectTemperature;sample.temperatureKnown=true;}
+        return sample;
     }
     bool fogFar=false;  // what the fog was last told about the horizon
     static double number(const json& j,const char* key,double fallback) {
@@ -3967,6 +4034,9 @@ private:
         observedWeather=Weather{};
         if(w.is_object()) {
             observedWeather.known=true;
+            observedWeather.temperature=number(w,"temperature",0.);
+            observedWeather.temperatureKnown=w.contains("temperature")&&w["temperature"].is_number()&&
+                std::isfinite(observedWeather.temperature);
             observedWeather.cover=std::clamp(number(w,"cloudCover",0.)/100.,0.,1.);
             observedWeather.rain=r1::liquidRainMmPerHour(w);
             observedWeather.visibility=number(w,"visibility",0.);
@@ -3991,7 +4061,11 @@ private:
         const double rain=weather.rain;
         const double cloud=r1::rainCloudCover(weather.cover,weather.code,rain);
         json result;
-        const bool accepted=sunScript->callExport("setWeather",json::array({cloud,rain,seen,height(lon,lat)}),result)
+        // From the menu, before any tile is resident, the ground is not known
+        // yet: the observer's altitude stands in, and tellSun() sends the real
+        // ground at the spawn. Asking `height` there threw "Missing terrain".
+        const double ground=tile(lon,lat)?height(lon,lat):alt;
+        const bool accepted=sunScript->callExport("setWeather",json::array({cloud,rain,seen,ground}),result)
             ==saida::ScriptCallStatus::Succeeded&&result.is_boolean()&&result.get<bool>();
         if(inspectAt&&accepted)saida::Log::info("[World inspection] cloud=",cloud," rain_mm_h=",rain," visibility_m=",seen);
         return accepted;
@@ -4073,8 +4147,12 @@ private:
         checkStanding=false;
         if(!playing||pending||driving||sailing||piloting||swimming||!tile(lon,lat))return;
         // The finer survey (IGN) may have replaced the quick one under him.
-        if(jumpOffset<=0)alt=height(lon,lat,alt);
-        if(!blocked(lon,lat,alt))return;
+        // A breakwater the feet stand on is not in the grid: keep what holds him.
+        if(jumpOffset<=0) {
+            const double ground=height(lon,lat,alt);
+            alt=feet->isOnFloor()&&alt>ground?alt:ground;
+        }
+        if(!footBlocked(lon,lat,alt))return;
         double x,y;
         if(!freeSpot(lon,lat,40.,x,y))return;
         saida::Log::info("[World] a building arrived where the player stood: moved to ",x,", ",y);
@@ -6514,8 +6592,8 @@ private:
             return !t->geography||(!t->geography->children().empty()&&
                 !static_cast<saida::CollisionObjectNode*>(t->geography->children().back().get())->bodyId().IsInvalid());};
         if(pending && ready(pickLon,pickLat)) {
-            const bool waterSpawn=onWater(pickLon,pickLat);
-            double x0=pickLon,y0=pickLat;bool found=waterSpawn||!blocked(x0,y0);
+            const bool waterSpawn=deepWater(pickLon,pickLat);
+            double x0=pickLon,y0=pickLat;bool found=waterSpawn||!footBlocked(x0,y0);
             for(int i=1;!found&&i<=160;++i) {
                 double a=i*2.39996323,d=2.*std::sqrt(double(i));auto q=advance(pickLon,pickLat,d*cos(a),d*sin(a));
                 if(ready(q.x,q.y)&&!blocked(q.x,q.y)){x0=q.x;y0=q.y;found=true;}
@@ -6557,7 +6635,8 @@ private:
             parkCar();
             playing=true;pending=false;warming=false;showMap(false);request(lon,lat);
             saida::Log::info("[World] spawned ",lon,", ",lat," altitude=",alt,
-                             waterSpawn?" swimming":" on foot",
+                             waterSpawn?" swimming":onWater(lon,lat)?" on foot, wading in "+
+                                 std::to_string(waterLevel(lon,lat)-alt)+" m of water":" on foot",
                              tile(lon,lat)->data.value("provisional",false)?" (ground first, OSM on its way)"
                              :tile(lon,lat)->data.value("offlineApproximation",false)
                                  ?" (simplified offline terrain)":"");
@@ -6709,6 +6788,11 @@ public:
         if(!inspectAt||worldCapture.pngPath.empty())throw std::runtime_error("--weather requires --at and --screenshot");
         inspectWeather=conditions;
     }
+    void inspectHeat(double temperature) {
+        if(!inspectAt||worldCapture.pngPath.empty()||!std::isfinite(temperature)||temperature < -100||temperature>65)
+            throw std::runtime_error("--temperature requires --at, --screenshot and a finite temperature in [-100,65]");
+        inspectTemperature=temperature;
+    }
     void captureFromAltitude(double metres) {captureAltitude=metres;}
     void captureAtGeography(std::array<double,3> camera) {captureGeo=camera;}
     void ProcessEvent(Rml::Event& event) override {
@@ -6808,9 +6892,15 @@ public:
         if(forcedMinutes!=12*60)return fail("the 12:00 preset did not apply");
         testClick("forced-clear",false);
         if(forcedMinutes||forcedSent)return fail("Heure réelle did not give the Sun back to the clock");
+        // From the menu no tile may be resident yet: forcing the weather there
+        // once threw "Missing terrain" and closed the game.
+        testClick("weather-clear",false);
+        if(forcedWeather!=r1::WeatherOverride::Clear)return fail("Dégagé did not force clear weather");
+        testClick("weather-real",false);
+        if(forcedWeather!=r1::WeatherOverride::Real)return fail("Météo réelle did not restore the forecast");
         testClick("options-back",false);
         if(optionsOpen)return fail("Retour did not close the screen");
-        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored)");
+        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu)");
         // A street by day for the walk and the fight: R1WORLD_SMOKE_HOUR=HH:MM
         // forces the local hour as the Options screen would. Night empties it.
         if(const char* hour=std::getenv("R1WORLD_SMOKE_HOUR")) {
@@ -7681,7 +7771,7 @@ public:
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
         cost.props=timed([&]{streamProps(fast);});
         cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
-        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
+        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
         if((farPack.node!=nullptr)!=fogFar)applyWeather();
@@ -7714,6 +7804,10 @@ public:
         double f=(w.keyDown(GLFW_KEY_W)||w.keyDown(GLFW_KEY_Z)?1.:0.)-(w.keyDown(GLFW_KEY_S)?1.:0.);
         double r=(w.keyDown(GLFW_KEY_D)?1.:0.)-(w.keyDown(GLFW_KEY_A)||w.keyDown(GLFW_KEY_Q)?1.:0.);
         if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
+        if(wadeTo&&smokeStarted) {
+            const auto to=origin.local(ecef(wadeTo->x,wadeTo->y,alt))-origin.local(ecef(lon,lat,alt));
+            yaw=std::atan2(to.x,-to.z)/rad;
+        }
         if(idleSmoke&&smokeStarted&&smokeWalk>1.) {
             f=r=0;
             if(!idleSmokeStopped){idleSmokeStopped=true;idleSmokeStart=ecef(lon,lat,alt);}
@@ -7789,13 +7883,15 @@ public:
                 const double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
                 const auto next=onward(lon,lat,east,north);
                 if(tile(next.x,next.y)) {
-                    if(navigable(next.x,next.y)) {
+                    if(deepWater(next.x,next.y)) {
                         lon=next.x;lat=next.y;alt=waterLevel(lon,lat);moving=true;
                         swimHeading=wrap(std::atan2(east,north)/rad);
-                    } else if(!blocked(next.x,next.y,alt)) {
+                    } else if(!obstructed(next.x,next.y,alt)) {
+                        const bool wading=onWater(next.x,next.y);
                         lon=next.x;lat=next.y;alt=height(lon,lat,alt);swimming=false;moving=true;
-                        text("stream-status","À terre.");
-                        saida::Log::info("[World swim] ashore at ",lon,", ",lat);
+                        text("stream-status",wading?"Vous avez pied.":"À terre.");
+                        if(wading)saida::Log::info("[World swim] standing at ",lon,", ",lat," in ",waterLevel(lon,lat)-alt," m of water");
+                        else saida::Log::info("[World swim] ashore at ",lon,", ",lat);
                     }
                     if(moving)swimHeading=wrap(std::atan2(east,north)/rad);
                 } else text("stream-status","Les données suivantes arrivent… nage retenue au bord du terrain.");
@@ -7811,15 +7907,20 @@ public:
             // People are bodies: he stops at them and slides round them.
             auto next=moveFeet(east,north,dt);
             if(tile(next.x,next.y)) {
-                if(onWater(next.x,next.y,alt)) {
+                // What his feet rest on there: the ground, a deck, or whatever
+                // the character solver stood him on.
+                const double support=std::max(height(next.x,next.y,alt),next.z);
+                if(deepWater(next.x,next.y,support)) {
                     lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
                     swimming=true;swimTime=0;swimLean=0;
                     swimHeading=wrap(std::atan2(east,north)/rad);
                     jumpOffset=jumpVelocity=0;moving=true;
                     text("stream-status","À l'eau — nagez vers la rive.");
-                    saida::Log::info("[World swim] entered water at ",lon,", ",lat);
+                    const auto bed=waterBed(lon,lat);
+                    if(bed)saida::Log::info("[World swim] entered water at ",lon,", ",lat," depth=",waterLevel(lon,lat)-*bed," m");
+                    else saida::Log::info("[World swim] entered water at ",lon,", ",lat," (no known bed: deep)");
                 } else {
-                    lon=next.x;lat=next.y;alt=std::max(height(lon,lat,alt),next.z);moving=true;
+                    lon=next.x;lat=next.y;alt=support;moving=true;
                     auto facing=glm::angleAxis(float(-std::atan2(east,north)),glm::vec3(0,1,0));
                     player->transform().rotation=glm::slerp(player->transform().rotation,facing,float(1-std::exp(-16*dt)));
                 }
@@ -7829,7 +7930,10 @@ public:
             // Standing still, he is still a body: whoever walks into him
             // meets his feet, and a shoulder moves him a little.
             const auto nudged=moveFeet(0,0,dt);
-            if(tile(nudged.x,nudged.y)&&!onWater(nudged.x,nudged.y,alt)){lon=nudged.x;lat=nudged.y;alt=std::max(height(lon,lat,alt),nudged.z);}
+            if(tile(nudged.x,nudged.y)) {
+                const double support=std::max(height(nudged.x,nudged.y,alt),nudged.z);
+                if(!deepWater(nudged.x,nudged.y,support)){lon=nudged.x;lat=nudged.y;alt=support;}
+            }
         }
         // Not while he lies in the ragdoll: its bodies follow his node, which
         // the rebase does not carry. He is up again in a few seconds.
@@ -7855,7 +7959,7 @@ public:
                 else{jumpVelocity=-kFallTerminal;jumpOffset+=jumpVelocity*dt;}
                 if(jumpOffset<=0) {
                     // Come down on water, from an aircraft: he swims.
-                    if(jumpVelocity<-5.&&tile(lon,lat)&&onWater(lon,lat,alt)) {
+                    if(jumpVelocity<-5.&&tile(lon,lat)&&deepWater(lon,lat,alt)) {
                         swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);
                         text("stream-status","À l'eau — nagez vers la rive.");
                     } else if(jumpVelocity<0)landed(-jumpVelocity);
@@ -8063,6 +8167,21 @@ public:
                                          " type=",int(m.type)," rgb=",m.baseColor.r,",",m.baseColor.g,",",m.baseColor.b);
                     }
                 });
+                size_t spots=0,gear=0,swimmers=0,resting=0;
+                for(const auto& [key,t]:loaded) {
+                    spots+=t.beachSpots.size();
+                    for(const auto& v:t.beachVisitors)if(v.spot>=0) {
+                        gear+=v.furniture&&v.furniture->enabled();
+                        const auto& spot=t.beachSpots[size_t(v.spot)];
+                        const auto pose=r1::beachPose(spot.towel,spot.water,v.age,unsigned(v.spot));
+                        swimmers+=pose.swimming;resting+=pose.recline>.9;
+                    }
+                }
+                const auto beachWeather=effectiveWeather();
+                saida::Log::info("[World beach] spots=",spots," visitors=",beachLive," towels=",gear,
+                    " resting=",resting," bathing=",swimmers," temperature=",beachWeather.temperature,
+                    " known=",beachWeather.temperatureKnown," factor=",
+                    r1::beachAttendance(localSolarHour(),beachSun,beachWeather));
                 captureQueued=true;engine.captureFrameThenExit(worldCapture);
             }
         }
@@ -8135,6 +8254,31 @@ public:
                     " grounded=",feet->isOnFloor()," clip=",animators.front()->currentClip());
                 testFailed=!passed;smokeStarted=false;engine.sceneTree().quit();return;
             }
+        }
+        if(wadeSmoke&&smokeStarted) {
+            auto fail=[&](const std::string& why){
+                saida::Log::error("[World E2E] FAIL wade: ",why);testFailed=true;engine.sceneTree().quit();
+            };
+            if(!wadeTo) {
+                std::istringstream in(wadeSmoke);double x=0,y=0;
+                if(!(in>>x>>y)||!std::isfinite(x)||!std::isfinite(y))return fail(std::string("R1WORLD_WADE_SMOKE '")+wadeSmoke+"' is not '<lon> <lat>'");
+                wadeTo=glm::dvec2(x,y);
+            }
+            if(swimming)return fail("swimming at "+number(lon,6)+", "+number(lat,6)+" after "+number(wadeOverWater,1)+
+                                    " m over water, feet at "+number(alt,2)+" m");
+            if(onWater(lon,lat)) {
+                wadeOverWater+=std::hypot(footEast,footNorth)*std::min(.05,double(delta));
+                wadeDeepest=std::max(wadeDeepest,waterLevel(lon,lat)-alt);
+            }
+            const double left=metresFrom(wadeTo->x,wadeTo->y);
+            if(left<2.||smokeWalk>40.) {
+                if(left>=2.)return fail("stopped "+number(left,1)+" m short of the target, at "+number(lon,6)+", "+number(lat,6));
+                if(wadeOverWater<1.)return fail("the walk never crossed a water cell");
+                saida::Log::info("[World E2E] PASS wade: ",wadeOverWater," m walked over water cells, deepest ",
+                                 wadeDeepest," m of water at the feet (swims from ",playerHeight*kSwimDepth," m)");
+                smokeStarted=false;engine.sceneTree().quit();
+            }
+            return;
         }
         if(!idleSmoke&&smokeStarted&&smokeWalk>4) {
             if(!smokeRan||!smokeJumped||jumpOffset!=0||followDistance<.15||followDistance>kOnFootFollow+.001){
@@ -8327,6 +8471,12 @@ int main(int argc,char** argv) {
             if(conditions[0]<0.||conditions[0]>1.||conditions[1]<0.||conditions[2]<0.)
                 throw std::runtime_error("--weather requires cloud in [0,1], nonnegative rain and visibility");
             world.inspectConditions(conditions);
+        }
+        for(int i=1;i<argc;++i)if(std::string(argv[i])=="--temperature") {
+            if(i+1>=argc)throw std::runtime_error("--temperature requires degrees Celsius");
+            std::string value=argv[i+1];size_t end=0;double temperature=std::stod(value,&end);
+            if(end!=value.size())throw std::runtime_error("Invalid --temperature value");
+            world.inspectHeat(temperature);
         }
         const saida::Engine::FrameFn followPhysics=[&](float dt){world.afterSimulation(dt);};
         engine.setOnFrame([&](float dt){

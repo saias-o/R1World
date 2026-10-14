@@ -19,6 +19,7 @@
 #include "spatial.hpp"
 #include "gardens.hpp"
 #include "ground.hpp"
+#include "beach.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -142,11 +143,18 @@ CookedTile cookTile(const Observations& in) {
     std::vector<const ElevationGrid*> known{&in.elevations};
     for (const ElevationGrid& g : in.around) known.push_back(&g);
     nlohmann::json peakReport;
-    const ElevationGrid surveyed = raiseToPeaks(in.elevations, in.peaks, known, &peakReport);
+    ElevationGrid surveyed = raiseToPeaks(in.elevations, in.peaks, known, &peakReport);
     peakReport["source"] = in.peaksSource;
     std::vector<ElevationGrid> around;
     for (const ElevationGrid& g : in.around) around.push_back(raiseToPeaks(g, in.peaks, known));
     const Anchor anchor = Anchor::at(center.x, center.y, 0);
+    HarbourStats harbour;
+    auto sea = in.offline ? offlineSea(bounds) : seaGeometry(osm.coastlines,bounds,
+        [&](double x,double y){return surveyed.sample(x,y);},harbour.coastline);
+    if(in.offline)harbour.coastline="Natural Earth 1:110m approximation";
+    const BeachPlan beach(osm,anchor,bounds,sea ? &*sea : nullptr);
+    surveyed=beach.sculpt(surveyed);
+    for(auto& neighbour:around)neighbour=beach.sculpt(neighbour);
     // What the maps do not say comes first: the crossings the model predicts
     // are bridges, and bridges decide where the roads leave the ground and
     // where the ground is dug under them. Everything after stands on that.
@@ -327,14 +335,6 @@ CookedTile cookTile(const Observations& in) {
     std::vector<MeshPart> totemParts=totems.parts();
 
     // Rank 9: the terrain partitioned by what OSM says the ground is.
-    HarbourStats harbour;
-    std::optional<Sea> sea;
-    if (in.offline) {
-        sea = offlineSea(bounds);
-        harbour.coastline = "Natural Earth 1:110m approximation";
-    } else {
-        sea = seaGeometry(osm.coastlines, bounds, elevationAt, harbour.coastline);
-    }
     const auto tidal = tidalWater(osm.landcover, osm.maritime);
     const bool aridChannels=fuelCountry=="MA" && center.y<32.;
     const clip::Paths64 inland = inlandWaterRegion(osm.waterways, anchor,aridChannels,osm.waterAreas);
@@ -364,14 +364,23 @@ CookedTile cookTile(const Observations& in) {
     const GroundInference groundInference(osm,bounds,profile,fuelCountry,finalBuildingHeights);
     auto classify = [&](double x, double y) -> std::string {
         if (cells.at(x, y) > 0) return "water";
+        const auto coastal=anchor.toEngine(x,y,0);
+        if(beach.sand({coastal.x,coastal.z}))return "sand";
         const std::string* found = landcover.at(x, y);
+        if(beach.behindCoastalRoad({coastal.x,coastal.z})||
+           (beach.protectedHarbour({coastal.x,coastal.z})&&found&&*found=="sand"))found=nullptr;
         const std::string name = groundInference.at(x,y,found);
         if (name == "water") return name;
         return name + coldSuffix(y, elevations.sample(x, y), climate);
     };
+    auto terrainAdjust=[&](int r,int c,double h) {
+        const auto p=anchor.toEngine(bounds.west+(bounds.east-bounds.west)*c/kWaterGrid,
+            bounds.south+(bounds.north-bounds.south)*r/kWaterGrid,0);
+        return !beach.protectedHarbour({p.x,p.z})&&std::abs(beach.sample({p.x,p.z}).inland)<100 ? h : cells.adjust(r,c,h);
+    };
     TerrainGrid drawnGround;
     auto terrain = buildTerrain(bounds, elevations, anchor, classify,
-                                [&](int r, int c, double h) { return cells.adjust(r, c, h); }, &drawnGround);
+                                terrainAdjust, &drawnGround);
     std::vector<MeshPart> terrainParts;
     std::map<std::string, int> groundStats;
     for (auto& [name, mesh] : terrain) {
@@ -436,6 +445,7 @@ CookedTile cookTile(const Observations& in) {
         return c && *c == "water";
     });
 
+    const auto beachParts=beach.surfaces(elevations,streets.ground);
     auto assemble = [&](std::vector<MeshPart>& harbourParts, bool baselineBuildings = true) {
         std::vector<MeshPart> parts;
         for (auto* list : {&terrainParts, &streets.parts, &bridges.parts, &harbourParts,
@@ -445,6 +455,7 @@ CookedTile cookTile(const Observations& in) {
         for (const MeshPart& p : parking.parts) parts.push_back(p);
         for (const MeshPart& p : totemParts) parts.push_back(p);
         for (const MeshPart& p : gardens.parts) parts.push_back(p);
+        for (const MeshPart& p : beachParts) parts.push_back(p);
         if(!dryChannels.empty()) {
             Mesh bed(UvMode::Planar);
             Drape(elevations,anchor).lay(clip::subtract(dryChannels,streets.ground),.045,bed);
@@ -516,8 +527,7 @@ CookedTile cookTile(const Observations& in) {
         nature.stats = {{"revision", 3}, {"placed", 0}};
     } else if (ocean) {
         out.ocean = seaNode(bounds, anchor, "Ocean");
-        out.ocean["amplitude"] = 0.05;
-        out.ocean["wavelength"] = 12.0;
+
         props.stats = {{"placed", 0}, {"droppedForBudget", 0}, {"byKind", nlohmann::json::object()}};
         nature.stats = {{"revision", 3}, {"placed", 0}};
     } else {
@@ -571,6 +581,16 @@ CookedTile cookTile(const Observations& in) {
         // trees, not a sample of them (see kMeasuredNatureBudget).
         nature = planNature(osm, tile, anchor, ground, in.canopy ? kMeasuredNatureBudget : 320,
                             in.canopy ? &*in.canopy : nullptr, &roadside, &gardens.drives);
+        const auto beforeBeachNature=nature.nodes.size();
+        nature.nodes.erase(std::remove_if(nature.nodes.begin(),nature.nodes.end(),[&](const nlohmann::json& n){
+            const auto name=n.value("name",std::string());
+            if(name.find("osm-point")!=std::string::npos||name.find("osm-row")!=std::string::npos||
+               name.find("canopy-measured")!=std::string::npos)return false;
+            const auto& p=n.at("transform").at("position");
+            return beach.sand({p[0].get<double>(),p[2].get<double>()});
+        }),nature.nodes.end());
+        nature.stats["beachExcludedInferred"]=beforeBeachNature-nature.nodes.size();
+        nature.stats["placed"]=nature.nodes.size();
         // The signs were placed on the surveyed ground: they stand on the dug
         // one, or on the embankment beside them.
         for (auto& n : predicted.nodes) {
@@ -587,7 +607,10 @@ CookedTile cookTile(const Observations& in) {
         for (auto& n : predicted.nodes) out.props.push_back(n);
         for (auto& n : nature.nodes) out.props.push_back(n);
         for (auto& n : props.nodes) out.props.push_back(n);
-        if (cells.hasSea()) out.props.push_back(seaNode(bounds, anchor));
+        if (cells.hasSea()) {
+            auto surf=beach.water(elevations,streets.ground);
+            out.props.push_back(surf.is_null()?seaNode(bounds,anchor):surf);
+        }
         const auto berths = planBoats(osm, anchor, cells, profile, climate, harbour);
         auto [boatChildren, manifest] = boatNodes(berths, anchor);
         boats = manifest;
@@ -681,6 +704,7 @@ CookedTile cookTile(const Observations& in) {
         {"water", pack ? pack->water : cells.rows()}, {"decks", works.decks},
         {"dryStreets", pack || ocean ? nlohmann::json::array() : dryStreets(streets.ground, cells, anchor)}, {"boats", boats}, {"harbour", harbour.json()},
         {"props", props.stats},
+        {"beach",beach.report()}, {"beachSpots",ocean||pack?nlohmann::json::array():beach.population(elevations,streets.ground)},
         {"aircraft", ocean ? nlohmann::json::array() : airports.aircraft}, {"airports", airports.stats},
         {"airportsPending", in.airportsPending}, {"provisional", in.provisional}, {"landmarks", ocean ? nlohmann::json::array() : landmarks.manifest},
         {"landmarkRevision", kLandmarkRevision},

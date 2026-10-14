@@ -126,6 +126,8 @@ function setWeather(cloudFraction, precipitation, visibility, groundAltitude) {
 
 // How much daylight there is, 0 at night to 1 by day: what the game dims its
 // own particles by (falling and blowing snow), which the light does not reach.
+function sunElevation() { return sunLight(gameTime()).sun.elevation; }
+
 function daylight() {
     return skyLight(sunLight(gameTime()).sun.elevation).daylight;
 }

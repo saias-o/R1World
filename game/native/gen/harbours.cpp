@@ -424,6 +424,32 @@ std::optional<clip::Paths64> tidalWater(const std::vector<OsmWay>& landcover, co
     return clip::unite(keep);
 }
 
+clip::Paths64 harbourProtection(const OsmData& osm,const Anchor& anchor) {
+    clip::Paths64 protectedGround;
+    auto append=[&](clip::Paths64 paths){protectedGround.insert(protectedGround.end(),paths.begin(),paths.end());};
+    auto port=[](const Tags& t) {
+        return tagOr(t,"leisure")=="marina"||tagOr(t,"landuse")=="port"||tagOr(t,"landuse")=="harbour"||
+            tagOr(t,"industrial")=="port"||tagOr(t,"industrial")=="shipyard"||
+            (has(t,"harbour")&&tagOr(t,"harbour")!="no")||tagOr(t,"seamark:type")=="harbour"||
+            tagOr(t,"water")=="harbour"||tagOr(t,"water")=="dock"||tagOr(t,"waterway")=="dock";
+    };
+    for(const auto* ways:{&osm.maritime,&osm.landcover,&osm.waterways,&osm.barriers})for(const auto& w:*ways) {
+        if(w.points.size()<2)continue;
+        const auto line=enginePoints(anchor,w.points);
+        const auto kind=tagOr(w.tags,"man_made");
+        if(port(w.tags))append(w.closed()?clip::bufferRing(line,30):clip::bufferRound(line,50));
+        else if(kind=="quay"||kind=="pier"||kind=="breakwater"||tagOr(w.tags,"barrier")=="seawall")
+            append(w.closed()?clip::bufferRing(line,25):clip::bufferRound(line,25));
+    }
+    for(const auto& area:osm.waterAreas)if(port(area.tags))for(const auto& ring:area.outers)
+        append(clip::bufferRing(enginePoints(anchor,ring),30));
+    for(const auto& n:osm.features)if(port(n.tags)) {
+        const auto p=anchor.toEngine(n.lon,n.lat,0);
+        append(clip::bufferRound({{p.x,p.z},{p.x+.001,p.z}},140));
+    }
+    return clip::unite(protectedGround);
+}
+
 Cells::Cells(const Bounds& bounds, int size, const Sea* sea, const Landcover& landcover,
              const std::function<double(double, double)>& elevationAt, const clip::Paths64* tidal,
              const std::function<bool(double, double)>& inlandAt)

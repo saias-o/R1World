@@ -177,7 +177,9 @@ in the log whose path is printed at the end.
 | `--sail` | board a boat and sail (e.g. Vieux-Port `5.3698 43.2951`) |
 | `--fly` | take off in a jet, stop against a building, land; then a helicopter, hover, jump out (Roissy `2.5700 49.0060`, Villacoublay `2.1900 48.7725`) |
 | `--screenshot <png>` | capture the frame after the spawn; with `--camera-pos`, `--camera-look`, `--after-frames` |
+| `--temperature <C>` | inspection temperature, with `--at` and `--screenshot`; finite range −100..65 °C |
 | `R1WORLD_RETAIL_SMOKE=1` | enter a shop, walk an aisle, leave, close, evict, regenerate |
+| `R1WORLD_WADE_SMOKE="<lon> <lat>"` | walk from the spawn to that point over water cells; fail the moment he swims (Penvins groyne: spawn `-2.681180 47.493875`, target `-2.681700 47.493785`) |
 | `R1WORLD_INTERIOR_SMOKE=home\|school\|office\|police\|garage` | the same for one ordinary-building recipe |
 | `R1WORLD_RETAIL_SHOT=<png>`, `R1WORLD_RETAIL_SHOT_AT=outside\|inside\|anchor\|room` | photograph a store or a room and end the run |
 | `R1WORLD_FLY_SHOT=<png>`, `R1WORLD_FLY_SHOT_AT=stand\|climb\|stop\|heli-stand\|heli\|jump` | photograph that moment of `--fly` |
@@ -529,9 +531,23 @@ hold every class in its range. The building palettes have not yet been
 re-derived the same way.
 
 Each tile also ships the grid it was classified on (40 rows of 40 characters:
-land, inland water, sea-level water). It is what decides water for walking:
-walking or spawning into water starts swimming, with the head above the
-surface.
+land, inland water, sea-level water). It says where the water is; its depth
+decides how the player moves. He swims, head above the surface, when half his
+height or more is under the water, and walks on the bed otherwise. That holds
+when walking in or out, spawning, landing from a jump, an aircraft or a boat,
+and when a car sinks. A cell is 25 m wide, so a rock, a sandbar or the swash
+inside a water cell is ground where its ground is above that depth.
+
+His bed is what his feet rest on, as the character solver found it: a
+groyne, a breakwater or a slipway is a collision mesh, absent from the ground
+grid and from `height`, and it still holds him above the water. Elsewhere the
+bed is the tile's ground grid, but the relief sources stop at the shore:
+open sea reads exactly 0.0 m at every grid point, and inland water is drawn on
+its own ground. Where a grid quad's four corners all read 0.0 m, or the water
+is inland, no bed is known and the water counts as deep. Only the beach
+generator's shore profile, rocks and shoals give the sea a measurable depth.
+The log gives the depth on each entry (`[World swim] entered water ...
+depth=`, `standing at ... in ... m of water`, `spawned ... wading in ...`).
 
 ### Photographed surfaces
 
@@ -2478,3 +2494,43 @@ checksums are in `assets/THIRD_PARTY_ASSETS.json`, and attribution is visible
 in game.
 
 Generator v35 reads inland-water multipolygons (OSM query v14), joins reversed shoreline members, preserves inner land rings and rejects incomplete rings. Kawaguchi relation 2313174 was refreshed from the official OSM API; the targeted check and offline capture passed. Water geometry is clipped to each resident tile, and inferred vegetation is excluded from the lake. Distant water beyond resident tiles still uses the coarse relief.
+
+
+### Coastal beaches (generator v49)
+
+The coastal apron follows OSM coastlines, with a fallback from the offline sea
+outline that ignores tile clipping edges. Unmapped coast gets a narrow sand
+apron; mapped beach/sand/dune polygons retain their wider extent. A gentle
+shore profile and low dunes blend back into surveyed relief. Mapped roads,
+paths and buildings keep their ground. Roads and paths split the sand region:
+only components connected to the waterline remain beaches, and landward
+components lose the beach material and dune inference. Perpendicular beach
+accesses preserve the shore on both sides. Short inferred access trails connect
+to real paths/roads only through clear corridors.
+
+Ports take priority over beach inference: marinas, harbour/dock polygons and
+port land use, plus buffered quays, piers, breakwaters and harbour points,
+exclude sand, dune grading and visitors. Harbour geometry and berth generation
+continue through the existing port pipeline. The manifest reports sand area,
+port protection, excluded landward area and access area as inferred geometry.
+
+A single shaped WaterNode per coastal tile carries signed vertex depths.
+Its swash follows the curved waterline; wet sand darkens gradually, foam breaks
+into moving patches and the offshore wave spectrum matches sea tiles. This is
+visual surf, with no fluid simulation or tide model. Geometry is cooked once;
+there is no per-frame shoreline search in the fragment shader.
+
+Beach attendance uses the live measured temperature, clouds, rain, snow, wind,
+local solar hour and sun elevation. It grows smoothly between 18 and 30 C,
+peaks during daytime and declines with clouds/wind. Below 18 C, during rain,
+snow, thunderstorms, strong wind, night, or unknown temperature/weather, all
+beach visitors and their equipment are disabled. A clear-sky override preserves
+the measured temperature; it cannot turn an 8 C day into a beach day.
+
+Stable spots carry shared towel/umbrella meshes and existing human rigs/LODs.
+Visitors rest, rise, walk to the water, bathe, return and lie down again on
+staggered cycles. The cap is 24 live beach visitors within 100 m of the camera,
+12 per tile, sharing the existing 60-person crowd budget; only one new visitor
+is created per frame and distant poses update at lower frequency. Beach spots
+and attendance are inferred, not observations of real people. Separate deck
+chairs and dedicated swimsuit assets remain outside this delivery.

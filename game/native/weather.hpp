@@ -42,6 +42,8 @@ struct WeatherState {
     double cover = 0, rain = 0, visibility = 0, windSpeed = 0, windFrom = 0, snowfall = 0, snowDepth = 0;
     int code = -1;
     bool known = false;
+    double temperature = 0;
+    bool temperatureKnown = false;
 };
 
 inline WeatherState weatherPreset(WeatherOverride mode) {
@@ -69,9 +71,14 @@ inline WeatherState resolveWeather(const WeatherState& observed, bool local,
         sample.known = true; sample.cover = (*inspection)[0];
         sample.rain = (*inspection)[1]; sample.visibility = (*inspection)[2];
         sample.code = sample.rain > 0. ? 61 : 0;
+        if(local){sample.temperature=observed.temperature;sample.temperatureKnown=observed.temperatureKnown;}
         return sample;
     }
-    if (mode != WeatherOverride::Real) return weatherPreset(mode);
+    if (mode != WeatherOverride::Real) {
+        auto sample=weatherPreset(mode);
+        if(local){sample.temperature=observed.temperature;sample.temperatureKnown=observed.temperatureKnown;}
+        return sample;
+    }
     return local ? observed : WeatherState{};
 }
 

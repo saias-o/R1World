@@ -773,11 +773,19 @@ ni une technique nouvelle publiée, ni un réalisme ou un coût déjà démontr�
 - **Optimisé** : instances partagées et animations simples, avec un budget par
   tuile et rien au-delà du rayon proche.
 
-### Beach update
-- Sur les plages OSM (`natural=beach`) quand l'heure, la saison et la météo s'y
-  prêtent : parasols, serviettes, transats et baigneurs dans l'eau et sur le
-  sable. La densité suit la chaleur et l'heure, et le manifeste dit que c'est
-  inféré.
+### Beach update — générateur v49
+- Sable sur le littoral, étendue élargie sur les plages/sables OSM, profil de
+  rivage, dunes basses et accès. Les ports, quais, bassins et jetées ont
+  priorité et restent exclus. Routes et chemins arrêtent la plage : seules
+  les composantes reliées au rivage gardent du sable, côté mer.
+- Eau côtière courbe avec profondeur signée, ressac et écume fragmentée,
+  transition du sable humide au sec et spectre commun avec la mer au large.
+- Serviettes, parasols et foule au repos / aller-retour vers l'eau. Présence
+  progressive selon chaleur, soleil et heure ; aucune installation ni baignade
+  par froid, pluie, neige, nuit ou météo inconnue. Budget partagé avec la foule
+  existante, ressources partagées et poses cadencées selon la distance.
+- Le manifeste distingue les surfaces et placements inférés. Les transats
+  séparés restent à faire. Détails et limites : `game/README.md`.
 
 ### Intérieurs, la suite
 Le rez-de-chaussée est aménagé (§7). Reste :

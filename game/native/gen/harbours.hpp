@@ -24,6 +24,10 @@ std::optional<Sea> offlineSea(const Bounds& bounds);
 // Mapped water that is the sea's though no coastline crosses the tile.
 std::optional<clip::Paths64> tidalWater(const std::vector<OsmWay>& landcover, const std::vector<OsmWay>& maritime);
 
+// Surveyed harbour infrastructure owns its ground and shoreline. Coastal
+// inference must not sculpt, paint sand or populate these regions.
+clip::Paths64 harbourProtection(const OsmData& osm, const Anchor& anchor);
+
 // The tile's cells: 0 land, 1 inland water, 2 sea-level water. The same grid
 // the terrain is partitioned on and the game walks and sails on.
 class Cells {
