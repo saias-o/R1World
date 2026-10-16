@@ -20,6 +20,25 @@ TEST(Combat, health_counts_down_to_the_one_blow_that_kills) {
     CHECK(h.hp == h.max && !h.dead());
 }
 
+TEST(Combat, an_invincible_body_takes_nothing_until_its_time_runs_out) {
+    Health h;
+    h.protect(300);
+    CHECK(h.invincible());
+    CHECK(!h.take(1000));
+    CHECK(h.hp == h.max);
+    h.tick(120);
+    h.protect(60);  // a shorter second code does not cut the first one short
+    CHECK(h.shield == 180);
+    h.tick(179.5);
+    CHECK(h.invincible() && !h.take(500));
+    h.tick(1);
+    CHECK(!h.invincible() && h.shield == 0);
+    CHECK(!h.take(40));
+    CHECK(h.hp == 60);
+    h.tick(-5);  // time does not run backwards into a new shield
+    CHECK(!h.invincible());
+}
+
 TEST(Combat, a_pistol_empties_its_magazine_clicks_and_reloads_from_the_reserve) {
     Arsenal a;
     CHECK(a.held() == Weapon::Fists);

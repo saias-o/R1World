@@ -60,6 +60,33 @@ Node smoke; these build checks do not claim browser menu interaction coverage.
 | F | take the nearest car, boat or aircraft | get out at any speed | get out, at any moment |
 | Mouse | orbit the camera | turn the head | |
 | M / Échap | the map; **Reprendre** returns (M toggles water in debug) | | |
+| T | type a cheat code (T toggles trees in debug) | | |
+
+### Cheat codes
+
+As in GTA, **T** opens a line above the controls; type a code, **Enter** runs
+it, **Escape** closes it. Case and surrounding spaces do not matter. While the
+line is open its canvas has the keyboard (Saida's
+`UIInteractionSystem::focusWebCanvas`) and the game reads none of its own keys,
+so typing `comet` neither walks nor toggles the debug panel.
+
+| Code | Effect |
+|---|---|
+| `buzzoff` | a helicopter beside you |
+| `plane` | a business jet beside you |
+| `comet` | the fleet's sports car, in its reddest paint, parked beside you |
+| `painkiller` | invincible for 5 minutes; the HUD counts down under the health bar |
+
+A vehicle stands parallel to the player, ahead of him for an aircraft and to
+his right for the car, on loaded dry ground clear of walls and bodies, within
+40 m; a jet wider than the street may overhang a pavement when nowhere nearer
+has room for its span, never with its fuselage. It is left standing like one he
+stepped out of: **F** takes it, and the usual limits clear the oldest. A code
+that cannot be done says why on screen and in the log (`[World cheat]`): in
+flight, or no room. Invincible, nothing takes a hit point and a fall no longer
+knocks him down; a car still throws him, unhurt. The rules are
+`native/cheats.hpp`; `Cheats.*` and `Combat.an_invincible_body_*` hold them and
+the smoke types every code as a player does.
 
 On foot, the camera follows 3.8 m behind the player and moves closer when
 obstacles or terrain block the view.

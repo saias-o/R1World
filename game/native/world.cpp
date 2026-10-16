@@ -64,6 +64,7 @@
 #include "density_policy.hpp"
 #include "combat.hpp"
 #include "combat_kit.hpp"
+#include "cheats.hpp"
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -1172,6 +1173,8 @@ class World : public Rml::EventListener {
     bool wasWeaponKey[2]{};
     double fightClock=0,arrivalClock=0;
     bool playerDown=false,wasted=false; double downClock=0;
+    // The cheat line (World::updateCheats): open, the keys are its own.
+    bool cheatOpen=false,wasCheatKey=false,wasCheatEnter=false,wasCheatEscape=false; double cheatSaidAt=-1e9;
     std::string punchTileKey; size_t punchSlot=0; bool punchAimed=false;  // whom a punch is thrown at
     double hurtShown=-1e9,recoil=0;
     size_t ragdollRefused=0;
@@ -1385,7 +1388,7 @@ class World : public Rml::EventListener {
     // ── the player hurt ──
 
     void hurtPlayer(double damage,const glm::vec3& push,const char* by) {
-        if(wasted||!player->enabled())return;
+        if(wasted||!player->enabled()||health.invincible())return;
         const bool killed=health.take(damage);
         for(size_t i=0;i<animators.size()&&i<playerImpacts.size();++i) {
             glm::mat3 body(animators[i]->node()->worldTransform());
@@ -1414,7 +1417,7 @@ class World : public Rml::EventListener {
     void landed(double speed) {
         if(fightClock-arrivalClock<4.)return;  // a spawn settling on the relief is not a fall
         const double damage=r1::combat::fallDamage(speed);
-        if(damage<=0)return;
+        if(damage<=0||health.invincible())return;
         sounds.play(r1::CombatSounds::Fall,followDistance,std::min(1.,speed/12.));
         hurtPlayer(damage,glm::vec3(0,-1,0),"la chute");
         if(!playerDown&&damage>=35)knockPlayerDown(glm::vec3(0,-1.f,0),glm::vec3(0),false);
@@ -1771,30 +1774,33 @@ class World : public Rml::EventListener {
     void updateCombat(double dt) {
         SAIDA_PROFILE_SCOPE("World/Combat");
         fightClock+=dt;
+        if(health.invincible()) {
+            health.tick(dt);
+            if(!health.invincible()){cheatSay("Fin de l'invincibilité.");saida::Log::info("[World cheat] invincibility over");}
+        }
         recoil=std::max(0.,recoil-dt*2.2);
         arsenal.update(dt);
         effects.update(float(dt));
         runOverPeople(dt);
         if(playerDown)updatePlayerDown(dt);
         const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown&&player->enabled();
-        auto& w=engine.window();
         if(!onFoot||menu||smoke) {
             if(aiming)setAiming(false);
-            wasFire=w.mouseButtonDown(GLFW_MOUSE_BUTTON_LEFT);
+            wasFire=clicked(GLFW_MOUSE_BUTTON_LEFT);
             if(!onFoot)for(auto* arm:playerArms)if(arm&&arm->weight()>0&&!playerDown)arm->release();
             if(onFoot&&smoke)poseArms();
             return;
         }
-        const bool keys[2]={w.keyDown(GLFW_KEY_1),w.keyDown(GLFW_KEY_2)};
+        const bool keys[2]={held(GLFW_KEY_1),held(GLFW_KEY_2)};
         if(keys[0]&&!wasWeaponKey[0])selectWeapon(r1::combat::Weapon::Fists);
         if(keys[1]&&!wasWeaponKey[1])selectWeapon(r1::combat::Weapon::Pistol);
         wasWeaponKey[0]=keys[0];wasWeaponKey[1]=keys[1];
-        const bool reloadKey=w.keyDown(GLFW_KEY_E);
+        const bool reloadKey=held(GLFW_KEY_E);
         if(reloadKey&&!wasReloadKey&&arsenal.reload())sounds.play(r1::CombatSounds::Reload,0,.8f);
         wasReloadKey=reloadKey;
-        const bool wantAim=arsenal.held()==r1::combat::Weapon::Pistol&&w.mouseButtonDown(GLFW_MOUSE_BUTTON_RIGHT);
+        const bool wantAim=arsenal.held()==r1::combat::Weapon::Pistol&&clicked(GLFW_MOUSE_BUTTON_RIGHT);
         if(wantAim!=aiming)setAiming(wantAim);
-        const bool fireDown=w.mouseButtonDown(GLFW_MOUSE_BUTTON_LEFT);
+        const bool fireDown=clicked(GLFW_MOUSE_BUTTON_LEFT);
         if(fireDown&&!wasFire) {
             if(arsenal.held()==r1::combat::Weapon::Fists){if(arsenal.pull()==r1::combat::Arsenal::Trigger::Fired)throwPunch();}
             else fire();
@@ -1814,12 +1820,189 @@ class World : public Rml::EventListener {
     void combatHud() {
         const int hp=int(std::ceil(health.hp));
         style("health-fill","width",std::to_string(int(std::round(health.fraction()*196)))+"px");
-        style("health-fill","background-color",hp>30?"#d5f5a4":"#e8664f");
+        style("health-fill","background-color",health.invincible()?"#f2d16b":hp>30?"#d5f5a4":"#e8664f");
+        style("shield","display",health.invincible()?"block":"none");
+        if(health.invincible())text("shield","Invincible · "+r1::cheats::clock(health.shield));
         text("health-value",std::to_string(hp));
         const bool pistolHeld=arsenal.held()==r1::combat::Weapon::Pistol;
         text("weapon-name",r1::combat::spec(arsenal.held()).name);
         text("weapon-ammo",pistolHeld?(arsenal.reloading()?"Rechargement…":std::to_string(arsenal.loaded())+" / "+std::to_string(arsenal.reserve())):"");
         style("hurt","display",fightClock-hurtShown<.45?"block":"none");
+    }
+
+    // ── cheat codes ─────────────────────────────────────────────────────────
+    //
+    // GTA's line: T opens it over the HUD, a word and Enter does what
+    // native/cheats.hpp says it does, Escape closes it. Open, it has the
+    // keyboard -- the engine routes keys and text to the canvas it is told
+    // has the focus -- and the game reads none of its own keys (World::held),
+    // or "comet" would walk the player forward and toggle the debug panel.
+    // A code that cannot be done here says why, on screen and in the log
+    // (CLAUDE.md rule 3).
+    bool held(int key) const {return !cheatOpen&&engine.window().keyDown(key);}
+    bool clicked(int button) const {return !cheatOpen&&engine.window().mouseButtonDown(button);}
+    void openCheat() {
+        cheatOpen=true;
+        field("cheat-input",std::string());
+        style("cheat-said","display","none");
+        style("cheat","display","block");
+        if(auto* input=ui->findElementById("cheat-input")){input->Focus(true);ui->notifyJsMutation();}
+        engine.uiInteraction().focusWebCanvas(ui);
+    }
+    void closeCheat() {
+        cheatOpen=false;
+        style("cheat","display","none");
+        if(auto* input=ui->findElementById("cheat-input")){input->Blur();ui->notifyJsMutation();}
+        engine.uiInteraction().focusWebCanvas(nullptr);
+    }
+    void cheatSay(const std::string& said) {text("cheat-said",said);cheatSaidAt=clock;}
+    void updateCheats() {
+        auto& w=engine.window();
+        const bool key=w.keyDown(GLFW_KEY_T),escape=w.keyDown(GLFW_KEY_ESCAPE),
+                   enter=w.keyDown(GLFW_KEY_ENTER)||w.keyDown(GLFW_KEY_KP_ENTER);
+        if(cheatOpen) {
+            if(enter&&!wasCheatEnter){const std::string typed=value("cheat-input");closeCheat();runCheat(typed);}
+            else if(escape&&!wasCheatEscape)closeCheat();
+            // A click with the cursor captured lands on no control and takes
+            // the canvas's focus away: the line keeps it while it is open.
+            else if(engine.uiInteraction().focusedWebCanvas()!=ui)engine.uiInteraction().focusWebCanvas(ui);
+        }
+        // With the debug panel open, T is its trees (ui/performance.html).
+        else if(key&&!wasCheatKey&&!performanceDebug&&!wasted&&!smoke)openCheat();
+        wasCheatKey=key;wasCheatEnter=enter;wasCheatEscape=escape;
+        style("cheat-said","display",!cheatOpen&&clock-cheatSaidAt<4.?"block":"none");
+    }
+    void runCheat(const std::string& typed) {
+        using r1::cheats::Code;
+        const Code code=r1::cheats::parse(typed);
+        if(code==Code::Unknown&&typed.find_first_not_of(" \t\r\n")==std::string::npos)return;
+        std::string refused;
+        switch(code) {
+        case Code::Helicopter: refused=spawnAircraft("helicopter");break;
+        case Code::Plane: refused=spawnAircraft("bizjet");break;
+        case Code::SportsCar: refused=spawnSportsCar();break;
+        case Code::Invincible: health.protect(r1::cheats::kInvincibleSeconds);combatHud();break;
+        case Code::Unknown: break;
+        }
+        cheatSay(code==Code::Unknown?"Code inconnu : "+typed:refused.empty()?r1::cheats::said(code):refused);
+        saida::Log::info("[World cheat] \"",typed,"\": ",code==Code::Unknown?"unknown":refused.empty()?"done":"refused");
+    }
+    // Where a vehicle `length` long and `width` wide stands parallel to the
+    // player: on loaded ground near his level, out of the water, clear of
+    // walls and bodies at every corner, middle and end, and clear of him.
+    // Ahead first for an aircraft, so he faces its tail within reach of it;
+    // to his right first for a car, where parkCar puts one; then a spiral
+    // out to 40 m. `wings`: when nowhere has room for a whole aircraft -- a
+    // city street is narrower than a jet's span -- one whose fuselage is
+    // clear may stand with its wing tips over a pavement; it taxis out of
+    // what it overhangs (World::moveAircraft lets a hull leave an obstacle).
+    bool roomBeside(double length,double width,bool ahead,bool wings,double& outLon,double& outLat) {
+        const double s=std::sin(yaw*rad),c=std::cos(yaw*rad);
+        auto at=[&](double x,double y,double along,double across){return onward(x,y,s*along+c*across,c*along-s*across);};
+        auto clear=[&](double x,double y){
+            if(!tile(x,y))return false;
+            const double level=height(x,y,alt+1.);
+            return std::abs(level-alt)<2.*kStepUp&&!blocked(x,y,level);
+        };
+        const double margin=driving?2.5:1.;
+        std::vector<glm::dvec2> spots;  // (along, across) from the player
+        if(ahead)spots.push_back({length*.5+3.,0.});
+        spots.push_back({0.,width*.5+2.5});spots.push_back({0.,-width*.5-2.5});
+        if(!ahead)spots.push_back({length*.5+3.,0.});
+        spots.push_back({-length*.5-3.,0.});
+        const double inner=std::max(length,width)*.5+2.;
+        for(int i=1;i<=160;++i) {
+            const double a=i*2.39996323,d=inner+(40.-inner)*std::sqrt(i/160.);
+            spots.push_back({d*std::cos(a),d*std::sin(a)});
+        }
+        for(const bool whole:{true,false}) {
+            if(!whole&&!wings)break;
+            for(const auto& spot:spots) {
+                if(std::abs(spot.x)<length*.5+margin&&std::abs(spot.y)<width*.5+margin)continue;  // on him
+                const auto centre=at(lon,lat,spot.x,spot.y);
+                bool fits=true;
+                for(double along:{-length*.5,0.,length*.5})
+                    for(double across:{-width*.5,0.,width*.5}) {
+                        if(!fits)break;
+                        const auto q=at(centre.x,centre.y,along,across);
+                        fits=across!=0.&&!whole?tile(q.x,q.y)!=nullptr:clear(q.x,q.y);
+                    }
+                // Nor on an aircraft standing there already: they have no body.
+                for(const auto& a:leftAircraft)
+                    if(fits&&a.type&&metresBetween(a.lon,a.lat,centre.x,centre.y)<(std::max(a.type->length,a.type->span)+std::max(length,width))*.5)fits=false;
+                if(!fits)continue;
+                outLon=centre.x;outLat=centre.y;
+                return true;
+            }
+        }
+        return false;
+    }
+    // BUZZOFF and PLANE: a helicopter or a business jet beside him, left
+    // standing like one he stepped out of -- F takes it, and the oldest of
+    // those beyond kLeftAircraft is cleared as always.
+    std::string spawnAircraft(const std::string& name) {
+        const auto* type=r1::aircraftType(name);
+        const auto prototype=aircraftPrototypes.find(name);
+        const bool rotor=type&&type->klass=="helicopter";
+        if(!type||prototype==aircraftPrototypes.end()) {
+            saida::Log::error("[World cheat] the aircraft fleet has no ",name);
+            return "Cet appareil n'est pas dans la flotte.";
+        }
+        if(piloting&&plane.airborne) {
+            saida::Log::info("[World cheat] no ",name," in flight");
+            return "Impossible en vol — posez-vous d'abord.";
+        }
+        double x=0,y=0;
+        parkingCar=true;  // a shop a walker may enter is a wall to it
+        const bool found=roomBeside(type->length,type->span,true,true,x,y);
+        parkingCar=false;
+        if(!found) {
+            saida::Log::warn("[World cheat] no room for a ",name," (",type->length," x ",type->span,
+                             " m) within 40 m of ",lon,", ",lat);
+            return std::string("Pas assez de place ici pour ")+(rotor?"un hélicoptère":"un avion")+" — trouvez un endroit dégagé.";
+        }
+        auto node=clonePlant(*prototype->second);
+        node->setName("cheat-"+name);
+        aircraftLod(*node);
+        Aircraft a;
+        a.node=engine.sceneTree().world().addChild(std::move(node));
+        a.type=type;a.lon=x;a.lat=y;a.yaw=yaw;a.alt=height(x,y,alt+1.);
+        collectAircraftParts(a);
+        keepAircraft(std::move(a));
+        saida::Log::info("[World cheat] a ",name," at ",x,", ",y," beside the player");
+        return {};
+    }
+    // COMET: the fleet's sports car in its reddest paint, parked beside him
+    // like a car he left; F takes it.
+    std::string spawnSportsCar() {
+        const auto spec=std::find_if(fleet.begin(),fleet.end(),[](const VehicleModel& m){return m.name=="sport";});
+        if(spec==fleet.end()) {
+            saida::Log::error("[World cheat] the road vehicle fleet has no sport car");
+            return "Aucune voiture de sport dans la flotte.";
+        }
+        if(piloting&&plane.airborne) {
+            saida::Log::info("[World cheat] no car in flight");
+            return "Impossible en vol — posez-vous d'abord.";
+        }
+        double x=0,y=0;
+        parkingCar=true;
+        const bool found=roomBeside(spec->length,spec->width,false,false,x,y);
+        parkingCar=false;
+        if(!found) {
+            saida::Log::warn("[World cheat] no room for a car within 40 m of ",lon,", ",lat);
+            return "Pas assez de place ici pour une voiture.";
+        }
+        auto node=clonePlant(*spec->prototype);
+        vehicleLod(*node);vehicleCollider(*node,*spec);
+        const auto red=std::max_element(paints.begin(),paints.end(),[](glm::vec3 a,glm::vec3 b){
+            return a.x/(a.y+a.z+.01f)<b.x/(b.y+b.z+.01f);});
+        if(red!=paints.end())paintCar(*node,*red);
+        auto* root=engine.sceneTree().world().addChild(std::move(node));
+        if(auto* drive=r1::VehicleRuntime::driver(*root))drive->parked=true;
+        keepParked({root,x,y,groundAt(x,y,alt),yaw});
+        placeCar();
+        saida::Log::info("[World cheat] a sport car at ",x,", ",y," beside the player");
+        return {};
     }
 
     // ── the smoke's fight ──
@@ -2136,6 +2319,7 @@ class World : public Rml::EventListener {
         style("pin","left",number(px,2)+"px");style("pin","top",number(py,2)+"px");
     }
     void showMap(bool show) {
+        if(show&&cheatOpen)closeCheat();
         menu=show;style("menu","display",show?"block":"none");style("hud","display",show?"none":"block");
         optionsOpen=false;style("options-screen","display","none");
         minimapUi->setEnabled(!show);
@@ -3058,7 +3242,11 @@ class World : public Rml::EventListener {
     // one thing a player notices immediately.
     void abandonCurrentCar() {
         if(!car||!carParked)return;
-        parked.push_back({car,carLon,carLat,carAlt,carYaw});
+        keepParked({car,carLon,carLat,carAlt,carYaw});
+        car=nullptr;carParked=false;carSinking=false;carSinkDepth=0;
+    }
+    void keepParked(const Parked& entry) {
+        parked.push_back(entry);
         while(parked.size()>kAbandonedCars) {
             // The scene's own car is in this list like any other once it has
             // been left; nothing here is special-cased, so nothing here can
@@ -3066,7 +3254,6 @@ class World : public Rml::EventListener {
             parked.front().node->queueFree();
             parked.erase(parked.begin());
         }
-        car=nullptr;carParked=false;carSinking=false;carSinkDepth=0;
     }
     void clearAbandonedCars() {
         for(auto& entry:parked)entry.node->queueFree();
@@ -7474,7 +7661,43 @@ public:
                          int(churnFrames)," frames)");
         churn=0;churnFrames=0;dirtyFrames=0;
     }
+    // The cheat line, as a player uses it: open, type, Enter. Each code must
+    // have done its thing beside him, or the smoke fails naming which.
+    bool smokeCheated=false;
+    bool smokeCheats() {
+        smokeCheated=true;
+        auto fail=[&](const std::string& why){
+            saida::Log::error("[World E2E] FAIL cheats: ",why);testFailed=true;engine.sceneTree().quit();return false;
+        };
+        auto type=[&](const std::string& word){
+            openCheat();
+            if(!cheatOpen||engine.uiInteraction().focusedWebCanvas()!=ui)return false;
+            if(held(GLFW_KEY_W)||clicked(GLFW_MOUSE_BUTTON_LEFT))return false;
+            field("cheat-input",word);
+            const std::string typed=value("cheat-input");closeCheat();runCheat(typed);
+            return !cheatOpen&&engine.uiInteraction().focusedWebCanvas()==nullptr;
+        };
+        const size_t aircraft=leftAircraft.size(),cars=parked.size();
+        if(!type("buzzoff"))return fail("the line did not take and give back the keyboard");
+        if(leftAircraft.size()!=std::min(aircraft+1,kLeftAircraft)||!leftAircraft.back().helicopter())
+            return fail("BUZZOFF left no helicopter: "+written["text:cheat-said"]);
+        if(!type("Comet ")||parked.size()!=std::min(cars+1,kAbandonedCars)||vehicleSpec(*parked.back().node).name!="sport")
+            return fail("COMET parked no sport car: "+written["text:cheat-said"]);
+        if(!type("plane")||leftAircraft.back().type->name!="bizjet")return fail("PLANE left no jet: "+written["text:cheat-said"]);
+        for(const auto* a:{&leftAircraft[leftAircraft.size()-2],&leftAircraft.back()})
+            if(metresBetween(a->lon,a->lat,lon,lat)>45.)return fail(a->type->name+" stands beyond 45 m");
+        const size_t before=leftAircraft.size();
+        if(!type("hesoyam")||leftAircraft.size()!=before)return fail("an unknown word did something");
+        const double hp=health.hp;
+        if(!type("painkiller")||!health.invincible())return fail("PAINKILLER gave no invincibility");
+        hurtPlayer(500.,glm::vec3(1,0,0),"le test");
+        if(health.take(500.)||health.hp!=hp||wasted)return fail("an invincible player was hurt");
+        health.shield=0;
+        saida::Log::info("[World E2E] PASS cheats: helicopter, sport car and jet beside the player, invincibility");
+        return true;
+    }
     void smokeFinishPhase() {
+        if(!smokeCheated&&!smokeCheats())return;
         reportChurn("whole run");
         if(hopWanted&&!hopDone) {
             // Arrive from the driver's seat while looking out of a side window.
@@ -7657,9 +7880,7 @@ public:
             }
         }
         lastFrame=now;
-        const auto& debugWindow=engine.window();
-        const bool debugKeys[]={debugWindow.keyDown(GLFW_KEY_R),debugWindow.keyDown(GLFW_KEY_V),
-            debugWindow.keyDown(GLFW_KEY_Y),debugWindow.keyDown(GLFW_KEY_M),debugWindow.keyDown(GLFW_KEY_T)};
+        const bool debugKeys[]={held(GLFW_KEY_R),held(GLFW_KEY_V),held(GLFW_KEY_Y),held(GLFW_KEY_M),held(GLFW_KEY_T)};
         samplePerformance(frameSeconds);handlePerformanceKeys(debugKeys);placePerformanceCanvas();
         cost=FrameCost{};
         if(checkPhysics())return;
@@ -7748,14 +7969,17 @@ public:
                 saida::Log::info("[World E2E] teleporting to ",hopLon,", ",hopLat);
             }
         }
-        bool key=(!performanceDebug&&engine.window().keyDown(GLFW_KEY_M))||engine.window().keyDown(GLFW_KEY_ESCAPE);
-        if(key&&!wasMenuKey){if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
+        // Escape closes an open cheat line rather than opening the map
+        // (World::updateCheats); M is a letter typed in it.
+        bool key=(!performanceDebug&&held(GLFW_KEY_M))||engine.window().keyDown(GLFW_KEY_ESCAPE);
+        if(key&&!wasMenuKey&&!cheatOpen){if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
         poll+=delta;hud+=delta;
         if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)cost.stream=timed([&]{stream();});}
         cost.parts=timed([&]{uploadParts();});
         updateBuildingLods();
         if(!playing)cost.warm=timed([&]{warm();});
         if(!playing||menu){updateRain(delta);return;}
+        updateCheats();
         updateInteriors(delta);
         const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail)
                         ||(piloting&&std::abs(plane.speed)>kFastDetail);
@@ -7801,9 +8025,8 @@ public:
                 lookYaw-=lookYaw*(1-std::exp(-2.2*std::min(.05,double(delta))));
         } else yaw+=mouse.x*.12;
         pitch=std::clamp(pitch-mouse.y*.12,-65.,25.);
-        auto& w=engine.window();
-        double f=(w.keyDown(GLFW_KEY_W)||w.keyDown(GLFW_KEY_Z)?1.:0.)-(w.keyDown(GLFW_KEY_S)?1.:0.);
-        double r=(w.keyDown(GLFW_KEY_D)?1.:0.)-(w.keyDown(GLFW_KEY_A)||w.keyDown(GLFW_KEY_Q)?1.:0.);
+        double f=(held(GLFW_KEY_W)||held(GLFW_KEY_Z)?1.:0.)-(held(GLFW_KEY_S)?1.:0.);
+        double r=(held(GLFW_KEY_D)?1.:0.)-(held(GLFW_KEY_A)||held(GLFW_KEY_Q)?1.:0.);
         if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
         if(wadeTo&&smokeStarted) {
             const auto to=origin.local(ecef(wadeTo->x,wadeTo->y,alt))-origin.local(ecef(lon,lat,alt));
@@ -7825,7 +8048,7 @@ public:
         double length=std::hypot(f,r),dt=std::min(.05,double(delta));
         // One door key for both directions, and the refusals are inside
         // enterCar/leaveCar so that every one of them says something.
-        bool doorKey=w.keyDown(GLFW_KEY_F);
+        bool doorKey=held(GLFW_KEY_F);
         if(doorKey&&!wasEnterKey&&!playerDown) {
             if(driving)leaveCar();
             else if(sailing){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
@@ -7860,15 +8083,15 @@ public:
         if(feet->enabled()!=(player->enabled()&&!playerDown))feet->setEnabled(player->enabled()&&!playerDown);
         if(driving) {
             if(smokeDriving){f=smokeBrake?-1.:1.;r=0;}
-            driveCar(dt,f,r,w.keyDown(GLFW_KEY_SPACE)&&!smokeDriving);
+            driveCar(dt,f,r,held(GLFW_KEY_SPACE)&&!smokeDriving);
             moving=std::abs(carSpeed)>.2;
         } else if(sailing) {
             if(smokeSailing){f=smokeSailBrake?-1.:1.;r=0;}
             sailBoat(dt,f,r);
             moving=std::abs(boat.speed)>.2;
         } else if(piloting) {
-            double up=(w.keyDown(GLFW_KEY_SPACE)||w.keyDown(GLFW_KEY_UP)?1.:0.)
-                     -(w.keyDown(GLFW_KEY_LEFT_SHIFT)||w.keyDown(GLFW_KEY_LEFT_CONTROL)||w.keyDown(GLFW_KEY_DOWN)?1.:0.);
+            double up=(held(GLFW_KEY_SPACE)||held(GLFW_KEY_UP)?1.:0.)
+                     -(held(GLFW_KEY_LEFT_SHIFT)||held(GLFW_KEY_LEFT_CONTROL)||held(GLFW_KEY_DOWN)?1.:0.);
             if(smokeFly){f=smokeF;r=smokeR;up=smokeUp;}
             if(plane.helicopter())flyHelicopter(dt,f,r,up);else flyPlane(dt,f,r,up);
             lon=plane.lon;lat=plane.lat;alt=plane.alt;yaw=plane.yaw;
@@ -7879,7 +8102,7 @@ public:
             if(smokeSwimming){f=1.;r=0.;length=1.;}
             if(smokeWaterSpawn){f=1.;r=0.;length=1.;smokeWalk+=dt;}
             if(length>0) {
-                const double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)?2.2:1.5;
+                const double speed=held(GLFW_KEY_LEFT_SHIFT)?2.2:1.5;
                 const double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
                 const double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
                 const auto next=onward(lon,lat,east,north);
@@ -7899,7 +8122,7 @@ public:
             }
             if(moving)request(lon,lat);
         } else if(length>0&&jumpOffset<3.) {  // falling from higher, he cannot steer
-            double speed=w.keyDown(GLFW_KEY_LEFT_SHIFT)&&!aiming?7.:2.8;
+            double speed=held(GLFW_KEY_LEFT_SHIFT)&&!aiming?7.:2.8;
             // A stride broken by running into someone (World::staggerPlayer).
             if(stagger>0)speed*=.35;
             double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
@@ -7951,7 +8174,7 @@ public:
                                              *glm::angleAxis(float(-lean),glm::vec3(1,0,0));
                 playPlayerClip(moving?"run":"idle");
             } else {
-                bool jump=w.keyDown(GLFW_KEY_SPACE);
+                bool jump=held(GLFW_KEY_SPACE);
                 if(!idleSmoke&&smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
                 if(jump&&!wasJump&&jumpOffset<=0)jumpVelocity=std::sqrt(2*22.*1.5);
                 wasJump=jump;
@@ -7978,7 +8201,7 @@ public:
                     }
                 }
                 player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
-                const bool sprint=moving&&w.keyDown(GLFW_KEY_LEFT_SHIFT);
+                const bool sprint=moving&&held(GLFW_KEY_LEFT_SHIFT);
                 playPlayerClip(jumpOffset>0?"jump":sprint?"sprint":moving?"run":"idle");
             }
         }

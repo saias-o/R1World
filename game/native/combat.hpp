@@ -17,10 +17,16 @@ namespace r1::combat {
 
 struct Health {
     double hp = 100, max = 100;
+    double shield = 0;  // seconds of invincibility left (native/cheats.hpp, PAINKILLER)
     bool dead() const { return hp <= 0; }
-    // Damage taken, and whether this was the blow that killed.
+    bool invincible() const { return shield > 0; }
+    // A second code while one runs gives the full time again, never less.
+    void protect(double seconds) { shield = std::max(shield, seconds); }
+    void tick(double dt) { shield = std::max(0.0, shield - std::max(0.0, dt)); }
+    // Damage taken, and whether this was the blow that killed. Invincible,
+    // nothing is taken.
     bool take(double amount) {
-        if (dead() || !(amount > 0)) return false;
+        if (dead() || invincible() || !(amount > 0)) return false;
         hp = std::max(0.0, hp - amount);
         return dead();
     }
