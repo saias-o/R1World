@@ -5815,7 +5815,8 @@ private:
                     mesh->setMaterial(engine.resources().getMaterial(desc));
                 });
             }
-            if(path=="assets/models/external/nature_selected/urban_tree_far.glb") {
+            if(path=="assets/models/external/nature_selected/urban_tree_far.glb"
+               ||path=="assets/models/external/nature_selected/pine_tall_far.glb") {
                 // A filtered atlas normal cannot represent every leaf direction
                 // in a canopy pixel. Keep half the engine's volume response so
                 // backlit crowns retain scattered light, while atlas normals

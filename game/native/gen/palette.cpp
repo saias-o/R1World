@@ -46,6 +46,13 @@ void loadPalette(const std::string& gameRoot) {
     auto p = std::make_unique<Palette>();
     p->gameRoot = gameRoot;
     const auto atlas = readJsonFile(gameRoot + "/assets/world/atlas.json");
+    for (const auto& j : atlas.value("treeAreaObservations", nlohmann::json::array())) {
+        const int64_t id = j.at("osmWay").get<int64_t>();
+        Palette::TreeAreaObservation observation{j.at("identity").get<Tags>(), j.at("source").get<std::string>()};
+        if (id <= 0 || observation.identity.empty() || observation.source.empty() ||
+            !p->treeAreaObservations.emplace(id, std::move(observation)).second)
+            throw std::runtime_error("invalid/duplicate treeAreaObservations in assets/world/atlas.json");
+    }
     p->surfaces = readJsonFile(gameRoot + "/assets/textures/surfaces.json");
     for (const auto& j : atlas.value("residential", nlohmann::json::array())) {
         ResidentialStyle s;

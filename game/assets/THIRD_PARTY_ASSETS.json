@@ -918,6 +918,40 @@
         "assets/textures/facades/brick_buff_and_window_mr.jpg",
         "assets/textures/facades/brick_buff_and_window_height.jpg"
       ]
+    },
+    {
+      "name": "Flowering Cherry Tree — user-selected Innerscene sakura",
+      "author": "Innerscene",
+      "source": "https://www.innerscene.com/tools/library/3d-parts/flowering-cherry-tree-6d80049e",
+      "license": "CC0 1.0",
+      "modified": "Normalized to 1 metre; authored Near geometry retained and merged by material; Mid retains complete flowers/leaves selected by coverage; relightable Far atlas baked from Mid. Fixed flowering appearance, no phenology simulation.",
+      "files": [
+        "assets/models/external/nature_selected/sakura.glb",
+        "assets/models/external/nature_selected/sakura_mid.glb",
+        "assets/models/external/nature_selected/sakura_far.glb",
+        "assets/models/external/nature_selected/sakura_far_albedo.png",
+        "assets/models/external/nature_selected/sakura_far_normal.png",
+        "assets/models/external/nature_selected/sakura_far.source.json"
+      ]
+    },
+    {
+      "name": "Pine Tree Tall — adult conifer",
+      "title": "Pine Tree Tall",
+      "author": "TerrainTale; ambientCG; ez-tree by Daniel Greenheck",
+      "license": "CC0-1.0",
+      "source": "https://terraintale.com/library/realistic-surfaces/pine-tree-tall",
+      "download": "https://terraintale.com/library/realistic-surfaces/pine_tree_tall.glb",
+      "sourceSha256": "8380454b66bd5b3fad4eebed694de207b87056937ecd259a5ce5220369f47bde",
+      "modified": "Normalized LOD0; exact needle crown in Mid with UV-aware bark reduction; 160-view camera-facing Far baked directly from LOD0 with 50% coverage cutoff, 192px per view",
+      "files": [
+        "assets/models/external/nature_selected/pine_tall.glb",
+        "assets/models/external/nature_selected/pine_tall_mid.glb",
+        "assets/models/external/nature_selected/pine_tall_far.glb",
+        "assets/models/external/nature_selected/pine_tall_far.source.json",
+        "assets/models/external/nature_selected/pine_tall_far_albedo.png",
+        "assets/models/external/nature_selected/pine_tall_far_normal.png",
+        "assets/licenses/pine_tall-CC0.txt"
+      ]
     }
   ]
 }

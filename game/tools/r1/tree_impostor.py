@@ -86,12 +86,12 @@ def ambient_visibility(positions, normals, shadows):
     return visible / np.maximum(weights, 1e-8)
 
 
-def covered_attachment(fbo, index, alpha):
+def covered_attachment(fbo, index, alpha, resolution=RESOLUTION):
     """Downsample surface attributes without treating transparent samples as data."""
-    size = RESOLUTION * SUPERSAMPLE
+    size = resolution * SUPERSAMPLE
     samples = np.frombuffer(fbo.read(components=4, attachment=index, dtype="f4"), dtype=np.float32)
     samples = samples.reshape(size, size, 4)[::-1]
-    reduced = samples.reshape(RESOLUTION, SUPERSAMPLE, RESOLUTION, SUPERSAMPLE, 4).mean(axis=(1, 3))
+    reduced = samples.reshape(resolution, SUPERSAMPLE, resolution, SUPERSAMPLE, 4).mean(axis=(1, 3))
     return reduced[:, :, :3] / np.maximum(alpha[:, :, None], 1e-8)
 
 def transformed_parts(doc, binary):
@@ -147,7 +147,7 @@ def dilate(rgb, alpha, steps=8):
         rgb[fill]=total[fill]/count[fill,None];covered|=fill
     return rgb
 
-def bake(source=NATURE/"urban_tree_mid.glb", target=TARGET):
+def bake(source=NATURE/"urban_tree_mid.glb", target=TARGET, *, reference_level="Mid", columns=COLUMNS, alpha_cutoff=.35, resolution=RESOLUTION):
     target.parent.mkdir(parents=True,exist_ok=True)
     doc,binary=read_glb(source);parts=transformed_parts(doc,binary)
     points=np.concatenate([p[0][:,:3] for p in parts]);low=points.min(axis=0);high=points.max(axis=0)
@@ -178,7 +178,7 @@ def bake(source=NATURE/"urban_tree_mid.glb", target=TARGET):
                       pbr.get("baseColorFactor",[1,1,1,1]),mat.get("alphaCutoff",.5) if mat.get("alphaMode")=="MASK" else 0.,
                       tangents and "normalTexture" in mat,mat.get("normalTexture",{}).get("scale",1),
                       mat.get("doubleSided",False)))
-    size=RESOLUTION*SUPERSAMPLE
+    size=resolution*SUPERSAMPLE
     colors=ctx.texture((size,size),4,dtype="f4")
     normals=ctx.texture((size,size),4,dtype="f4")
     positions=ctx.texture((size,size),4,dtype="f4")
@@ -206,38 +206,38 @@ def bake(source=NATURE/"urban_tree_mid.glb", target=TARGET):
         shadow_fbo.use();shadow_fbo.clear(depth=1);draw()
         depth=np.frombuffer(shadow_depth.read(),dtype=np.float32).reshape(OCCLUSION_RESOLUTION,OCCLUSION_RESOLUTION)
         shadows.append((direction,projection,depth))
-    albedo_atlas=np.zeros((ROWS*RESOLUTION,COLUMNS*RESOLUTION,4),dtype=np.float32)
+    albedo_atlas=np.zeros((ROWS*resolution,columns*resolution,4),dtype=np.float32)
     normal_atlas=np.zeros_like(albedo_atlas)
     for row in range(ROWS):
         pitch=-math.pi/2+row*math.pi/(ROWS-1)
-        for column in range(COLUMNS):
-            yaw=column*2*math.pi/COLUMNS
+        for column in range(columns):
+            yaw=column*2*math.pi/columns
             direction=np.array([math.sin(yaw)*math.cos(pitch),math.sin(pitch),math.cos(yaw)*math.cos(pitch)],dtype=np.float32)
             right=np.array([math.cos(yaw),0,-math.sin(yaw)],dtype=np.float32)
             setup_view(direction,right)
             fbo.use();fbo.clear(0,0,0,0,depth=1)
             draw()
             samples=np.frombuffer(fbo.read(components=4,attachment=0,dtype="f4"),dtype=np.float32).reshape(size,size,4)[::-1]
-            pixels=samples.reshape(RESOLUTION,SUPERSAMPLE,RESOLUTION,SUPERSAMPLE,4).mean(axis=(1,3))
+            pixels=samples.reshape(resolution,SUPERSAMPLE,resolution,SUPERSAMPLE,4).mean(axis=(1,3))
             alpha=pixels[:,:,3];rgb=pixels[:,:,:3]/np.maximum(alpha[:,:,None],1e-8)
             rgb=dilate(encode_color(rgb),alpha)
-            mapped=covered_attachment(fbo,1,alpha)
+            mapped=covered_attachment(fbo,1,alpha,resolution)
             mapped/=np.maximum(np.linalg.norm(mapped,axis=2,keepdims=True),1e-8)
-            visibility=ambient_visibility(covered_attachment(fbo,2,alpha),mapped,shadows)
+            visibility=ambient_visibility(covered_attachment(fbo,2,alpha,resolution),mapped,shadows)
             visibility=dilate(visibility[:,:,None],alpha)[:,:,0]
             normal_rgb=dilate(mapped*.5+.5,alpha)
-            y,x=row*RESOLUTION,column*RESOLUTION
-            albedo_atlas[y:y+RESOLUTION,x:x+RESOLUTION]=np.concatenate((rgb,alpha[:,:,None]),axis=2)
-            normal_atlas[y:y+RESOLUTION,x:x+RESOLUTION]=np.concatenate((normal_rgb,visibility[:,:,None]),axis=2)
+            y,x=row*resolution,column*resolution
+            albedo_atlas[y:y+resolution,x:x+resolution]=np.concatenate((rgb,alpha[:,:,None]),axis=2)
+            normal_atlas[y:y+resolution,x:x+resolution]=np.concatenate((normal_rgb,visibility[:,:,None]),axis=2)
     builder=Builder();builder.doc["asset"]["generator"]="R1World tree_impostor.py"
     for name,atlas in (("albedo",albedo_atlas),("normal",normal_atlas)):
         builder.doc["images"].append({"bufferView":builder.store(png(atlas)),"mimeType":"image/png"})
         builder.doc["textures"].append({"source":len(builder.doc["images"])-1})
         Image.fromarray(np.uint8(np.clip(atlas,0,1)*255+.5)).save(target.with_name(target.stem+"_"+name+".png"))
-    builder.doc["materials"].append({"name":"Mid canopy impostor","doubleSided":True,"alphaMode":"MASK","alphaCutoff":.35,
+    builder.doc["materials"].append({"name":f"{reference_level} canopy impostor","doubleSided":True,"alphaMode":"MASK","alphaCutoff":alpha_cutoff,
         "pbrMetallicRoughness":{"baseColorTexture":{"index":0},"metallicFactor":0,"roughnessFactor":.85},
         "normalTexture":{"index":1},
-        "extras":{"SAIDA_billboard":{"columns":COLUMNS,"rows":ROWS}}})
+        "extras":{"SAIDA_billboard":{"columns":columns,"rows":ROWS}}})
     h=extent/2;vertices=[(-h,-h,0),(h,-h,0),(h,h,0),(-h,h,0)]
     builder.mesh("Far",{"POSITION":builder.accessor(vertices,"VEC3",5126),
         "NORMAL":builder.accessor([(0,0,1)]*4,"VEC3",5126),"TANGENT":builder.accessor([(1,0,0,1)]*4,"VEC4",5126),
@@ -247,10 +247,10 @@ def bake(source=NATURE/"urban_tree_mid.glb", target=TARGET):
     target.parent.mkdir(parents=True,exist_ok=True);write_glb(target,builder.doc,bytes(builder.binary))
     origin=next(e for e in json.loads((NATURE/"SOURCES.json").read_text(encoding="utf8")) if e["output"]==source.name)
     report={"output":target.name,"derivedFrom":source.name,"sourceSha256":hashlib.sha256(source.read_bytes()).hexdigest(),
-        "columns":COLUMNS,"rows":ROWS,"resolution":RESOLUTION,"supersample":SUPERSAMPLE,"vertices":4,"triangles":2,
+        "columns":columns,"rows":ROWS,"resolution":resolution,"supersample":SUPERSAMPLE,"vertices":4,"triangles":2,
         "extent":extent,"pivot":[float(v) for v in center],"attribution":origin["attribution"],
         "occlusionDirections":OCCLUSION_DIRECTIONS,"occlusionResolution":OCCLUSION_RESOLUTION,
-        "method":"multi-view Mid scanned albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"}
+        "method":f"multi-view {reference_level} albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"}
     target.with_suffix(".source.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf8",newline="\n")
     manifest_path=NATURE/"SOURCES.json"
     manifest=json.loads(manifest_path.read_text(encoding="utf8"))

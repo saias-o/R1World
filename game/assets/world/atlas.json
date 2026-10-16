@@ -1,6 +1,10 @@
 {
  "schema": 1,
  "note": "Albedos, not colours (CLAUDE.md rule 2). Order matters in every list: the first region, ground class or prop kind that matches wins.",
+ "treeAreaObservations": [
+  {"osmWay": 1085310430, "identity": {"genus": "Pinus"}, "source": "User report, 2026-10-16: pine woodland at Parc de Brural, Theix-Noyalo; OSM has natural=wood without botanical identity."},
+  {"osmWay": 1085310431, "identity": {"genus": "Pinus"}, "source": "User report, 2026-10-16: pine woodland at Parc de Brural, Theix-Noyalo; OSM has natural=wood without botanical identity."}
+ ],
  "residential": [
   {
    "key": "fr.detached", "country": "FR",
@@ -33,9 +37,346 @@
   {"key": "ma.anti_atlas.village", "country": "MA", "note": "Photo-informed rural morphology, not surveyed architecture. Dense cores and public/commercial buildings excluded; mapped tags win.", "maxCoverage": 0.18, "maxMass": 14, "fenceHeight": 1.5, "storeys": [[1, 6], [2, 4]], "roofPitch": [0, 0], "roofShapes": [["flat", 1]], "roofs": [{"name": "Earth terrace, sand", "color": [0.25, 0.205, 0.15], "roughness": 0.9, "weight": 1}], "box": [-10, 28, -7, 31], "enclosure": "wall", "plotGround": "mineral", "villageRows": true, "setback": 0.8, "frontOffset": 0.4, "lotPadding": 1.5, "returns": 6, "storeyHeight": 2.7, "groundHeight": 2.7, "eaves": 0.08, "parapet": 0.5, "bay": 3.2, "windowWidth": 0.7, "windowHeight": 0.95, "sill": 1.0, "walls": [{"name": "Earth render, rose ochre", "color": [0.3, 0.175, 0.12], "roughness": 0.9, "weight": 5}, {"name": "Earth render, warm pink", "color": [0.31, 0.205, 0.16], "roughness": 0.9, "weight": 3}, {"name": "Earth render, buff", "color": [0.29, 0.24, 0.175], "roughness": 0.9, "weight": 2}]},
   {"key": "ma.tafraout.small_town", "country": "MA", "note": "Curated low-rise photographic prior for the small Anti-Atlas market town of Tafraout. Applies to unmeasured dwelling/shop shells; public institutions and observed city cores excluded. Never invents private gardens on merchant frontages.", "maxCoverage": 0.34, "maxMass": 32, "fenceHeight": 1.5, "storeys": [[1, 6], [2, 4]], "roofPitch": [0, 0], "roofShapes": [["flat", 1]], "roofs": [{"name": "Earth terrace, sand", "color": [0.25, 0.205, 0.15], "roughness": 0.9, "weight": 1}], "box": [-8.981, 29.714, -8.96, 29.736], "enclosure": "wall", "plotGround": "mineral", "villageRows": true, "setback": 0.8, "frontOffset": 0.4, "lotPadding": 1.5, "returns": 6, "storeyHeight": 2.7, "groundHeight": 2.7, "eaves": 0.08, "parapet": 0.5, "bay": 3.2, "windowWidth": 0.7, "windowHeight": 0.95, "sill": 1.0, "walls": [{"name": "Earth render, rose ochre", "color": [0.3, 0.175, 0.12], "roughness": 0.9, "weight": 5}, {"name": "Earth render, warm pink", "color": [0.31, 0.205, 0.16], "roughness": 0.9, "weight": 3}, {"name": "Earth render, buff", "color": [0.29, 0.24, 0.175], "roughness": 0.9, "weight": 2}], "maxArea": 1000, "architectureOnly": true},
   {"key": "jp.village", "country": "JP", "note": "Photo-informed rural morphology, not surveyed architecture. Dense cores and public/commercial buildings excluded; mapped tags win.", "maxCoverage": 0.18, "maxMass": 14, "fenceHeight": 0.65, "storeys": [[1, 4], [2, 6]], "roofPitch": [23, 32], "roofShapes": [["gabled", 7], ["hipped", 3]], "roofs": [{"name": "Kawara, charcoal", "color": [0.075, 0.085, 0.095], "roughness": 0.76, "weight": 8}, {"name": "Kawara, grey", "color": [0.13, 0.135, 0.14], "roughness": 0.76, "weight": 2}], "enclosure": "wall", "plotGround": "mineral", "villageRows": true, "setback": 0.8, "frontOffset": 0.35, "lotPadding": 1.2, "returns": 5, "accessWidth": 2.8, "storeyHeight": 2.55, "groundHeight": 2.55, "eaves": 0.7, "parapet": 0.15, "bay": 2.5, "windowWidth": 1.35, "windowHeight": 1.15, "sill": 0.75, "walls": [{"name": "Timber, dark weathered", "color": [0.075, 0.055, 0.038], "roughness": 0.9, "weight": 5}, {"name": "Timber, brown", "color": [0.14, 0.105, 0.075], "roughness": 0.9, "weight": 3}, {"name": "Lime render, warm grey", "color": [0.25, 0.24, 0.215], "roughness": 0.9, "weight": 2}]},
-  {"key": "jp.kiso.historic_rows", "country": "JP", "note": "Curated regional prior for the historic Nakasendo villages of the Kiso valley (Tsumago/Magome). Compact low-rise timber rows, not an urban-country default. City/town observations silence this prior; dense plots never get inferred gardens.", "maxCoverage": 0.3, "maxMass": 28, "fenceHeight": 0.65, "storeys": [[1, 4], [2, 6]], "roofPitch": [23, 32], "roofShapes": [["gabled", 7], ["hipped", 3]], "roofs": [{"name": "Kawara, charcoal", "color": [0.075, 0.085, 0.095], "roughness": 0.76, "weight": 8}, {"name": "Kawara, grey", "color": [0.13, 0.135, 0.14], "roughness": 0.76, "weight": 2}], "enclosure": "wall", "plotGround": "mineral", "villageRows": true, "setback": 0.8, "frontOffset": 0.35, "lotPadding": 1.2, "returns": 5, "accessWidth": 2.8, "storeyHeight": 2.55, "groundHeight": 2.55, "eaves": 0.85, "parapet": 0.15, "bay": 2.5, "windowWidth": 1.35, "windowHeight": 1.15, "sill": 0.75, "walls": [{"name": "Timber, dark weathered", "color": [0.075, 0.055, 0.038], "roughness": 0.9, "weight": 7}, {"name": "Timber, brown", "color": [0.14, 0.105, 0.075], "roughness": 0.9, "weight": 2}, {"name": "Lime render, warm grey", "color": [0.25, 0.24, 0.215], "roughness": 0.9, "weight": 1}], "box": [137.55, 35.52, 137.62, 35.59]}
+  {"key": "jp.kiso.historic_rows", "country": "JP", "note": "Local historic dwelling and small shop prior; observed heights win. Compact merchant rows eligible for architecture only, with no invented gardens. Uses the existing comparable-house height donor rules.", "maxCoverage": 0.4, "maxMass": 40, "fenceHeight": 0.65, "storeys": [[1, 2], [2, 8]], "roofPitch": [23, 32], "roofShapes": [["gabled", 7], ["hipped", 3]], "roofs": [{"name": "Kawara, charcoal grey", "color": [0.075, 0.08, 0.085], "roughness": 0.9, "weight": 8}, {"name": "Kawara, weathered grey", "color": [0.115, 0.12, 0.125], "roughness": 0.9, "weight": 2}], "enclosure": "wall", "plotGround": "mineral", "villageRows": true, "setback": 0.8, "frontOffset": 0.35, "lotPadding": 1.2, "returns": 5, "accessWidth": 2.8, "storeyHeight": 2.55, "groundHeight": 2.55, "eaves": 0.85, "parapet": 0.15, "bay": 2.5, "windowWidth": 1.4, "windowHeight": 1.15, "sill": 0.75, "walls": [{"name": "Timber, dark weathered", "color": [0.075, 0.055, 0.038], "roughness": 0.9, "weight": 5}, {"name": "Timber, brown", "color": [0.13, 0.095, 0.065], "roughness": 0.9, "weight": 2}, {"name": "Lime render, warm grey", "color": [0.28, 0.27, 0.245], "roughness": 0.9, "weight": 3}], "box": [137.55, 35.52, 137.62, 35.59], "trim": {"name": "Timber joinery, dark brown", "color": [0.055, 0.045, 0.035], "roughness": 0.9, "weight": 1}, "architectureOnly": true, "maxArea": 600},
+  {"key": "jp.higashiyama.homes", "country": "JP", "note": "Local historic dwelling and small shop prior; observed heights win. Compact merchant rows eligible for architecture only, with no invented gardens. Uses the existing comparable-house height donor rules.", "maxCoverage": 0.55, "maxMass": 60, "fenceHeight": 0.65, "storeys": [[1, 2], [2, 8]], "roofPitch": [20, 30], "roofShapes": [["gabled", 7], ["hipped", 3]], "roofs": [{"name": "Kawara, charcoal grey", "color": [0.075, 0.08, 0.085], "roughness": 0.9, "weight": 8}, {"name": "Kawara, weathered grey", "color": [0.115, 0.12, 0.125], "roughness": 0.9, "weight": 2}], "enclosure": "wall", "plotGround": "mineral", "villageRows": true, "setback": 0.8, "frontOffset": 0.35, "lotPadding": 1.2, "returns": 5, "accessWidth": 2.8, "storeyHeight": 2.55, "groundHeight": 2.55, "eaves": 0.7, "parapet": 0.15, "bay": 2.5, "windowWidth": 1.4, "windowHeight": 1.15, "sill": 0.75, "walls": [{"name": "Timber, dark weathered", "color": [0.075, 0.055, 0.038], "roughness": 0.9, "weight": 5}, {"name": "Timber, brown", "color": [0.13, 0.095, 0.065], "roughness": 0.9, "weight": 2}, {"name": "Lime render, warm grey", "color": [0.28, 0.27, 0.245], "roughness": 0.9, "weight": 3}], "box": [135.778, 34.994, 135.785, 35.001], "trim": {"name": "Timber joinery, dark brown", "color": [0.055, 0.045, 0.035], "roughness": 0.9, "weight": 1}, "architectureOnly": true, "maxArea": 600}
  ],
  "profiles": [
+  {
+   "key": "JP_TSUMAGO",
+   "name": "Tsumago-juku, historic street",
+   "tier": "region",
+   "storey_height": 2.55,
+   "ground_storey_height": 2.7,
+   "storey_weights": [
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     8
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     8
+    ],
+    [
+     "hipped",
+     2
+    ]
+   ],
+   "roof_pitch_range": [
+    20,
+    30
+   ],
+   "eave_overhang": 0.75,
+   "parapet_height": 0.15,
+   "bay_width": 2.5,
+   "window_width": 1.4,
+   "window_height": 1.15,
+   "window_sill": 0.75,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.7,
+   "shopfront_height": 2.1,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Timber, dark weathered",
+     "color": [
+      0.075,
+      0.055,
+      0.038
+     ],
+     "roughness": 0.9,
+     "weight": 5
+    },
+    {
+     "name": "Timber, brown",
+     "color": [
+      0.13,
+      0.095,
+      0.065
+     ],
+     "roughness": 0.9,
+     "weight": 2
+    },
+    {
+     "name": "Lime render, warm grey",
+     "color": [
+      0.28,
+      0.27,
+      0.245
+     ],
+     "roughness": 0.9,
+     "weight": 3
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Kawara, charcoal grey",
+     "color": [
+      0.075,
+      0.08,
+      0.085
+     ],
+     "roughness": 0.9,
+     "weight": 8
+    },
+    {
+     "name": "Kawara, weathered grey",
+     "color": [
+      0.115,
+      0.12,
+      0.125
+     ],
+     "roughness": 0.9,
+     "weight": 2
+    }
+   ],
+   "trim": {
+    "name": "Timber joinery, dark brown",
+    "color": [
+     0.055,
+     0.045,
+     0.035
+    ],
+    "roughness": 0.9,
+    "weight": 1
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ],
+   "note": "Local photo-informed inference only; published camera references and limitations in docs/JAPAN_UPDATE.md. Does not reconstruct individual facades or override tagged heights/roof shapes."
+  },
+  {
+   "key": "JP_HIGASHIYAMA",
+   "name": "Kyoto, Sannenzaka and Ninenzaka historic streets",
+   "tier": "region",
+   "storey_height": 2.55,
+   "ground_storey_height": 2.7,
+   "storey_weights": [
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     8
+    ]
+   ],
+   "roof_shape_weights": [
+    [
+     "gabled",
+     8
+    ],
+    [
+     "hipped",
+     2
+    ]
+   ],
+   "roof_pitch_range": [
+    20,
+    30
+   ],
+   "eave_overhang": 0.75,
+   "parapet_height": 0.15,
+   "bay_width": 2.5,
+   "window_width": 1.4,
+   "window_height": 1.15,
+   "window_sill": 0.75,
+   "window_inset": 0.12,
+   "pier_min": 0.55,
+   "lintel_min": 0.35,
+   "shopfront_width_ratio": 0.7,
+   "shopfront_height": 2.1,
+   "shopfront_sill": 0.35,
+   "shopfront_pier_min": 0.28,
+   "walls": [
+    {
+     "name": "Timber, dark weathered",
+     "color": [
+      0.075,
+      0.055,
+      0.038
+     ],
+     "roughness": 0.9,
+     "weight": 5
+    },
+    {
+     "name": "Timber, brown",
+     "color": [
+      0.13,
+      0.095,
+      0.065
+     ],
+     "roughness": 0.9,
+     "weight": 2
+    },
+    {
+     "name": "Lime render, warm grey",
+     "color": [
+      0.28,
+      0.27,
+      0.245
+     ],
+     "roughness": 0.9,
+     "weight": 3
+    }
+   ],
+   "roofs": [
+    {
+     "name": "Kawara, charcoal grey",
+     "color": [
+      0.075,
+      0.08,
+      0.085
+     ],
+     "roughness": 0.9,
+     "weight": 8
+    },
+    {
+     "name": "Kawara, weathered grey",
+     "color": [
+      0.115,
+      0.12,
+      0.125
+     ],
+     "roughness": 0.9,
+     "weight": 2
+    }
+   ],
+   "trim": {
+    "name": "Timber joinery, dark brown",
+    "color": [
+     0.055,
+     0.045,
+     0.035
+    ],
+    "roughness": 0.9,
+    "weight": 1
+   },
+   "glass": {
+    "name": "Glazing",
+    "color": [
+     0.09,
+     0.12,
+     0.15
+    ],
+    "roughness": 0.12,
+    "weight": 1.0
+   },
+   "ground": {
+    "name": "Ground, temperate",
+    "color": [
+     0.148,
+     0.196,
+     0.11
+    ],
+    "roughness": 0.94,
+    "weight": 1.0
+   },
+   "climate": "temperate",
+   "tree_models": [
+    "broadleaf",
+    "broadleaf",
+    "fir_sapling"
+   ],
+   "foliage": {
+    "name": "Conifer foliage",
+    "color": [
+     0.1,
+     0.19,
+     0.11
+    ],
+    "roughness": 0.96,
+    "weight": 1.0
+   },
+   "bark": {
+    "name": "Conifer bark",
+    "color": [
+     0.2,
+     0.16,
+     0.13
+    ],
+    "roughness": 0.95,
+    "weight": 1.0
+   },
+   "commercial_keys": [
+    "shop",
+    "amenity",
+    "office",
+    "tourism"
+   ],
+   "commercial_building_values": [
+    "retail",
+    "commercial",
+    "hotel",
+    "restaurant",
+    "supermarket"
+   ],
+   "note": "Local photo-informed inference only; published camera references and limitations in docs/JAPAN_UPDATE.md. Does not reconstruct individual facades or override tagged heights/roof shapes."
+  },
   {
    "key": "PARIS",
    "name": "Paris intra-muros",
@@ -1827,9 +2168,9 @@
     {
      "name": "Panel, off-white",
      "color": [
-      0.82,
-      0.81,
-      0.78
+      0.32,
+      0.31,
+      0.285
      ],
      "roughness": 0.86,
      "weight": 5.0
@@ -1837,9 +2178,9 @@
     {
      "name": "Panel, pale grey",
      "color": [
-      0.7,
-      0.7,
-      0.69
+      0.235,
+      0.24,
+      0.235
      ],
      "roughness": 0.87,
      "weight": 4.0
@@ -1847,9 +2188,9 @@
     {
      "name": "Tile cladding, beige",
      "color": [
-      0.68,
-      0.63,
-      0.55
+      0.26,
+      0.225,
+      0.175
      ],
      "roughness": 0.88,
      "weight": 2.0
@@ -1857,9 +2198,9 @@
     {
      "name": "Bare concrete",
      "color": [
-      0.56,
-      0.56,
-      0.55
+      0.22,
+      0.22,
+      0.21
      ],
      "roughness": 0.92,
      "weight": 2.0
@@ -1869,9 +2210,9 @@
     {
      "name": "Waterproof deck, grey",
      "color": [
-      0.38,
-      0.38,
-      0.37
+      0.16,
+      0.16,
+      0.15
      ],
      "roughness": 0.92,
      "weight": 6.0
@@ -1879,9 +2220,9 @@
     {
      "name": "Kawara tile, blue-grey",
      "color": [
-      0.22,
-      0.24,
-      0.26
+      0.1,
+      0.105,
+      0.11
      ],
      "roughness": 0.8,
      "weight": 2.5
@@ -1889,23 +2230,23 @@
     {
      "name": "Galvanised sheet",
      "color": [
-      0.46,
-      0.47,
-      0.47
+      0.17,
+      0.175,
+      0.18
      ],
      "roughness": 0.55,
      "weight": 1.5
     }
    ],
    "trim": {
-    "name": "Trim",
+    "name": "Aluminium joinery, neutral grey",
     "color": [
-     0.86,
-     0.84,
-     0.79
+     0.19,
+     0.195,
+     0.2
     ],
-    "roughness": 0.7,
-    "weight": 1.0
+    "roughness": 0.75,
+    "weight": 1
    },
    "glass": {
     "name": "Glazing",
@@ -1965,7 +2306,8 @@
     "hotel",
     "restaurant",
     "supermarket"
-   ]
+   ],
+   "note": "Japan photo audit 2026-10-15; see docs/JAPAN_UPDATE.md. Material albedo estimates; mapped dimensions retain precedence. Historic profiles are geographically limited."
   },
   {
    "key": "SYDNEY",
@@ -4528,9 +4870,9 @@
     {
      "name": "Panel, off-white",
      "color": [
-      0.82,
-      0.81,
-      0.78
+      0.32,
+      0.31,
+      0.285
      ],
      "roughness": 0.86,
      "weight": 4.5
@@ -4538,9 +4880,9 @@
     {
      "name": "Panel, pale grey",
      "color": [
-      0.7,
-      0.7,
-      0.69
+      0.235,
+      0.24,
+      0.235
      ],
      "roughness": 0.87,
      "weight": 3.0
@@ -4548,9 +4890,9 @@
     {
      "name": "Timber, dark",
      "color": [
-      0.3,
-      0.24,
-      0.19
+      0.075,
+      0.055,
+      0.038
      ],
      "roughness": 0.89,
      "weight": 2.0
@@ -4558,9 +4900,9 @@
     {
      "name": "Bare concrete",
      "color": [
-      0.57,
-      0.57,
-      0.56
+      0.22,
+      0.22,
+      0.21
      ],
      "roughness": 0.92,
      "weight": 1.5
@@ -4570,9 +4912,9 @@
     {
      "name": "Kawara tile, blue-grey",
      "color": [
-      0.22,
-      0.24,
-      0.26
+      0.1,
+      0.105,
+      0.11
      ],
      "roughness": 0.8,
      "weight": 5.0
@@ -4580,9 +4922,9 @@
     {
      "name": "Kawara tile, black",
      "color": [
-      0.13,
-      0.13,
-      0.14
+      0.1,
+      0.105,
+      0.11
      ],
      "roughness": 0.78,
      "weight": 2.5
@@ -4590,23 +4932,23 @@
     {
      "name": "Galvanised sheet",
      "color": [
-      0.46,
-      0.47,
-      0.47
+      0.17,
+      0.175,
+      0.18
      ],
      "roughness": 0.55,
      "weight": 2.0
     }
    ],
    "trim": {
-    "name": "Trim",
+    "name": "Aluminium joinery, neutral grey",
     "color": [
-     0.86,
-     0.84,
-     0.79
+     0.19,
+     0.195,
+     0.2
     ],
-    "roughness": 0.7,
-    "weight": 1.0
+    "roughness": 0.75,
+    "weight": 1
    },
    "glass": {
     "name": "Glazing",
@@ -4666,7 +5008,8 @@
     "hotel",
     "restaurant",
     "supermarket"
-   ]
+   ],
+   "note": "Japan photo audit 2026-10-15; see docs/JAPAN_UPDATE.md. Material albedo estimates; mapped dimensions retain precedence. Historic profiles are geographically limited."
   },
   {
    "key": "MAGHREB_SAHARA",
@@ -6580,6 +6923,8 @@
   }
  ],
  "regions": [
+  {"box": [137.592, 35.573, 137.6, 35.581], "profile": "JP_TSUMAGO"},
+  {"box": [135.778, 34.994, 135.785, 35.001], "profile": "JP_HIGASHIYAMA"},
   {
    "box": [
     2.22,

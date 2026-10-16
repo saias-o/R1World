@@ -160,6 +160,9 @@ struct Palette {
     std::vector<GroundClass> groundClasses;
     Swatch snow, frost;
     nlohmann::json groundInference;
+    // Local botanical observations fill missing OSM identities on mapped areas.
+    struct TreeAreaObservation { Tags identity; std::string source; };
+    std::map<int64_t, TreeAreaObservation> treeAreaObservations;
     // The pack's surfaces (gen/seaice.cpp), each with the photographed family
     // it is drawn with (empty: the flat measured colour).
     struct IceSwatch { Swatch swatch; std::string family; };

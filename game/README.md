@@ -1027,7 +1027,81 @@ any material name the palette does not know.
 
 ### Trees
 
-Trees are the project's photoscanned Poly Haven species (`CLAUDE.md` §1; a
+Generator v52 also uses the user-selected Innerscene flowering cherry
+(`nature_selected/sakura*.glb`). Observed `Prunus serrulata`, `Prunus [x/×]
+yedoensis`, `Prunus subhirtella` and `Cerasus` select it worldwide, including
+rural areas and the southern hemisphere. For trees without botanical identity,
+deterministic urban planting selects it with probability 15% in Japan or 5%
+elsewhere north of the equator; the rates do not stack. Urban means mapped
+residential/commercial/retail/industrial land use or at least 25 principal
+buildings within a 350 m square around the tree. Mapped woodland and
+agricultural areas, rural roadside planting and known non-cherry species stay
+excluded from these rates. The model has fixed blossom, without a seasonal
+cycle. See `docs/JAPAN_UPDATE.md` for the selection policy and asset provenance.
+
+Generator v53 adds an adult, tall pine for all observed conifers worldwide:
+`leaf_type=needleleaved`, legacy `wood=coniferous`, and conifer genera in
+`genus`, `species` or `taxon` (Pinus, Abies, Picea, Cedrus, Larix, etc.).
+The source is TerrainTale's **Pine Tree Tall**, published under CC0 1.0,
+with ambientCG materials and ez-tree credited. The existing photoscanned
+saplings remain on disk; the adult pine widens the supported tree forms.
+`tools/r1/pine.py` pins the source SHA-256, normalizes its planting pivot and
+height, preserves its PBR materials, and derives all LODs from that same tree:
+Near 6481 vertices / 5128 triangles, Mid 5735 / 3969, Far 4 / 2. In v54, Mid
+keeps every LOD0 needle card, UV and material; only bark and branches undergo
+UV-aware QEM simplification (no proxy or sloppy fallback). This improves the
+crown while reducing the former Mid's 4028 triangles. Far is a camera-facing
+billboard using the same engine path as the classic tree, baked directly from
+LOD0 into 32 azimuths × 5 elevations at 192 px per view, with relightable normals
+and visibility. Its normal response matches the classic billboard (0.5).
+The three shared meshes occupy about 1.17% of the vertex arena,
+independently of instance count. This is an asset budget, not an FPS measurement.
+
+Within OSM `landuse=forest` or `natural=wood` polygons explicitly identifying
+conifers, **every tree uses this pine**: area planting, surveyed points/rows
+and measured canopy fill. The lookup uses each tree's position, not the whole
+tile; the forest rule also overrides contradictory individual tree identities
+inside the polygon, as requested. Urban cherry percentages cannot enter these
+forests. `leaf_cycle=evergreen` or `leaf_type=mixed` alone do not imply conifers.
+Unspecified boreal/Alpine forest inference also uses the adult pine, rather
+than mixing the former fir and pine saplings. Observed heights always win;
+otherwise adult pines use 18 m (22 m in forests), with the existing ±20% variation.
+An untyped forest elsewhere is not automatically classified as coniferous.
+
+Generator v54 fills missing botanical identities using sourced Atlas
+`treeAreaObservations`, limited to existing OSM woodland contours. Brural's
+park has no botanical tags, and its two woods (ways 1085310430 and 1085310431)
+only say `natural=wood`. The user's 2026-10-16 pine observation supplies
+`genus=Pinus` for those two areas; it neither extends across the whole park nor
+overrides an explicit botanical identity on a woodland.
+
+The importer records the CC0 source, authors, file hashes and derivations in
+`assets/THIRD_PARTY_ASSETS.json`, `nature_selected/SOURCES.json`, and
+`assets/licenses/pine_tall-CC0.txt`. The original download is
+`../data/source-assets/pine_tree_tall-terraintale.glb`:
+`https://terraintale.com/library/realistic-surfaces/pine_tree_tall.glb`.
+Source SHA-256: `8380454b66bd5b3fad4eebed694de207b87056937ecd259a5ce5220369f47bde`.
+Import with NumPy, Pillow, ModernGL and the engine AutoLOD executable, from `game`:
+`PYTHONPATH=tools python -m r1.pine ../data/source-assets/pine_tree_tall-terraintale.glb`.
+
+v54 validation: 18 native checks pass (Nature 12, Canopy 4, Determinism 2),
+as do four Python asset/impostor checks. The native game builds successfully.
+Brural's generated placement audit finds all 98 retained trees inside the two
+woods are pines (56 + 42; 40 measured canopy cells and 58 area plantings).
+The rebuilt game's hidden Brural capture completed with exit code 0, all nine
+tiles mounted and no errors; the PNG was visually inspected:
+`generated/pine-update/brural-pines-v54.png` (command and executable SHA-256
+recorded in the adjacent JSON).
+`tools/r1/tree_quality.py` compares identical orthographic views against LOD0,
+including angles between atlas views: 64 azimuths × two elevations, at 64,
+128 and 256 px. At 128 px, mean silhouette IoU rises from 0.951 to 0.9999 for
+Mid and from 0.819 to 0.925 for Far; the worst Far rises from 0.667 to 0.859.
+These isolate shape/albedo, without runtime lighting or performance claims.
+Reports and inspected silhouettes are in
+`generated/pine-update/lod-quality/final-quality.json` and
+`generated/pine-update/lod-quality/128/selected-angles.png`.
+
+Other trees include the project's photoscanned Poly Haven species (`CLAUDE.md` §1; a
 test refuses any kit tree). A full scan does not fit (`island_tree_01` is
 1 303 928 vertices; at a streamable 12 000 only 0.43% of the canopy survives),
 and the scene loader parses a referenced file once per node. So trees are

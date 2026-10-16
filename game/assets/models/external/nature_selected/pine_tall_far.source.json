@@ -1,0 +1,26 @@
+{
+  "output": "pine_tall_far.glb",
+  "derivedFrom": "pine_tall.glb",
+  "sourceSha256": "0b4a51e20410953539800f9d1d5358e20ee9c8d014371fdf7ab808514d2cfd4b",
+  "columns": 32,
+  "rows": 5,
+  "resolution": 192,
+  "supersample": 2,
+  "vertices": 4,
+  "triangles": 2,
+  "extent": 1.064589023590088,
+  "pivot": [
+    -0.018363311886787415,
+    0.5,
+    0.022496730089187622
+  ],
+  "attribution": {
+    "title": "Pine Tree Tall",
+    "author": "TerrainTale; ambientCG; ez-tree by Daniel Greenheck",
+    "license": "CC0-1.0",
+    "source": "https://terraintale.com/library/realistic-surfaces/pine-tree-tall"
+  },
+  "occlusionDirections": 32,
+  "occlusionResolution": 512,
+  "method": "multi-view LOD0 albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"
+}

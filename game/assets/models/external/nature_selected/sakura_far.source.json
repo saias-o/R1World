@@ -1,0 +1,26 @@
+{
+  "output": "sakura_far.glb",
+  "derivedFrom": "sakura_mid.glb",
+  "sourceSha256": "b443b96bbe15da1e371889fdb2d3d9cc2ce8a9ec6f7f68b37e1d1632b16e8416",
+  "columns": 8,
+  "rows": 5,
+  "resolution": 256,
+  "supersample": 2,
+  "vertices": 4,
+  "triangles": 2,
+  "extent": 1.5881013870239258,
+  "pivot": [
+    -0.003147035837173462,
+    0.4982346296310425,
+    -0.03577077388763428
+  ],
+  "attribution": {
+    "title": "Flowering Cherry Tree",
+    "author": "Innerscene",
+    "license": "CC0-1.0",
+    "source": "https://www.innerscene.com/tools/library/3d-parts/flowering-cherry-tree-6d80049e"
+  },
+  "occlusionDirections": 32,
+  "occlusionResolution": 512,
+  "method": "multi-view Mid scanned albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"
+}

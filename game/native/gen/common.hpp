@@ -170,7 +170,7 @@ inline PyRandom seeded(__int128 id, __int128 salt) { return PyRandom((id * 10000
 // raw observations already on disk.
 constexpr int kRows = 36000;
 constexpr double kStep = 180.0 / kRows;
-constexpr int kVersion = 50;  // 50: roads graded into the relief (gen/grading)
+constexpr int kVersion = 54;  // 54: botanical Atlas area observations, including Brural's pine woodlands
 // The version the Python worker wrote its caches under. Its raw observations
 // (osm.json, elevation) are reused, never its geometry.
 constexpr int kFirstVersion = 1;

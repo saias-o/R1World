@@ -108,5 +108,123 @@
     "occlusionDirections": 32,
     "occlusionResolution": 512,
     "method": "multi-view Mid scanned albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"
+  },
+  {
+    "output": "sakura_far.glb",
+    "derivedFrom": "sakura_mid.glb",
+    "sourceSha256": "b443b96bbe15da1e371889fdb2d3d9cc2ce8a9ec6f7f68b37e1d1632b16e8416",
+    "columns": 8,
+    "rows": 5,
+    "resolution": 256,
+    "supersample": 2,
+    "vertices": 4,
+    "triangles": 2,
+    "extent": 1.5881013870239258,
+    "pivot": [
+      -0.003147035837173462,
+      0.4982346296310425,
+      -0.03577077388763428
+    ],
+    "attribution": {
+      "title": "Flowering Cherry Tree",
+      "author": "Innerscene",
+      "license": "CC0-1.0",
+      "source": "https://www.innerscene.com/tools/library/3d-parts/flowering-cherry-tree-6d80049e"
+    },
+    "occlusionDirections": 32,
+    "occlusionResolution": 512,
+    "method": "multi-view Mid scanned albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"
+  },
+  {
+    "output": "sakura.glb",
+    "sourceSha256": "2412baf8c41da00801512b56d1dbcba6025f983e2470cdd7a2c3f9703ba91b12",
+    "attribution": {
+      "title": "Flowering Cherry Tree",
+      "author": "Innerscene",
+      "license": "CC0-1.0",
+      "source": "https://www.innerscene.com/tools/library/3d-parts/flowering-cherry-tree-6d80049e"
+    },
+    "normalizedHeight": 1,
+    "sourceHeight": 6.0,
+    "vertices": 155285,
+    "triangles": 56580,
+    "meshes": 6,
+    "method": "Authored geometry/textures retained; transforms baked; six materials merged"
+  },
+  {
+    "output": "sakura_mid.glb",
+    "sourceSha256": "2412baf8c41da00801512b56d1dbcba6025f983e2470cdd7a2c3f9703ba91b12",
+    "attribution": {
+      "title": "Flowering Cherry Tree",
+      "author": "Innerscene",
+      "license": "CC0-1.0",
+      "source": "https://www.innerscene.com/tools/library/3d-parts/flowering-cherry-tree-6d80049e"
+    },
+    "normalizedHeight": 1,
+    "sourceHeight": 6.0,
+    "vertices": 46445,
+    "triangles": 20300,
+    "meshes": 6,
+    "method": "Whole flowers/leaves selected by multi-view coverage, grown within source envelope; bark retained"
+  },
+  {
+    "output": "pine_tall_far.glb",
+    "derivedFrom": "pine_tall.glb",
+    "sourceSha256": "0b4a51e20410953539800f9d1d5358e20ee9c8d014371fdf7ab808514d2cfd4b",
+    "columns": 32,
+    "rows": 5,
+    "resolution": 192,
+    "supersample": 2,
+    "vertices": 4,
+    "triangles": 2,
+    "extent": 1.064589023590088,
+    "pivot": [
+      -0.018363311886787415,
+      0.5,
+      0.022496730089187622
+    ],
+    "attribution": {
+      "title": "Pine Tree Tall",
+      "author": "TerrainTale; ambientCG; ez-tree by Daniel Greenheck",
+      "license": "CC0-1.0",
+      "source": "https://terraintale.com/library/realistic-surfaces/pine-tree-tall"
+    },
+    "occlusionDirections": 32,
+    "occlusionResolution": 512,
+    "method": "multi-view LOD0 albedo/alpha, authored-frame mapped normals and cosine-weighted hemisphere visibility in normal alpha; no baked sun; shared relightable quad"
+  },
+  {
+    "output": "pine_tall.glb",
+    "sourceSha256": "8380454b66bd5b3fad4eebed694de207b87056937ecd259a5ce5220369f47bde",
+    "download": "https://terraintale.com/library/realistic-surfaces/pine_tree_tall.glb",
+    "attribution": {
+      "title": "Pine Tree Tall",
+      "author": "TerrainTale; ambientCG; ez-tree by Daniel Greenheck",
+      "license": "CC0-1.0",
+      "source": "https://terraintale.com/library/realistic-surfaces/pine-tree-tall"
+    },
+    "normalizedHeight": 1,
+    "sourceHeight": 7.727132797241211,
+    "vertices": 6481,
+    "triangles": 5128,
+    "derivedFrom": "pine_tree_tall-terraintale.glb",
+    "method": "Authored geometry/PBR retained; WebP decoded to PNG; pivot normalized to one metre; tangents generated"
+  },
+  {
+    "output": "pine_tall_mid.glb",
+    "sourceSha256": "8380454b66bd5b3fad4eebed694de207b87056937ecd259a5ce5220369f47bde",
+    "download": "https://terraintale.com/library/realistic-surfaces/pine_tree_tall.glb",
+    "attribution": {
+      "title": "Pine Tree Tall",
+      "author": "TerrainTale; ambientCG; ez-tree by Daniel Greenheck",
+      "license": "CC0-1.0",
+      "source": "https://terraintale.com/library/realistic-surfaces/pine-tree-tall"
+    },
+    "normalizedHeight": 1,
+    "sourceHeight": 7.727132797241211,
+    "vertices": 5735,
+    "triangles": 3969,
+    "derivedFrom": "pine_tall.glb",
+    "method": "Exact LOD0 needle geometry/materials; UV-aware QEM bark at 63% triangles, no proxy or sloppy fallback"
   }
 ]

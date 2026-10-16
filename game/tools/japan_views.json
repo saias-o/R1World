@@ -1,0 +1,38 @@
+[
+  {
+    "key": "jp-tsumago", "country": "JP", "village": "Tsumago-juku — Nakasendo",
+    "camera": [137.595610, 35.577542, 1.65], "heading": 205, "pitch": 0,
+    "bearing": "Orientation publiée sur Commons ; précision non spécifiée.",
+    "local": "2016-03-29T15:05:01+09:00", "weather": [0.15, 0, 30000],
+    "focal35": 27, "size": [1203, 800],
+    "optics": "EXIF : 27 mm équivalent ; rapport original 6016:4000.",
+    "reference": "https://commons.wikimedia.org/wiki/File:Looking_up_the_Nakasend%C5%8D_in_the_central_part_of_the_village,_Tsumago-juku,_Nagiso,_2016.jpg",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Looking_up_the_Nakasend%C5%8D_in_the_central_part_of_the_village%2C_Tsumago-juku%2C_Nagiso%2C_2016.jpg",
+    "author": "DimiTalen", "license": "CC0",
+    "note": "Caméra publiée conservée. Hauteur et inclinaison estimées. Photo de 2016 comparée aux observations actuelles ; météo estimée visuellement."
+  },
+  {
+    "key": "jp-kyoto", "country": "JP", "village": "Kyoto — Sannenzaka",
+    "camera": [135.780992, 34.997847, 1.65], "heading": 148.74098360656, "pitch": 0,
+    "bearing": "Direction vraie publiée dans les EXIF ; précision du téléphone non spécifiée.",
+    "local": "2013-12-17T10:42:53+09:00", "weather": [0.85, 0, 30000],
+    "focal35": 33, "size": [1200, 900],
+    "optics": "EXIF : 33 mm équivalent ; rapport original 3264:2448.",
+    "reference": "https://commons.wikimedia.org/wiki/File:Sanneizaka_(Sannenzaka)_near_Kiyomizudera_Temple.JPG",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Sanneizaka_%28Sannenzaka%29_near_Kiyomizudera_Temple.JPG",
+    "author": "そらみみ (Soramimi)", "license": "CC BY-SA 3.0",
+    "note": "GPS et cap EXIF conservés ; hauteur et inclinaison non mesurées. Photo de 2013 : ce n'est pas un relevé actuel du quartier."
+  },
+  {
+    "key": "jp-tokyo", "country": "JP", "village": "Tokyo — Shibuya Crossing",
+    "camera": [139.700867, 35.659350, 1.65], "heading": 296.72772277228, "pitch": 0,
+    "bearing": "Direction vraie publiée dans les EXIF ; précision non spécifiée.",
+    "local": "2016-02-24T14:15:08+09:00", "weather": [0.85, 0, 30000],
+    "focal35": 29, "size": [1200, 900],
+    "optics": "EXIF : 29 mm équivalent ; rapport 4032:3024. HDR et traitement Photoshop déclarés : comparaison radiométrique impossible.",
+    "reference": "https://commons.wikimedia.org/wiki/File:Shibuya_crossing_1.jpg",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/5/54/Shibuya_crossing_1.jpg",
+    "author": "Hide1228", "license": "CC BY-SA 4.0",
+    "note": "Contrôle du profil urbain contemporain. Shibuya a changé depuis 2016 : on compare matériaux et gabarits, sans prétendre reconstituer les bâtiments démolis. Hauteur et inclinaison estimées."
+  }
+]

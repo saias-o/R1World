@@ -9,7 +9,9 @@
 #include "waterways.hpp"
 
 #include <fstream>
+#include <cctype>
 #include <mutex>
+#include <set>
 #include <unordered_map>
 
 namespace r1 {
@@ -107,8 +109,91 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // ── vegetation ──────────────────────────────────────────────────────────────
 
 namespace {
-constexpr int kNatureRevision = 7;
+constexpr int kNatureRevision = 11;
 const std::string kCardDir = "assets/models/external/nature_cards";
+
+const char* coniferObservation(const Tags& tags) {
+    if (tagOr(tags, "leaf_type") == "needleleaved") return "leaf-type";
+    const auto wood = tagOr(tags, "wood");
+    if (wood == "coniferous" || wood == "conifer" || wood == "needleleaved") return "wood-tag";
+    // Evergreen is not sufficient: many broadleaved trees are evergreen,
+    // while Larix and Taxodium are conifers that shed their needles.
+    static const std::set<std::string> genera = {
+        "pinus", "abies", "picea", "cedrus", "larix", "tsuga", "pseudotsuga",
+        "thuja", "taxus", "cupressus", "juniperus", "chamaecyparis", "cryptomeria",
+        "sequoia", "sequoiadendron", "metasequoia", "taxodium", "sciadopitys",
+        "araucaria", "podocarpus", "athrotaxis", "callitris", "cephalotaxus",
+        "torreya", "calocedrus", "nothotsuga", "keteleeria", "cathaya",
+        "dacrydium", "dacrycarpus", "phyllocladus", "prumnopitys",
+        "conifer", "coniferous", "pine", "fir", "spruce", "larch"};
+    std::string word;
+    for (unsigned char ch : tagOr(tags, "genus") + " " + tagOr(tags, "species") + " " + tagOr(tags, "taxon") + " ") {
+        if (std::isalpha(ch)) word += char(std::tolower(ch));
+        else {
+            if (genera.count(word)) return "botanical-tag";
+            word.clear();
+        }
+    }
+    return nullptr;
+}
+
+// A tree's model name is not evidence that it stands in a city. Use mapped
+// urban land use, or a local concentration of buildings, and explicitly veto
+// woodland and agricultural land even when a larger urban polygon surrounds it.
+class UrbanPlanting {
+public:
+    UrbanPlanting(const OsmData& osm, const Anchor& anchor) {
+        auto xy = [&](P2 p) { const auto e = anchor.toEngine(p.x, p.y, 0); return P2{e.x, e.z}; };
+        auto areas = [&](const std::vector<OsmWay>& ways) {
+            for (const auto& w : ways) {
+                const auto use = tagOr(w.tags, "landuse"), natural = tagOr(w.tags, "natural");
+                const bool urban = use == "residential" || use == "commercial" || use == "retail" || use == "industrial";
+                const bool excluded = use == "forest" || use == "orchard" || use == "farmland" ||
+                    use == "farmyard" || use == "vineyard" || use == "meadow" ||
+                    natural == "wood" || natural == "scrub" || natural == "heath" || natural == "grassland";
+                if ((!urban && !excluded) || w.points.size() < 4) continue;
+                std::vector<P2> ring;
+                for (P2 p : w.points) ring.push_back(xy(p));
+                areasIndex_.add(areas_.size(), boxOf(ring));
+                areas_.push_back({std::move(ring), excluded});
+            }
+        };
+        areas(osm.landcover);
+        areas(osm.vegetation);
+        for (const auto& b : osm.buildings) {
+            const auto kind = tagOr(b.tags, "building");
+            if (b.points.size() < 4 || kind == "garage" || kind == "garages" || kind == "shed" ||
+                kind == "barn" || kind == "farm_auxiliary" || kind == "greenhouse" ||
+                kind == "roof" || kind == "carport" || kind == "ruins") continue;
+            const P2 p = xy(b.points.front());
+            buildingsIndex_.add(buildings_.size(), {p.x, p.y, p.x, p.y});
+            buildings_.push_back(p);
+        }
+    }
+    bool contains(P2 p) const {
+        const Box point{p.x, p.y, p.x, p.y};
+        bool mapped = false;
+        for (size_t i : areasIndex_.near(point)) {
+            const auto& a = areas_[i];
+            if (!pointInPolygon(p, a.ring)) continue;
+            if (a.excluded) return false;
+            mapped = true;
+        }
+        if (mapped) return true;
+        // Same 350 m neighbourhood and 25-building threshold as road context;
+        // a rural park, isolated house or place-name alone cannot qualify.
+        const Box neighbourhood = point.grown(175);
+        int count = 0;
+        for (size_t i : buildingsIndex_.near(neighbourhood))
+            if (neighbourhood.contains(buildings_[i]) && ++count >= 25) return true;
+        return false;
+    }
+private:
+    struct Area { std::vector<P2> ring; bool excluded; };
+    std::vector<Area> areas_;
+    std::vector<P2> buildings_;
+    BoxIndex areasIndex_{128}, buildingsIndex_{64};
+};
 
 // Buildings, roads and water grown by a margin, asked "is this point in you".
 class Blocked {
@@ -146,20 +231,27 @@ private:
     }
 };
 
-std::pair<std::string, std::string> species(const Tags& tags, double lon, double lat, __int128 identifier, bool forest) {
+std::pair<std::string, std::string> species(const Tags& tags, double lon, double lat, bool forest) {
+    if (const char* reason = coniferObservation(tags)) return {"pine_tall", reason};
     std::string genus = tagOr(tags, "genus") + " " + tagOr(tags, "species");
     for (char& c : genus) c = char(std::tolower((unsigned char)c));
     auto has = [&](const char* s) { return genus.find(s) != std::string::npos; };
     bool blank = true;
     for (char c : genus) if (!std::isspace((unsigned char)c)) blank = false;
-    if (has("pinus")) return {"pine_sapling", "botanical-tag"};
-    if (has("abies") || has("picea") || has("cedrus")) return {"fir_sapling", "botanical-tag"};
+    // Observed cherries win worldwide, independently of urban planting rates.
+    // Prunus alone also includes plums, peaches and almonds. Cerasus is an
+    // explicit cherry genus; do not mistake e.g. pseudocerasus for that word.
+    const auto cerasus = genus.find("cerasus");
+    const bool cherryGenus = cerasus != std::string::npos &&
+        (cerasus == 0 || std::isspace((unsigned char)genus[cerasus - 1])) &&
+        (cerasus + 7 == genus.size() || std::isspace((unsigned char)genus[cerasus + 7]));
+    if (has("prunus serrulata") || has("prunus yedoensis") || has("prunus x yedoensis") ||
+        has("prunus × yedoensis") || has("prunus subhirtella") || cherryGenus)
+        return {"sakura", "botanical-tag"};
     if (has("aloidendron") || has("aloe dichotoma")) return {"quiver_tree", "botanical-tag"};
-    if (tagOr(tags, "leaf_type") == "needleleaved") return {"pine_sapling", "leaf-type"};
     if (tagOr(tags, "leaf_type") == "broadleaved" || !blank) return {"broadleaf", "generic-morphology-for-tag"};
     if (forest && (std::abs(lat) > 57 || (5 < lon && lon < 16 && 44 < lat && lat < 48))) {
-        PyRandom rng = seeded(identifier, 17);
-        return {rng.randrange(2) == 0 ? "fir_sapling" : "pine_sapling", "regional-inference"};
+        return {"pine_tall", "regional-inference"};
     }
     // Quiver trees are southern African dryland plants, not a synonym for heat.
     if (13 < lon && lon < 23 && -32 < lat && lat < -20) return {"quiver_tree", "regional-inference"};
@@ -203,6 +295,7 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
                    const Canopy* canopy, const std::vector<OsmWay>* roadside,
                    const clip::Paths64* driveways) {
     const Bounds bounds = tile.bounds();
+    const UrbanPlanting urbanPlanting(osm, anchor);
     auto xy = [&](double lo, double la) { const P3 p = anchor.toEngine(lo, la, 0); return P2{p.x, p.z}; };
     const P2 sw = xy(bounds.west, bounds.south), ne = xy(bounds.east, bounds.north);
     const double rx0 = std::min(sw.x, ne.x), rz0 = std::min(sw.y, ne.y), rx1 = std::max(sw.x, ne.x), rz1 = std::max(sw.y, ne.y);
@@ -211,6 +304,24 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
     const auto relationWater=inlandWaterRegion({},anchor,false,osm.waterAreas);
     if(driveways)for(const auto& p:*driveways)blocked.polygon(clip::kMetres.ring(p),.3);
     auto engineLine = [&](const std::vector<P2>& pts) { std::vector<P2> out; for (const P2& p : pts) out.push_back(xy(p.x, p.y)); return out; };
+    struct ConiferForest { std::vector<P2> ring; const char* reason; };
+    std::vector<ConiferForest> coniferForests;
+    BoxIndex coniferIndex(128);
+    std::set<int64_t> seenForests;
+    for (const auto* ways : {&osm.vegetation, &osm.landcover}) for (const auto& way : *ways) {
+        const bool forest = tagOr(way.tags, "natural") == "wood" || tagOr(way.tags, "landuse") == "forest";
+        if (!forest || way.points.size() < 4 || !seenForests.insert(way.id).second) continue;
+        const char* reason = coniferObservation(way.tags) ? "conifer-forest-tag" : nullptr;
+        const auto observed = palette().treeAreaObservations.find(way.id);
+        const bool identified = !tagOr(way.tags,"leaf_type").empty() || !tagOr(way.tags,"genus").empty() ||
+            !tagOr(way.tags,"species").empty() || !tagOr(way.tags,"taxon").empty() || !tagOr(way.tags,"wood").empty();
+        if (!reason && !identified && observed != palette().treeAreaObservations.end() &&
+            coniferObservation(observed->second.identity)) reason = "atlas-conifer-observation";
+        if (!reason) continue;
+        auto ring = engineLine(way.points);
+        coniferIndex.add(coniferForests.size(), boxOf(ring));
+        coniferForests.push_back({std::move(ring), reason});
+    }
     for (const auto& way : osm.buildings) if (way.points.size() >= 4) blocked.polygon(engineLine(way.points), 0.6);
     for (const auto& way : roadside ? *roadside : osm.roads) {
         if (taggedYes(way.tags, "bridge") || taggedYes(way.tags, "tunnel")) continue;
@@ -386,6 +497,7 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
     std::unordered_map<int64_t, std::vector<P2>> occupied;
     std::map<std::string, int> sources, models, reasons;
     int rejected = 0, budgetDropped = 0, trees = 0, grasses = 0, heights = 0;
+    int urbanCherryEligible = 0, urbanCherrySelected = 0;
     auto cellKey = [](long x, long z) { return (int64_t(x) << 32) ^ int64_t(uint32_t(z)); };
     for (const Candidate& c : candidates) {
         const P2 p = xy(c.lon, c.lat);
@@ -404,7 +516,29 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         const bool grass = tagOr(c.tags, "r1:grass") == "yes";
         if (grass ? grasses >= 160 : trees >= budget) { ++budgetDropped; continue; }
         occupied[cellKey(kx, kz)].push_back(p);
-        auto [model, reason] = species(c.tags, c.lon, c.lat, c.ident, c.forest);
+        const char* coniferForest = nullptr;
+        if (!grass) for (size_t i : coniferIndex.near({p.x, p.y, p.x, p.y}))
+            if (pointInPolygon(p, coniferForests[i].ring)) { coniferForest = coniferForests[i].reason; break; }
+        auto [model, reason] = coniferForest
+            ? std::make_pair(std::string("pine_tall"), std::string(coniferForest))
+            : species(c.tags, c.lon, c.lat, c.forest);
+        // Only infer a species when OSM does not supply botanical identity.
+        // Japan's 15% replaces the northern 5%; the two rates never add up.
+        const bool botanical = std::any_of(c.tags.begin(), c.tags.end(), [](const auto& t) {
+            return (t.first == "genus" || t.first == "species") &&
+                std::any_of(t.second.begin(), t.second.end(), [](unsigned char ch) { return !std::isspace(ch); });
+        });
+        const double cherryRate = osm.country == "JP" ? 0.15 : c.lat > 0 ? 0.05 : 0.0;
+        if (!grass && !coniferForest && !coniferObservation(c.tags) && !botanical &&
+            cherryRate > 0 && std::string(c.source) != "inferred-rural-roadside" && urbanPlanting.contains(p)) {
+            ++urbanCherryEligible;
+            PyRandom cherryRng = seeded(c.ident, 0x53414B55);
+            if (cherryRng.random() < cherryRate) {
+                ++urbanCherrySelected;
+                model = "sakura";
+                reason = osm.country == "JP" ? "urban-cherry-japan-inference" : "urban-cherry-north-inference";
+            }
+        }
         if (model == "broadleaf" && std::abs(c.lat) >= 30) model = "urban_tree";
         if (grass) {
             const double lo = c.lon, la = c.lat;
@@ -414,7 +548,8 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         }
         PyRandom rng = seeded(c.ident, 81);
         const double nominal = grass ? (model == "grass_tall" ? 1.1 : 0.45)
-                               : c.forest ? 13 : std::abs(c.lat) < 30 ? 10 : 9;
+                               : model == "pine_tall" ? (c.forest || coniferForest ? 22 : 18)
+                               : model == "sakura" ? 6 : c.forest ? 13 : std::abs(c.lat) < 30 ? 10 : 9;
         const double observed = lengthTag(tag(c.tags, "height"), 0);
         const double height = observed > 0 ? observed : nominal * (0.8 + rng.random() * 0.4);
         const double width = height;
@@ -425,17 +560,19 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         if (grass) {
             children.push_back({{"type", "Node"}, {"name", "Near"}, {"importedFrom", "assets/models/external/nature_selected/" + model + ".glb"}});
         } else {
-            const double k = 1.0 / sourceHeight(model);
-            if(model == "urban_tree")
+            const bool detailed = model == "urban_tree" || model == "sakura" || model == "pine_tall";
+            if(detailed)
                 children.push_back({{"type", "Node"}, {"name", "Far"},
-                                    {"importedFrom", "assets/models/external/nature_selected/urban_tree_far.glb"}});
-            else
+                                    {"importedFrom", "assets/models/external/nature_selected/" + model + "_far.glb"}});
+            else {
+                const double k = 1.0 / sourceHeight(model);
                 children.push_back({{"type", "Node"}, {"name", "Far"}, {"importedFrom", kCardDir + "/" + model + ".glb"},
                                     {"transform", {{"scale", {k, k, k}}}}});
+            }
             // The middle level is the same tree, thinned (tools/r1/tree_lod.py).
-            if (model == "urban_tree") {
-                children.push_back({{"type", "Node"}, {"name", "Near"}, {"importedFrom", "assets/models/external/nature_selected/urban_tree.glb"}});
-                children.push_back({{"type", "Node"}, {"name", "Mid"}, {"importedFrom", "assets/models/external/nature_selected/urban_tree_mid.glb"}});
+            if (detailed) {
+                children.push_back({{"type", "Node"}, {"name", "Near"}, {"importedFrom", "assets/models/external/nature_selected/" + model + ".glb"}});
+                children.push_back({{"type", "Node"}, {"name", "Mid"}, {"importedFrom", "assets/models/external/nature_selected/" + model + "_mid.glb"}});
             }
         }
         PyRandom yawRng = seeded(c.ident, 71);
@@ -451,14 +588,16 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
     out.stats = {{"revision", kNatureRevision}, {"placed", out.nodes.size()}, {"trees", trees}, {"grassTufts", grasses},
                  {"heightsMeasured", heights}, {"modelSelection", reasons}, {"bySource", sources}, {"byModel", models},
                  {"rejectedOverlap", rejected}, {"droppedForBudget", budgetDropped}, {"budget", budget},
-                 {"representation", "urban tree: multi-view Mid impostor; other species: layered source cards"},
+                 {"representation", "urban, sakura and adult pine trees: Near/Mid/multi-view Far; other species: layered source cards"},
+                 {"urbanCherryPlanting", {{"eligible", urbanCherryEligible}, {"selected", urbanCherrySelected},
+                                         {"japanRate", 0.15}, {"northRate", 0.05}}},
                  {"canopy", canopy ? nlohmann::json{{"observed", true}, {"noSource", canopy->noSource},
                                                     {"treeCells", canopy->count(Canopy::Tree)},
                                                     {"treesFromCanopy", canopyTrees},
                                                     {"inferredRemovedByCanopy", canopyRemoved},
                                                     {"source", "Meta & WRI High Resolution Canopy Height Maps, CC BY 4.0 (imagery 2009-2020)"}}
                                    : nlohmann::json{{"observed", false}}},
-                 {"speciesPolicy", "botanical/leaf tags then approximate regional morphology"}};
+                 {"speciesPolicy", "conifer forest areas force adult pine; botanical/leaf tags; untyped urban cherries 15% JP or 5% north; regional morphology"}};
     return out;
 }
 

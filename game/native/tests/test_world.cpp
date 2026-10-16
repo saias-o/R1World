@@ -527,6 +527,209 @@ TEST(Nature, urban_trees_keep_near_mid_and_use_normalized_mid_impostor) {
     CHECK(tree["transform"]["scale"][1]==9.);
     CHECK(plants.nodes==planNature(osm,tile,anchor,ground).nodes);
 }
+TEST(Nature, observed_cherries_win_worldwide_and_keep_measured_height) {
+    for (const auto location : {P2{135.78,35.0}, P2{2.35,48.85}, P2{151.2,-33.85}}) {
+    const auto tile=tileAt(location.x,location.y);const auto centre=tile.center();
+    const auto anchor=Anchor::at(centre.x,centre.y);
+    const auto ground=[&](double lo,double la){return anchor.toEngine(lo,la,0);};
+    for(const auto& botanical:std::vector<std::pair<std::string,bool>>{
+            {"Prunus serrulata",true},{"Prunus x yedoensis",true},
+            {"Prunus subhirtella",true},{"Cerasus × yedoensis",true},{"Cerasus",true},
+            {"Cerasus avium",true},{"PRUNUS SERRULATA",true},{"Prunus",false},{"Prunus domestica",false},
+            {"Prunus persica",false},{"Prunus pseudocerasus",false},{"Acer palmatum",false},{"",false}}) {
+        OsmData osm;osm.country=location.x>150?"AU":location.x>100?"JP":"FR";
+        osm.features.push_back({99,centre.x,centre.y,{{"natural","tree"},{"species",botanical.first},{"height","4.5"}}});
+        const auto plants=planNature(osm,tile,anchor,ground);
+        CHECK(plants.nodes.size()==1);
+        const auto& tree=plants.nodes.front();
+        CHECK(tree["transform"]["scale"][1]==4.5);
+        CHECK(tree["children"].size()==3);
+        for(const auto& level:tree["children"]) {
+            const auto path=level["importedFrom"].get<std::string>();
+            CHECK((path.find("/sakura")!=std::string::npos)==botanical.second);
+            CHECK(exists(path));CHECK(!level.contains("transform"));
+        }
+        CHECK(plants.nodes==planNature(osm,tile,anchor,ground).nodes);
+    }
+    OsmData osm;
+    osm.features.push_back({99,centre.x,centre.y,{{"natural","tree"},{"genus","Cerasus"}}});
+    CHECK(planNature(osm,tile,anchor,ground).stats["byModel"]["sakura"]==1);
+    }
+}
+
+namespace {
+struct CherryPlantingFixture {
+    Tile tile;
+    Anchor anchor;
+    OsmData osm;
+    explicit CherryPlantingFixture(double lon, double lat, const std::string& country)
+        : tile(tileAt(lon,lat)), anchor(Anchor::at(tile.center().x,tile.center().y)) {
+        osm.country=country;
+        const auto b=tile.bounds();
+        for(int row=0;row<25;++row)for(int col=0;col<40;++col)
+            osm.features.push_back({1+row*40+col,
+                b.west+(col+.5)*(b.east-b.west)/40,
+                b.south+(row+.5)*(b.north-b.south)/25,{{"natural","tree"}}});
+    }
+    OsmWay area(Tags tags, double fraction=1) const {
+        const auto b=tile.bounds();const double east=b.west+(b.east-b.west)*fraction;
+        return way(5000,{{b.west,b.south},{east,b.south},{east,b.north},{b.west,b.north},{b.west,b.south}},std::move(tags));
+    }
+    Scatter run() const {
+        return planNature(osm,tile,anchor,[&](double lo,double la){return anchor.toEngine(lo,la,0);},2000);
+    }
+};
+int cherries(const Scatter& out) { return out.stats["byModel"].value("sakura",0); }
+}
+TEST(Nature, urban_cherries_use_japan_15_percent_or_north_5_percent_without_stacking) {
+    for (const auto location : {P2{135.78,35.0},P2{2.35,48.85},P2{-74,40.7},P2{100.5,13.75},P2{151.2,-33.85}}) {
+        const bool japan=location.x==135.78;
+        CherryPlantingFixture f(location.x,location.y,japan?"JP":location.y<0?"AU":"FR");
+        f.osm.landcover.push_back(f.area({{"landuse","residential"}}));
+        const auto out=f.run();
+        CHECK(out.nodes.size()==1000);
+        const double rate=japan?.15:location.y>0?.05:0;
+        NEAR(double(cherries(out))/out.nodes.size(),rate,.02);
+        if(rate==0)CHECK(cherries(out)==0);
+        CHECK(out.nodes==f.run().nodes);
+        std::reverse(f.osm.features.begin(),f.osm.features.end());
+        CHECK(out.nodes==f.run().nodes);
+    }
+}
+TEST(Nature, cherry_percentages_stay_inside_urban_areas_and_out_of_rural_parks_and_forests) {
+    CherryPlantingFixture f(135.78,35,"JP");
+    CHECK(cherries(f.run())==0);
+    f.osm.landcover.push_back(f.area({{"leisure","park"}}));
+    CHECK(cherries(f.run())==0); // a park alone does not prove a city
+    f.osm.landcover.push_back(f.area({{"landuse","residential"}},.5));
+    CHECK(cherries(f.run())>0);
+    for(const auto& node:f.run().nodes)if(node["children"][0]["importedFrom"].get<std::string>().find("/sakura")!=std::string::npos)
+        CHECK(node["transform"]["position"][0].get<double>()<0);
+    for(const auto& excluded:std::vector<Tags>{{{"natural","wood"}},{{"landuse","forest"}},
+            {{"landuse","orchard"}},{{"landuse","farmland"}},{{"landuse","meadow"}}}) {
+        f.osm.landcover.push_back(f.area(excluded));
+        CHECK(cherries(f.run())==0);
+        // A surveyed cherry still wins, even in a rural/woodland exclusion.
+        f.osm.features.front().tags["species"]="Prunus serrulata";
+        CHECK(cherries(f.run())==1);
+        f.osm.features.front().tags.erase("species");
+        f.osm.landcover.pop_back();
+    }
+}
+TEST(Nature, urban_cherry_inference_preserves_other_botanical_species_and_needleleaves) {
+    CherryPlantingFixture f(135.78,35,"JP");
+    f.osm.landcover.push_back(f.area({{"landuse","commercial"}}));
+    for(const auto& tags:std::vector<Tags>{{{"species","Acer palmatum"}},{{"genus","Pinus"}},
+            {{"species","Prunus domestica"}},{{"species","Prunus persica"}},{{"leaf_type","needleleaved"}}}) {
+        for(auto& tree:f.osm.features) {
+            tree.tags={{"natural","tree"}};
+            tree.tags.insert(tags.begin(),tags.end());
+        }
+        CHECK(cherries(f.run())==0);
+    }
+}
+TEST(Nature, urban_cherries_can_use_local_buildings_without_urban_landuse) {
+    CherryPlantingFixture f(135.78,35,"JP");
+    const auto centre=f.tile.center();
+    for(int row=0;row<5;++row)for(int col=0;col<5;++col) {
+        const double lo=centre.x+(col-2)*.0002,la=centre.y+(row-2)*.0002;
+        f.osm.buildings.push_back(way(6000+row*5+col,
+            {{lo,la},{lo+.00005,la},{lo+.00005,la+.00005},{lo,la+.00005},{lo,la}},{{"building","house"}}));
+    }
+    CHECK(cherries(f.run())>0);
+    for(auto& b:f.osm.buildings)b.tags["building"]="barn";
+    CHECK(cherries(f.run())==0); // a farm's outbuildings cannot create a city
+}
+TEST(Nature, observed_conifers_worldwide_use_the_adult_pine_with_three_lods) {
+    for(const auto location:{P2{135.78,35},P2{2.35,48.85},P2{151.2,-33.85}}) {
+        const auto tile=tileAt(location.x,location.y);const auto centre=tile.center();
+        const auto anchor=Anchor::at(centre.x,centre.y);
+        for(const auto& tags:std::vector<Tags>{{{"species","Pinus sylvestris"}},{{"genus","Abies"}},
+                {{"species","Picea abies"}},{{"genus","Cedrus"}},{{"genus","Larix"}},
+                {{"genus","Pseudotsuga"}},{{"species","Cryptomeria japonica"}},{{"genus","Juniperus"}},
+                {{"leaf_type","needleleaved"}},{{"wood","coniferous"}},{{"species","PINUS NIGRA"}},
+                {{"taxon","Pinus nigra"}}}) {
+            OsmData osm;auto t=tags;t["natural"]="tree";t["height"]="31.5";
+            osm.features.push_back({99,centre.x,centre.y,t});
+            const auto out=planNature(osm,tile,anchor,[&](double lo,double la){return anchor.toEngine(lo,la,0);});
+            CHECK(out.stats["byModel"]["pine_tall"]==1);
+            CHECK(out.nodes[0]["children"].size()==3);
+            CHECK(out.nodes[0]["transform"]["scale"][1]==31.5);
+            for(const auto& child:out.nodes[0]["children"]) {
+                const auto path=child["importedFrom"].get<std::string>();
+                CHECK(path.find("/pine_tall")!=std::string::npos);CHECK(exists(path));
+            }
+        }
+    }
+}
+TEST(Nature, evergreen_or_mixed_leaves_alone_do_not_imply_a_conifer) {
+    CherryPlantingFixture f(2.35,48.85,"FR");
+    for(auto& tree:f.osm.features)tree.tags["leaf_cycle"]="evergreen";
+    CHECK(f.run().stats["byModel"].value("pine_tall",0)==0);
+    for(auto& tree:f.osm.features)tree.tags["leaf_type"]="mixed";
+    CHECK(f.run().stats["byModel"].value("pine_tall",0)==0);
+    for(auto& tree:f.osm.features)tree.tags["species"]="Schinus molle";
+    CHECK(f.run().stats["byModel"].value("pine_tall",0)==0);
+}
+TEST(Nature, mapped_conifer_forest_forces_pine_for_points_and_canopy_but_only_inside_its_boundary) {
+    CherryPlantingFixture f(135.78,35,"JP");
+    f.osm.landcover.push_back(f.area({{"landuse","residential"}}));
+    auto forest=f.area({{"landuse","forest"},{"leaf_type","needleleaved"}},.5);
+    forest.id=5001;f.osm.vegetation.push_back(forest);f.osm.landcover.push_back(forest);
+    // The requested homogeneous forest also overrides contradictory tree tags
+    // inside its bounds, including the earlier observed-cherry rule.
+    for(auto& tree:f.osm.features)tree.tags["species"]="Prunus serrulata";
+    auto check=[&](const Scatter& out) {
+        int inside=0,outside=0;
+        for(const auto& node:out.nodes) {
+            const bool left=node["transform"]["position"][0].get<double>()<0;
+            const auto model=node["children"][0]["importedFrom"].get<std::string>();
+            if(left) {CHECK(model.find("/pine_tall")!=std::string::npos);++inside;}
+            else {CHECK(model.find("/pine_tall")==std::string::npos);++outside;}
+        }
+        CHECK(inside>100);CHECK(outside>100);
+    };
+    check(f.run());
+    Canopy canopy;canopy.bounds=f.tile.bounds();canopy.cells.fill(Canopy::Tree);canopy.heights.fill(24);
+    f.osm.features.clear(); // measured cells must inherit the forest identity too
+    const auto ground=[&](double lo,double la){return f.anchor.toEngine(lo,la,0);};
+    const auto measured=planNature(f.osm,f.tile,f.anchor,ground,2000,&canopy);
+    check(measured);
+    CHECK(measured.stats["bySource"]["canopy-measured"].get<int>()>100);
+    CHECK(measured.nodes==planNature(f.osm,f.tile,f.anchor,ground,2000,&canopy).nodes);
+}
+TEST(Nature, conifer_forest_wood_and_botanical_tags_make_homogeneous_forests) {
+    for(const auto& tags:std::vector<Tags>{{{"landuse","forest"},{"wood","coniferous"}},
+            {{"natural","wood"},{"genus","Pinus"}},{{"landuse","forest"},{"species","Picea abies"}}}) {
+        CherryPlantingFixture f(2.35,48.85,"FR");
+        f.osm.vegetation.push_back(f.area(tags));
+        const auto out=f.run();
+        CHECK(out.stats["trees"].get<int>()>=1000);
+        CHECK(out.stats["byModel"].size()==1);
+        CHECK(out.stats["byModel"]["pine_tall"]==out.stats["trees"]);
+    }
+}
+TEST(Nature, brural_observation_fills_missing_identity_without_extending_the_woodland) {
+    for(int64_t id:{1085310430LL,1085310431LL}) {
+        CHECK(palette().treeAreaObservations.count(id));
+        CHECK(!palette().treeAreaObservations.at(id).source.empty());
+        CherryPlantingFixture f(-2.659,47.623,"FR");
+        auto forest=f.area({{"natural","wood"}},.5);forest.id=id;
+        f.osm.landcover.push_back(forest);
+        const auto out=f.run();
+        CHECK(out.stats["modelSelection"]["atlas-conifer-observation"].get<int>()>100);
+        for(const auto& tree:out.nodes) {
+            const bool left=tree["transform"]["position"][0].get<double>()<0;
+            const auto path=tree["children"][0]["importedFrom"].get<std::string>();
+            CHECK((path.find("/pine_tall")!=std::string::npos)==left);
+        }
+        f.osm.landcover.front().tags["leaf_type"]="broadleaved";
+        CHECK(f.run().stats["byModel"].value("pine_tall",0)==0);
+        f.osm.landcover.front().tags.erase("leaf_type");
+        f.osm.landcover.front().id=123;
+        CHECK(f.run().stats["byModel"].value("pine_tall",0)==0);
+    }
+}
 TEST(Traffic, a_street_is_two_lanes_and_a_one_way_is_one) {
     auto ground = [](double lon, double lat) { return P3{lon * 111320, 0, -lat * 111320}; };
     const auto two = buildLaneGraph({way(1, {{0, 0}, {0.001, 0}}, {{"highway", "residential"}})}, ground, 0, 2, 48);

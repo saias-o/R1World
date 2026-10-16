@@ -26,9 +26,14 @@ class TreeImpostorTests(unittest.TestCase):
         np.testing.assert_allclose(ambient_visibility(points, normals, blocked), 0)
 
     def test_shipped_far_preserves_albedo_and_contains_relief(self):
-        doc, binary = read_glb(NATURE / 'urban_tree_far.glb')
+        for name in ('urban_tree', 'sakura', 'pine_tall'):
+            with self.subTest(tree=name):
+                self.check_shipped_far(name)
+
+    def check_shipped_far(self, name):
+        doc, binary = read_glb(NATURE / (name + '_far.glb'))
         mat = doc['materials'][0]
-        report = json.loads((NATURE / 'urban_tree_far.source.json').read_text(encoding='utf8'))
+        report = json.loads((NATURE / (name + '_far.source.json')).read_text(encoding='utf8'))
         self.assertEqual(report['sourceSha256'], hashlib.sha256((NATURE / report['derivedFrom']).read_bytes()).hexdigest())
         self.assertEqual(report['vertices'], 4)
         self.assertEqual(report['triangles'], 2)

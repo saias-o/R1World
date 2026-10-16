@@ -565,6 +565,11 @@
             "path": "assets/world/relief/-10_130.r1relief",
             "type": "Unknown"
         },
+        "11233452253057048426": {
+            "hash": 4972981133134054851,
+            "path": "assets/models/external/nature_selected/pine_tall_mid.glb",
+            "type": "Mesh"
+        },
         "11236072025701540648": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-70_170.r1relief",
@@ -1529,6 +1534,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/20_-60.r1relief",
             "type": "Unknown"
+        },
+        "13407015021061606933": {
+            "hash": 9627100513160278130,
+            "path": "assets/models/external/nature_selected/sakura_far.glb",
+            "type": "Mesh"
         },
         "1340907221348222990": {
             "hash": 4964235014381181392,
@@ -3020,6 +3030,11 @@
             "path": "assets/world/relief/-50_20.r1relief",
             "type": "Unknown"
         },
+        "17248506907281249648": {
+            "hash": 10932137278839319786,
+            "path": "assets/licenses/pine_tall-CC0.txt",
+            "type": "Unknown"
+        },
         "1725044341931803965": {
             "hash": 14066447046842696334,
             "path": "assets/models/external/nature_cards/pine_sapling.png",
@@ -3396,7 +3411,7 @@
             "type": "Unknown"
         },
         "18184050926343500723": {
-            "hash": 2807105707715488226,
+            "hash": 17731654433290875669,
             "path": "assets/world/atlas.json",
             "type": "Unknown"
         },
@@ -4070,6 +4085,11 @@
             "path": "assets/world/relief/-60_130.r1relief",
             "type": "Unknown"
         },
+        "3244673031967574466": {
+            "hash": 12267009106614660438,
+            "path": "assets/models/external/nature_selected/pine_tall_far_normal.png",
+            "type": "Texture"
+        },
         "3278156432482543887": {
             "hash": 14895758828622531607,
             "path": "assets/textures/surfaces/tropical_ground_albedo.jpg",
@@ -4084,6 +4104,11 @@
             "hash": 16213215462645926068,
             "path": "assets/world/relief/-80_-100.r1relief",
             "type": "Unknown"
+        },
+        "328865727148001923": {
+            "hash": 11552417646326573836,
+            "path": "assets/models/external/nature_selected/pine_tall_far.glb",
+            "type": "Mesh"
         },
         "3299309667946707715": {
             "hash": 12829324014278246702,
@@ -4800,6 +4825,11 @@
             "path": "assets/models/humans/male_adult_07.glb",
             "type": "Mesh"
         },
+        "4896945942358823046": {
+            "hash": 6940061910833992205,
+            "path": "assets/models/external/nature_selected/sakura_far_albedo.png",
+            "type": "Texture"
+        },
         "4902031272872294546": {
             "hash": 3734886263259797827,
             "path": "assets/world/relief/30_30.r1relief",
@@ -5159,6 +5189,11 @@
             "hash": 7203041136955210099,
             "path": "assets/models/signs/fr_ab3a-rural-r1.glb",
             "type": "Mesh"
+        },
+        "5845073018599283041": {
+            "hash": 4924924642213647180,
+            "path": "assets/models/external/nature_selected/pine_tall_far_albedo.png",
+            "type": "Texture"
         },
         "5848937975791478221": {
             "hash": 1676173099880905931,
@@ -5655,6 +5690,11 @@
             "path": "assets/world/relief/20_0.r1relief",
             "type": "Unknown"
         },
+        "7092704690704086645": {
+            "hash": 10751105507613868751,
+            "path": "assets/models/external/nature_selected/pine_tall_far.source.json",
+            "type": "Unknown"
+        },
         "7093055902685902926": {
             "hash": 17851924758332909522,
             "path": "assets/world/relief/0_120.r1relief",
@@ -6031,7 +6071,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 11814378629638692076,
+            "hash": 3066048032314793884,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -6210,9 +6250,19 @@
             "path": "assets/world/landmarks/leaning_tower_of_pisa-r3-lod2.glb",
             "type": "Mesh"
         },
+        "8505060791082797504": {
+            "hash": 1655919096764856391,
+            "path": "assets/models/external/nature_selected/sakura_far.source.json",
+            "type": "Unknown"
+        },
         "8549532360678801189": {
             "hash": 2467705211204688390,
             "path": "assets/models/signs/fr_b14_20-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "8568623393551103833": {
+            "hash": 11287365501889377168,
+            "path": "assets/models/external/nature_selected/sakura_mid.glb",
             "type": "Mesh"
         },
         "857791478161700779": {
@@ -6555,6 +6605,11 @@
             "path": "assets/world/relief/40_60.r1relief",
             "type": "Unknown"
         },
+        "9337195641308935139": {
+            "hash": 7935362340842768873,
+            "path": "assets/models/external/nature_selected/sakura_far_normal.png",
+            "type": "Texture"
+        },
         "9351639955220957186": {
             "hash": 14480069544958462638,
             "path": "assets/world/relief/-70_40.r1relief",
@@ -6666,7 +6721,7 @@
             "type": "Texture"
         },
         "9569450703380592770": {
-            "hash": 2546812888287795117,
+            "hash": 1363941381018045837,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
         },
@@ -6674,6 +6729,11 @@
             "hash": 14120252162483721338,
             "path": "assets/textures/surfaces/asphalt_albedo.jpg",
             "type": "Texture"
+        },
+        "9578341742725748916": {
+            "hash": 15066082764132189832,
+            "path": "assets/models/external/nature_selected/sakura.glb",
+            "type": "Mesh"
         },
         "9579190252674911504": {
             "hash": 8631905787678880811,
@@ -6754,6 +6814,11 @@
             "hash": 4531449550226278948,
             "path": "assets/world/relief/-50_10.r1relief",
             "type": "Unknown"
+        },
+        "9797292293725208494": {
+            "hash": 4293505095638526284,
+            "path": "assets/models/external/nature_selected/pine_tall.glb",
+            "type": "Mesh"
         },
         "9799088756338048001": {
             "hash": 6271810807875847883,
