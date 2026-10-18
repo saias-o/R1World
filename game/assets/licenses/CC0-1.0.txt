@@ -1,0 +1,7 @@
+CC0 1.0 Universal
+
+The motorcycle source models in data/source-assets/vehicles/motorcycles are
+released under CC0 1.0 by Innerscene. The source pages and pinned SHA-256
+checksums are listed in data/source-assets/vehicles/motorcycles/sources.json.
+
+License text: https://creativecommons.org/publicdomain/zero/1.0/legalcode

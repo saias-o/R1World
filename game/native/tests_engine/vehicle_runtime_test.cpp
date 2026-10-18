@@ -10,6 +10,11 @@
 #include <nlohmann/json.hpp>
 
 namespace {
+// Keep the original acceleration/saturation requirements as fractions of the
+// configured limit. The city profile was retuned from 28 to 24 m/s; absolute
+// 26 m/s assertions would then require exceeding its own speed limiter.
+constexpr float kRoadSpeedFraction=26.f/28.f;
+constexpr float kThreeSecondSpeedFraction=23.f/28.f;
 void require(bool pass,const char* message) {
     if(!pass){std::fprintf(stderr,"FAIL vehicle-runtime: %s\n",message);std::exit(1);}
 }
@@ -67,7 +72,7 @@ void handling() {
             const bool heavy=std::string(kind)=="truck"||std::string(kind)=="bus";
             require(rig.drive->signedSpeed()>(heavy?4.f:12.f),"every shipped model accelerates uphill despite bodywork damage");
             if(std::string(kind)=="city"&&damage==0.f)
-                require(rig.drive->signedSpeed()>26.f,"compact reaches road speed promptly on flat ground and hills");
+                require(rig.drive->signedSpeed()>r1::vehicleDynamics(kind).maximumSpeed*kRoadSpeedFraction,"compact reaches road speed promptly on flat ground and hills");
             rig.drive->command(0,1,0);rig.step(5);const auto stopped=rig.position();
             rig.drive->command(1,0,0);rig.step(3,60,r1::VehicleRuntime::bodyworkPowerLoss(damage));
             require(stopped.z-rig.position().z>(heavy?1.f:8.f),"all models restart uphill after braking, including damaged cars");
@@ -90,16 +95,17 @@ void hills() {
     }
 }
 void flatPerformance() {
+    const float speedLimit=r1::vehicleDynamics("city").maximumSpeed;
     float referenceDistance=0.f;
     for(int rate:{10,15,30,60,90,120}) {
         Rig rig({0,.06f,0},glm::quat(1,0,0,0));
         floor(rig.scene,{0,-1,0},glm::quat(1,0,0,0),{500,1,500});
         rig.step(1,rate);rig.drive->command(1,0,0);rig.step(3,rate);
-        require(rig.drive->signedSpeed()>23.f,"compact reaches over 80 km/h within three seconds");
+        require(rig.drive->signedSpeed()>speedLimit*kThreeSecondSpeedFraction,"compact reaches its configured three-second acceleration target");
         if(rate==10)referenceDistance=rig.position().z;
         else require(std::abs(referenceDistance-rig.position().z)<.2f,"game handling agrees across low FPS, desktop and VR frame rates");
         rig.step(3,rate);
-        require(rig.drive->signedSpeed()>26.f&&rig.drive->signedSpeed()<=28.1f,"road speed retains the configured speed limit");
+        require(rig.drive->signedSpeed()>speedLimit*kRoadSpeedFraction&&rig.drive->signedSpeed()<=speedLimit+.1f,"road speed retains the configured speed limit");
         rig.drive->command(0,1,0);rig.step(3,rate);
         require(std::abs(rig.drive->signedSpeed())<.1f,"service brake stops the compact without reversing");
         std::printf("PASS flat response/braking at %d Hz\n",rate);
@@ -182,6 +188,34 @@ void treeImpacts() {
         }
     require(passed,"front and offset tree impacts dissipate energy, stay upright and allow reversing away");
 }
+void motorcycles() {
+    for(const char* kind:{"moto_city","moto_cross"})for(int rate:{30,60,120})for(float steer:{-1.f,1.f}) {
+        Rig rig({0,.06f,0},glm::quat(1,0,0,0),kind);
+        floor(rig.scene,{0,-1,0},glm::quat(1,0,0,0),{500,1,500});
+        auto* rider=rig.body->createChild<saida::Node>();rider->transform().position={0,.5f,.2f};
+        rig.step(1,rate);const auto start=rig.position();
+        rig.drive->command(1,0,0);rig.step(3,rate);
+        require(rig.position().z<start.z-15.f&&rig.drive->signedSpeed()>15.f,"motorcycles accelerate towards local -Z");
+        rig.drive->command(.7f,0,steer*.5f);rig.step(2,rate);
+        glm::vec3 at;glm::quat rotation;
+        rig.body->physicsWorld()->getBodyTransform(rig.body->bodyId(),at,rotation);
+        const auto forward=rotation*glm::vec3(0,0,-1),up=rotation*glm::vec3(0,1,0);
+        const auto lateral=glm::normalize(glm::cross(forward,glm::vec3(0,1,0)));
+        const float lean=glm::dot(up,lateral)*steer;
+        std::printf("motorcycle %s %dHz steer=%.0f speed=%.2f lean=%.3f up=%.3f\n",kind,rate,steer,rig.drive->signedSpeed(),lean,up.y);
+        require(up.y>.65f&&lean>.02f,"motorcycles bank into the supported turn without overturning");
+        rig.scene.update(0.f);
+        const auto expected=at+rotation*rider->transform().position;
+        require(glm::distance(glm::vec3(rider->worldTransform()[3]),expected)<.001f,"body-attached rider follows the completed solver pose");
+        rig.drive->command(0,1,0);rig.step(5,rate);
+        require(std::abs(rig.drive->signedSpeed())<.5f,"both motorcycle profiles brake to a stop");
+        rig.step(2,rate);
+        rig.body->physicsWorld()->getBodyTransform(rig.body->bodyId(),at,rotation);
+        require((rotation*glm::vec3(0,1,0)).y>.95f,"stopped motorcycle returns upright");
+        rig.drive->command(-1,0,0);rig.step(3,rate);
+        require(rig.drive->signedSpeed()<-.5f&&rig.drive->signedSpeed()>-2.5f,"reverse remains a controlled walking manoeuvre");
+    }
+}
 void geometry() {
     for(const auto& mesh:{r1::traffic_signal::pole(),r1::traffic_signal::housing(),r1::traffic_signal::lens()}) {
         require(!mesh.indices.empty()&&mesh.vertices.size()<2500,"signal meshes stay within their shared geometry budget");
@@ -248,17 +282,18 @@ void roadSmoothness() {
             maxTiltSpin=std::max(maxTiltSpin,std::hypot(w.x,w.z));
         }
         std::printf("road mesh %d Hz vertical=%.3f tilt-spin=%.3f speed=%.2f\n",rate,maxVertical,maxTiltSpin,rig.drive->signedSpeed());
-        require(maxVertical<.8f&&maxTiltSpin<1.f&&rig.drive->signedSpeed()>26.f,
+        require(maxVertical<.8f&&maxTiltSpin<1.f&&rig.drive->signedSpeed()>r1::vehicleDynamics("city").maximumSpeed*kRoadSpeedFraction,
             "small triangle-road irregularities do not amplify into chassis vibration or stall driving");
     }
 }
 }
 int main(int argc,char** argv){
     std::setvbuf(stdout,nullptr,_IONBF,0);
+    if(argc>1&&std::string(argv[1])=="--motorcycles"){motorcycles();return 0;}
     if(argc>1&&std::string(argv[1])=="--tree-impacts"){treeImpacts();return 0;}
     if(argc>1&&std::string(argv[1])=="--sustained-hills"){sustainedHills();return 0;}
     if(argc>1&&std::string(argv[1])=="--recovery"){recovery();return 0;}
     if(argc>1&&std::string(argv[1])=="--road"){roadSmoothness();return 0;}
-    handling();flatPerformance();hills();ramp();sustainedHills();treeImpacts();recovery();roadSmoothness();geometry();
+    motorcycles();handling();flatPerformance();hills();ramp();sustainedHills();treeImpacts();recovery();roadSmoothness();geometry();
     std::puts("PASS vehicle-runtime handling, hills, braking, ramp entry, tree impacts and signal geometry");
 }

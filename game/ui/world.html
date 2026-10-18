@@ -12,7 +12,7 @@
   <div id="places"><button id="paris">Paris</button><button id="tokyo">Tokyo</button><button id="newyork">New York</button><button id="lawrence">Lawrence</button><button id="cape">Le Cap</button><button id="sydney">Sydney</button><button id="pole">Pôle Nord</button></div>
   <div id="destination"><label>LATITUDE</label><input id="latitude" type="text" value="48.856600"/><label>LONGITUDE</label><input id="longitude" type="text" value="2.352200"/><button id="go">Go</button><button id="resume">Reprendre</button><button id="options">Options</button></div>
   <p id="status">Carte prête. Sélectionnez votre destination.</p>
-  <div id="credits">Carte : Natural Earth · Bâtiments et routes : © OpenStreetMap · Recherche : Photon / OpenStreetMap · Relief : IGN RGE ALTI · Terrain Tiles (Mapzen ; USGS SRTM/3DEP/GMTED, NOAA ETOPO1, EU-DEM Copernicus, Geoscience Australia, Kartverket, LINZ, Environment Agency, INEGI, Gouvernement du Canada, DGM Österreich, ArcticDEM) · Copernicus DEM / Open-Meteo · Sommets : © OpenStreetMap · Météo : Open-Meteo · Banquise : NOAA PolarWatch (ASCAT) · Canopée : Meta & WRI (CC BY 4.0) · Personnages : Microsoft Rocketbox (MIT) · Véhicules adaptés : Ruff (Ford Focus, Blend Swap 76275), Scopia et Space Mushrooms / Sweet Home 3D (CC BY 3.0 ; sources et licence dans assets/licenses/Road-vehicles-CC-BY-3.0.txt)</div>
+  <div id="credits">Carte : Natural Earth · Bâtiments et routes : © OpenStreetMap · Recherche : Photon / OpenStreetMap · Relief : IGN RGE ALTI · Terrain Tiles (Mapzen ; USGS SRTM/3DEP/GMTED, NOAA ETOPO1, EU-DEM Copernicus, Geoscience Australia, Kartverket, LINZ, Environment Agency, INEGI, Gouvernement du Canada, DGM Österreich, ArcticDEM) · Copernicus DEM / Open-Meteo · Sommets : © OpenStreetMap · Météo : Open-Meteo · Banquise : NOAA PolarWatch (ASCAT) · Canopée : Meta & WRI (CC BY 4.0) · Personnages : Microsoft Rocketbox (MIT) · Voitures : Ruff (Ford Focus, Blend Swap 76275), Scopia et Space Mushrooms / Sweet Home 3D (CC BY 3.0) · Motos : Innerscene (CC0 1.0) · Catalogue radio : Radio Browser (stations et flux de leurs diffuseurs)</div>
  </div>
  <div id="options-screen">
   <div id="options-brand">R1<span>WORLD</span></div>
@@ -29,10 +29,16 @@
    <p id="weather-options-help">Votre choix s’applique partout dans le monde, même après un changement de destination. « Météo réelle » retrouve la météo locale.</p>
    <p id="weather-options-status">Météo réelle : chaque lieu suit sa météo locale.</p>
   </div>
+   <div id="toaster-options">
+    <label>PERFORMANCES DU MONDE</label>
+    <div id="toaster-presets"><button id="toaster-off" class="toaster-option selected">Qualité standard</button><button id="toaster-on" class="toaster-option">Mode grille-pain</button></div>
+    <p id="toaster-options-help">Pour jouer fluidement même sur des PC très modestes : résolution 720p, arbres en LOD intermédiaire/lointain uniquement, distance d’affichage réduite avec brouillard.</p>
+    <p id="toaster-options-status">Qualité standard : graphismes et distance normaux.</p>
+   </div>
   <button id="options-back">Retour</button>
  </div>
- <div id="hud"><div id="coordinates"></div><div id="stream-status"></div><div id="local-conditions"></div>
-  <div id="controls">ZQSD / WASD : marcher ou conduire · Maj : courir · F : monter / descendre (voiture, bateau, avion, hélicoptère) · Espace : sauter, frein à main, cabrer ou monter · Souris : caméra · Clic : frapper / tirer · Clic droit : viser · 1 / 2 : poings / pistolet · E : recharger · T : code de triche · R : FPS / debug · M / Échap : carte</div>
+ <div id="hud"><div id="coordinates"></div><div id="stream-status"></div><div id="local-conditions"></div><div id="vehicle-radio"></div>
+  <div id="controls">ZQSD / WASD : marcher ou conduire · Maj : courir · F : monter / descendre (voiture, bateau, avion, hélicoptère) · Espace : sauter, frein à main, cabrer ou monter · Souris : caméra · Clic : frapper / tirer · Clic droit : viser · 1 / 2 : poings / pistolet · E : recharger · B : radio · N : station · T : code de triche · R : FPS / debug · M / Échap : carte</div>
   <div id="combat"><div id="weapon-name">Poings</div><div id="weapon-ammo"></div><div id="health-row"><div id="health-bar"><div id="health-fill"></div></div><span id="health-value">100</span></div><div id="shield"></div></div>
   <div id="cheat"><span id="cheat-label">CODE</span><input id="cheat-input" type="text" maxlength="24"/><span id="cheat-help">Entrée : valider · Échap : fermer</span></div>
   <div id="cheat-said"></div>

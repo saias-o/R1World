@@ -170,6 +170,11 @@
             "path": "assets/world/facade.png",
             "type": "Texture"
         },
+        "10409071675542978695": {
+            "hash": 6210877913334107864,
+            "path": "assets/models/vehicles/moto_city_far.glb",
+            "type": "Mesh"
+        },
         "10434784846684883641": {
             "hash": 15385101897751177897,
             "path": "assets/models/signs/town/glyph_0051-r1.glb",
@@ -1900,6 +1905,11 @@
             "path": "assets/models/signs/fr_b14_20-urban-r1.glb",
             "type": "Mesh"
         },
+        "14345756969932824190": {
+            "hash": 2282183483165705874,
+            "path": "assets/models/vehicles/moto_cross.glb",
+            "type": "Mesh"
+        },
         "14351937649521075160": {
             "hash": 9216949912230083802,
             "path": "assets/world/relief/20_-170.r1relief",
@@ -2244,6 +2254,11 @@
             "hash": 9670824747320362889,
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_branches_arm_1k.jpg",
             "type": "Texture"
+        },
+        "15223158646073633899": {
+            "hash": 16725912023903236798,
+            "path": "assets/models/vehicles/moto_city.glb",
+            "type": "Mesh"
         },
         "15230685323533265631": {
             "hash": 10180550142249699681,
@@ -2748,6 +2763,11 @@
         "16406322642272135953": {
             "hash": 15454339488101706640,
             "path": "assets/world/relief/20_60.r1relief",
+            "type": "Unknown"
+        },
+        "16422651030829251198": {
+            "hash": 10954432584959326379,
+            "path": "assets/licenses/CC0-1.0.txt",
             "type": "Unknown"
         },
         "16424036235485257864": {
@@ -5925,6 +5945,11 @@
             "path": "assets/world/relief/-20_100.r1relief",
             "type": "Unknown"
         },
+        "7632098776183101186": {
+            "hash": 978952793619513563,
+            "path": "assets/models/vehicles/moto_cross_far.glb",
+            "type": "Mesh"
+        },
         "7665783974342712936": {
             "hash": 1757416664921700145,
             "path": "assets/world/relief/70_-180.r1relief",
@@ -6071,7 +6096,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 3066048032314793884,
+            "hash": 4969814885691471619,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -6796,7 +6821,7 @@
             "type": "Unknown"
         },
         "9745547955817295292": {
-            "hash": 11259993345530569467,
+            "hash": 243581692675704331,
             "path": "assets/models/vehicles/fleet.json",
             "type": "Unknown"
         },

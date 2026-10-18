@@ -8,9 +8,27 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
-Documentation reviewed on 10 October 2026. The current generator is v43;
+Documentation reviewed on 19 October 2026. The current generator is v56;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
+
+### Current verification — 19 October 2026
+
+The generator suite passes **427/427** from the repository root with
+`game/generated/tools/r1test.exe --game game`. Engine native CTest passes
+**100/100**. Python asset/tool checks pass **121/121**, with no skipped tests.
+The GPU streaming suite, portable media lifecycle, vehicle runtime, motorcycle
+poses and local radio lifecycle also pass.
+
+The divided-bridge defect is fixed: overlapping inferred pavements no longer
+leave parapets between parallel carriageways. Reversed axes, separate heights,
+distant decks, crossing roads and overlapping carriageways have regression checks.
+The generator is v56, bridge revision 3. The resident target test now uses a
+deterministic 121-building scene with a feasible reduction target; immutable
+surveyed geometry remains protected when a soft target cannot be met. Material
+checks require the intentionally matte vegetation ground, and bundled-asset
+checks respect `--game`. Pure tree-asset checks no longer require an OpenGL bake
+dependency just to import their helpers.
 
 The reference PC is the user's Ryzen 7 5700U / NVIDIA MX450 2 GiB laptop,
 with about 7.4 GiB usable RAM, connected to AC. The performance target,
@@ -46,21 +64,24 @@ time limit. Saida preserves sampled mouse button history across UI consumption
 so a held button is not mistaken for a fresh press on every frame.
 The WebCanvas bridge also leaves click generation to RmlUi instead of adding a
 second artificial click on release. Verified on 13 October 2026 with the real
-menu zoom smoke, Saida's input/UI tests and native runtime contract. Native
-CTest passes 96/97; the remaining crash-reporter test rejects the already
-documented unknown configured Git build identity.
+menu zoom smoke, Saida's input/UI tests and native runtime contract. Native CTest now passes 100/100, including crash-reporter build identity checks.
 The Web player and authoring WASM builds also pass, as does the authoring
 Node smoke; these build checks do not claim browser menu interaction coverage.
 
-| Key | On foot | In a car | In an aircraft |
+| Key | On foot | In a car or motorcycle | In an aircraft |
 |---|---|---|---|
 | ZQSD / WASD | walk | drive | see [Flying](#flying) |
 | Maj | run | | push down / descend |
-| Space | jump | handbrake | pull up / climb |
-| F | take the nearest car, boat or aircraft | get out at any speed | get out, at any moment |
+| Space | jump | handbrake in cars / rear brake on motorcycles | pull up / climb |
+| F | take the nearest car, motorcycle, boat or aircraft | get out at any speed | get out, at any moment |
 | Mouse | orbit the camera | turn the head | |
 | M / Échap | the map; **Reprendre** returns (M toggles water in debug) | | |
 | T | type a cheat code (T toggles trees in debug) | | |
+| 2 / right mouse / left mouse | pistol / aim / shoot | same on motorcycles; left hand stays on the bar | |
+| E | reload | reload the motorcycle pistol | |
+| B | | radio on/off | |
+| N / Maj+N | | next / previous local station | |
+| Page Up / Page Down | | radio volume | |
 
 ### Cheat codes
 
@@ -75,6 +96,8 @@ so typing `comet` neither walks nor toggles the debug panel.
 | `buzzoff` | a helicopter beside you |
 | `plane` | a business jet beside you |
 | `comet` | the fleet's sports car, in its reddest paint, parked beside you |
+| `moto` | a plain city motorcycle parked beside you |
+| `rocket` | a motocross motorcycle parked beside you |
 | `painkiller` | invincible for 5 minutes; the HUD counts down under the health bar |
 
 A vehicle stands parallel to the player, ahead of him for an aircraft and to
@@ -437,6 +460,34 @@ transforms are uniform-scale TRS.
 
 These are geometry capacities, not frame-rate measurements.
 
+### Memory
+
+Measured on 16 October 2026, offline Paris smoke (nine tiles resident). The
+engine starts at about 660 MB of private memory, with 83 MB of it heap. A
+Paris tile, once cooked and prepared, held about 140 MB on the CPU: 60 MB of the
+generator's double-precision meshes, 8 MB of their weld keys, 60 MB of prepared
+engine vertices (100 bytes each), 12 MB of collision and 1 MB of JSON. The
+service keeps the tiles wanted plus the most recent, up to 36.
+
+The generator's own copy is now released as soon as the tile is prepared
+(`releaseCookedGeometry`): parts keep their names and materials, buildings
+their ids and bounds, and everything drawn or collided with is the prepared
+copy. The smoke's peak went from 4.36–4.72 GB to 3.71–3.96 GB; the heap at
+rest from 2.9 GB to 1.7 GB. What remains is the prepared copies, about 1.2 GB
+outside the heap (driver and Vulkan; 570 MB of it at start-up) and about
+650 MB the heap keeps committed after the cooks' peaks.
+
+Two settings were measured and left as they are. Three cooking threads instead
+of six lower the peak by about 220 MB but bring the ninth tile 3 s later (12.4
+instead of 9.2 s). Keeping 16 tiles instead of 36 changes nothing in a smoke,
+which never cooks more than 16; it would only matter on a long drive.
+
+A cook that runs out of memory is said, never a crash later: the service logs
+`OUT-OF-MEMORY <tile>`, halves the number of tiles cooked at once and tries the
+tile again two seconds later. The HUD says "Mémoire saturée" and the smoke
+fails on that reason (`Service.a_cook_out_of_memory_*`). The mount line of each
+tile carries `private_mb`.
+
 ## Ground and terrain
 
 ### Elevation
@@ -527,9 +578,7 @@ weight. Classes such as `inferred:urban` and `inferred:bare` remain estimates
 in `ground.measuredFraction`.
 
 Validation on 10 October 2026: nine ground inference tests and 116 Python tests
-pass. The complete native suite has 339 passes and the same three earlier
-failures (Paris resident vertex budget, FarRelief material map, paired bridge
-decks). In the cached Vannes centre tile at -2.7608, 47.6579, 2,652 of the
+pass. In the cached Vannes centre tile at -2.7608, 47.6579, 2,652 of the
 2,711 unclassified terrain triangles now use inferred made ground. The mapped
 356 grass triangles remain unchanged and the measured fraction remains 17.35%.
 The grass cover after construction masks falls from 39.53% to 11.07% of the
@@ -721,10 +770,7 @@ Validated on 10 October 2026 at the reported Saint-Armel point
 171539754 has one 2.3 m wall level and a 1.5 m inferred roof. Back-row house
 171538471 also receives the home profile. Shape-flattened roofs on the tile
 fall from 65 to 5; resident geometry remains 30,673 vertices (baseline geometry
-51,327 → 51,107). Seven new regression tests pass; the complete native suite
-reports 346 passes with the same three pre-existing failures (Paris baseline
-vertex target, FarRelief material map, paired bridge decks). All 116 Python
-tests pass. Mapped floor counts in the Vannes centre tile remain 134; no new
+51,327 → 51,107). Seven new regression tests and all 116 Python tests passed at that date. Mapped floor counts in the Vannes centre tile remain 134; no new
 building dataset is used. Offline captures of Saint-Armel, Lasné, Vannes and
 Paris were inspected in `generated/gallery/20261010-014443-c7f3fae`; the final
 height-reference adjustment also passes all ten `BuildingHeights` tests.
@@ -745,10 +791,7 @@ Vannes centre tile at -2.7608, 47.6579 on 10 October 2026 contains:
 All 640 neighbour estimates in this tile use three references. Its cache has
 no explicit heights: those references derive from mapped floor counts, so these
 results remain estimates. The v41 cache key regenerates the old geometry.
-The optimized game and cook tools build; 116 Python tests pass, and the native
-suite reports 330 passes with three failures also reproduced using the prior
-building implementation (Paris resident vertex budget, FarRelief material map,
-paired bridge decks). Tall-height tests cover mapped totals through 828 m,
+The optimized game and cook tools build; 116 Python tests passed at that date. Tall-height tests cover mapped totals through 828 m,
 163 floors, all visual levels and physical shells.
 Offline Paris and Vannes gallery captures pass and were visually inspected
 (`generated/gallery/20261010-004341-c7f3fae`). The Vannes port spawn/swim smoke
@@ -785,8 +828,7 @@ counts. Diagnostic GLB exports retain the original full shells. The three
 variants never get added together to trigger the density threshold.
 
 Verified on 9 October 2026 in `generated/building-lod-validation`: 11 new
-generator tests pass; the complete generator suite has 308 passing tests and
-the same two prior failures (FarRelief material map and paired bridge decks).
+generator tests pass.
 The engine passes 92 native CTest cases and 226 GPU streaming checks. Offline
 1920×1080 captures pass in Paris and Grenoble; the close Grenoble view shows
 25 reduced Near buildings and no detailed Near. Its 382 closed buildings use
@@ -880,7 +922,11 @@ reports their missing boundary query. The manifest records the rule, confidence,
 accepted plots and refusal reasons. Small untyped footprints beside French
 rural bus stops become open timber shelters with a bench; substations remain
 utility huts. Classification and dimensions remain inference where untagged.
-See [the Lasné and Paris validation](../docs/VALIDATION_LASNE.md).
+The `lasne` view in `tools/gallery.py` keeps the comparison camera and lighting
+reproducible at (-2.71559, 47.56272). It is a visual regression reference, not a
+claim of exact photographic fidelity: unobserved house dimensions, property
+boundaries, foliage and furniture remain inferred. Dense central Paris is
+excluded from these rural frontage rules.
 
 Generator v34 extends the low-rise priors to rural US homes (with a New England
 override), European Russian cottages, Anti-Atlas mineral courts and Japanese
@@ -1059,9 +1105,15 @@ Generator v52 also uses the user-selected Innerscene flowering cherry
 yedoensis`, `Prunus subhirtella` and `Cerasus` select it worldwide, including
 rural areas and the southern hemisphere. For trees without botanical identity,
 deterministic urban planting selects it with probability 15% in Japan or 5%
-elsewhere north of the equator; the rates do not stack. Urban means mapped
-residential/commercial/retail/industrial land use or at least 25 principal
-buildings within a 350 m square around the tree. Mapped woodland and
+elsewhere north of the equator; the rates do not stack. Since v55, both rates
+require a nearby OSM `place=city/town` (less than 1500 m); a village/hamlet
+at least as close vetoes inference. Unknown settlement status is ineligible.
+This conservative local evidence is not a municipal boundary: a city's name
+does not authorize planting across its surrounding countryside. In addition,
+the tree must lie in mapped residential/commercial/retail/industrial land use
+or have at least 25 principal buildings within a 350 m square. Density and
+residential land use alone no longer turn villages such as Theix into cities.
+Mapped woodland and
 agricultural areas, rural roadside planting and known non-cherry species stay
 excluded from these rates. The model has fixed blossom, without a seasonal
 cycle. See `docs/JAPAN_UPDATE.md` for the selection policy and asset provenance.
@@ -1176,10 +1228,10 @@ ambient parity, separation of direct/sky occlusion and diffuse sky color/crossfa
 shaders compile, and the translated pipeline validates in Chrome WebGPU.
 An offline Paris capture also completes (`paris-final.png`); the intermediate
 ambient-only change remained too dark and is not the final visual result.
-CTest remains 94/95: the existing
-failure is the unknown Git build identity in this sandbox. Captures, the
-isolated shader comparison script and measurements are in
-`generated/tree-far-lighting-fix`; whole-world/headset performance is not
+The current native CTest suite passes 100/100, including Git build identity.
+The temporary
+shader comparison scripts/captures were removed after recording these results;
+whole-world/headset performance is not
 qualified by that synthetic scene.
 The final 861-tree fixture (20 Mid, 841 Far, 1280×720, same executable and
 camera/light) measures median GPU frame 4.492 → 4.801 ms over samples 100–219.
@@ -1747,9 +1799,13 @@ player can read.
 
 `native/vehicle_runtime.hpp` installs the engine's `SurfaceDrive` controller,
 three raised chassis collision volumes, four rounded wheel contacts and
-`DeformableMesh` on each car. Driving uses
+`DeformableMesh` on each car. The two motorcycles instead use one narrow
+chassis and two inline wheel contacts, with lower mass, tighter steering,
+quicker response, less reverse speed and a freer lean response. They use light
+arcade handling distinct from cars; the cross bike gets more grip and less top
+speed than the city bike. Driving uses
 forces on a Jolt body, with simplified ground adhesion and no suspension
-requirement. Profiles for all seven models specify mass, acceleration, braking,
+requirement. Profiles for all nine models specify mass, acceleration, braking,
 grip and damage energy as game approximations, not manufacturer measurements.
 Ground support samples the centre and both axles. Powered slope assistance
 preserves responsive arcade acceleration uphill; releasing the accelerator
@@ -1806,25 +1862,112 @@ of the geographic game.
 stops being imported and vegetation radii shrink to 55%; slow down and both
 come back.
 
+### Motorcycles and local radio — 17–18 October 2026
+
+`moto` and `rocket` now create empty bikes. Only traffic instances receive a
+crowd rider. Taking one retires its traffic slot and removes that rider permanently;
+stepping off leaves an empty saddle. Mounting reparents the real player body, with
+its original rig, weapon and modifiers, directly below the physics body. It follows
+the completed solver pose without a second avatar or a frame of geographic lag.
+Teleport and sinking return that same body to the pedestrian hierarchy.
+
+Both motorcycles are authored facing +Z and rendered/controlled facing -Z. Human
+rigs are rotated to match; left/right arm targets no longer cross. Hand and foot
+IK targets are measured at the bars and pegs in the model's frame, then transformed
+into each rider's rig space. Traffic riders use a stable 80/20 male/female draw,
+independent of the number of available outfits. Two female variants are preloaded
+alongside the existing male selection, rather than loading the whole wardrobe.
+Existing crowd models and helmets are reused.
+
+Both palms contact the rubber grips when driving, with closed fingers. The
+chair source is held at a stable seated frame; its long fidgets cannot pull a
+shoulder out of bar reach. Wrist rotations account for the palm offset,
+shorter rigs sit closer to the tank, and the head looks ahead
+without rotating Rocketbox's shoulder-bearing Neck bone. During pistol aim,
+the chest turns only as far as the supporting arm can reach; the left palm
+remains on its grip. The right arm follows the camera and clears the shoulder
+for rearward shots. The pistol is stowed again when aiming ends aboard a bike.
+
+Handling now has quicker acceleration, progressive steering response, steering lock
+that decreases with speed, supported-turn banking, road-aligned damping, effective
+braking and a walking-speed reverse. City/cross masses include a rider. The engine's
+same force controller and Jolt contacts still own the motion; this is accessible
+arcade handling, not a complete tyre or motorcycle suspension simulation. With the
+pistol selected (`2`), hold right mouse to aim and press left mouse to fire; `E`
+reloads. The existing ammo, effects, damage and muzzle obstruction rules are shared.
+Shots ignore the ridden bike's collider; the left hand stays on the handlebar.
+
+The pinned source GLBs are rebuilt by `r1/motorcycles_blender.py`, then finalised by
+`r1/motorcycle_detail.py`. Smooth curved surfaces, source textures and mechanical
+silhouettes are retained; small fasteners are reduced before the main forms. Near
+city geometry falls from 17,724 to **8,564 triangles**, cross from 10,192 to **6,498**;
+Far uses **1,798 / 1,797**. Embedded cross textures are bounded to 512 pixels Near
+and 128 Far, instead of nine 2K images in each LOD. Combined decoded base images
+fall from about 288 MiB to 9.6 MiB before mipmaps, preserving the loader's existing
+budget. The game now configures a bounded **512 MiB CPU decoded-asset cache**
+through the engine's existing API: the 256 MiB engine default rejected existing
+scanned vegetation while measured process use was only 1.4–3 GiB. This is separate
+from VRAM and the unchanged 1,048,576-vertex geometry arena. Material roles and wheel
+pivots remain explicit, and the fleet metadata
+counts every exported vertex seam.
+
+In cars and motorcycles, `B` enables radio, `N` / `Shift+N` changes stations and
+Page Up/Down changes volume. The HUD shows the station, distance, volume and
+connection/error state. `gen/radio.*` queries the public
+[Radio Browser API](https://api.radio-browser.info/) through the engine's pollable
+HTTP service, without requiring Web threads. It discovers API
+mirrors, requests real geolocated stations in an expanding radius and ranks them
+locally by great-circle distance, rejecting broken, unlocated and unsupported rows
+and duplicate names/streams. Local entries come first; when the settlement has none,
+the nearest listed station is selected, without restricting the search to a country.
+Locations are the directory's coordinates, not a claim of municipal broadcast coverage.
+
+Station metadata is cached in `cache/radio/`, reused offline and refreshed after a
+week when the service is reachable. Live programmes are streamed only while radio
+is enabled aboard a road vehicle, stop on exit/teleport and resume on re-entry.
+Failure/buffering times out to the next station, with a bounded pass through the list.
+The engine includes native libcurl/Mbed TLS, CA certificates and MP3 decoding in
+the player, with a WebAudio/HTML media implementation for browser exports. The
+catalogue selects MP3 stations so playback uses the same codec baseline across
+exports. Native live playback, real browser sound and an Android ARM64 shared
+library are verified. Browser CORS/HTTPS restrictions can make particular stations
+unavailable; the normal station fallback applies. A browser awaiting permission
+to start sound displays “Toucher pour écouter” and resumes on the next interaction.
+Geographic caching remains independent; an offline cache cannot supply a live
+programme. Full mobile/Quest export and physical-device validation remain engine
+platform work; the radio service no longer depends on Windows APIs.
+
+Reproduce the checks from the repository root with
+`python game/tools/verify_motorcycle_pose.py`,
+`game/tools/verify_vehicle_runtime.ps1 -MotorcyclesOnly`,
+`python game/tools/verify_motorcycles.py --skip-build`, and
+`python game/tools/verify_radio.py --skip-build` after `game/Play.ps1 -BuildOnly`.
+Pose validation covers 70 hand contacts across the actual rigs; physics covers
+both models and both turn directions at 30/60/120 Hz. Generated logs and captures
+go to `generated/motorcycle-validation/`. The portable media harness remains
+`engine/tests/portable_media`, with `engine/tools/verify_portable_media.py` and
+`engine/tools/verify_portable_media_web.mjs` as its maintained entry points.
+
 ### The fleet
 
 `r1/vehicle_imports.py` converts seven licensed source vehicles to GLB — compact,
-estate, SUV, off-roader, sports car, lorry, bus. The near models retain the source
+estate, SUV, off-roader, sports car, lorry, bus — and preserves two sourced
+motorcycles in the shared fleet manifest. The city bike and motocross bike are
+CC0 models from Innerscene, stored with pinned SHA-256 hashes in
+`data/source-assets/vehicles/motorcycles/sources.json`. Both have independent
+wheel pivots and Near/Far LODs. The near car models retain the source
 geometry and normals **without decimation**; only distance models are reduced.
 The source ZIPs and SHA-256 hashes are pinned in `data/source-assets/vehicles`,
-so rebuilding needs Blender 4.2, not a live asset server:
-
-```powershell
-cd game/tools
-python -m r1.vehicle_imports
-```
+so rebuilding the car models needs Blender 4.2, not a live asset server. The
+source motorcycle GLBs and their download links are pinned alongside them.
 
 Ruff's compact and the Scopia / Space Mushrooms vehicles are CC BY 3.0, credited
 in the menu and `assets/licenses/Road-vehicles-CC-BY-3.0.txt`. Logos and hidden
 interiors are removed. Paint, dark glazing, alloy wheels, mirrors and rubber
 have distinct opaque metallic/roughness materials; detail textures ship inside
-the GLBs. `assets/models/vehicles/fleet.json` counts the actual exported vertex
-seams and both resident LODs (about 72k shared vertices for the whole fleet).
+the GLBs. The motorcycles keep their source models' parts and colors, with
+reduced geometry and texture sizes for traffic. `assets/models/vehicles/fleet.json`
+lists dimensions and both LODs for every vehicle and counts the exported vertices.
 The engine switches to the distance mesh below about one fifth of the screen
 height (coverage threshold 0.16),
 with hysteresis; a nearby car keeps its full mesh, and distant traffic does
@@ -1869,23 +2012,26 @@ binary. Its tests run alone:
 | Here | There |
 | --- | --- |
 | `native/gen/traffic_graph.cpp` (`buildLaneGraph`) turns the tile's OSM ways into a lane graph | `Graph` drives on it |
-| The tile's density decides how many cars | `Flow::setPopulation` spends it |
+| The tile's density decides how many vehicles | `Flow::setPopulation` spends it |
 | Which side of the road this place drives on | `Rules::leftHand` mirrors the lane |
 | A scene node per agent, painted, on the terrain | `Flow::pose` says where |
-| The player's car, as an obstacle | agents queue behind it |
+| The player's car or motorcycle, as an obstacle | agents queue behind it |
 
 - **A graph per tile**, cooked with the street from the same ways, with the
   tile's lifetime. Tunnels and `service` ways carry no traffic; bridges are
   driven at their solved level. Speeds are `maxspeed` where tagged (328 against
   32 estimates on the rue de Rivoli tile), and the tile says which.
-- **How busy**: a car per 28 buildings, capped by road length (22 for a Paris
+- **How busy**: a vehicle per 28 buildings, capped by road length (22 for a Paris
   tile, two or three for a village). Lanes are weighted by road class and
   spawning follows weight × length, so the cars are on the avenue you are
-  looking at. Eighty cars per neighbourhood, nearest tile first.
+  looking at. Eighty vehicles per neighbourhood, nearest tile first. Motorcycles
+  make up 5% of traffic by default and 50% across Africa, in India, Central
+  America, South America and the Caribbean; stable agent seeds make the mix
+  repeatable when a tile is visited again.
 - **Ten paints**, listed as albedos under `carPaints` in `atlas.json` (0.05 to
   0.30), one material each through the engine's cache.
-- **F takes any car.** The traffic node leaves the flow (`Flow::retire`) and
-  joins the world; the car you left stays where you left it. Six abandoned cars
+- **F takes any car or motorcycle.** The traffic node leaves the flow (`Flow::retire`) and
+  joins the world; the vehicle you left stays where you left it. Six abandoned vehicles
   are kept; a teleport clears them.
 
 Generator v47 / traffic schema 3 preserves short road connectors, directional lane counts, offsets,
@@ -1943,9 +2089,7 @@ incident is recorded. The final build also passes a daytime 60-second check:
 51 live cars and 35 moving at peak, 11.71 moving on average after 30 seconds,
 zero incidents throughout and no junction/blocked-exit stops in its final sample.
 Menu clicks pass their regression and the stopped character has zero horizontal
-drift after walking. The earlier full generator run reports 375 passes and
-the same four failures already recorded below (resident target, FarRelief,
-paired bridge decks and the country-map fixture). These are local Paris checks,
+drift after walking. These are local Paris checks,
 not a qualification of every city or the MX450 frame budget.
 
 The reported queue at Paris 48.857268, 2.352571 exposed a region-boundary
@@ -2101,8 +2245,7 @@ and pistol, **E** reloads (an empty magazine reloads by itself).
 - **Cost**: nothing is simulated or posed until a fight starts; the HUD (health,
   weapon, ammo) changes only when a value does, on the existing half-second tick.
 
-Verified offline: `r1test` (372 passed; the three failures Cook, FarRelief and
-Bridges also fail at the previous commit), Saida's `saida_ragdoll_tests`, and
+Verified offline: the combat cases in `r1test`, Saida's `saida_ragdoll_tests`, and
 the smoke at Paris (night, no crowd: fight skipped) and at Vannes
 (`R1WORLD_SMOKE_HOUR=13:00 python tools\play_world.py --smoke --spawn -2.76022 47.6573`:
 a passer-by knocked down came to rest in 1.7 s, a pistol round fired, then the
@@ -2141,307 +2284,112 @@ Engine fixes this game found, each with its regression test in Saida:
 
 ## Performance
 
-### Code audit on the MX450, 12 October 2026
+R1World's native build now consumes SaidaEngine's source/build-tree CMake SDK.
+`Play.ps1` updates the optimized engine, configures this project's
+`CMakeLists.txt` with `SaidaEngine_DIR=../engine/build-rel/sdk`, and builds its
+`R1World` target. Ninja tracks actual C++ dependencies; the launcher no longer
+extracts flags or library lists from the engine's generated Ninja files.
+`R1_BUILD_JOBS` and `Jouer.cmd` keep their existing interfaces. The vehicle,
+motorcycle-pose and radio integration checks also use named CMake targets.
+Geography, generation and the optional traffic integration remain game-owned.
 
-Optimized native Vulkan runs, offline, hidden 1920 × 1080 windows. The original
-executable was retained before changing the code. Each comparison uses the same
-spawn, camera, fixed Sun and clear inspection weather, with nine resident tiles;
-no model, texture, density setting or LOD distance was changed. The captures arm
-only after tile/prop readiness, then record another 300 frames in Paris or 150
-in Vannes. Statistics select the last 250/100 frames and exclude the last two
-capture/readback frames. Traffic remains live, so node/body counts vary slightly
-between runs. These are local stationary-view measurements, not a whole-world
-30 fps qualification or a controlled estimate of each patch's separate gain.
+### Matched motion measurements, 18 October 2026
 
-| View | Original median / p95 | Final median / p95 | FPS from median frame time |
+The current optimized player was measured offline on the Ryzen 7 5700U / MX450,
+with noon/clear conditions, live traffic, real time and unchanged FIFO VSync.
+Each preset repeats the same scripted movement three times after the nine local
+tiles and their props are ready. Normal uses 1600 x 900; toaster uses 1280 x 720.
+These are short local sequences: about four seconds walking and two seconds
+accelerating a car over 20 m, not sustained cross-city streaming. Two boundary
+frames are excluded per end to remove smoke assertions/scene inspection.
+
+| Location / motion | Normal mean FPS | Toaster mean FPS | Gain |
 |---|---:|---:|---:|
-| Paris, street view | 77.87 / 97.77 ms | 49.76 / 58.09 ms | 12.8 → 20.1 |
-| Vannes, harbour view | 82.39 / 87.92 ms | 54.01 / 69.26 ms | 12.1 → 18.5 |
+| Marais (2.352571, 48.857268), walking | 42.2 | 51.1 | +8.9 (+21.0%) |
+| Same departure, driving | 36.0 | 39.5 | +3.5 (+9.7%) |
+| Near Saint-Jacques (2.3486, 48.8580), walking | 32.8 | 49.4 | +16.5 (+50.4%) |
 
-The main CPU cost is traversing the resident hierarchy, including stationary
-and hidden LOD nodes: about 93,000 nodes in Paris and 102,000 in Vannes. The
-camera used to scan all enabled nodes every frame (14.91/16.03 ms in the original
-views); the engine now indexes cameras and compares hierarchy paths only for
-priority ties. Final camera selection costs about 0.01 ms. Local TRS matrices
-are cached by component values, preserving edits through retained `Transform&`
-references and independent world propagation. This still scans the node tree.
-R1World also registers its post-physics camera hook only while driving: at rest
-on foot it previously returned immediately, but the engine still traversed the
-entire scene a third time (13.65/16.34 ms in the intermediate runs). The hook
-remains active while driving, when camera correction needs that propagation.
+Marais driving varies substantially between repeats: normal 30.1–41.5 FPS,
+toaster 37.8–40.6 FPS. The pooled gain is not a constant benefit at every moment
+or a sustained 40 FPS qualification. Saint-Jacques driving is excluded in both
+modes because the manoeuvre encounters an obstacle; the completed walking phases
+remain valid. The first two Marais trials, before/during closing other heavy
+applications, are also excluded. Game code and saved options are unchanged.
+The measured results and limits are retained here; one-off comparison scripts,
+captures, executable copies and duplicate Markdown reports were cleaned up.
 
-| Remaining CPU scope, mean per frame | Paris | Vannes |
-|---|---:|---:|
-| Two transform walks, before/after physics | 29.46 ms | 34.56 ms |
-| Renderer scene gathering, including draw-list construction | 11.67 ms | 12.50 ms |
-| Building LOD scheduling | 1.68 ms | 2.23 ms |
-| Jolt solver, one fixed step in these capture windows | 0.92 ms | 0.67 ms |
-| Traffic gameplay | 0.49 ms | 0.40 ms |
-| Interior streaming/doors | 0.14 ms | 0.20 ms |
+A separate same-resolution control uses the identical executable, with both
+presets verified at 1280 x 720 at the start of every movement phase. Only the
+test child window is resized after its options check; no game code changes.
+Three repeats per mode in the Marais give:
 
-`Physics/SceneStep` includes `Scene/PostPhysicsTransforms`: its large inclusive
-number is not the cost of collision solving alone. Stable tile polling is cheap
-(about 0.05 ms/frame in Paris), but arrival is not: the final Paris log records
-individual tile mounts of 22–44 ms, and the original captures had mounts up to
-76 ms. `World::shape` creates the collider nodes and every building's parent,
-three LOD holders and behaviour synchronously; `activate` then installs the
-tile's runtime systems. Cooking runs on workers, but publishing this hierarchy
-can exceed the whole-frame budget on the main thread.
+| Motion, both at 720p | Normal mean FPS | Toaster mean FPS | Gain |
+|---|---:|---:|---:|
+| Walking | 48.6 | 50.7 | +2.1 (+4.4%) |
+| Driving | 39.4 | 43.4 | +4.0 (+10.0%) |
 
-GPU frame time remains about 36.7 ms in Paris and 36.4 ms in Vannes. New feature
-timestamp spans point at `TerrainRingsFeature` (17.9/18.9 ms), followed by grass
-(4.8/1.1 ms) and water (0.05/2.8 ms). These TOP/BOTTOM pipeline timestamp spans
-can overlap preceding work and must not be added or treated as isolated feature
-costs; an A/B run is needed to quantify an exclusive terrain saving. The code
-does nevertheless submit a full 128² × 6 procedural vertex grid for each
-present relief level. Resident-tile holes are discarded in the fragment shader,
-after vertex height, normal and surface sampling. Compacting wholly covered
-cells before drawing, sharing repeated grid vertices and preserving the exact
-boundary/morphing rules are code optimization candidates; reducing the assets
-is not what this audit changed.
+Walking repeat ranges overlap (normal 45.8–50.0, toaster 47.6–52.4 FPS), so its
+small average difference is not a constant/clearly separated benefit. Driving
+ranges are 38.5–40.6 versus 43.2–43.6 FPS; pooled p95 frame times improve from
+32.5 to 29.0 ms. The same short-route limitations apply. Separate-series values
+vary; do not subtract their means to attribute an exact cost to resolution.
+Saved options remained unchanged. The temporary same-resolution controller and
+duplicate report were removed after recording these results.
 
-Next code priorities are incremental transform propagation with the existing
-mutable-transform contract preserved, measuring/compacting terrain submissions,
-and budgeting tile hierarchy/collider publication across frames. Building LOD
-scheduling also sorts all candidates every frame even when no uploads are
-needed, but it is smaller than the transform and renderer costs above.
+### Toaster and standard optimization, 18 October 2026
 
-Reproducible evidence is in `generated/code-perf-audit/`: original, intermediate
-and final traces, PNGs, summaries and logs. `tools/analyze_profile.py` reads the
-Chrome traces without adding nested CPU scopes together, for example:
+Both presets now share incremental engine transform propagation and conservative
+light-volume shadow rejection. Transform comparison still visits hidden nodes
+and detects retained mutable references; only changed world matrices propagate.
+Hierarchy edits reuse unchanged traversal branches. Skinned shadow casters bypass
+the new bounds test. Building LOD scheduling sorts only pending uploads. No model,
+texture, density, LOD distance or shadow quality setting was reduced by this work.
+The options smoke restores the requested quality/time/weather before capture;
+`R1WORLD_SMOKE_QUALITY=standard|toaster` provides an explicit test-only override.
 
-```powershell
-python tools/analyze_profile.py generated/code-perf-audit/paris-final.json --tail 250 --skip-last 2
-```
+Optimized offline Vulkan comparisons on the Ryzen 7 5700U / MX450, fixed noon,
+clear weather and resident Paris tiles, use real time (`--fixed-step 0`). Each
+stationary sample selects the last 300 frames before screenshot readback. Before
+the final traversal branch-reuse refinement, the same central Paris view gave:
 
-The native engine and game compile. Native runtime reflection passes (31 nodes,
-23 behaviours, 269 properties), and the streaming GPU suite passes 301 checks,
-including cache edits, world propagation and reparented camera ties. CTest passes
-94/95 with workspace `TEMP`/`TMP`; the remaining crash-reporter assertion is the
-configured build identity `SAIDA_BUILD_COMMIT="unknown"` after CMake could not
-read the protected submodule Git metadata. The initial six temporary-file
-failures disappear when `TEMP`/`TMP` points inside the workspace.
+| Preset | Original mean frame / FPS | Optimized mean frame / FPS | Optimized p95 |
+|---|---:|---:|---:|
+| Toaster, 1280 × 720, run 1 | 46.77 ms / 21.4 | 20.90 ms / 47.9 | 25.69 ms |
+| Toaster, repeat 2 | — | 20.96 ms / 47.7 | 23.75 ms |
+| Toaster, repeat 3 | — | 23.80 ms / 42.0 | 32.93 ms |
+| Standard, 1600 × 900 | 44.70 ms / 22.4 | 26.00 ms / 38.5 | 29.61 ms |
 
-The two final gameplay smoke attempts pass running, jumping, ground/seam checks,
-driving and moving exit, then both fail `took over a different car than the one
-reached`. A recheck with the retained original executable reproduces that exact
-failure; the first original audit smoke had passed. `runSmokeTakeover` chooses
-the first live traffic car and stands 2.5 m east of it without ensuring that
-another car is not closer, while `enterCar` deliberately chooses the nearest.
-The complete gameplay smoke is therefore not green; a non-ambiguous target
-fixture remains to be qualified, without relaxing the takeover/ownership checks.
+Two other stationary Paris samples averaged 45.5 and 42.9 FPS. Shadow submission
+was about 900 draws for 9,000 candidates. These are stationary measurements, not
+a sustained 40 FPS qualification: an initial warmed walking run averaged 25 FPS
+with hierarchy churn. The final branch-reuse change targets that rebuild cost;
+movement and tile-arrival qualification on the compiled version remain open.
+Test-only `R1WORLD_PERF_SMOKE=walk|drive` warms the resident scene and labels motion
+frames with `World/PerfPhase`, allowing motion to be measured separately.
 
-### Historical measurements
+World generation now defaults to at most two concurrent cooks. Its service cache
+retains at most twelve prepared tiles (the visible neighbourhood and three forecast
+tiles), rather than thirty-six; requested speculative tiles cannot defeat this
+limit. Cold tiles are released under memory pressure, and new cooks wait until
+host headroom covers 512 MiB for the frame plus 256 MiB per admitted cook. This
+changes preparation/cache timing, not geometry, textures or visible quality.
+The runtime supplies the engine's host RAM/commit measurement to the otherwise
+engine-independent generator. A paused loader says so in the HUD and log.
+`R1WORLD_QUALITY_SWITCH_SMOKE=1` with `--smoke` and
+`R1WORLD_PERF_SMOKE=walk` exercises twenty-four standard/toaster switches while
+walking, logging private memory after each switch without saving test options.
+On 2026-10-18 the offline Paris run at 2.352571, 48.857268 completed all 24
+switches and the walking checks with exit 0, no allocation/raster errors and
+3033–3205 MiB of private memory at the switch samples. The three deterministic
+service memory/cache/admission tests also pass. This is a short regression run,
+not a multi-hour stability qualification. Log: `generated/memory-quality-smoke.log`.
 
-Measured on the Paris smoke with `--profile` (25 September 2026): a frame is
-4.5 ms of CPU work plus 12.8 ms waiting for the frame cap; 63 animators cost
-0.09 ms; 4 frames of 569 went over 33 ms on arrival.
-
-| | before | after |
-|---|---|---|
-| Engine build the game links | Debug (`-O0`) | RelWithDebInfo |
-| CPU per frame, Paris, 60 people | 37.3 ms | 4.5 ms |
-| Animators (60 people and the player) | 2.97 ms | 0.09 ms |
-| Arrival frames over 33 ms | 216 of 278 | 4 of 569 |
-
-The Paris gallery capture (2 October 2026, 1600 × 900, rue de Rivoli) failed
-four runs in five on the 180 s smoke limit: frames of 110 ms, and tiles
-uploading about 20 parts a second. The profile named the trunk compound above
-and 849-part tiles; with both fixed, every tile is in and the picture is
-taken within 10 s of the spawn. Each memory-mesh upload still waits for the
-GPU queue (about 1.7 ms a part), and the scene's two full transform walks
-cost 6–7 ms each with nine Paris tiles resident.
-On 5 October, with the installed relief and both fixes merged into `main`,
-the offline Rivoli gallery run reached play in 1.64 s and mounted all nine
-tiles in 2.33 s, with the generator at version 27; batching compares every
-material property, including textures, rather than only its name and paint.
-
-Later measurements: Le Fourchêne hypermarket at 60 fps; the canopy tile at
-60 fps (+0.8 ms scene update); a 600-frame Vannes home run at 0.750 ms/frame
-for `Physics/SceneStep`. These were taken on an RTX 4070 host, not on the
-reference Ryzen 7 5700U / MX450. The streaming contracts and remaining engine
-limits are documented in [Saida's specification](../engine/SPEC.md).
-These historical captures do not demonstrate sustained 30 fps worldwide on
-Ryzen 7 5700U / MX450.
-
-On 8 October, consecutive optimized offline Paris captures on the RTX 4070
-host (`--spawn 2.3522 48.8566 --after-frames 5 --at 1791374400`) measured:
-
-| Scope | Before | After |
-|---|---:|---:|
-| Mean frame including the map/loading screen | 33.32 ms | 18.34 ms |
-| Frame p95 | 79.17 ms | 21.74 ms |
-| Worst frame | 164.96 ms | 137.99 ms |
-| Mean scene update | 6.45 ms | 2.24 ms |
-| Map/interface renders during capture | 41 | 7 |
-
-These are individual arrival captures, not a target-hardware benchmark. The
-game also stopped alternating its pending/offline status every frame. Streamed
-glTF instantiation peaked at 0.61 ms on the main thread; the bounded mesh pump
-peaked at 10.25 ms including its GPU wait. The two traces, `comparison.json`,
-logs and PNGs are in `generated/streaming-validation/`. Native engine validation
-passes 92 CTest cases and 98 GPU streaming checks; the Web player builds. The
-Paris-to-Tunis smoke passes walking, jumping, driving, takeover and teleport.
-Generator validation passes 289 cases, with two failures outside the changed
-code: the FarRelief forest material assertion and the side-by-side bridge deck
-assertion. The new Grenoble cook and persistent density regressions pass.
-
-The subsequent GPU transfer change, measured with the same Paris capture
-arguments, reduces main-thread upload work:
-
-| Scope | Before fences | After fences |
-|---|---:|---:|
-| Mesh pump mean / peak | 1.67 / 10.25 ms | 0.12 / 0.46 ms |
-| Texture finalization mean / peak | 1.68 / 12.06 ms | 0.46 / 2.39 ms |
-| Mean frame including loading | 18.34 ms | 18.22 ms |
-| Frame p95 | 21.74 ms | 21.63 ms |
-
-This is still one local arrival capture, not a qualification of sustained 30 fps
-worldwide on the reference PC. The startup frame peaks at 190.45 ms.
-The final Paris trace contains no upload/queue waits
-during its frames after moving the far landmarks to asynchronous loading.
-Grenoble retains one 0.40 ms legacy queue wait; its mesh pump peaks at 0.59 ms
-and texture finalization at 2.65 ms. Startup and texture allocation still hitch.
-Final verification passes 92 CTest cases, 119 GPU streaming checks, native
-runtime contracts, HDR/environment and sidedness pixel checks, and the Web
-player build. Paris/Grenoble captures and the Paris-to-Tunis driving/takeover/
-teleport smoke pass. Logs, PNGs and `gpu-final-comparison.json` are in the
-same local validation folder.
-
-The next fluidity pass was checked with fresh local Paris/Grenoble captures on
-the same RTX 4070, offline data and pinned capture time:
-
-| Main-thread scope / capture | Before this pass | After this pass |
-|---|---:|---:|
-| Paris interface update peak | 77.52 ms | 1.68 ms |
-| Paris texture finalization peak | 3.86 ms | 0.40 ms |
-| Grenoble interface update peak | 67.34 ms | 1.85 ms |
-| Grenoble texture finalization peak | 2.56 ms | 1.48 ms |
-| Paris recorded arrival | 5.46 s | 5.14 s |
-| Grenoble recorded arrival | 4.54 s | 4.32 s |
-
-Environment projection no longer appears on the main thread in either arrival.
-These are individual captures including loading, scripted map interactions and
-PNG export, not target-hardware or sustained-30-fps benchmarks. In the final
-Paris/Grenoble traces, the worst frame is the terminal screenshot export;
-normal frame p95 remains about 21.5/21.7 ms. A profiler regression that attached
-cross-frame worker completions to the wrong frame is covered and corrected.
-The final Paris trace has no upload/queue waits during its frames; Grenoble
-retains one 0.17 ms synchronous upload wait.
-
-Verification passes 92 native CTest cases, 128 GPU streaming checks, 118 UI
-corpus checks, native runtime contracts and the Web player build. Asynchronous
-UI snapshots preserve the synchronous pixels, including transforms, clipping
-and released draw handles; exported native UI and HDR/environment pixel checks
-pass. Paris/Grenoble captures and Paris-to-Tunis walking, jumping, driving,
-takeover and teleport pass. Logs, PNGs, traces and
-`fluidity-final-comparison.json` are in `generated/streaming-validation/`.
-The engine contracts are in [SPEC.md](../engine/SPEC.md); hardware qualification
-and remaining platform limits are in [ROADMAP.md](../engine/ROADMAP.md).
-
-The final 8 October streaming pass queues lettering, interior shells/furniture
-and distant ice. Interiors stay hidden with inactive colliders until all meshes
-are ready; an old ice pack remains visible until its replacement is ready.
-Native graphics pipelines build in joined batches with at most two lanes at
-startup; bloom resize reuses the pipelines. Optimized Paris, Grenoble and
-Paris-to-Tunis runs pass with zero `GPU/WaitUpload`, `GPU/WaitSingleTime`,
-synchronous `Resource/LoadGLTF` or pipeline construction scopes in their retained
-frame traces. The previous Paris-to-Tunis trace had 1,361 upload waits totalling
-105.07 ms. Verification passes 153 GPU streaming checks, the 92 native CTest
-cases (six rerun with a writable temporary directory), native runtime contracts
-and the Web build. Artifacts use the `legacy-final-` prefix in the same local,
-untracked validation folder. A failed offline OSM refresh now retains the old
-answer without repeatedly publishing it as an upgrade and remounting live tiles.
-The targeted service suite passes all eight cases, including this regression.
-The Tunis home smoke that exposed this needs an in-game rerun.
-The user plans to resume on a laptop with a NVIDIA MX450 on the evening of
-8 October; the portable validation checklist is recorded in `docs/PLAN.md`.
-The RTX 4070 results do not qualify the reference Ryzen 7 5700U / MX450;
-the planned run starts its validation, with sustained 30 fps worldwide as
-the target.
-
-The portable pass resumed on 8 October on a Ryzen 7 5700U / MX450 2 GiB,
-7.4 GiB usable RAM, connected to AC, with a 1920 x 1080 desktop. The first
-offline Paris capture used the hidden-window default of 640 x 360; its retained
-600 frames average 39.03 ms, with scene updates averaging 20.37 ms and camera
-selection 10.92 ms. These are diagnostic timings, not 1080p qualification.
-Affine TRS now constructs scaled rotation columns directly; camera selection
-scans enabled branches without computing every object's matrix, then composes
-only the selected camera's ancestor chain up to the selected scene root. The
-92 native CTest cases and 166 GPU scene streaming checks pass, including
-negative/nonuniform scale, camera
-priority ties, hidden/disabled cameras and immediate mutable-transform edits.
-
-The online Grenoble capture exposed a replacement batch stuck beyond its
-10-second fallback: timed-out candidates were due but did not contribute to
-the batch's oldest-candidate time, so younger unfinished candidates could hold
-them indefinitely and repeat warnings. Timed-out candidates now advance that
-time too. The final Tunis home traversal passes character entry, furniture,
-door/wall collisions, exit, eviction and regeneration; the Paris-to-Tunis run
-passes walking/jumping, driving, traffic takeover and teleport with closed
-proxies. This verifies playable cached data, not absence of all network attempts
-for missing supplemental observations.
-
-Artifacts are under `generated/streaming-validation/mx450/`. The first after captures
-shared the GPU with another live R1World process (some also overlapped a build)
-and are unsuitable for a performance comparison. The installed relief layer
-is absent, and Grenoble's first captures retained pending OSM observations.
-After the other player exited, an isolated offline Paris pair used explicit
-1920 x 1080 output, the same spawn and pinned solar time, with no build running.
-The baseline substitutes only `Transform.cpp` and `CameraDirector.cpp` from
-engine commit `2dfb24f`; other engine/game code and cached observations match.
-Both runs retain 600 frames; the terminal PNG-encoding frame is excluded below.
-
-| Scope | Before | After |
-|---|---:|---:|
-| Mean normal frame | 45.83 ms | 39.05 ms |
-| Frame p95 | 50.29 ms | 43.37 ms |
-| Worst normal frame | 76.99 ms | 53.58 ms |
-| Scene update mean | 24.13 ms | 20.72 ms |
-| Camera selection mean | 13.18 ms | 9.89 ms |
-| GPU frame mean | 30.30 ms | 29.31 ms |
-| Arrival frames over 33 ms | 65 / 468 | 55 / 468 |
-
-Mean normal frame time improves by 14.8% in this pair. Both traces peak at
-68,355 scene nodes and 6,861 meshes; GPU asset residency is about 480 MiB.
-Their retained frames contain no `GPU/WaitUpload`, `GPU/WaitSingleTime`,
-`Resource/LoadGLTF` or `GPU/CreatePipeline` scopes. This is one arrival pair on
-the available data, not a sustained-30-fps or full-relief qualification.
-The traces and inspected 1080p PNGs use the `paris-isolated-` prefix.
-The final online Grenoble smoke and a fresh-process offline repeat both fail
-the unchanged seam check: a 0.726637 m step between v36_27038_26176 and
-v36_27039_26174 at (5.720976, 45.195000), with IGN ground on both sides.
-This persisted in the cache and was not explained solely by asynchronous arrival.
-Generator v37 now uses shared boundary knots; the steep staggered-grid and
-sparse-neighbour regressions pass. With complete cached OSM, an additional
-0.38281 m mismatch exposed cancellation when moving tile roots from a distant
-float frame. Tile and distant-layer placement now use the engine's explicit
-destination rebase API. The user requested manual play before further gameplay
-and performance reruns, so Grenoble gameplay qualification remains open.
-The final native scene streaming test passes 78 checks, including precise
-placement and collision queries after a distant-frame rotation. The new
-GPU regression has not been rerun in this final pass.
-The generator suite reports 295 passing cases and three failures: resident
-geometry budget, missing metallic/roughness texture and paired-carriageway
-deck joining. These assertions remain unchanged. The earlier failure logs and traces are
-`grenoble-final.*` and `grenoble-offline-repeat.*` in the portable artifact folder.
-These captures do not demonstrate sustained 30 fps worldwide on the reference
-Ryzen 7 5700U / MX450. They remain an archived validation record; the dedicated
-fluidity campaign was removed from the backlog at the user's request on
-9 October 2026 after the tree LOD work. While the live player locked
-`R1World.exe`, the source was linked and exercised as
-`R1World-fluidity-validation.exe` beside it.
-Once that player exited, the final executable was copied to `R1World.exe` and
-used for the isolated after capture. The normal development launch has the fix.
-The first full test build exhausted disk space; stripping debug symbols from
-generated test executables freed about 8 GiB, and the retry completed all tests.
-
-The earlier RTX 4070 validation recooked Grenoble tile 27038/26176 to 135,010
-vertices and kept it visitable.
-Offline Grenoble spawn/capture at (5.723786, 45.197956) and a fresh-process
-repeat both succeed; `cache/density-policy/27038_26176` records 135,010 vertices
-and the reduced policy. The logs and captures are in the same validation folder.
-The world's density rules are specified in [the project plan](../docs/PLAN.md).
+The final native streaming GPU suite passes 21,531 checks, all 99 native CTest
+cases pass, runtime reflection passes (31 nodes, 23 behaviours, 275 properties),
+and the Web player compiles. Authoring WASM smoke passed on the preceding candidate;
+the final refinement changes runtime traversal only. Temporary baseline binaries
+and audit artifacts were removed after recording these results. The matched
+motion measurements above supersede the older performance reports.
 
 ## Vehicle and traffic verification — 11 October 2026
 
@@ -2490,15 +2438,6 @@ Those measurements isolate deformation work; they do not measure a complete
 rendered frame or guarantee that a whole fleet's detailed dents appear at once.
 The CPU budget is 6,144 vertices per frame globally, with a default 2,048 per
 component update at 15 Hz. Geometry upload budgets are also bounded.
-
-The generator reports **358 passing cases and four failures**. An isolated
-checkout of the previous sources reports 345 passing cases and the same four
-failures: `Cook.a_resident_target_uses_building_lod_without_losing_the_ground`,
-`FarRelief.cliffs_use_a_wall_scan_and_forests_follow_the_climate`,
-`Bridges.two_carriageways_mapped_side_by_side_are_one_deck`, and
-`Appearance.bundled_country_map_finds_ouagadougou_and_paris`. The seven new vehicle
-and road-network cases and six additional roadside cases pass; those baseline
-failures remain unresolved.
 
 The initial 10 October offline Paris gameplay run passes with nine resident tiles: 78.1961 m
 walked, 20.4339 m driven with a peak 10.5453 m/s, braking below the exit limit,

@@ -570,6 +570,8 @@ struct CherryPlantingFixture {
             osm.features.push_back({1+row*40+col,
                 b.west+(col+.5)*(b.east-b.west)/40,
                 b.south+(row+.5)*(b.north-b.south)/25,{{"natural","tree"}}});
+        const auto centre=tile.center();
+        osm.features.push_back({5001,centre.x,centre.y,{{"place","city"}}});
     }
     OsmWay area(Tags tags, double fraction=1) const {
         const auto b=tile.bounds();const double east=b.west+(b.east-b.west)*fraction;
@@ -639,6 +641,60 @@ TEST(Nature, urban_cherries_can_use_local_buildings_without_urban_landuse) {
     CHECK(cherries(f.run())>0);
     for(auto& b:f.osm.buildings)b.tags["building"]="barn";
     CHECK(cherries(f.run())==0); // a farm's outbuildings cannot create a city
+}
+TEST(Nature, cherry_percentages_reject_residential_villages_hamlets_and_unknown_places) {
+    // Theix is mapped as a village despite its residential blocks and density.
+    // Exercise the same failure in Japan and elsewhere in the northern world.
+    for(const auto location:{P2{-2.6492621,47.6287792},P2{135.78,35}}) {
+        CherryPlantingFixture f(location.x,location.y,location.x>0?"JP":"FR");
+        f.osm.landcover.push_back(f.area({{"landuse","residential"}}));
+        const auto centre=f.tile.center();
+        for(int row=0;row<8;++row)for(int col=0;col<8;++col) {
+            const double lo=centre.x+(col-4)*.0001,la=centre.y+(row-4)*.0001;
+            f.osm.buildings.push_back(way(6000+row*8+col,
+                {{lo,la},{lo+.00003,la},{lo+.00003,la+.00003},{lo,la+.00003},{lo,la}},
+                {{"building","house"},{"addr:city","Theix-Noyalo"}}));
+        }
+        for(const auto kind:{"village","hamlet","suburb","neighbourhood",""}) {
+            f.osm.features.back().tags={{"place",kind},{"name","Theix"},{"population","8403"}};
+            const auto out=f.run();
+            CHECK(cherries(out)==0);
+            CHECK(out.stats["urbanCherryPlanting"]["eligible"]==0);
+        }
+        // An observed city/town can enable the rate; residential tags alone cannot.
+        for(const auto kind:{"city","town"}) {
+            f.osm.features.back().tags={{"place",kind}};
+            CHECK(cherries(f.run())>0);
+        }
+        f.osm.features.back().tags={{"place","village"}};
+        f.osm.features.front().tags["species"]="Prunus serrulata";
+        CHECK(cherries(f.run())==1); // explicit botanical observations remain worldwide
+    }
+}
+TEST(Nature, nearby_city_does_not_turn_a_closer_village_into_a_city) {
+    CherryPlantingFixture f(-2.6492621,47.6287792,"FR");
+    f.osm.landcover.push_back(f.area({{"landuse","residential"}}));
+    const auto centre=f.tile.center();
+    f.osm.features.back().tags={{"place","village"}};
+    f.osm.features.push_back({5002,centre.x+.014,centre.y,{{"place","city"}}});
+    CHECK(cherries(f.run())==0);
+    std::reverse(f.osm.features.begin(),f.osm.features.end());
+    CHECK(cherries(f.run())==0);
+}
+TEST(Nature, city_cherry_rates_cannot_escape_the_northern_hemisphere_or_local_city_evidence) {
+    CherryPlantingFixture f(151.2,-33.85,"JP");
+    f.osm.landcover.push_back(f.area({{"landuse","residential"}}));
+    CHECK(f.run().nodes.size()==1000);
+    CHECK(cherries(f.run())==0);
+    CherryPlantingFixture equator(135.78,0,"JP");
+    equator.osm.landcover.push_back(equator.area({{"landuse","residential"}}));
+    for(auto& n:equator.osm.features)if(tagOr(n.tags,"natural")=="tree")n.lat=0;
+    CHECK(!equator.run().nodes.empty());
+    CHECK(cherries(equator.run())==0);
+    CherryPlantingFixture distant(135.78,35,"JP");
+    distant.osm.landcover.push_back(distant.area({{"landuse","residential"}}));
+    distant.osm.features.back().lat+=.03;
+    CHECK(cherries(distant.run())==0);
 }
 TEST(Nature, observed_conifers_worldwide_use_the_adult_pine_with_three_lods) {
     for(const auto location:{P2{135.78,35},P2{2.35,48.85},P2{151.2,-33.85}}) {
@@ -849,12 +905,31 @@ TEST(Cook, the_heart_of_paris_is_busy_and_its_people_have_somewhere_to_walk) {
     CHECK_MSG(crowd["people"].get<int>() >= 30, crowd["inputs"]);
 }
 TEST(Cook, a_resident_target_uses_building_lod_without_losing_the_ground) {
-    Observations in = paris(tileAt(2.3522, 48.8566));
-    in.targetVertices = 80000;
+    Observations in;
+    in.tile = tileAt(2.3522, 48.8566);
+    in.elevations = {in.tile.bounds(), 2, {35., 35., 35., 35.}};
+    auto osm = std::make_shared<OsmData>();
+    osm->country = "FR";
+    const P2 center = in.tile.center();
+    const double perLon = 111320. * std::cos(center.y * kPi / 180.);
+    auto at = [&](double east, double north) { return P2{center.x + east / perLon, center.y + north / 111320.}; };
+    for (int row = 0; row < 11; ++row)
+        for (int col = 0; col < 11; ++col) {
+            const double x = (col - 5) * 25., y = (row - 5) * 25.;
+            osm->buildings.push_back(way(1 + row * 11 + col,
+                {at(x, y), at(x + 12, y), at(x + 12, y + 14), at(x, y + 14), at(x, y)},
+                {{"building", "house"}, {"building:levels", "2"}, {"roof:shape", "gabled"}}));
+        }
+    in.osm = osm;
+    const CookedTile baseline = cookTile(in);
+    CHECK(baseline.manifest["buildingGeometryLod"] == "full");
+    in.targetVertices = baseline.manifest["vertices"].get<size_t>() * 9 / 10;
     const CookedTile t = cookTile(in);
-    CHECK(t.manifest["vertices"].get<size_t>() <= in.targetVertices);
+    CHECK_MSG(t.manifest["vertices"].get<size_t>() <= in.targetVertices,
+              t.manifest["vertices"] << " > " << in.targetVertices);
     CHECK(t.manifest["buildingGeometryLod"] != "full");
-    CHECK(t.manifest["footprints"].size() > 100);
+    CHECK(t.manifest["footprints"].size() == 121);
+    CHECK(t.manifest["footprints"] == baseline.manifest["footprints"]);
     bool ground = false, roof = false;
     for (const auto& part : t.parts) {
         ground |= part.name.find("Ground") == 0;

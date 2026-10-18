@@ -1,0 +1,20 @@
+{
+  "road-motorcycle": {
+    "name": "Road motorcycle — Innerscene",
+    "author": "Innerscene",
+    "file": "road-motorcycle.glb",
+    "url": "https://www.innerscene.com/tools/library/3d-parts/road-motorcycle-f2519759",
+    "downloadUrl": "https://www.innerscene.com/api/library/road-motorcycle-f2519759/download",
+    "license": "CC0 1.0",
+    "sha256": "c073cbc0e22995256d527d51c3e9b8eb0ba922ef37427eab9d55a43861062114"
+  },
+  "dirt-motorcycle": {
+    "name": "Dirt motorcycle — Innerscene",
+    "author": "Innerscene",
+    "file": "dirt-motorcycle.glb",
+    "url": "https://www.innerscene.com/tools/library/3d-parts/dirt-motorcycle-0a9c8589",
+    "downloadUrl": "https://www.innerscene.com/api/library/dirt-motorcycle-0a9c8589/download",
+    "license": "CC0 1.0",
+    "sha256": "830ad2dff8dde469af9390997fb1424ea6fd8b58874f2bf177159ed55f2a1441"
+  }
+}

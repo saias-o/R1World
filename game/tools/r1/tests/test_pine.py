@@ -7,7 +7,7 @@ try:
     from r1.tree_lod import NATURE, read_glb
     from r1.tree_impostor import transformed_parts
 except ImportError as error:
-    raise unittest.SkipTest(f"Pine validation needs NumPy, Pillow and ModernGL: {error}")
+    raise unittest.SkipTest(f"Pine validation needs NumPy and Pillow: {error}")
 
 
 class AdultPineTests(unittest.TestCase):

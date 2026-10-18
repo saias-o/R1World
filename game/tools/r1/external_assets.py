@@ -358,7 +358,8 @@ def extract_vehicles() -> tuple[str, ...]:
     """Bake pinned licensed sources with Blender; no runtime downloads."""
     from . import vehicle_fleet
     vehicle_fleet.main()
-    return tuple(vehicle_fleet.model(n,far) for n in vehicle_fleet.SPECS for far in (False,True))
+    return tuple(vehicle_fleet.model(n,far) for n in (*vehicle_fleet.SPECS, "moto_city", "moto_cross")
+                 for far in (False,True))
 
 
 def extract_aircraft() -> tuple[str, ...]:

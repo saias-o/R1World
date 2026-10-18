@@ -10,7 +10,7 @@ try:
     from r1.tree_impostor import (NATURE, OCCLUSION_DIRECTIONS, OCCLUSION_RESOLUTION,
                                   ambient_visibility, sphere_directions)
 except ImportError as error:
-    raise unittest.SkipTest(f'Tree bake verification needs NumPy, Pillow and ModernGL: {error}')
+    raise unittest.SkipTest(f'Tree asset verification needs NumPy and Pillow: {error}')
 from r1.tree_lod import read_glb
 
 

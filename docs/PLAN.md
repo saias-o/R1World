@@ -4,7 +4,8 @@
 
 Ce document garde ce qui ne change pas : la thèse, les contraintes, les
 invariants et les décisions prises, puis la liste des prochaines updates (§8).
-État relu le 13 octobre 2026, générateur v47 : réseau routier directionnel,
+État relu le 19 octobre 2026, générateur v56 : jonction des ponts à chaussées séparées,
+SDK natif autonome, admission mémoire bornée, motos et radio ; réseau routier directionnel,
 feux dédupliqués par approche et lignes d'arrêt partagées avec la simulation,
 gabarits réels à l'apparition du trafic physique proche, chocs et déformation par instance ; maisons de village mitoyennes,
 annexes cadastrales basses, toitures en pente suivant les emprises irrégulières ;
@@ -194,8 +195,9 @@ tuile dit lequel a répondu.
 Les données dérivées d'OSM sont soumises à l'ODbL, avec attribution visible en
 jeu. Aucune source `CC BY-NC`. Les assets sont **CC0** (Poly Haven, ambientCG,
 Kenney) ou dessinés par le projet, avec deux exceptions : les personnages sont
-Microsoft Rocketbox, **MIT**, et les sept véhicules routiers de Ruff et
-Scopia / Space Mushrooms sont **CC BY 3.0**. Les notices sont conservées
+Microsoft Rocketbox, **MIT** ; les sept voitures de Ruff et Scopia / Space
+Mushrooms sont **CC BY 3.0** ; les deux motos originales de R1World sont
+**CC0**. Les notices sont conservées
 (`assets/licenses/`) et les auteurs crédités en jeu. Tous sont normalisés avant
 d'entrer : échelle métrique, albédos mesurés, un asset non conforme n'entre pas.
 
@@ -319,12 +321,14 @@ au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit
 - **Ponts** : tabliers au gabarit, rampes et remblais à 5 %, piles, culées ; ce
   que le tablier ne peut pas donner est creusé dans le relief
   (`native/gen/bridges.cpp`). On y marche et on y roule, dessus comme dessous.
-- **Voiture et circulation** : `F` pour monter/descendre, n'importe quelle voiture
-  se prend ; trafic sur le graphe OSM, `maxspeed` tagué d'abord. Véhicules
-  dessinés à 0,8 de leur taille, comme les personnes. Sept modèles GLB sous
-  CC BY 3.0 remplacent la flotte simplifiée : géométrie visible source non
-  décimée de près, LOD réduit au loin, matériaux distincts pour peinture,
-  vitrage, pneus et métal. Le moteur conserve désormais le ciel HDR dans le
+- **Voitures, motos et circulation** : `F` prend la voiture ou la moto la plus
+  proche ; trafic sur le graphe OSM, `maxspeed` tagué d'abord. Les véhicules
+  sont dessinés à 0,68 de leur taille. Sept voitures GLB sous CC BY 3.0
+  remplacent la flotte simplifiée ; deux motos originales, une citadine et une
+  motocross basse-poly, sont sous CC0. Toutes ont des modèles Near/Far. La part
+  de motos est de 5 % par défaut et de 50 % en Afrique, en Inde et en Amérique
+  latine. Les motos ont deux roues en ligne, une masse et une direction propres
+  et un réglage arcade distinct des voitures. Le moteur conserve désormais le ciel HDR dans le
   descripteur PBR ; ses reflets ne retombent plus sur une texture blanche.
 - **Personnes et foule** : le joueur et la foule sont des scans riggés Rocketbox
   (`r1/humans.py`), clips de capture de mouvement reciblés, deux niveaux de
@@ -435,6 +439,204 @@ Chacune garde les règles du projet : rien ne dégrade un asset existant
 dans le manifeste (I5), et le coût se compte contre l'arène, le CPU, le GPU,
 la RAM et la VRAM de la machine de référence (I4).
 
+### Mode grille-pain — objectif Paris 40 FPS, plan du 18 octobre 2026
+
+**Demande : atteindre 40 FPS sur Paris sur le Ryzen 7 5700U / MX450, avec
+peu de perte de qualité visible.** Budget de livraison : **25 ms par image**
+à **1280 × 720**, dans le mode grille-pain. Cette cible locale complète I4 ;
+elle ne qualifie pas les performances du reste de la planète.
+
+**État de réalisation, 18 octobre :** restauration du vrai mode dans les tests,
+propagation incrémentale des transformations, réutilisation des branches lors
+des changements de hiérarchie, rejet des ombres hors du volume de la lumière
+et tri des seuls bâtiments en attente d'envoi implémentés. Ces optimisations
+profitent aux deux modes sans réduire les réglages graphiques. Les vues fixes
+mesurées avant le dernier ajustement donnent environ 42–48 FPS en grille-pain
+et 38 FPS en standard, contre 21–22 FPS pour les témoins. La marche révélait
+encore des pics ; la dernière correction cible la reconstruction du parcours.
+La qualification complète à 40 FPS, notamment en déplacement et en streaming,
+reste ouverte. Mesures et limites : `game/README.md`, section Performance.
+
+#### Point de départ et règle de décision
+
+L'audit du 18 octobre, synthétisé dans [game/README.md](../game/README.md),
+mesure sur Paris une image moyenne de 50,03 ms, dont 32,54 ms de parcours CPU
+des transformations, 6,80 ms de préparation du rendu et 2,03 ms de gestion
+des LOD de bâtiments. Le GPU prend 23,16 ms. **Cette référence est en qualité
+standard à 1600 × 900** : `smokeOptions()` réactive le standard avant la capture.
+Le point de départ réel du grille-pain reste à mesurer. Les valeurs ci-dessous
+sont des budgets de travail, jamais des gains déjà mesurés ou garantis.
+
+Ordre : mesurer le bon mode, supprimer le travail inutile sans changer l'image,
+traiter les pics de streaming, puis ajuster les effets seulement si le GPU
+empêche encore d'atteindre la cible. Refaire une mesure après chaque lot et
+arrêter les réductions graphiques dès que la cible est atteinte.
+
+#### 1. Établir une référence grille-pain fiable
+
+- Découpler le test des options de la mesure de performance, ou rétablir
+  explicitement toutes les options demandées après ce test. Vérifier et
+  journaliser le mode réellement actif, la taille de rendu effective, les
+  distances, les réglages de l'herbe et des ombres pendant la mesure.
+- Conserver le binaire initial et les configurations. Comparer standard et
+  grille-pain avec mêmes positions, orientations, heure, météo et densités.
+  Première paire à résolution identique pour isoler les effets du mode ;
+  deuxième comparaison avec les résolutions réelles des deux modes.
+- Mesurer CPU, GPU, temps de frame complet et présentation séparément. Relever
+  le rafraîchissement de l'écran et tester les réglages de VSync déjà disponibles :
+  vérifier que le mode de présentation ne maintient pas la livraison à un
+  palier inférieur à 40 FPS. La validation finale utilise le réglage retenu
+  pour jouer, la fenêtre visible et le temps réel, sans pas de simulation forcé.
+- Choisir et figer trois cas parisiens : rue dense à façades, bord de Seine avec
+  eau et pont, parc ou avenue arborée avec herbe. Archiver coordonnées, caméra,
+  chemin parcouru et état de référence ; commencer par le spawn déjà audité,
+  longitude 2.3522 / latitude 48.8566.
+- Sur secteur, même configuration du PC, caches chauds et température stabilisée :
+  trois répétitions par scénario, avec 60 s à l'arrêt, 90 s de marche et 120 s
+  de conduite sur les parcours correspondants. Les compteurs de trafic et de
+  foule doivent être comparables, sans supposer qu'une simulation vivante est
+  identique à chaque répétition. Séparer le chargement initial des déplacements
+  avec streaming ; ne pas retrancher les montages survenant pendant ces parcours.
+
+**Sortie du lot :** référence mesurée du vrai mode et choix du premier coût à
+traiter. Si la hiérarchie des coûts diffère de l'audit standard, adapter les
+lots suivants aux traces.
+
+#### 2. Réduire les parcours des transformations dans Saida — premier chantier
+
+**But : viser ≤ 6 ms au p95 pour l'ensemble des transformations**, contre
+32,54 ms moyens dans la référence standard. Ce saut exige un prototype mesuré
+avant toute refonte étendue. Aucun changement visuel recherché.
+
+- Traiter les transformations comme un chantier moteur générique, dans
+  `engine/src/scene`, en reprenant l'entrée existante du `engine/ROADMAP.md`.
+- Prototyper une détection compacte des modifications et une propagation
+  limitée aux branches affectées. Un tableau contigu de valeurs de transformations
+  à comparer est une piste pour éviter le coût des parcours de pointeurs ;
+  sa comparaison reste un coût réel à mesurer, pas une suppression de tout O(n).
+- Préserver les écritures par `Transform&` conservé : un simple drapeau placé
+  dans un setter ne les détecte pas. Détecter aussi les modifications pendant
+  les callbacks physiques avant de limiter la propagation après simulation.
+  Ne supprimer aucun parcours de sécurité sans couverture de ces écritures.
+- Propager les résultats des corps réellement déplacés et les changements de
+  parents sans revisiter toute la scène lorsque les contrats le permettent.
+  Réutiliser les branches statiques ; visibilité et activation ne suffisent
+  pas à déclarer une branche immobile.
+- Vérifier références conservées sur plusieurs frames, déplacement d'un parent,
+  reparentage, échelles non uniformes, branches cachées ou désactivées, activation,
+  rebasage, animation, ragdolls, véhicules et caméra après physique.
+
+**Décision :** mesurer le prototype avec les mêmes scènes et vérifier ses
+matrices contre le comportement actuel. S'il ne réduit pas suffisamment le
+coût, revoir la représentation des branches statiques avant de réduire les
+assets ou de poursuivre des optimisations secondaires. Ne pas annoncer les
+40 FPS sur la seule base d'une soustraction des temps de scopes.
+
+#### 3. Réduire la préparation du rendu et des bâtiments
+
+- Dans le moteur, conserver en cache les données de soumission stables et
+  actualiser ce qui change : transformation, matériau, géométrie, visibilité,
+  LOD et état de chargement. Garder les transitions de LOD et les ressources
+  encore utilisées par les images GPU en vol.
+- Pour les ombres, éliminer les objets hors du volume utile de la lumière
+  avant leur soumission. **Ne pas utiliser uniquement le frustum caméra** :
+  un objet hors écran peut projeter une ombre visible. Vérifier soleil rasant,
+  véhicules, personnages et rotations rapides de caméra.
+- Pour les bâtiments, remplacer le tri complet systématique par des priorités
+  réévaluées lors des changements utiles : mouvement, montage, disponibilité,
+  visibilité et transitions. Conserver les seuils, l'hystérésis et les fondus
+  actuels ; le joueur ne doit pas voir de retard de détail.
+- Garder les mécanismes génériques dans Saida et la politique géographique ou
+  les budgets propres au monde dans R1World, sans dupliquer un système moteur.
+
+**Budgets de travail :** préparation complète du rendu CPU ≤ 4 ms au p95,
+gestion des LOD de bâtiments côté jeu ≤ 1 ms au p95. L'objectif est de supprimer
+le travail répété, avec une image équivalente.
+
+#### 4. Étaler les montages pour conserver la fluidité en déplacement
+
+Les montages actuels de 17 à 53 ms peuvent dépasser le budget à eux seuls.
+Décomposer préparation, création de hiérarchie, colliders et publication en
+unités bornées, avec une enveloppe de travail sur le thread principal proposée
+de **4 ms par image**, incluse dans le budget CPU global.
+
+Préparer hors du thread principal ce qui est indépendant du moteur. Publier
+des ensembles cohérents et conserver l'ancienne représentation jusqu'à ce que
+la nouvelle soit prête. Le budget doit tenir compte du temps des opérations
+indivisibles ; un contrôle de durée entre deux grosses opérations ne suffit
+pas. Prévoir les tuiles selon la vitesse sans augmenter sans borne RAM, VRAM
+ou arène. Aucun trou de terrain, disparition de collision ou mur qui arrive
+sur le joueur pour satisfaire le chronomètre.
+
+**Validation :** marche, conduite, rotation à 180°, franchissement de tuiles et
+rebasage. Ce lot conditionne la cible en déplacement, même si une vue fixe
+atteint déjà 40 FPS.
+
+#### 5. Ajustements graphiques conditionnels et discrets
+
+N'ouvrir ce lot que si les traces du vrai grille-pain montrent encore une
+limite GPU. Tester chaque réglage séparément et conserver le moins visible
+qui atteint le budget. Les chiffres proposés sont des points d'essai.
+
+- **Herbe volumétrique :** appliquer réellement le preset à `GrassNode`.
+  Essayer d'abord un rayon de 70 → 45 m avec fondu progressif, en gardant
+  l'aspect proche. Si nécessaire, réduire les touffes éloignées avant de
+  toucher à la densité près des pieds. Vérifier parc, caméra basse, conduite
+  et raccord avec la couleur du sol ; aucun arrêt net du tapis d'herbe.
+- **Ombres :** après élimination des soumissions inutiles, comparer 2048 et
+  1536 si cette taille est supportée. Conserver d'abord la portée de 100 m et
+  les ombres proches. N'essayer 1024 ou une portée plus courte que si le besoin
+  mesuré subsiste et si l'image reste acceptable en mouvement.
+- **Arbres, façades, eau :** conserver les assets, les couleurs, les silhouettes,
+  les matériaux proches et les fondus existants. Optimiser leur soumission
+  avant de réduire leurs paramètres. Ne pas réduire la foule ou le trafic
+  pour compenser les parcours CPU tant qu'ils restent des coûts secondaires.
+- Garder le 720p, le brouillard et les distances actuelles du grille-pain au
+  départ. Une baisse de résolution supplémentaire ou un brouillard encore
+  rapproché ne fait pas partie de la première solution.
+- Le relief lointain est déjà désactivé dans ce mode : ne compter aucune
+  économie supplémentaire de sa désactivation.
+
+**Contrôle visuel :** captures appariées à caméra/heure/météo identiques et
+séquences en mouvement. Les optimisations sans changement d'image doivent
+préserver les silhouettes et les ombres ; les ajustements de qualité doivent
+documenter leur différence visible. Ne retenir une dégradation sensible
+qu'après présentation du compromis et de son gain mesuré à l'utilisateur.
+
+#### 6. Budgets et critères de livraison
+
+| Poste CPU, scopes exclusifs | Budget de travail au p95 |
+|---|---:|
+| Transformations, tous passages cumulés | 6 ms |
+| Préparation complète du rendu | 4 ms |
+| Politique de LOD des bâtiments côté jeu | 1 ms |
+| Simulation, animations et autres logiques | 4 ms |
+| Commandes graphiques, UI et autres coûts CPU | 3 ms |
+| Travail de streaming sur le thread principal | 4 ms |
+| **Enveloppe CPU** | **22 ms** |
+
+GPU : viser également **≤ 22 ms au p95**, image GPU entière. Les budgets CPU
+par poste servent au diagnostic ; leurs p95 ne décrivent pas nécessairement
+la même frame. CPU et GPU se recouvrent, donc leurs temps ne s'additionnent
+pas. Le verdict vient toujours du temps réel d'image complet, présentation
+comprise : **moyenne ≥ 40 FPS et p95 ≤ 25 ms**, dans chaque scénario parisien
+retenu. Relever aussi p50/p99/max et les dépassements de 25/33,3/50 ms.
+
+La marge entre 22 et 25 ms vise à absorber la variabilité. Tester la stabilité
+sur au moins 15 minutes de jeu après chauffe, avec RAM/VRAM relevées et sans
+croissance mémoire continue, dépassement de l'arène ou évictions récurrentes
+des ressources visibles. Une moyenne de 40 FPS dans une rue immobile ne suffit
+pas à valider la marche et la conduite ; signaler séparément tout scénario
+qui manque la cible.
+
+À chaque lot : mêmes parcours, gain mesuré, captures, compteurs de scène et
+tests ciblés sur les contrats touchés. Pour les changements moteur partagés,
+suivre `engine/CONTRIBUTING.md`, dont les vérifications native, authoring WASM
+et player Web applicables. Mettre à jour le backlog existant du moteur et
+consigner dans `game/README.md` les résultats réellement obtenus, leurs
+conditions et leurs limites. Aucun changement de ces documents de vérité
+ne devra présenter un budget proposé comme une performance déjà atteinte.
+
 ### Fun update — première version livrée le 13 octobre 2026
 
 Livré (détail et preuves dans `game/README.md`, « The fight ») : poings en
@@ -542,7 +744,7 @@ et leur échelle actuelle sont conservés.
 - Chocs entre voitures, avec murs, arbres, mobilier et sol : déplacement,
   rotation, glissade et éventuel retournement selon les contacts. Activer la
   détection continue sur les véhicules rapides pour limiter les traversées.
-- Profils propres aux sept véhicules : masse, centre de masse, freinage,
+- Profils propres aux neuf véhicules : masse, centre de masse, freinage,
   adhérence, dimensions et résistance des zones. Le réglage tient compte de
   l'échelle visuelle actuelle ; les propriétés mécaniques sont des choix de
   simulation explicitement réglés, pas des mesures constructeur prétendues.
@@ -801,3 +1003,10 @@ Vérifiées contre WGS84 le 3 septembre 2026.
 - Aller-retour géodésique ↔ ECEF : erreur maximale **0,0000 mm** sur huit points.
 - Pas `float32` / chute due à la courbure : 1 km → 0,12 mm / 0,08 m ·
   10 km → 1,2 mm / 7,8 m · 200 km → 2,4 cm / 3 140 m.
+
+
+### Motos et radios locales — 17–18 octobre 2026
+
+Les cinq chantiers livrés et leurs vérifications sont documentés dans la section
+« Motorcycles and local radio » de [game/README.md](../game/README.md) : occupation et orientation des motos,
+assets optimisés et 20 % de motardes, conduite, tir à moto et radios géolocalisées.

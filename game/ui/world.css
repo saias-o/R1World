@@ -35,20 +35,27 @@ input { display: inline-block; width: 150px; height: 28px; padding: 8px; backgro
 #options-screen { display: none; position: absolute; width: 1440px; height: 900px; background-color: #0b1b25; }
 #options-brand { position: absolute; top: 26px; left: 48px; font-size: 26px; font-weight: bold; letter-spacing: 2px; }
 #options-brand span { color: #94bbae; }
-#forced-hour { position: absolute; top: 150px; left: 48px; width: 900px; padding: 22px 24px; background-color: #102834; }
+#forced-hour { position: absolute; top: 110px; left: 48px; width: 900px; padding: 16px 24px; background-color: #102834; }
 #forced-hour label { font-size: 14px; color: #d5f5a4; }
 #forced-time { width: 110px; }
-#forced-presets { margin-top: 16px; }
-#forced-help { margin: 18px 0 0 0; color: #a4b8bf; font-size: 15px; }
-#options-status { margin: 12px 0 0 0; color: #d5f5a4; font-size: 16px; }
-#weather-options { position: absolute; top: 420px; left: 48px; width: 900px; padding: 22px 24px; background-color: #102834; }
+#forced-presets { margin-top: 12px; }
+#forced-help { margin: 12px 0 0 0; color: #a4b8bf; font-size: 15px; }
+#options-status { margin: 8px 0 0 0; color: #d5f5a4; font-size: 16px; }
+#weather-options { position: absolute; top: 320px; left: 48px; width: 900px; padding: 16px 24px; background-color: #102834; }
 #weather-options label { font-size: 14px; color: #d5f5a4; }
-#weather-presets { margin-top: 16px; }
+#weather-presets { margin-top: 12px; }
 .weather-option.selected { background-color: #d5f5a4; color: #122427; }
 .weather-option.selected:hover { background-color: #e7ffc5; }
-#weather-options-help { margin: 18px 0 0 0; color: #a4b8bf; font-size: 15px; }
-#weather-options-status { margin: 12px 0 0 0; color: #d5f5a4; font-size: 16px; }
-#options-back { position: absolute; top: 650px; left: 48px; }
+#weather-options-help { margin: 12px 0 0 0; color: #a4b8bf; font-size: 15px; }
+#weather-options-status { margin: 8px 0 0 0; color: #d5f5a4; font-size: 16px; }
+#toaster-options { position: absolute; top: 530px; left: 48px; width: 900px; padding: 16px 24px; background-color: #102834; }
+#toaster-options label { font-size: 14px; color: #d5f5a4; }
+#toaster-presets { margin-top: 12px; }
+.toaster-option.selected { background-color: #d5f5a4; color: #122427; }
+.toaster-option.selected:hover { background-color: #e7ffc5; }
+#toaster-options-help { margin: 12px 0 0 0; color: #a4b8bf; font-size: 15px; }
+#toaster-options-status { margin: 8px 0 0 0; color: #d5f5a4; font-size: 16px; }
+#options-back { position: absolute; top: 745px; left: 48px; }
 #hud { display: none; position: absolute; width: 1440px; height: 900px; }
 #coordinates { position: absolute; top: 28px; left: 32px; width: 580px; background-color: #142934; padding: 12px 18px; }
 #stream-status { position: absolute; top: 80px; left: 32px; width: 580px; background-color: #142934; padding: 8px 14px; font-size: 14px; }
@@ -72,3 +79,5 @@ input { display: inline-block; width: 150px; height: 28px; padding: 8px; backgro
 #cheat-input { width: 300px; height: 24px; padding: 6px; margin-right: 12px; }
 #cheat-help { display: inline-block; font-size: 12px; color: #9fb5bf; vertical-align: middle; }
 #cheat-said { display: none; position: absolute; bottom: 120px; left: 468px; width: 600px; background-color: #142934; padding: 10px 14px; font-size: 16px; color: #d5f5a4; }
+
+#vehicle-radio { display: none; position: absolute; top: 126px; left: 32px; width: 580px; background-color: #142934; padding: 10px 14px; font-size: 14px; color: #d5f5a4; white-space: pre-wrap; }

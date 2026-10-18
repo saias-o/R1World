@@ -120,11 +120,21 @@ urbains sans genre ni espèce renseignés reçoivent aussi une sélection infér
 - Aucun taux supplémentaire dans l'hémisphère sud ni à l'équateur. Les 15 %
   japonais remplacent les 5 %, sans cumul.
 
-« Urbain » est évalué à la position de chaque arbre : emprise OSM
+**Correction v55 : uniquement les villes, jamais les villages.** La v52
+confondait densité résidentielle et ville : un lotissement de Theix pouvait
+donc recevoir des cerisiers malgré son classement OSM `place=village`.
+Il faut désormais un lieu OSM `place=city` ou `place=town` à moins de 1500 m
+de l'arbre, sans `place=village/hamlet` aussi proche ou plus proche. Sans
+identification locale de ville dans les observations, aucun ajout par taux.
+Ce critère conservateur ne prétend pas reconstituer les limites municipales ;
+il peut omettre les quartiers dont le centre de ville n'est pas observé à proximité.
+
+Cette identification de ville est obligatoire **en plus** du caractère urbain
+à la position de chaque arbre : emprise OSM
 `landuse=residential/commercial/retail/industrial`, ou au moins 25 bâtiments
 principaux dans un carré de 350 m. Les garages, granges, serres et autres
-annexes agricoles ne comptent pas. Un parc seul ou le nom d'une ville ne
-suffit pas. Les emprises boisées, forêts, vergers, terres agricoles, vignobles,
+annexes agricoles ne comptent pas. Ni une zone résidentielle seule, ni sa
+densité, ni un parc seul ne suffisent. Les emprises boisées, forêts, vergers, terres agricoles, vignobles,
 prairies et autres espaces naturels exclus, ainsi que les arbres inférés de
 bords de route ruraux, ne reçoivent pas ces pourcentages. Un parc urbain peut
 en recevoir si son emplacement répond aux critères urbains.
@@ -181,7 +191,7 @@ textures, des hauteurs déduites des voisins et les toitures brillantes empêche
 encore une ressemblance proche. La planche expose ces différences ; elle ne
 constitue pas une validation de fidélité de toutes les façades japonaises.
 
-## Vérification des règles urbaines (v52)
+## Vérification historique des règles urbaines (v52, critère corrigé en v55)
 
 - 13 tests natifs ciblés réussis : Nature (7), Canopy (4), Determinism (2).
   Ils couvrent les espèces observées au Japon, en France et en Australie,

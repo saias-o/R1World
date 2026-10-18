@@ -15,15 +15,22 @@ struct VehicleDimensions { float length, width, height, wheelbase, wheelRadius; 
 struct VehicleDynamics {
     float mass, acceleration, braking, grip, maximumSpeed, damageEnergy;
 };
+inline bool motorcycle(const std::string& kind) {
+    return kind == "moto_city" || kind == "moto_cross";
+}
 inline VehicleDynamics vehicleDynamics(const std::string& kind) {
     struct Entry { const char* kind; VehicleDynamics dynamics; };
-    static constexpr std::array<Entry,7> profiles{{
+    static constexpr std::array<Entry,9> profiles{{
         // Top speeds about 15% under the first tuning (13 October 2026): a
         // city car tops out near 86 km/h, a sports car near 130.
         {"city",{1100,8.5f,12,10,24,65000}}, {"sedan",{1500,8,12,10,27,85000}},
         {"suv",{1900,7,11,9,25.5f,105000}}, {"offroad",{2100,7,10,9,23,115000}},
         {"sport",{1350,11,14,12,36,75000}}, {"truck",{9000,3.5f,7,6,21,300000}},
-        {"bus",{12000,3,7,6,21,400000}}
+        {"bus",{12000,3,7,6,21,400000}},
+        // Light arcade bikes react faster and have a narrower contact patch;
+        // motocross trades some road speed for grip over uneven ground.
+        {"moto_city",{260,7.8f,10.5f,9.5f,31,18000}},
+        {"moto_cross",{200,8.8f,10.f,10.f,27,15000}}
     }};
     for(const auto& profile:profiles)if(kind==profile.kind)return profile.dynamics;
     return profiles.front().dynamics;
@@ -89,40 +96,56 @@ public:
         if(auto* legacy=root.findByPath(kBodyName))root.removeChild(legacy);
         auto rigid=std::make_unique<saida::RigidBodyNode>();rigid->setName(kBodyName);
         const auto profile=vehicleDynamics(kind);
+        const bool bike=motorcycle(kind);
         rigid->mass=profile.mass;rigid->kinematic=true;
-        rigid->inertiaMultiplier=kInertiaMultiplier;
+        rigid->inertiaMultiplier=bike?1.8f:kInertiaMultiplier;
         rigid->linearDamping=0.f; // SurfaceDrive owns rolling/aerodynamic resistance.
         rigid->friction=kSkinFriction;rigid->continuousCollision=true;rigid->reportsImpacts=true;
-        constexpr float kMassHeightFraction = .25f;  // was .15 — lower CoM, harder to tip over
+        const float kMassHeightFraction = bike?.38f:.25f;
         rigid->centerOfMass={0,-dimensions.height*kMassHeightFraction,0};
         auto* drive=rigid->addBehaviour<saida::SurfaceDriveBehaviour>();
         drive->acceleration=profile.acceleration;drive->braking=profile.braking;
+        if(bike) {
+            drive->steeringAngle=32.f;
+            drive->reverseSpeed=2.f;
+            drive->yawAcceleration=5.f;
+            drive->gripResponse=9.f;
+            drive->steeringResponse=6.5f;
+            drive->speedSteering=.012f;
+            drive->maximumLean=38.f;
+            drive->rollingDeceleration=.18f;
+            drive->aerodynamicDrag=.0014f;
+        }
         drive->slopeAssist=kPoweredSlopeAssist;
-        drive->groundStability=kGroundStability;drive->groundDamping=kGroundDamping;
-        drive->selfRightAcceleration=16.f;
+        drive->groundStability=bike?42.f:kGroundStability;
+        drive->groundDamping=bike?12.f:kGroundDamping;
+        drive->selfRightAcceleration=bike?11.f:16.f;
         // The wheels are rigid spheres: a road seam would kick the car into the
         // air and roll it. A suspension's worth of give (SurfaceDrive).
         drive->bumpLaunchSpeed=kBumpLaunchSpeed;drive->bumpSpin=kBumpSpin;drive->bumpReach=kBumpReach;
         drive->lateralAcceleration=profile.grip;drive->maxSpeed=profile.maximumSpeed;
         drive->wheelbase=dimensions.wheelbase;drive->groundReach=dimensions.height*.5f+kBodyClearance;
         while(!root.children().empty())rigid->addChild(root.detachChild(root.children().front().get()));
-        for(int section=0;section<kChassisSections;++section) {
+        const int sections=bike?1:kChassisSections;
+        for(int section=0;section<sections;++section) {
             auto* shape=rigid->createChild<saida::CollisionShapeNode>();
             shape->setName("Chassis "+std::to_string(section));shape->shapeType=saida::CollisionShapeType::Box;
             const float clearance=dimensions.wheelRadius;
-            const float chassisHeight=dimensions.height-clearance;
-            shape->halfExtents={dimensions.width*.5f,chassisHeight*.5f,dimensions.length/(2.f*kChassisSections)};
-            shape->offset={0,clearance+chassisHeight*.5f,(section-1)*dimensions.length/kChassisSections};
+            const float chassisHeight=(dimensions.height-clearance)*(bike?.48f:1.f);
+            shape->halfExtents={dimensions.width*(bike?.30f:.5f),chassisHeight*.5f,
+                dimensions.length/(2.f*sections)*(bike?.55f:1.f)};
+            shape->offset={0,clearance+chassisHeight*.5f,bike?0.f:(section-1)*dimensions.length/kChassisSections};
         }
         const float halfTrack=std::max(dimensions.wheelRadius,dimensions.width*.5f-dimensions.wheelRadius);
         for(float axle:{-1.f,1.f})for(float side:{-1.f,1.f}) {
+            if(bike&&side>0.f)continue;
             auto* wheel=rigid->createChild<saida::CollisionShapeNode>();
             wheel->setName("Wheel contact "+std::to_string(int(axle))+" "+std::to_string(int(side)));
             wheel->shapeType=saida::CollisionShapeType::Sphere;wheel->radius=dimensions.wheelRadius;
-            wheel->offset={side*halfTrack,dimensions.wheelRadius,axle*dimensions.wheelbase*.5f};
+            wheel->offset={bike?0.f:side*halfTrack,dimensions.wheelRadius,axle*dimensions.wheelbase*.5f};
         }
         auto* deformation=rigid->addBehaviour<saida::DeformableMeshBehaviour>();
-        deformation->excludedPrefixes="wheel-,glass-,window-";
+        deformation->excludedPrefixes="wheel-,glass-,window-,Rider,player-body";
         deformation->impactRadius=std::max(dimensions.width*.6f,dimensions.length*.15f);
         deformation->maximumDisplacement=dimensions.width*.25f;
         deformation->maximumImpactEnergy=profile.damageEnergy;

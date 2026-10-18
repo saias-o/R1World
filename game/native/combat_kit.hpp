@@ -16,6 +16,8 @@
 #include "nodes/ParticleSystemNode.hpp"
 #include "scene/animation/PoseModifiers.hpp"
 #include "scene/animation/Rig.hpp"
+#include "scene/animation/Animator.hpp"
+#include "scene/animation/ClipNode.hpp"
 
 #include <glm/gtc/quaternion.hpp>
 
@@ -57,6 +59,147 @@ inline saida::TwoBoneIKModifier::Settings rocketboxArm(bool right) {
                  : saida::TwoBoneIKModifier::Settings{"Bip01 L UpperArm", "Bip01 L Forearm", "Bip01 L Hand", 22.f};
 }
 
+inline saida::GazeModifier::Settings rocketboxRidingLean() {
+    saida::GazeModifier::Settings settings;
+    settings.chain={{"Bip01 Spine",.5f,.26f},{"Bip01 Spine1",.65f,.24f},{"Bip01 Spine2",1.f,.20f}};
+    settings.maxYaw=0.f;settings.maxPitchDown=.9f;settings.maxPitchUp=.1f;settings.response=12.f;
+    return settings;
+}
+inline saida::GazeModifier::Settings rocketboxRidingLook() {
+    saida::GazeModifier::Settings settings;
+    // Rocketbox clavicles descend from Neck: rotating Neck to look at a
+    // target would also pull both shoulders away from their hand contacts.
+    settings.chain={{"Bip01 Head",1.f,1.1f}};
+    settings.maxYaw=1.5f;settings.maxPitchDown=.35f;settings.maxPitchUp=.35f;settings.response=12.f;
+    return settings;
+}
+// This authored Rocketbox correction turns only the chest about world up.
+// A gaze correction on the whole spine would also undo the forward riding
+// lean, lifting the shoulder beyond the handlebar arm's reach.
+class RocketboxRidingAim final : public saida::PoseModifier {
+public:
+    explicit RocketboxRidingAim(const saida::Rig& rig) {
+        const char* names[]={"Bip01 Spine","Bip01 Spine1","Bip01 Spine2"};
+        for(int i=0;i<3;++i)bones_[i]=rig.findBoneIndex(names[i]);
+        shoulder_=rig.findBoneIndex("Bip01 L UpperArm");elbow_=rig.findBoneIndex("Bip01 L Forearm");hand_=rig.findBoneIndex("Bip01 L Hand");
+    }
+    void keepLeftHandAt(glm::vec3 wrist){support_=wrist;}
+    void lookAt(glm::vec3 direction) {
+        float yaw=std::atan2(direction.x,direction.z);
+        if(std::abs(yaw)<2.8f)side_=yaw<0?-1.f:1.f;
+        else yaw=side_*std::abs(yaw);
+        wanted_=std::clamp(yaw,-.95f,.95f);
+    }
+    void release(){wanted_=0.f;}
+    void update(float dt) override {
+        angle_+=(wanted_-angle_)*(1.f-std::exp(-14.f*std::max(0.f,dt)));
+        if(std::abs(angle_)<.0001f&&wanted_==0)angle_=0;
+    }
+    bool active()const override{return std::abs(angle_)>.0001f||wanted_!=0;}
+    void apply(saida::LocalPose& pose,const saida::Rig& rig)const override {
+        auto global=[&](const saida::LocalPose& local,int bone){
+            glm::mat4 matrix(1);
+            for(int b=bone;b>=0;b=rig.bones()[size_t(b)].parentIndex)matrix=local.localTransforms[size_t(b)].matrix()*matrix;
+            return matrix;
+        };
+        auto rotation=[](glm::mat4 matrix){
+            glm::mat3 basis(matrix);for(int i=0;i<3;++i)basis[i]=glm::normalize(basis[i]);
+            return glm::normalize(glm::quat_cast(basis));
+        };
+        constexpr float shares[]={.05f,.15f,.8f};
+        auto twist=[&](float amount,saida::LocalPose& candidate) {
+            candidate=pose;
+            for(int i=0;i<3;++i)if(bones_[i]>=0) {
+                const int bone=bones_[i],parent=rig.bones()[size_t(bone)].parentIndex;
+                const auto above=parent>=0?rotation(global(candidate,parent)):glm::quat(1,0,0,0);
+                const auto turn=glm::angleAxis(angle_*amount*shares[i],glm::vec3(0,1,0));
+                candidate.localTransforms[size_t(bone)].rotation=glm::normalize(glm::inverse(above)*turn*rotation(global(candidate,bone)));
+            }
+            if(shoulder_<0||elbow_<0||hand_<0)return true;
+            const auto shoulder=glm::vec3(global(candidate,shoulder_)[3]),elbow=glm::vec3(global(candidate,elbow_)[3]),
+                hand=glm::vec3(global(candidate,hand_)[3]);
+            return glm::distance(shoulder,support_)<.98f*(glm::distance(shoulder,elbow)+glm::distance(elbow,hand));
+        };
+        saida::LocalPose candidate;
+        if(!twist(1.f,candidate)) {
+            // Only turn as far as the arm holding the bar permits. The firing
+            // arm and head can continue toward a target behind the rider.
+            float low=0,high=1;
+            for(int i=0;i<9;++i){const float mid=(low+high)*.5f;if(twist(mid,candidate))low=mid;else high=mid;}
+            twist(low,candidate);
+        }
+        pose=std::move(candidate);
+    }
+private:
+    int bones_[3]{},shoulder_=-1,elbow_=-1,hand_=-1;
+    glm::vec3 support_{0};float wanted_=0,angle_=0,side_=1;
+};
+// Put the palm on the rubber grip, rather than putting the wrist there and
+// leaving the fingers floating beyond it. All measurements come from this rig.
+inline saida::Transform rocketboxBarGrip(const saida::Rig& rig,bool right) {
+    const std::string prefix=right?"Bip01 R ":"Bip01 L ";
+    const int hand=rig.findBoneIndex(prefix+"Hand"),thumb=rig.findBoneIndex(prefix+"Finger0"),
+        middle=rig.findBoneIndex(prefix+"Finger2");
+    saida::Transform result;
+    if(hand<0||thumb<0||middle<0)return result;
+    auto bind=[&](int bone){return glm::inverse(rig.bones()[size_t(bone)].inverseBindMatrix);};
+    const auto h=bind(hand);const glm::vec3 wrist(h[3]),knuckles(bind(middle)[3]);
+    const auto bore=glm::normalize(knuckles-wrist);
+    auto top=glm::vec3(bind(thumb)[3])-wrist;top=glm::normalize(top-bore*glm::dot(top,bore));
+    const auto side=glm::cross(top,bore);
+    const float palmSign=side.x*-wrist.x>0.f?1.f:-1.f;
+    result.position=glm::vec3(glm::inverse(h)*glm::vec4(wrist+(knuckles-wrist)*.6f+side*palmSign*.012f,1.f));
+    const glm::vec3 forward=glm::normalize(glm::vec3(0,-.35f,1)),palm(0,-forward.z,forward.y);
+    glm::mat3 source(side,top,bore),target(palm*palmSign,glm::cross(forward,palm*palmSign),forward);
+    result.rotation=glm::normalize(glm::quat_cast(target*glm::transpose(source)*glm::mat3(h)));
+    return result;
+}
+class RocketboxRidingHands final : public saida::PoseModifier {
+public:
+    explicit RocketboxRidingHands(const saida::Rig& rig) {
+        auto bind=[&](int b){return glm::inverse(rig.bones()[size_t(b)].inverseBindMatrix);};
+        for(int h=0;h<2;++h) {
+            const std::string prefix=h?"Bip01 R ":"Bip01 L ";
+            const int hand=rig.findBoneIndex(prefix+"Hand"),thumb=rig.findBoneIndex(prefix+"Finger0"),middle=rig.findBoneIndex(prefix+"Finger2");
+            if(hand<0||thumb<0||middle<0)continue;
+            const auto wrist=glm::vec3(bind(hand)[3]),forward=glm::normalize(glm::vec3(bind(middle)[3])-wrist);
+            auto top=glm::vec3(bind(thumb)[3])-wrist;top=glm::normalize(top-forward*glm::dot(top,forward));
+            auto palm=glm::cross(top,forward);if(palm.x*-wrist.x<0)palm=-palm;
+            for(int finger=0;finger<5;++finger)for(int joint=0;joint<3;++joint) {
+                const std::string root=prefix+"Finger"+std::to_string(finger);
+                const int bone=rig.findBoneIndex(root+(joint?std::to_string(joint):""));
+                if(bone<0)continue;
+                const int neighbour=joint<2?rig.findBoneIndex(root+std::to_string(joint+1)):rig.bones()[size_t(bone)].parentIndex;
+                if(neighbour<0)continue;
+                const auto direction=glm::normalize((glm::vec3(bind(neighbour)[3])-glm::vec3(bind(bone)[3]))*(joint<2?1.f:-1.f));
+                auto axis=glm::cross(direction,palm);if(glm::length(axis)<1e-5f)continue;
+                const auto rotation=glm::normalize(glm::quat_cast(glm::mat3(bind(bone))));
+                axis=glm::inverse(rotation)*glm::normalize(axis);
+                constexpr float curl[]={.65f,1.15f,.7f};
+                links_[h].push_back({bone,glm::normalize(rig.bones()[size_t(bone)].restLocal.rotation*
+                    glm::angleAxis(curl[joint]*(finger==0?.65f:1.f),axis))});
+            }
+        }
+    }
+    void hold(bool on){wanted_=on?1.f:0.f;}
+    void update(float dt)override{weight_+=(wanted_-weight_)*(1.f-std::exp(-22.f*std::max(0.f,dt)));}
+    bool active()const override{return weight_>.001f||wanted_>0;}
+    void apply(saida::LocalPose& pose,const saida::Rig&)const override {
+        for(const auto& hand:links_)for(const auto& link:hand) {
+            auto& rotation=pose.localTransforms[size_t(link.bone)].rotation;
+            rotation=glm::normalize(glm::slerp(rotation,link.rotation,weight_));
+        }
+    }
+private:
+    struct Link{int bone;glm::quat rotation;};
+    std::vector<Link> links_[2];float weight_=0,wanted_=0;
+};
+inline glm::quat rocketboxFootRotation(const saida::Rig& rig,bool right) {
+    const int index=rig.findBoneIndex(right?"Bip01 R Foot":"Bip01 L Foot");
+    if(index<0)return glm::quat(1,0,0,0);
+    return glm::normalize(glm::quat_cast(glm::mat3(glm::inverse(rig.bones()[size_t(index)].inverseBindMatrix))));
+}
+
 // The bind-pose length of an arm, shoulder to wrist, in the rig's metres.
 inline float armLength(const saida::Rig& rig, bool right) {
     const char* names[3] = {right ? "Bip01 R UpperArm" : "Bip01 L UpperArm", right ? "Bip01 R Forearm" : "Bip01 L Forearm",
@@ -68,6 +211,20 @@ inline float armLength(const saida::Rig& rig, bool right) {
         p[i] = glm::vec3(glm::inverse(rig.bones()[size_t(b)].inverseBindMatrix)[3]);
     }
     return glm::length(p[1] - p[0]) + glm::length(p[2] - p[1]);
+}
+
+inline glm::vec3 rocketboxRidingSeat(const saida::Rig& rig,bool cross,float vehicleScale,float scale,float drop) {
+    // Shorter adult rigs sit nearer the tank instead of stretching their
+    // wrists beyond their reach. This is measured from the bones, not sex.
+    const float nearer=std::clamp(.56f-armLength(rig,true),0.f,.12f)*scale*1.6f;
+    return {0,(cross?.97f:.82f)*vehicleScale-drop,(cross?.19f:.16f)*vehicleScale-nearer};
+}
+inline void holdRocketboxRidingBase(saida::Animator& animator) {
+    // Sample the chair clip once for seated hips. Its 36-second fidgets are
+    // inappropriate on a bike and can lift the shoulders out of bar reach.
+    // Modifiers keep updating: steering, aim, hand contacts and road banking
+    // remain live while only this source playhead is held.
+    if(auto* seat=animator.activeClipNode()){seat->setTime(3.f);seat->setPlaybackSpeed(0.f);}
 }
 
 // ── the pistol ──────────────────────────────────────────────────────────────

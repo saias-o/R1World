@@ -11,7 +11,6 @@ import json
 import math
 from pathlib import Path
 
-import moderngl
 import numpy as np
 from PIL import Image
 
@@ -148,6 +147,7 @@ def dilate(rgb, alpha, steps=8):
     return rgb
 
 def bake(source=NATURE/"urban_tree_mid.glb", target=TARGET, *, reference_level="Mid", columns=COLUMNS, alpha_cutoff=.35, resolution=RESOLUTION):
+    import moderngl  # Only baking needs an OpenGL context; asset checks do not.
     target.parent.mkdir(parents=True,exist_ok=True)
     doc,binary=read_glb(source);parts=transformed_parts(doc,binary)
     points=np.concatenate([p[0][:,:3] for p in parts]);low=points.min(axis=0);high=points.max(axis=0)

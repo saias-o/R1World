@@ -1,7 +1,7 @@
 {
-  "description": "Licensed realistic road vehicles; opaque PBR, original curved silhouettes and UV detail, two LODs.",
+  "description": "Licensed road vehicles and CC0 online motorcycles; opaque PBR materials, independent wheel pivots, and Near/Far geometry LODs.",
   "source": "game/tools/r1/vehicle_imports.py",
-  "totalVertices": 72054,
+  "totalVertices": 96021,
   "vehicles": [
     {
       "name": "city",
@@ -170,6 +170,56 @@
         "triangles": 1611,
         "drawTriangles": 1611
       }
+    },
+    {
+      "name": "moto_city",
+      "author": "Innerscene",
+      "license": "CC0-1.0",
+      "sourceUrl": "https://www.innerscene.com/tools/library/3d-parts/road-motorcycle-f2519759",
+      "sourceSha256": "c073cbc0e22995256d527d51c3e9b8eb0ba922ef37427eab9d55a43861062114",
+      "length": 2.118,
+      "width": 0.745,
+      "height": 1.363,
+      "wheelbase": 1.45,
+      "wheelRadius": 0.327,
+      "near": {
+        "path": "assets/models/vehicles/moto_city.glb",
+        "vertices": 9973,
+        "triangles": 8564,
+        "drawTriangles": 8564
+      },
+      "far": {
+        "path": "assets/models/vehicles/moto_city_far.glb",
+        "vertices": 2359,
+        "triangles": 1798,
+        "drawTriangles": 1798
+      },
+      "authoredForward": "+Z"
+    },
+    {
+      "name": "moto_cross",
+      "author": "Innerscene",
+      "license": "CC0-1.0",
+      "sourceUrl": "https://www.innerscene.com/tools/library/3d-parts/dirt-motorcycle-0a9c8589",
+      "sourceSha256": "830ad2dff8dde469af9390997fb1424ea6fd8b58874f2bf177159ed55f2a1441",
+      "length": 2.264,
+      "width": 0.626,
+      "height": 1.218,
+      "wheelbase": 1.48,
+      "wheelRadius": 0.35,
+      "near": {
+        "path": "assets/models/vehicles/moto_cross.glb",
+        "vertices": 9200,
+        "triangles": 6498,
+        "drawTriangles": 6498
+      },
+      "far": {
+        "path": "assets/models/vehicles/moto_cross_far.glb",
+        "vertices": 2435,
+        "triangles": 1797,
+        "drawTriangles": 1797
+      },
+      "authoredForward": "+Z"
     }
   ]
 }

@@ -635,7 +635,12 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
     };
     // The axes of every deck, so decks mapped side by side -- a bridge drawn
     // as two carriageways and a footway -- are built as one.
-    struct DeckAxis { std::vector<P2> xz; std::vector<double> y; double reach = 0; bool bridge=false, median=false; };
+    struct DeckAxis {
+        std::vector<P2> xz;
+        std::vector<double> y;
+        double half = 0, band[2] = {};
+        bool bridge = false, median = false;
+    };
     std::vector<DeckAxis> decks(plan.runs.size());
     for (size_t r = 0; r < plan.runs.size(); ++r) {
         const auto& run=plan.runs[r];
@@ -643,7 +648,9 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
         decks[r].bridge=run.bridge;decks[r].median=profile.express && profile.direction && !profile.link;
         for (size_t i=0;i<run.points.size();++i) { const P2& p=run.points[i];const P3 e = anchor.toEngine(p.x, p.y, run.levels[i]); decks[r].xz.push_back({e.x, e.z});decks[r].y.push_back(e.y); }
         const Section c = sectionOf(plan.runs[r]);
-        decks[r].reach = c.half + std::max(c.band[0], c.band[1]);
+        decks[r].half = c.half;
+        decks[r].band[0] = c.band[0];
+        decks[r].band[1] = c.band[1];
     }
     int piers = 0, abutments = 0, pieces = 0, joinedSides = 0, medianSides=0;
     for (size_t r = 0; r < plan.runs.size(); ++r) {
@@ -690,7 +697,7 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
                 for (int s = 0; s < 2; ++s) {
                     const double sign = s == 0 ? 1.0 : -1.0;
                     const P2 o{axis[i].x, axis[i].z}, d{right[i].x * sign, right[i].y * sign};
-                    double nearest = 1e300, other = 0,otherHeight=0;
+                    double nearest = 1e300, other = 0, otherHalf = 0, otherHeight = 0;
                     for (size_t q = 0; q < decks.size(); ++q) {
                         if (q == r || decks[q].xz.size() < 2) continue;
                         if(decks[q].bridge!=run.bridge || (!run.bridge && !decks[q].median))continue;
@@ -707,12 +714,18 @@ BridgeOutput buildBridges(const GradePlan& plan, const Bounds& bounds, const Ele
                             const double height=decks[q].y[k]+(decks[q].y[k+1]-decks[q].y[k])*u;
                             if(std::abs(height-axis[i].y)>(run.bridge?1.5:.75))continue;
                             nearest = t;
-                            other = decks[q].reach;
+                            const int facing = (-e.y * (o.x - a.x) + e.x * (o.y - a.y)) >= 0 ? 0 : 1;
+                            otherHalf = decks[q].half;
+                            other = otherHalf + decks[q].band[facing];
                             otherHeight=height;
                         }
                     }
                     const double gap = nearest - outer[s] - other;
-                    if (gap >= (run.bridge?-.5:.25) && gap < (run.bridge?8.0:12.0)) {
+                    // Inferred pavements can overlap on a divided bridge.
+                    // Judge overlap at the carriageways, not their pavements;
+                    // otherwise harmless overlap leaves a parapet in the middle.
+                    const bool separated = run.bridge ? nearest - half - otherHalf >= -.5 : gap >= .25;
+                    if (separated && gap < (run.bridge?8.0:12.0)) {
                         joined[s][i] = 1;
                         // Past the middle of the gap by a hand's width: the
                         // two fills overlap, and nobody falls between decks.

@@ -1,6 +1,7 @@
 // Game-side integration with Saida's public C++ API.
 #define NOMINMAX
 #include <windows.h>
+#include <psapi.h>
 #include "Engine.hpp"
 #include "core/Paths.hpp"
 #include "core/Time.hpp"
@@ -15,7 +16,9 @@
 #include "scene/animation/Animator.hpp"
 #include "scene/animation/ClipView.hpp"
 #include "graphics/ResourceManager.hpp"
+#include "graphics/MemoryProfiler.hpp"
 #include "graphics/Material.hpp"
+#include "graphics/Mesh.hpp"
 #include "nodes/GrassNode.hpp"
 #include "nodes/WaterNode.hpp"
 #include "nodes/CameraNode.hpp"
@@ -24,6 +27,7 @@
 #include "nodes/ParticleSystemNode.hpp"
 #include "nodes/TerrainRingsNode.hpp"
 #include "behaviours/LODGroupBehaviour.hpp"
+#include "behaviours/BoneAttachmentBehaviour.hpp"
 #include "physics/CharacterBodyNode.hpp"
 #include "physics/CollisionShapeNode.hpp"
 #include "physics/RigidBodyNode.hpp"
@@ -40,6 +44,8 @@
 #include <nlohmann/json.hpp>
 #include "saida/traffic/Traffic.hpp"
 #include "vehicle_runtime.hpp"
+#include "motorcycle.hpp"
+#include "vehicle_radio.hpp"
 #include "traffic_signal.hpp"
 #include "gen/traffic_format.hpp"
 #include "gen/roadside.hpp"
@@ -99,6 +105,10 @@ constexpr int kLastRow=r1::kRows-1;
 constexpr double kMetresPerDegree=r1::kMetresPerDegree;
 // Keep room for shared models, UI and the player within the configured arena.
 constexpr double kTileGeometryShare = .85;
+// The title keeps human rigs, vehicles and scanned vegetation alongside nine
+// tiles. The engine's 256 MiB default decoder budget rejected existing models
+// while the game used only 1.4-3 GiB of the reference machine's 7.4 GiB RAM.
+constexpr uint64_t kDecodedAssetBudget=512ull*1024ull*1024ull;
 
 // ── driving ─────────────────────────────────────────────────────────────────
 //
@@ -424,6 +434,30 @@ PartUpload uploadOf(const r1::MeshPart& part,size_t index) {
     return up;
 }
 
+// Once a tile is prepared, the generator's own copy of its geometry -- double
+// precision, with the weld keys of the ground and the streets -- is read for
+// nothing: parts keep their names and materials, buildings their ids and
+// bounds, and everything drawn or collided with is the prepared copy. It was
+// some 68 of a Paris tile's 140 MB, held as long as the service kept the tile
+// (measured 16 October 2026: 9 tiles mounted, 2.9 GB of heap).
+void releaseCookedGeometry(r1::CookedTile& tile) {
+    auto release=[](std::vector<r1::MeshPart>& parts){for(auto& part:parts)part.mesh=r1::Mesh(part.mesh.uvMode);};
+    release(tile.parts);release(tile.buildingCollisions);
+    for(auto& building:tile.buildings){for(auto& level:building.levels)release(level);release(building.reducedNear);}
+}
+// A prepared part back in the generator's form, for a GLB written when a
+// smoke fails: the generator's own copy is gone by then.
+r1::MeshPart generatorPart(const std::string& name,const std::vector<saida::Vertex>& vertices,const std::vector<uint32_t>& indices) {
+    r1::MeshPart part;part.name=name;
+    for(const auto& v:vertices) {
+        part.mesh.positions.push_back({v.pos.x,v.pos.y,v.pos.z});
+        part.mesh.normals.push_back({v.normal.x,v.normal.y,v.normal.z});
+        part.mesh.texcoords.push_back({v.texCoord.x,v.texCoord.y});
+    }
+    part.mesh.indices=indices;
+    return part;
+}
+
 PreparedTile prepareTile(const r1::CookedTile& tile) {
     PreparedTile prepared;
     auto& out=prepared.parts;
@@ -553,7 +587,8 @@ struct Loaded {
     };
     std::vector<SignalLamp> signalLamps;
     std::vector<glm::vec2> signalPositions;
-    size_t wanted=0;                      // cars this tile's density asks for
+    size_t wanted=0;                      // traffic population this tile's density asks for
+    double motorcycleChance=.05;
     // The people on its pavements (gen/crowd.hpp): the same shape as the
     // traffic, for the same reason -- the crowd points at the graph.
     r1::WalkGraph walks; r1::Crowd crowd;
@@ -651,12 +686,27 @@ public:
 class World : public Rml::EventListener {
     saida::Engine& engine; fs::path game;
     r1::DensityPolicy densityPolicy{game};
+    r1::VehicleRadio radio{game};
+    bool radioKeys[4]{};
+    void updateRadio(double dt) {
+        const bool keys[]={held(GLFW_KEY_B),held(GLFW_KEY_N),held(GLFW_KEY_PAGE_UP),held(GLFW_KEY_PAGE_DOWN)};
+        bool pressed[4];
+        for(int i=0;i<4;++i){pressed[i]=keys[i]&&!radioKeys[i]&&!menu&&!cheatOpen;radioKeys[i]=keys[i];}
+        const bool aboard=playing&&driving&&!pending&&!carSinking;
+        const bool previous=held(GLFW_KEY_LEFT_SHIFT)||held(GLFW_KEY_RIGHT_SHIFT);
+        radio.update(dt,lon,lat,aboard,pressed[0],pressed[1]&&!previous,pressed[1]&&previous,int(pressed[2])-int(pressed[3]));
+        style("vehicle-radio","display",aboard?"block":"none");
+        if(aboard)text("vehicle-radio",radio.label(lon,lat));
+    }
     saida::WebCanvasNode* ui; saida::WebCanvasNode* minimapUi; saida::CameraNode* camera;
     saida::Node* player=nullptr;
     // The player's car. A member of the entry scene beside him, not a prop of
     // the tile it happens to stand on: it is his, so a teleport takes it along
     // instead of evicting it with the neighbourhood he left.
     saida::Node* car=nullptr;
+    // The same player body, rig, modifiers and weapon move onto the solver body.
+    // Traffic ownership ends permanently when the player takes a bike.
+    saida::Node* playerBikeRider=nullptr;
     std::vector<saida::Node*> frontWheels,rearWheels;
     // Every car the player has stepped out of, left standing where he left it.
     // GTA's rule, and the reason the car he is in is a *pointer* rather than
@@ -754,6 +804,8 @@ class World : public Rml::EventListener {
     };
     std::vector<VehicleModel> fleet;
     std::vector<glm::vec3> paints;
+    std::vector<size_t> motorcycleRiderKinds,motorcycleFemaleRiderKinds;
+    std::unique_ptr<saida::Mesh> motorcycleHelmetShell,motorcycleHelmetVisor;
 
     // ── people ──────────────────────────────────────────────────────────────
     //
@@ -1166,7 +1218,12 @@ class World : public Rml::EventListener {
     saida::RagdollProfile ragdollProfile=r1::rocketboxRagdoll();
     saida::Node* playerBody=nullptr; saida::Transform playerBodyRest;
     saida::RagdollBehaviour* playerRagdoll=nullptr;
-    saida::TwoBoneIKModifier* playerArms[2]{nullptr,nullptr};  // left, right
+    saida::TwoBoneIKModifier* playerArms[2]{nullptr,nullptr};
+    saida::TwoBoneIKModifier* playerBikeLegs[2]{nullptr,nullptr};  // left, right
+    saida::GazeModifier* playerBikeLean=nullptr;
+    saida::GazeModifier* playerBikeLook=nullptr;
+    r1::RocketboxRidingAim* playerBikeAim=nullptr;
+    r1::RocketboxRidingHands* playerBikeHands=nullptr;
     saida::Node* pistol=nullptr; saida::Transform pistolGrip;
     float playerReach=.55f;  // shoulder to wrist, the rig's metres
     bool aiming=false,wasFire=false,wasReloadKey=false; double aimBlend=0;
@@ -1174,6 +1231,7 @@ class World : public Rml::EventListener {
     double fightClock=0,arrivalClock=0;
     bool playerDown=false,wasted=false; double downClock=0;
     // The cheat line (World::updateCheats): open, the keys are its own.
+    int outOfMemorySaid=0;
     bool cheatOpen=false,wasCheatKey=false,wasCheatEnter=false,wasCheatEscape=false; double cheatSaidAt=-1e9;
     std::string punchTileKey; size_t punchSlot=0; bool punchAimed=false;  // whom a punch is thrown at
     double hurtShown=-1e9,recoil=0;
@@ -1225,10 +1283,16 @@ class World : public Rml::EventListener {
         if(!playerBody){playerBody=animators.front()->node();playerBodyRest=playerBody->transform();}
         auto* animator=animators.front();
         const saida::Rig& rig=*animator->rig();
+        playerBikeLean=animator->addModifier<saida::GazeModifier>(rig,r1::rocketboxRidingLean());
+        playerBikeAim=animator->addModifier<r1::RocketboxRidingAim>(rig);
+        playerBikeLook=animator->addModifier<saida::GazeModifier>(rig,r1::rocketboxRidingLook());
         playerArms[0]=animator->addModifier<saida::TwoBoneIKModifier>(rig,r1::rocketboxArm(false));
         playerArms[1]=animator->addModifier<saida::TwoBoneIKModifier>(rig,r1::rocketboxArm(true));
         if(!playerArms[0]->valid()||!playerArms[1]->valid())
             throw std::runtime_error("Player skeleton lacks the arm chains a punch reaches with");
+        for(int h=0;h<2;++h)playerBikeLegs[h]=animator->addModifier<saida::TwoBoneIKModifier>(rig,
+            saida::TwoBoneIKModifier::Settings{h?"Bip01 R Thigh":"Bip01 L Thigh",h?"Bip01 R Calf":"Bip01 L Calf",h?"Bip01 R Foot":"Bip01 L Foot",22.f});
+        playerBikeHands=animator->addModifier<r1::RocketboxRidingHands>(rig);
         playerReach=r1::armLength(rig,true);
         playerRagdoll=playerBody->addBehaviour<saida::RagdollBehaviour>(ragdollProfile);
         if(!r1::pistolGrip(rig,pistolGrip))throw std::runtime_error("Player skeleton lacks the hand and fingers a pistol is held in");
@@ -1515,20 +1579,26 @@ class World : public Rml::EventListener {
 
     // ── the player's weapons ──
 
+    void showHeldPistol() {
+        if(pistol)pistol->setVisible(arsenal.held()==r1::combat::Weapon::Pistol&&(!playerBikeRider||aiming));
+    }
     void setAiming(bool on) {
         aiming=on;
+        if(!on&&playerBikeAim)playerBikeAim->release();
+        showHeldPistol();
         style("crosshair","display",on?"block":"none");
         if(!on)for(auto* arm:playerArms)if(arm){arm->release();arm->clearTipRotation();}
     }
     void selectWeapon(r1::combat::Weapon wanted) {
         if(arsenal.held()==wanted)return;
         arsenal.select(wanted);
-        if(pistol)pistol->setVisible(wanted==r1::combat::Weapon::Pistol);
+        showHeldPistol();
         if(wanted!=r1::combat::Weapon::Pistol&&aiming)setAiming(false);
     }
     // The physics filter of a shot or a punch: everything but his own feet.
     saida::QueryFilter combatFilter() const {
         saida::QueryFilter filter;filter.ignoreInner=feet->innerBodyId();
+        if(ridingBike())if(auto* body=r1::VehicleRuntime::body(*car))filter.ignore=body->bodyId();
         return filter;
     }
     // A passer-by, by the capsule or ragdoll part a query hit.
@@ -1638,7 +1708,7 @@ class World : public Rml::EventListener {
         // Aim error grows with movement and with the last shot's recoil.
         static uint32_t spreadSeed=0x9e3779b9u;
         auto random=[&]{spreadSeed^=spreadSeed<<13;spreadSeed^=spreadSeed>>17;spreadSeed^=spreadSeed<<5;return double(spreadSeed)/4294967296.;};
-        const double spread=r1::combat::kPistol.spread*(1+2.5*std::min(1.,std::hypot(footEast,footNorth)/3.)+recoil*4);
+        const double spread=r1::combat::kPistol.spread*(1+2.5*std::min(1.,(ridingBike()?std::abs(carSpeed)/18.:std::hypot(footEast,footNorth)/3.))+recoil*4);
         const double a=random()*6.283185307179586,rr=std::sqrt(random())*spread;
         const glm::quat jitter=glm::angleAxis(float(rr*std::cos(a)),glm::vec3(0,1,0))*glm::angleAxis(float(rr*std::sin(a)),glm::vec3(1,0,0));
         const glm::vec3 look=glm::normalize(camera->transform().rotation*(jitter*glm::vec3(0,0,-1)));
@@ -1654,7 +1724,7 @@ class World : public Rml::EventListener {
         sounds.play(r1::CombatSounds::Shot);
         recoil=std::min(1.,recoil+.55);
         pitch=std::clamp(pitch+1.1,-65.,25.);
-        alarm(player->transform().position,r1::combat::kGunshotHeard,10.);
+        alarm(ridingBike()?car->transform().position:player->transform().position,r1::combat::kGunshotHeard,10.);
         if(!physics||length<1e-3)return;
         const glm::vec3 dir=path/length;
         const auto hit=physics->raycast(muzzle,dir,length+.05f,combatFilter());
@@ -1701,17 +1771,20 @@ class World : public Rml::EventListener {
         if(aiming&&arsenal.held()==r1::combat::Weapon::Pistol) {
             const glm::vec3 look=camera->transform().rotation*glm::vec3(0,0,-1);
             glm::vec3 aim=glm::normalize(glm::vec3(toObject*glm::vec4(look,0.f)));
+            if(ridingBike()){playerBikeAim->lookAt(aim);playerBikeLook->lookAt(shoulder[1]+aim*100.f);}
             const glm::vec3 up(0,1,0);
             // Out in front at eye height, the arm nearly straight.
-            const glm::vec3 grip=shoulder[1]+aim*(playerReach*.9f)+glm::vec3(-.05f,.0f,0.f);
+            const float overShoulder=ridingBike()?.18f*std::clamp(-aim.z*2.f,0.f,1.f):0.f;
+            const glm::vec3 grip=shoulder[1]+aim*(playerReach*.9f)+glm::vec3(-.05f,overShoulder,0.f);
             glm::vec3 side=glm::cross(up,aim);if(glm::dot(side,side)<1e-6f)side=glm::vec3(1,0,0);
             side=glm::normalize(side);
             const glm::vec3 top=glm::cross(aim,side);
             glm::mat3 gun;gun[0]=side;gun[1]=top;gun[2]=aim;
             const glm::quat hand=glm::normalize(glm::quat_cast(gun)*glm::inverse(pistolGrip.rotation));
             playerArms[1]->reach(grip);playerArms[1]->setTipRotation(hand);
-            playerArms[1]->setPole(shoulder[1]+glm::vec3(-.4f,-.5f,-.2f));
-            // The other hand cups the grip.
+            playerArms[1]->setPole(shoulder[1]-side*.4f-top*.5f+aim*.12f);
+            // Riders keep their left hand on the handlebar.
+            if(ridingBike())return;
             playerArms[0]->reach(grip+side*.035f-top*.045f-aim*.02f);playerArms[0]->clearTipRotation();
             playerArms[0]->setPole(shoulder[0]+glm::vec3(.4f,-.6f,-.1f));
             return;
@@ -1784,11 +1857,13 @@ class World : public Rml::EventListener {
         runOverPeople(dt);
         if(playerDown)updatePlayerDown(dt);
         const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown&&player->enabled();
-        if(!onFoot||menu||smoke) {
+        const bool onBike=ridingBike()&&playerBikeRider&&!playerDown;
+        if((!onFoot&&!onBike)||menu||smoke) {
             if(aiming)setAiming(false);
             wasFire=clicked(GLFW_MOUSE_BUTTON_LEFT);
             if(!onFoot)for(auto* arm:playerArms)if(arm&&arm->weight()>0&&!playerDown)arm->release();
             if(onFoot&&smoke)poseArms();
+            if(onBike)bikeHandlePose();
             return;
         }
         const bool keys[2]={held(GLFW_KEY_1),held(GLFW_KEY_2)};
@@ -1802,11 +1877,12 @@ class World : public Rml::EventListener {
         if(wantAim!=aiming)setAiming(wantAim);
         const bool fireDown=clicked(GLFW_MOUSE_BUTTON_LEFT);
         if(fireDown&&!wasFire) {
-            if(arsenal.held()==r1::combat::Weapon::Fists){if(arsenal.pull()==r1::combat::Arsenal::Trigger::Fired)throwPunch();}
-            else fire();
+            if(arsenal.held()==r1::combat::Weapon::Fists){if(onFoot&&arsenal.pull()==r1::combat::Arsenal::Trigger::Fired)throwPunch();}
+            else if(onFoot||aiming)fire();
         }
         wasFire=fireDown;
         if(punch.update(dt))landPunch();
+        if(onBike){poseArms();bikeHandlePose();return;}
         // Aiming, he faces where the camera looks.
         if(aiming)player->transform().rotation=glm::slerp(player->transform().rotation,
             glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0)),float(1-std::exp(-18*dt)));
@@ -1841,7 +1917,14 @@ class World : public Rml::EventListener {
     // (CLAUDE.md rule 3).
     bool held(int key) const {return !cheatOpen&&engine.window().keyDown(key);}
     bool clicked(int button) const {return !cheatOpen&&engine.window().mouseButtonDown(button);}
+    // The process's private memory, in MB: what a bad_alloc runs out of.
+    static double privateMegabytes() {
+        PROCESS_MEMORY_COUNTERS_EX counters{};counters.cb=sizeof(counters);
+        return GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&counters),sizeof(counters))
+            ?double(counters.PrivateUsage)/1048576.:0.;
+    }
     void openCheat() {
+        if(!smokeCheatCycles)saida::Log::info("[World cheat] line opened, private memory ",int(privateMegabytes())," MB");
         cheatOpen=true;
         field("cheat-input",std::string());
         style("cheat-said","display","none");
@@ -1856,7 +1939,8 @@ class World : public Rml::EventListener {
         engine.uiInteraction().focusWebCanvas(nullptr);
     }
     void cheatSay(const std::string& said) {text("cheat-said",said);cheatSaidAt=clock;}
-    void updateCheats() {
+    void updateCheats(double dt) {
+        if(smokeCheatCycles){cycleSmokeCheat(dt);return;}
         auto& w=engine.window();
         const bool key=w.keyDown(GLFW_KEY_T),escape=w.keyDown(GLFW_KEY_ESCAPE),
                    enter=w.keyDown(GLFW_KEY_ENTER)||w.keyDown(GLFW_KEY_KP_ENTER);
@@ -1881,6 +1965,8 @@ class World : public Rml::EventListener {
         case Code::Helicopter: refused=spawnAircraft("helicopter");break;
         case Code::Plane: refused=spawnAircraft("bizjet");break;
         case Code::SportsCar: refused=spawnSportsCar();break;
+        case Code::Moto: refused=spawnParkedVehicle("moto_city");break;
+        case Code::Rocket: refused=spawnParkedVehicle("moto_cross");break;
         case Code::Invincible: health.protect(r1::cheats::kInvincibleSeconds);combatHud();break;
         case Code::Unknown: break;
         }
@@ -2004,6 +2090,35 @@ class World : public Rml::EventListener {
         saida::Log::info("[World cheat] a sport car at ",x,", ",y," beside the player");
         return {};
     }
+    // MOTO and ROCKET: spawn the plain city bike or the motocross bike from
+    // the same light-weight fleet used by traffic, ready for F to take it.
+    std::string spawnParkedVehicle(const std::string& name) {
+        const auto spec=std::find_if(fleet.begin(),fleet.end(),[&](const VehicleModel& m){return m.name==name;});
+        if(spec==fleet.end()) {
+            saida::Log::error("[World cheat] the road vehicle fleet has no ",name);
+            return name=="moto_cross"?"Aucune motocross dans la flotte.":"Aucune moto de ville dans la flotte.";
+        }
+        if(piloting&&plane.airborne) {
+            saida::Log::info("[World cheat] no ",name," while in flight");
+            return "Impossible en vol — posez-vous d'abord.";
+        }
+        double x=0,y=0;
+        parkingCar=true;
+        const bool found=roomBeside(spec->length,spec->width,false,false,x,y);
+        parkingCar=false;
+        if(!found) {
+            saida::Log::warn("[World cheat] no room for a ",name," within 40 m of ",lon,", ",lat);
+            return name=="moto_cross"?"Pas assez de place ici pour une motocross.":"Pas assez de place ici pour une moto.";
+        }
+        auto node=clonePlant(*spec->prototype);
+        vehicleCollider(*node,*spec);
+        auto* root=engine.sceneTree().world().addChild(std::move(node));
+        if(auto* drive=r1::VehicleRuntime::driver(*root))drive->parked=true;
+        keepParked({root,x,y,groundAt(x,y,alt),yaw});
+        placeCar();
+        saida::Log::info("[World cheat] a ",name," at ",x,", ",y," beside the player");
+        return {};
+    }
 
     // ── the smoke's fight ──
     //
@@ -2123,6 +2238,12 @@ class World : public Rml::EventListener {
     uint64_t indexedAtFrame=0; double churn=0,churnFrames=0,dirtyFrames=0;
     bool smoke=false,smokeStarted=false,smokeWaterSpawn=false; glm::dvec3 smokeStart;
     const bool idleSmoke=std::getenv("R1WORLD_IDLE_SMOKE")!=nullptr;
+    const std::string perfSmoke=std::getenv("R1WORLD_PERF_SMOKE")?std::getenv("R1WORLD_PERF_SMOKE"):"";
+    bool perfReady=false;
+    double perfReadyWait=0;
+    const bool qualitySwitchSmoke=std::getenv("R1WORLD_QUALITY_SWITCH_SMOKE")!=nullptr;
+    int qualitySwitches=0;
+    double qualitySwitchWait=0;
     // R1WORLD_WADE_SMOKE="<lon> <lat>": walk from the spawn to that point and
     // fail the moment he swims. Across a breakwater, a rock or the swash the
     // walk must stay a walk while less than half of him is under the water.
@@ -2162,9 +2283,12 @@ class World : public Rml::EventListener {
     // the hour or the time zone under the player changes.
     std::optional<int> forcedMinutes; std::optional<double> forcedSent; bool forcedSaid=false,optionsOpen=false;
     r1::WeatherOverride forcedWeather=r1::WeatherOverride::Real;
+    bool toasterMode=false;
+    int standardWidth=1600,standardHeight=900;
     saida::CaptureRequest worldCapture;
     saida::runtime::CaptureViewpoint captureView;
-    bool captureVehicleDent=false;
+    bool captureVehicleDent=false,motorcycleCaptureStarted=false,motorcycleCaptureFired=false;
+    double motorcycleCaptureWait=0;
     double captureVehicleWait=0;
     bool captureQueued=false;
     // --at <unix seconds>: an inspection capture, lit at that instant under a
@@ -3007,6 +3131,7 @@ class World : public Rml::EventListener {
     }
     saida::QueryFilter obstacleFilter() const {
         saida::QueryFilter filter;filter.ignoreInner=feet->innerBodyId();
+        if(ridingBike())if(auto* body=r1::VehicleRuntime::body(*car))filter.ignore=body->bodyId();
         if(car)if(auto* body=dynamic_cast<saida::CollisionObjectNode*>(car->findByPath("Vehicle collider")))filter.ignore=body->bodyId();
         return filter;
     }
@@ -3014,14 +3139,6 @@ class World : public Rml::EventListener {
         auto* physics=engine.sceneTree().world().physics();if(!physics)return true;
         const glm::vec3 at(origin.local(ecef(x,y,level)));
         return !physics->overlapSphere(at,radius,obstacleFilter()).empty();
-    }
-    // What `blocked` met there, by its node and that node's parent, for the log.
-    std::string obstacleName(double x,double y,double ground) const {
-        auto* physics=engine.sceneTree().world().physics();if(!physics)return "no physics";
-        for(double above:{.6,1.3})for(auto id:physics->overlapSphere(glm::vec3(origin.local(ecef(x,y,ground+above))),.32f,obstacleFilter()))
-            if(auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(id)))
-                return node->name()+(node->parent()?" in "+node->parent()->name():"");
-        return "water or a roof";
     }
     // Spawn/exit/parking occupancy uses the engine's scene queries. Movement
     // itself uses the character solver, without a second footprint test.
@@ -3061,18 +3178,6 @@ class World : public Rml::EventListener {
     double groundAt(double x,double y,double fallback) {
         return tile(x,y)?height(x,y,fallback):fallback;
     }
-    // What the wheels roll on: the ground, or the street laid on it -- the
-    // carriageway 6 cm up, a path or a pavement 21 cm (gen/streets). Asked of
-    // the collision the engine holds, since that is what `blocked` meets: a car
-    // riding the bare terrain under a path met the path as an obstacle.
-    double drivenGround(double x,double y,double fallback) {
-        const double ground=groundAt(x,y,fallback);
-        auto* physics=engine.sceneTree().world().physics();if(!physics)return ground;
-        const glm::vec3 start(origin.local(ecef(x,y,ground+kCarKerb)));
-        const auto hit=physics->raycast(start,{0,-1,0},float(kCarKerb+.1),obstacleFilter());
-        if(!hit.hit||hit.normal.y<.7f)return ground;
-        return std::max(ground,ground+kCarKerb-double(hit.distance));
-    }
     // Yaw, then the slope the wheels are actually standing on. Measured off the
     // terrain grid over the car's own wheelbase and track rather than inferred
     // from a normal: it is the same surface the collision reads (§3 I5).
@@ -3108,7 +3213,12 @@ class World : public Rml::EventListener {
             for(auto& child:n.children())collect(*child);
         };
         collect(root);
-        const size_t expected=(root.findByPath("Far")||root.findByPath("Vehicle collider/Far"))?4:2;
+        const size_t levels=(root.findByPath("Far")||root.findByPath("Vehicle collider/Far"))?2:1;
+        // The player's scene car is collected before buildTrafficPrototype()
+        // populates `fleet`; do not ask vehicleSpec() for its fallback then.
+        // Traffic instances have their manifest name on the root node.
+        const bool bike=root.name()=="vehicle-moto_city"||root.name()=="vehicle-moto_cross";
+        const size_t expected=levels*(bike?1:2);
         if(frontWheels.size()!=expected||rearWheels.size()!=expected)
             saida::Log::warn("[World car] this car has ",frontWheels.size()," front and ",
                              rearWheels.size()," rear wheels named wheel-*; they will not turn");
@@ -3137,8 +3247,11 @@ class World : public Rml::EventListener {
         }
         // Wheels turn because a car whose wheels do not turn is a car sliding
         // on ice, and this one is visible from three metres behind it.
-        auto spin=glm::angleAxis(float(-wheelSpin),glm::vec3(1,0,0));
-        auto lock=glm::angleAxis(float(-steerShown*kCarSteerAngle*rad),glm::vec3(0,1,0));
+        const bool bike=r1::motorcycle(vehicleSpec(*car).name);
+        auto spin=glm::angleAxis(float(bike?wheelSpin:-wheelSpin),glm::vec3(1,0,0));
+        const auto* drive=r1::VehicleRuntime::driver(*car);
+        const double steering=drive?drive->steeringAngle*steerShown/(1.+drive->speedSteering*carSpeed*carSpeed):kCarSteerAngle*steerShown;
+        auto lock=glm::angleAxis(float(-steering*rad),glm::vec3(0,1,0));
         for(auto* w:rearWheels)w->transform().rotation=spin;
         for(auto* w:frontWheels)w->transform().rotation=lock*spin;
     }
@@ -3297,23 +3410,24 @@ class World : public Rml::EventListener {
     // Hand a traffic car over: it leaves the flow, leaves its tile, and becomes
     // the car the player is in. The flow must forget it first -- a car being
     // driven by the player and by the simulation at once is two cars.
-    void takeTrafficCar(const Reach& target) {
+    bool takeTrafficCar(const Reach& target) {
         Loaded& tile=*target.tile;
         r1::VehicleRuntime::synchronize(*target.node);
         target.node->updateTransforms(tile.node->worldTransform(),true);
         const glm::mat4 previousWorld=target.node->worldTransform();
         const glm::vec3 local=target.node->transform().position;
         const auto here=geodeticOf(tile,local);
-        tile.flow.retire(target.agent);
-        tile.cars[target.agent]=nullptr;
         auto owned=tile.node->detachChild(target.node);
         if(!owned) {
             saida::Log::warn("[World car] the traffic car could not be detached from ",
                              tile.data.value("key",std::string()));
-            return;
+            return false;
         }
+        tile.flow.retire(target.agent);
+        tile.cars[target.agent]=nullptr;
         abandonCurrentCar();
         car=engine.sceneTree().world().addChild(std::move(owned));
+        removeTrafficRider(*car);
         car->transform().position=glm::vec3(previousWorld[3]);
         car->transform().rotation=glm::quat_cast(glm::mat3(previousWorld));
         carParked=true;
@@ -3325,6 +3439,7 @@ class World : public Rml::EventListener {
         carSpeed=0;wheelSpin=0;steerShown=0;
         collectWheels(*car);
         saida::Log::info("[World car] took a traffic car at ",carLon,", ",carLat);
+        return true;
     }
     void takeAbandonedCar(const Reach& target) {
         const Parked entry=parked[target.agent];
@@ -3343,13 +3458,85 @@ class World : public Rml::EventListener {
     double carDistance() const {
         return glm::length(ecef(lon,lat,alt)-ecef(carLon,carLat,carAlt));
     }
+    void removeTrafficRider(saida::Node& vehicle) {
+        auto* body=r1::VehicleRuntime::body(vehicle);
+        auto* owner=body?static_cast<saida::Node*>(body):&vehicle;
+        if(auto* rider=owner->findByPath("Rider"))owner->removeChild(rider);
+    }
+    bool ridingBike() const {return driving&&car&&r1::motorcycle(vehicleSpec(*car).name);}
+    glm::vec3 motorcycleContact(saida::Node& rider,const std::string& vehicle,int hand,bool grip) {
+        const bool cross=vehicle=="moto_cross";
+        // Contact points measured on the pinned models, before the shared resize.
+        const float halfBar=cross?.361f:.285f;
+        const glm::vec3 point=grip?glm::vec3(hand?halfBar:-halfBar,cross?1.20f:1.116f,cross?-.344f:-.390f)
+            :glm::vec3(hand?.24f:-.24f,cross?.565f:.44f,cross?.338f:.14f);
+        return glm::vec3(glm::inverse(rider.localMatrix())*glm::vec4(point*float(kVehicleScale),1.f));
+    }
+    void bikeHandlePose() {
+        if(!playerBikeRider)return;
+        const auto& kind=vehicleSpec(*car).name;
+        playerBikeLean->lookAt({0.f,-.4f,1.2f});
+        playerBikeHands->hold(true);
+        if(!aiming)playerBikeLook->lookAt({0.f,1.5f,100.f});
+        for(int h=0;h<2;++h) {
+            const auto foot=motorcycleContact(*playerBody,kind,h,false);
+            playerBikeLegs[h]->reach(foot);playerBikeLegs[h]->setWeightNow(1.f);
+            playerBikeLegs[h]->setTipRotation(r1::rocketboxFootRotation(*animators.front()->rig(),h==1));
+            playerBikeLegs[h]->setPole({foot.x*2.f,foot.y+.35f,foot.z+.45f});
+            if(h==1&&aiming&&arsenal.held()==r1::combat::Weapon::Pistol)continue;
+            auto* arm=playerArms[h];const auto grip=motorcycleContact(*playerBody,kind,h,true);
+            const auto palm=r1::rocketboxBarGrip(*animators.front()->rig(),h==1);
+            const auto wrist=grip-palm.rotation*palm.position;
+            if(h==0)playerBikeAim->keepLeftHandAt(wrist);
+            arm->setTipRotation(palm.rotation);arm->reach(wrist);arm->setWeightNow(1.f);
+            arm->setPole({grip.x*1.7f,grip.y-.15f,grip.z-.25f});
+        }
+    }
+    void mountPlayerOnBike() {
+        if(!car||!playerBody||animators.empty()||!r1::motorcycle(vehicleSpec(*car).name))return;
+        HumanKind* seated=humanKind(0);
+        auto* body=r1::VehicleRuntime::body(*car);
+        if(!seated||!seated->rig||!body)return;
+        removeTrafficRider(*car);
+        auto owned=playerBody->parent()->detachChild(playerBody);
+        const bool motocross=vehicleSpec(*car).name=="moto_cross";
+        playerBikeRider=body->addChild(std::move(owned));
+        playerBody->transform().position=r1::rocketboxRidingSeat(*animators.front()->rig(),motocross,
+            float(kVehicleScale),float(humanScale),float(seated->seatDrop));
+        playerBody->transform().rotation=glm::quat(0,0,1,0); // Rig +Z faces vehicle -Z.
+        playerBody->transform().scale=glm::vec3(float(humanScale));
+        auto* animator=animators.front();
+        for(const auto& [name,clip]:seated->clips)if(name=="sit")animator->addClip("bike-sit",clip);
+        animator->play("bike-sit",true,0.f);animator->setPoseRate(0.f);
+        r1::holdRocketboxRidingBase(*animator);
+        showHeldPistol();
+        bikeHandlePose();
+        saida::Log::info("[World motorcycle] player body attached to solver on ",vehicleSpec(*car).name);
+    }
+    void dismountPlayerFromBike() {
+        if(!playerBikeRider)return;
+        if(aiming)setAiming(false);
+        auto owned=playerBikeRider->parent()->detachChild(playerBikeRider);
+        player->addChild(std::move(owned));
+        playerBody->transform()=playerBodyRest;
+        playerBikeRider=nullptr;
+        showHeldPistol();
+        for(auto* arm:playerArms)if(arm){arm->release();arm->clearTipRotation();}
+        for(auto* leg:playerBikeLegs)if(leg)leg->release();
+        if(playerBikeLean)playerBikeLean->release();
+        if(playerBikeLook)playerBikeLook->release();
+        if(playerBikeAim)playerBikeAim->release();
+        if(playerBikeHands)playerBikeHands->hold(false);
+        for(auto* animator:animators)animator->play("idle",true,0.f);
+    }
     bool enterCar() {
         if(driving||swimming)return false;
         Reach target;double distance=0;
         if(!nearestCar(target,distance))return false;
-        if(target.kind==2)takeTrafficCar(target);
+        if(target.kind==2){if(!takeTrafficCar(target))return false;}
         else if(target.kind==1)takeAbandonedCar(target);
         if(!carParked||!car)return false;
+        if(aiming)setAiming(false);
         driving=true;lookYaw=0;lookIdle=0;
         if(auto* physics=engine.sceneTree().world().physics())r1::VehicleRuntime::activate(*car,*physics,glm::vec3(0));
         captureCarPose();
@@ -3360,8 +3547,9 @@ class World : public Rml::EventListener {
         lon=carLon;lat=carLat;alt=carAlt;yaw=carYaw;
         player->setEnabled(false);
         for(auto* a:animators)a->play("idle");
+        mountPlayerOnBike();
         jumpOffset=jumpVelocity=0;
-        text("stream-status","Au volant. F : descendre · Espace : frein à main.");
+        text("stream-status",ridingBike()?"À moto. F : descendre · Espace : frein arrière · 2 : pistolet · Clic droit : viser.":"Au volant. F : descendre · Espace : frein à main.");
         saida::Log::info("[World car] entered at ",carLon,", ",carLat);
         return true;
     }
@@ -3391,6 +3579,7 @@ class World : public Rml::EventListener {
         if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())
             verticalVelocity=body->physicsWorld()->linearVelocity(body->bodyId()).y;
         driving=false;carSpeed=0;steerShown=0;
+        dismountPlayerFromBike();
         if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=true;
         // Step out looking where you were looking, not snapped back to the
         // bonnet: the offset becomes the walk's own yaw.
@@ -3402,7 +3591,7 @@ class World : public Rml::EventListener {
         player->setEnabled(true);
         player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
         followDistance=std::min(followDistance,kOnFootFollow);
-        text("stream-status","À pied. F : remonter dans la voiture.");
+        text("stream-status","À pied. F : remonter dans le véhicule.");
         saida::Log::info("[World car] left at ",lon,", ",lat," speed=",exitSpeed," m/s, fall=",jumpOffset," m");
         request(lon,lat);
         return true;
@@ -3415,11 +3604,12 @@ class World : public Rml::EventListener {
         carLon=x;carLat=y;carAlt=carWaterLevel;carSpeed=0;steerShown=0;
         // The driver swims out only when the water is over half his height.
         driving=false;swimming=deepWater(x,y);swimTime=0;swimLean=0;
+        dismountPlayerFromBike();
         lon=x;lat=y;alt=swimming?carWaterLevel:height(x,y);yaw=wrap(carYaw+lookYaw);swimHeading=yaw;
         lookYaw=0;lookIdle=0;jumpOffset=jumpVelocity=0;
         followDistance=std::min(followDistance,kOnFootFollow);
         player->setEnabled(true);
-        text("stream-status",swimming?"La voiture coule — nagez vers la rive.":"La voiture s'enlise — vous avez pied.");
+        text("stream-status",swimming?"Le véhicule coule — nagez vers la rive.":"Le véhicule s'enlise — vous avez pied.");
         saida::Log::info("[World car] sank at ",lon,", ",lat);
         request(lon,lat);
     }
@@ -4244,7 +4434,11 @@ private:
         if(!sunScript)return false;
         fogFar=farPack.node!=nullptr;
         const auto weather=effectiveWeather();
-        const double seen=weather.visibility>0&&(inspectAt||weather.visibility<kVisibilityCeiling)?weather.visibility:0.;
+        double seen=weather.visibility>0&&(inspectAt||weather.visibility<kVisibilityCeiling)?weather.visibility:0.;
+        if(toasterMode) {
+            constexpr double kToasterVisibility=650.;
+            seen=seen>0.?std::min(seen,kToasterVisibility):kToasterVisibility;
+        }
         const double rain=weather.rain;
         const double cloud=r1::rainCloudCover(weather.cover,weather.code,rain);
         json result;
@@ -4509,6 +4703,12 @@ private:
                     saida::Log::info("[World options] weather mode ",r1::weatherOverrideKey(forcedWeather)," everywhere");
                 } else saida::Log::error("[World options] cache/options.json: invalid forcedWeather, ignored");
             }
+            if(const auto toaster=options.find("toasterMode");toaster!=options.end()) {
+                if(toaster->is_boolean()) {
+                    toasterMode=toaster->get<bool>();
+                    saida::Log::info("[World options] toasterMode ",toasterMode?"enabled":"disabled");
+                } else saida::Log::error("[World options] cache/options.json: invalid toasterMode, ignored");
+            }
         } catch(const std::exception& e) {
             saida::Log::error("[World options] cache/options.json unreadable, ignored: ",e.what());
         }
@@ -4531,6 +4731,7 @@ private:
         if(forcedMinutes)options["forcedTime"]=r1::formatClockTime(*forcedMinutes);
         else options.erase("forcedTime");
         options["forcedWeather"]=r1::weatherOverrideKey(forcedWeather);
+        options["toasterMode"]=toasterMode;
         std::error_code ignored;fs::create_directories(optionsFile().parent_path(),ignored);
         std::ofstream output(optionsFile());
         output<<options.dump(2)<<"\n";
@@ -4539,6 +4740,7 @@ private:
             saida::Log::error("[World options] could not write ",optionsFile().string());
             sayForcedTime("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
             sayForcedWeather("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
+            sayToasterMode("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
         }
     }
     void sayForcedTime(const std::string& problem={}) {
@@ -4557,6 +4759,43 @@ private:
         text("weather-options-status",!problem.empty()?problem:
             forcedWeather==r1::WeatherOverride::Real?"Météo réelle : chaque lieu suit sa prévision locale.":
             std::string("Partout dans le monde : ")+r1::weatherOverrideLabel(forcedWeather)+". Ce choix est conservé après un déplacement.");
+    }
+    void sayToasterMode(const std::string& problem={}) {
+        if(auto* off=ui->findElementById("toaster-off"))off->SetClass("selected",!toasterMode);
+        if(auto* on=ui->findElementById("toaster-on"))on->SetClass("selected",toasterMode);
+        ui->notifyJsMutation();
+        text("toaster-options-status",!problem.empty()?problem:
+            toasterMode?"Mode grille-pain actif : 720p, LOD arbres intermédiaire/lointain, brouillard rapproché."
+                       :"Qualité standard : graphismes et distance normaux.");
+    }
+    void applyToasterResolution() {
+        if(toasterMode) {
+            int w=0,h=0;
+            engine.window().size(w,h);
+            if(w>0&&h>0&&(w!=1280||h!=720)){standardWidth=w;standardHeight=h;}
+            engine.window().setSize(1280,720);
+        } else {
+            int targetW=standardWidth>0?standardWidth:1600;
+            int targetH=standardHeight>0?standardHeight:900;
+            if(targetW==1280&&targetH==720){targetW=1600;targetH=900;}
+            engine.window().setSize(targetW,targetH);
+        }
+    }
+    void applyToasterLods() {
+        for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles){
+            for(Plant& plant:t.vegetation){
+                if(plant.lod)plant.lod->setFinestLevel(toasterMode?1:(plant.close?0:1));
+            }
+        }
+    }
+    void setToasterMode(bool enabled) {
+        toasterMode=enabled;
+        saida::Log::info("[World options] toaster mode ",toasterMode?"enabled":"disabled");
+        applyToasterResolution();
+        applyToasterLods();
+        applyWeather();
+        sayToasterMode();
+        saveOptions();
     }
     void forceWeather(r1::WeatherOverride mode) {
         forcedWeather=mode;
@@ -4579,6 +4818,7 @@ private:
         field("forced-time",forcedMinutes?r1::formatClockTime(*forcedMinutes):std::string());
         sayForcedTime();
         sayForcedWeather();
+        sayToasterMode();
     }
     void forceTime(std::optional<int> minutes) {
         forcedMinutes=minutes;forcedSaid=false;
@@ -4739,12 +4979,147 @@ private:
         if(!lod)lod=visual.addBehaviour<saida::LODGroupBehaviour>();
         // Full source detail is for close cars. Switch by projected size,
         // keeping long vehicles detailed farther away, with engine hysteresis.
-        lod->setLevels({{"Near",.16f},{"Far",0.f}});
+        const bool bike=node.name()=="vehicle-moto_city"||node.name()=="vehicle-moto_cross";
+        lod->setLevels({{"Near",bike?.045f:.16f},{"Far",0.f}});
+    }
+    static uint32_t motorcycleMix(uint32_t x) {
+        x^=x>>16;x*=0x7feb352du;x^=x>>15;x*=0x846ca68bu;x^=x>>16;return x;
+    }
+    void buildMotorcycleHelmetGeometry() {
+        saida::MeshData shell,visor;
+        constexpr int rings=8,segments=16;
+        for(int ring=0;ring<=rings;++ring) {
+            const float theta=float(ring)*float(kTwoPi*.25/rings);
+            for(int segment=0;segment<=segments;++segment) {
+                const float phi=float(segment)*float(kTwoPi/segments);
+                const float x=.145f*std::sin(theta)*std::cos(phi);
+                const float z=.165f*std::sin(theta)*std::sin(phi);
+                const float y=.015f+.185f*std::cos(theta);
+                glm::vec3 normal(x/(.145f*.145f),(y-.015f)/(.185f*.185f),z/(.165f*.165f));
+                saida::Vertex v{};v.pos={x,y,z};v.normal=glm::normalize(normal);v.color=glm::vec3(1.f);
+                shell.vertices.push_back(v);
+            }
+        }
+        for(int ring=0;ring<rings;++ring)for(int segment=0;segment<segments;++segment) {
+            const uint32_t a=uint32_t(ring*(segments+1)+segment),b=a+1;
+            const uint32_t c=a+uint32_t(segments+1),d=c+1;
+            shell.indices.insert(shell.indices.end(),{a,c,b,b,c,d});
+        }
+        constexpr int visorSegments=8;
+        for(int x=0;x<=visorSegments;++x) {
+            const float u=-1.f+2.f*float(x)/visorSegments;
+            const float z=.142f+.014f*(1.f-u*u);
+            for(float y:{.092f,.005f}) {
+                saida::Vertex v{};v.pos={u*.112f,y,z};v.normal={0,0,1};v.color=glm::vec3(1.f);
+                visor.vertices.push_back(v);
+            }
+        }
+        for(int x=0;x<visorSegments;++x) {
+            const uint32_t a=uint32_t(x*2);visor.indices.insert(visor.indices.end(),{a,a+2,a+1,a+1,a+2,a+3});
+        }
+        motorcycleHelmetShell=std::make_unique<saida::Mesh>(engine.resources().geometry(),shell.vertices,shell.indices);
+        motorcycleHelmetVisor=std::make_unique<saida::Mesh>(engine.resources().geometry(),visor.vertices,visor.indices);
+    }
+    void addMotorcycleHelmet(saida::Node& rider,uint32_t seed) {
+        if(!motorcycleHelmetShell||!motorcycleHelmetVisor)return;
+        static constexpr std::array<glm::vec4,8> colors{{
+            {.055f,.065f,.075f,1.f},{.82f,.84f,.82f,1.f},{.68f,.055f,.035f,1.f},
+            {.045f,.12f,.30f,1.f},{.92f,.48f,.025f,1.f},{.12f,.22f,.11f,1.f},
+            {.85f,.78f,.62f,1.f},{.20f,.20f,.22f,1.f}
+        }};
+        saida::MaterialDesc shellDesc;shellDesc.baseColor=colors[motorcycleMix(seed)%colors.size()];
+        shellDesc.roughness=.32f;shellDesc.metallic=.04f;shellDesc.doubleSided=true;
+        saida::MaterialDesc visorDesc;visorDesc.baseColor={.025f,.035f,.045f,1.f};
+        visorDesc.roughness=.19f;visorDesc.metallic=.22f;visorDesc.doubleSided=true;
+        auto helmet=std::make_unique<saida::Node>("Motorcycle helmet");
+        saida::Transform offset;offset.position={0.f,.015f,0.f};
+        helmet->addBehaviour<saida::BoneAttachmentBehaviour>("Bip01 Head",offset);
+        auto nearLevel=std::make_unique<saida::Node>("Near");
+        nearLevel->addChild(std::make_unique<saida::MeshNode>("Helmet shell",motorcycleHelmetShell.get(),
+                                                         engine.resources().getMaterial(shellDesc)));
+        nearLevel->addChild(std::make_unique<saida::MeshNode>("Helmet visor",motorcycleHelmetVisor.get(),
+                                                         engine.resources().getMaterial(visorDesc)));
+        auto farLevel=std::make_unique<saida::Node>("Far");
+        farLevel->addChild(std::make_unique<saida::MeshNode>("Helmet shell",motorcycleHelmetShell.get(),
+                                                        engine.resources().getMaterial(shellDesc)));
+        helmet->addChild(std::move(nearLevel));helmet->addChild(std::move(farLevel));
+        helmet->addBehaviour<saida::LODGroupBehaviour>()->setLevels({{"Near",.045f},{"Far",0.f}});
+        rider.addChild(std::move(helmet));
+    }
+    std::unique_ptr<saida::Node> makeMotorcycleRider(const std::string& vehicle,HumanKind& kind,
+                                                      uint32_t seed,bool helmet) {
+        const bool motocross=vehicle=="moto_cross";
+        auto rider=std::make_unique<saida::Node>("Rider");
+        rider->transform().rotation=glm::quat(0,0,1,0);
+        rider->transform().position=r1::rocketboxRidingSeat(*kind.rig,motocross,
+            float(kVehicleScale),float(humanScale),float(kind.seatDrop));
+        rider->transform().scale=glm::vec3(float(humanScale));
+        auto* animator=rider->addBehaviour<saida::Animator>();
+        animator->setRig(kind.rig);
+        for(const auto& [name,clip]:kind.clips)animator->addClip(name,clip);
+        animator->play("sit",true,0.f);animator->setPoseRate(6.f,saida::Animator::PoseRateMode::Hold);
+        r1::holdRocketboxRidingBase(*animator);
+        animator->addModifier<saida::GazeModifier>(*kind.rig,r1::rocketboxRidingLean())->lookAt({0.f,-.4f,1.2f});
+        animator->addModifier<saida::GazeModifier>(*kind.rig,r1::rocketboxRidingLook())->lookAt({0.f,1.5f,100.f});
+        auto* left=animator->addModifier<saida::TwoBoneIKModifier>(*kind.rig,r1::rocketboxArm(false));
+        auto* right=animator->addModifier<saida::TwoBoneIKModifier>(*kind.rig,r1::rocketboxArm(true));
+        for(int h=0;h<2;++h) {
+            auto* arm=h?right:left;
+            const auto grip=motorcycleContact(*rider,vehicle,h,true);
+            const auto palm=r1::rocketboxBarGrip(*kind.rig,h==1);
+            arm->setTipRotation(palm.rotation);arm->reach(grip-palm.rotation*palm.position);
+            arm->setWeightNow(1.f);arm->setPole({grip.x*1.7f,grip.y-.15f,grip.z-.25f});
+            auto* leg=animator->addModifier<saida::TwoBoneIKModifier>(*kind.rig,
+                saida::TwoBoneIKModifier::Settings{h?"Bip01 R Thigh":"Bip01 L Thigh",h?"Bip01 R Calf":"Bip01 L Calf",h?"Bip01 R Foot":"Bip01 L Foot",22.f});
+            const auto foot=motorcycleContact(*rider,vehicle,h,false);
+            leg->reach(foot);leg->setWeightNow(1.f);leg->setPole({foot.x*2.f,foot.y+.35f,foot.z+.45f});
+            leg->setTipRotation(r1::rocketboxFootRotation(*kind.rig,h==1));
+        }
+        animator->addModifier<r1::RocketboxRidingHands>(*kind.rig)->hold(true);
+        for(const char* level:{"Near","Far"}) {
+            auto holder=std::make_unique<saida::Node>(level);
+            auto found=std::find_if(kind.levels.begin(),kind.levels.end(),
+                [&](const auto& l){return l.first==level;});
+            if(found!=kind.levels.end())for(const auto& meshSource:found->second) {
+                auto mesh=std::make_unique<saida::MeshNode>(meshSource->name(),meshSource->mesh(),meshSource->material());
+                mesh->transform()=meshSource->transform();holder->addChild(std::move(mesh));
+            }
+            rider->addChild(std::move(holder));
+        }
+        rider->addBehaviour<saida::LODGroupBehaviour>()->setLevels({{"Near",.045f},{"Far",0.f}});
+        if(helmet)addMotorcycleHelmet(*rider,seed);
+        return rider;
+    }
+    void customizeMotorcycleRider(saida::Node& vehicle,uint32_t seed,double latitude) {
+        const std::string name=vehicleSpec(vehicle).name;
+        if(!r1::motorcycle(name)||motorcycleRiderKinds.empty())return;
+        const auto& kinds=(!motorcycleFemaleRiderKinds.empty()&&r1::femaleMotorcycleRider(seed))
+            ?motorcycleFemaleRiderKinds:motorcycleRiderKinds;
+        const size_t variant=kinds[motorcycleMix(seed)%kinds.size()];
+        HumanKind* kind=humanKind(variant);
+        if(!kind||!kind->rig)return;
+        const bool helmet=motorcycleMix(seed^0x9e3779b9u)%100u<(latitude>=0.?80u:30u);
+        if(auto* old=vehicle.findByPath("Rider"))vehicle.detachChild(old);
+        vehicle.addChild(makeMotorcycleRider(name,*kind,seed,helmet));
     }
     void buildTrafficPrototype() {
         std::ifstream input(game/"assets/models/vehicles/fleet.json");
         if(!input)throw std::runtime_error("Missing road vehicle fleet manifest");
         json doc;input>>doc;
+        // Stable 80/20 sex selection, independent of the number of available outfits.
+        motorcycleRiderKinds.clear();motorcycleFemaleRiderKinds.clear();
+        for(size_t i=0;i<crowdKinds.size();++i) {
+            // Two female variants provide the requested distribution without
+            // forcing the entire pedestrian wardrobe resident at game startup.
+            if(crowdAppearances[i].sex=='f'&&motorcycleFemaleRiderKinds.size()>=2)continue;
+            prototypeForStartup(crowdKinds[i].model);
+            if(humanKind(i))(crowdAppearances[i].sex=='f'?motorcycleFemaleRiderKinds:motorcycleRiderKinds).push_back(i);
+        }
+        if(motorcycleRiderKinds.empty()) {
+            prototypeForStartup(crowdKinds.front().model);
+            if(humanKind(0))motorcycleRiderKinds.push_back(0);
+        }
+        buildMotorcycleHelmetGeometry();
         for(const auto& entry:doc.at("vehicles")) {
             VehicleModel spec;
             spec.name=entry.at("name");spec.length=entry.at("length");spec.width=entry.at("width");
@@ -4767,13 +5142,24 @@ private:
         car->setName("vehicle-city");vehicleLod(*car);collectWheels(*car);
         saida::Log::info("[World traffic] fleet=",fleet.size()," shared vertices=",doc.at("totalVertices").get<size_t>());
     }
-    size_t vehicleKind(uint32_t seed,const saida::traffic::Lane& lane) const {
-        // Common cars dominate. Long vehicles start on faster through roads.
-        const uint32_t roll=(seed^(seed>>16))%100;
-        std::string name=roll<34?"city":roll<55?"sedan":roll<74?"suv":roll<86?"offroad":roll<94?"sport":roll<98?"truck":"bus";
+    size_t vehicleKind(uint32_t seed,const saida::traffic::Lane& lane,double motorcycleChance=.05) const {
+        // Stable per-agent selection: 5% globally, 50% in Africa, India and
+        // Latin America. The remaining share keeps the former car mix intact.
+        const uint32_t raw=(seed^(seed>>16))%100;
+        const uint32_t bikeCut=uint32_t(std::clamp(motorcycleChance,0.,1.)*100.);
+        std::string name=raw<bikeCut?((raw&1u)?"moto_cross":"moto_city"):"";
+        const uint32_t roll=raw>=bikeCut?uint32_t((raw-bikeCut)*100/std::max(1u,100-bikeCut)):0;
+        if(name.empty())name=roll<34?"city":roll<55?"sedan":roll<74?"suv":roll<86?"offroad":roll<94?"sport":roll<98?"truck":"bus";
         if((name=="truck"||name=="bus")&&lane.speed<11.f)name="city";
         for(size_t i=0;i<fleet.size();++i)if(fleet[i].name==name)return i;
         return 0;
+    }
+    double motorcycleChance(double lon,double lat) const {
+        const auto country=countryCrowd.at(lon,lat);
+        const auto& region=country.subregion;
+        const bool africa=region.find("Africa")!=std::string::npos;
+        const bool latinAmerica=country.code=="MX"||region=="Central America"||region=="South America"||region=="Caribbean";
+        return africa||country.code=="IN"||latinAmerica?.50:.05;
     }
     double trafficTime_=0;
     bool trafficValidation_=std::getenv("R1WORLD_TRAFFIC_VALIDATE")!=nullptr;
@@ -5004,8 +5390,9 @@ private:
         // Deterministic per tile, so the same street is the same street on
         // every visit and a capture can be compared with itself.
         tile.flow.reset(&tile.graph,rules,uint32_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u);
-        tile.flow.setSpawnSize([this](uint32_t seed,const saida::traffic::Lane& lane) {
-            const auto& kind=fleet[vehicleKind(seed,lane)];
+        tile.motorcycleChance=motorcycleChance(tile.data.value("lon",0.),tile.data.value("lat",0.));
+        tile.flow.setSpawnSize([this,&tile](uint32_t seed,const saida::traffic::Lane& lane) {
+            const auto& kind=fleet[vehicleKind(seed,lane,tile.motorcycleChance)];
             return saida::traffic::VehicleSize{float(kind.length),float(kind.width)};
         });
         tile.wanted=doc.value("cars",0);
@@ -5212,14 +5599,16 @@ private:
         for(size_t i=0;i<tile.cars.size();++i) {
             const bool live=trafficSlotLive(tile,i);
             if(live&&tile.cars[i]&&tile.carIdentities[i]!=agents[i].identity&&
-               tile.carKinds[i]!=vehicleKind(agents[i].vehicleSeed,tile.graph.lanes[agents[i].lane])) {
+               (r1::motorcycle(fleet[tile.carKinds[i]].name)||
+                tile.carKinds[i]!=vehicleKind(agents[i].vehicleSeed,tile.graph.lanes[agents[i].lane],tile.motorcycleChance))) {
                 tile.cars[i]->setEnabled(false);tile.cars[i]->queueFree();tile.cars[i]=nullptr;
             }
             if(!tile.cars[i]) {
                 if(!live)continue;                 // no node until a slot is used
                 const auto& agent=agents[i];
-                tile.carKinds[i]=vehicleKind(agent.vehicleSeed,tile.graph.lanes[agent.lane]);
+                tile.carKinds[i]=vehicleKind(agent.vehicleSeed,tile.graph.lanes[agent.lane],tile.motorcycleChance);
                 auto node=clonePlant(*fleet[tile.carKinds[i]].prototype);
+                customizeMotorcycleRider(*node,agent.vehicleSeed,tile.data.value("lat",0.));
                 vehicleLod(*node);vehicleCollider(*node,fleet[tile.carKinds[i]]);
                 paintCar(*node,paintFor(agent.seed));
                 tile.carWheels[i].clear();tile.carSpin[i]=0.;
@@ -5250,7 +5639,7 @@ private:
             // for the pooled node instead of changing a car in full view.
             tile.carSpin[i]+=agent.speed*delta/fleet[tile.carKinds[i]].wheelRadius;
             for(auto* wheel:tile.carWheels[i])wheel->transform().rotation=
-                glm::angleAxis(float(-tile.carSpin[i]),glm::vec3(1,0,0));
+                glm::angleAxis(float(r1::motorcycle(fleet[tile.carKinds[i]].name)?tile.carSpin[i]:-tile.carSpin[i]),glm::vec3(1,0,0));
             const auto pose=tile.flow.pose(agent);
             const auto& lane=tile.graph.lanes[agent.lane];
             const float span=tile.graph.laneLength(agent.lane);
@@ -5504,6 +5893,16 @@ private:
             }
         }
         if(released) {trim();buildingTrimPending=!engine.resources().assetLoadsSettled();}
+        // Ready representations need no upload priority. Keep the same stable
+        // distance order among pending requests without sorting the whole city.
+        candidates.erase(std::remove_if(candidates.begin(),candidates.end(),[&](const Candidate& c){
+            const auto& t=*c.tile;const auto& b=t.buildings[c.index];
+            int level=playing&&!pending&&!menu&&t.node->isVisibleInHierarchy()&&b.levels[2].started&&b.levels[2].nextPart==buildingParts(t,c.index,2).size()
+                ?std::max(b.lod->desiredLevel(),b.lod->finestLevel()):2;
+            level=std::clamp(level,0,2);
+            const auto& state=b.levels[size_t(level)];
+            return state.failed||(state.started&&state.nextPart>=buildingParts(t,c.index,level).size());
+        }),candidates.end());
         std::stable_sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a.distance<b.distance;});
         const auto started=std::chrono::steady_clock::now();
         for(const auto& c:candidates) {
@@ -5886,8 +6285,15 @@ private:
             if(!blocked(door.x,door.y,door.z)){fail("closed door not solid");return;}
             if(!blocked(wall.x,wall.y,wall.z)) {
                 saida::Log::error("[World retail E2E] wall u=",wallU," edge=",r.plan.edge," floor=",r.plan.floor);
-                auto snapshot=owner->served->cooked.parts;
-                snapshot.insert(snapshot.end(),owner->served->cooked.buildingCollisions.begin(),owner->served->cooked.buildingCollisions.end());
+                std::vector<r1::MeshPart> snapshot;
+                const auto& prepared=std::any_cast<const PreparedTile&>(owner->served->prepared);
+                for(const auto& part:prepared.parts)if(part.prepared)
+                    snapshot.push_back(generatorPart(part.name,part.prepared->geometry.vertices,part.prepared->geometry.indices));
+                for(const auto& shell:prepared.buildingCollisions) {
+                    std::vector<saida::Vertex> vertices(shell->positions.size());
+                    for(size_t i=0;i<vertices.size();++i){vertices[i].pos=shell->positions[i];vertices[i].normal={0,1,0};}
+                    snapshot.push_back(generatorPart("building collision",vertices,shell->indices));
+                }
                 const auto bytes=r1::writeGlb(snapshot);
                 std::ofstream geometry(game/"generated/interior-smoke-failure.glb",std::ios::binary);
                 geometry.write(reinterpret_cast<const char*>(bytes.data()),std::streamsize(bytes.size()));
@@ -6112,12 +6518,13 @@ private:
                 if(plant.tree&&!debugTrees)continue;
                 const auto p=plant.node->transform().position;
                 double d=std::hypot(p.x-pos.x,p.z-pos.z);
-                plant.node->setVisible(d<(plant.grass?65:550)*reach);
+                const double maxDist=plant.grass?(toasterMode?35.:65.):(toasterMode?280.:550.);
+                plant.node->setVisible(d<maxDist*reach);
                 if(plant.lod) {
                     // Entered inside the radius, left a tenth beyond it, so
                     // a tree at the edge does not flicker between two models.
                     plant.close=d<kTreeNearRadius*(plant.close?1.1:1.);
-                    plant.lod->setFinestLevel(plant.close?0:1);
+                    plant.lod->setFinestLevel(toasterMode?1:(plant.close?0:1));
                 }
             }
         }
@@ -6179,6 +6586,13 @@ private:
         return n;
     }
     void updateFar() {
+        if(toasterMode) {
+            for(auto& f:farLandmarks) {
+                if(f.node){f.node->queueFree();f.node=nullptr;}
+                f.shown=-1;f.requested=-1;f.loading.reset();
+            }
+            return;
+        }
         for(auto& f:farLandmarks) {
             const glm::dvec3 here=origin.local(ecef(f.lon,f.lat,f.alt));
             const double distance=std::hypot(here.x,here.z);
@@ -6330,7 +6744,7 @@ private:
         SAIDA_PROFILE_SCOPE("World/FarRelief");
         // Where it cannot be drawn: before a spawn, over the pack (whose own
         // far field is the horizon there), and past the Mercator images' 85 degrees.
-        const bool wanted=playing&&!pending&&!farPack.node&&std::abs(lat)<84.5;
+        const bool wanted=!toasterMode&&playing&&!pending&&!farPack.node&&std::abs(lat)<84.5;
         if(!wanted) {
             if(farRelief.node&&farRelief.node->visible())farRelief.node->setVisible(false);
             return;
@@ -6501,7 +6915,8 @@ private:
                         entry.grass=n->isInGroup("grass");
                         entry.tree=n->isInGroup("tree");
                         if(entry.tree)n->setEnabled(debugTrees);
-                        if(n->findByPath("Mid"))entry.lod=n->getBehaviour<saida::LODGroupBehaviour>();
+                        entry.lod=n->getBehaviour<saida::LODGroupBehaviour>();
+                        if(toasterMode&&entry.lod)entry.lod->setFinestLevel(1);
                         l.vegetation.push_back(entry);
                         n->setVisible(false);
                     }
@@ -6753,7 +7168,7 @@ private:
                                  " arena=",arena.vertices,"v/",arena.indices,"i (largest free ",
                                  arena.largestFreeVertices,"v/",arena.largestFreeIndices,"i)",
                                  " cook_ms=",served->cooked.cookMs," since_go_ms=",
-                                 msSince(goStarted));
+                                 msSince(goStarted)," private_mb=",int(privateMegabytes()));
             }catch(const std::exception& e){
                 text("status",std::string("Tuile indisponible : ")+e.what());
                 saida::Log::error("[World streaming] mount failed for ",t.key(),": ",e.what());
@@ -6815,6 +7230,7 @@ private:
             // Carry the vehicle's view into the walking heading, just as a
             // normal exit does: the camera and movement must share one yaw.
             yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
+            dismountPlayerFromBike();
             driving=false;swimming=waterSpawn;swimTime=0;swimLean=0;swimHeading=yaw;
             clearBoats();
             clearAircraft();
@@ -6859,7 +7275,9 @@ private:
         }
         if(pending) {
             const auto status=service->status();
-            if(!status.error.empty())text("status","Erreur de chargement, nouvelle tentative automatique. "+status.error);
+            if(status.outOfMemory)text("status","Mémoire saturée : chargement ralenti, nouvelle tentative automatique. Fermer d'autres applications aide.");
+            else if(status.memoryPaused)text("status","Chargement en attente de mémoire disponible.");
+            else if(!status.error.empty())text("status","Erreur de chargement, nouvelle tentative automatique. "+status.error);
             else if(status.offline)text("status","Une source ne répond pas : affichage des données déjà reçues.");
             else text("status",kPreparing);
         }
@@ -6867,6 +7285,10 @@ private:
 public:
     World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),menuTiles(g),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         performanceSmoke=smoke&&std::getenv("R1WORLD_DEBUG_SMOKE");
+        if(!perfSmoke.empty()&&(!smoke||(perfSmoke!="walk"&&perfSmoke!="drive")))
+            throw std::runtime_error("R1WORLD_PERF_SMOKE requires --smoke and walk or drive");
+        if(qualitySwitchSmoke&&(!smoke||perfSmoke!="walk"))
+            throw std::runtime_error("R1WORLD_QUALITY_SWITCH_SMOKE requires --smoke and R1WORLD_PERF_SMOKE=walk");
         residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
         residentIndexBudget=size_t(double(e.resources().geometryCapacity().indices)*kTileGeometryShare);
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
@@ -6882,6 +7304,8 @@ public:
             countryNames=places.at("countries").get<std::map<std::string,std::string>>();
         }
         loadOptions();
+        engine.window().size(standardWidth,standardHeight);
+        if(toasterMode)applyToasterResolution();
         player=e.sceneTree().firstInGroup("player");
         if(!player)throw std::runtime_error("Earth scene is missing the player");
         player->findBehavioursInChildren(animators);
@@ -6939,12 +7363,16 @@ public:
         e.resources().setGpuBudget(512ull*1024*1024);
         r1::WorldService::Options options;
         options.gameRoot=game.string();
+        // Nine visible tiles plus three forecast tiles. The former 36-tile
+        // cache retained gigabytes of prepared Paris geometry off screen.
+        options.keep=12;
+        options.availableMemory=[] { return saida::MemoryProfiler::availableHostBytes(); };
         // Nine tiles can be resident together. Leave 5% of their share for
         // landmarks that remain visible across a tile boundary.
         options.tileVertexTarget=std::min(r1::kTileVertexBudget,residentVertexBudget*95/900);
         options.enrichRetail=true;
         options.fetchCanopy=true;
-        options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);};
+        options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);releaseCookedGeometry(tile.cooked);};
         options.log=[](const std::string& line){saida::Log::info("[World service] ",line);};
         service=std::make_unique<r1::WorldService>(std::move(options));
         // Nearest first to be needed last: warm() takes from the back.
@@ -7006,6 +7434,8 @@ public:
         else if(id=="weather-clear")forceWeather(r1::WeatherOverride::Clear);
         else if(id=="weather-light-rain")forceWeather(r1::WeatherOverride::LightRain);
         else if(id=="weather-storm")forceWeather(r1::WeatherOverride::Storm);
+        else if(id=="toaster-off")setToasterMode(false);
+        else if(id=="toaster-on")setToasterMode(true);
         else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
         else if(id=="zoom-in")zoomMap(zoom*2);
         else if(id=="zoom-out")zoomMap(zoom/2);
@@ -7064,6 +7494,9 @@ public:
     // Sun take it, have a bad hour refused without losing the good one, go
     // back to the real clock, close it. Presses only, like every other click.
     bool smokeOptions() {
+        const bool savedToaster=toasterMode;
+        const auto savedTime=forcedMinutes;
+        const auto savedWeather=forcedWeather;
         auto fail=[&](const std::string& why){
             saida::Log::error("[World E2E] FAIL options: ",why);testFailed=true;engine.sceneTree().quit();return false;
         };
@@ -7086,9 +7519,23 @@ public:
         if(forcedWeather!=r1::WeatherOverride::Clear)return fail("Dégagé did not force clear weather");
         testClick("weather-real",false);
         if(forcedWeather!=r1::WeatherOverride::Real)return fail("Météo réelle did not restore the forecast");
+        testClick("toaster-on",false);
+        if(!toasterMode)return fail("Mode grille-pain did not enable toaster mode");
+        testClick("toaster-off",false);
+        if(toasterMode)return fail("Qualité standard did not disable toaster mode");
         testClick("options-back",false);
         if(optionsOpen)return fail("Retour did not close the screen");
-        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu)");
+        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled)");
+        forceTime(savedTime);
+        forceWeather(savedWeather);
+        // Testing both buttons must not silently change the measured preset.
+        bool requestedToaster=savedToaster;
+        if(const char* quality=std::getenv("R1WORLD_SMOKE_QUALITY")) {
+            const std::string preset=quality;
+            if(preset!="standard"&&preset!="toaster")return fail("R1WORLD_SMOKE_QUALITY must be standard or toaster");
+            requestedToaster=preset=="toaster";
+        }
+        setToasterMode(requestedToaster);
         // A street by day for the walk and the fight: R1WORLD_SMOKE_HOUR=HH:MM
         // forces the local hour as the Options screen would. Night empties it.
         if(const char* hour=std::getenv("R1WORLD_SMOKE_HOUR")) {
@@ -7664,6 +8111,75 @@ public:
     // The cheat line, as a player uses it: open, type, Enter. Each code must
     // have done its thing beside him, or the smoke fails naming which.
     bool smokeCheated=false;
+    // Then the line opened and closed over real frames, as a player presses T
+    // again and again: the engine's update must keep the focus it was given,
+    // and the private memory must not grow with the presses. The world is
+    // still loading when the walk ends -- it grew by 200 to 370 MB over the
+    // next seconds whatever the line did (16 October 2026: the focus alone, a
+    // style alone, the line) -- so the presses wait until the memory holds
+    // still: two 2-second readings within 16 MB. A world that never settles
+    // within 90 s has its keyboard checked, and the memory is said unread.
+    static constexpr int kSmokeCheatPresses=60;
+    int smokeCheatCycles=0; double smokeCheatMemory=0;
+    bool smokeCheatSettled=false; int smokeSettleStill=0; double smokeSettleSince=-1,smokeSettleRead=0,smokeSettleLast=0;
+    double smokeMountedShotDelay=-1;
+    void cycleSmokeCheat(double dt) {
+        if(smokeMountedShotDelay>=0) {
+            setAiming(true);poseArms();bikeHandlePose();
+            smokeMountedShotDelay-=dt;
+            if(smokeMountedShotDelay>0)return;
+            smokeMountedShotDelay=-1;
+            auto fail=[&](const char* reason){saida::Log::error("[World E2E] FAIL cheats: ",reason);testFailed=true;engine.sceneTree().quit();};
+            const int rounds=arsenal.loaded();fire();
+            if(arsenal.loaded()!=rounds-1||pistol->parent()!=playerBody||combatFilter().ignore!=r1::VehicleRuntime::body(*car)->bodyId()) {
+                saida::Log::error("[World E2E] mounted shot before=",rounds," after=",arsenal.loaded(),
+                    " attached=",pistol->parent()==playerBody," own-body-filter=",combatFilter().ignore==r1::VehicleRuntime::body(*car)->bodyId());
+                fail("the mounted pistol did not fire or ignored the wrong collider");return;
+            }
+            if(!leaveCar()||playerBikeRider||playerBody->parent()!=player||car->findByPath("Vehicle collider/Rider")) {
+                fail("leaving a bike did not return the real body and leave an empty saddle");return;
+            }
+            saida::Log::info("[World E2E] PASS motorcycle empty spawn, solver mount, armed shot and empty dismount");
+            const double hp=health.hp;hurtPlayer(500.,glm::vec3(1,0,0),"le test");
+            if(health.take(500.)||health.hp!=hp||wasted){fail("an invincible player was hurt");return;}
+            health.shield=0;
+            saida::Log::info("[World E2E] PASS cheats: helicopter, sport car, city bike, motocross and jet beside the player, invincibility");
+            return;
+        }
+        if(!smokeCheatSettled) {
+            if(smokeSettleSince<0){smokeSettleSince=smokeSettleRead=clock;smokeSettleLast=privateMegabytes();return;}
+            if(clock-smokeSettleRead<2.)return;
+            const double now=privateMegabytes();
+            smokeSettleStill=std::abs(now-smokeSettleLast)<16.?smokeSettleStill+1:0;
+            smokeSettleLast=now;smokeSettleRead=clock;
+            if(smokeSettleStill<2&&clock-smokeSettleSince<90.)return;
+            smokeCheatSettled=true;smokeCheatMemory=smokeSettleStill>=2?now:-1.;
+            saida::Log::info("[World E2E] cheats: ",smokeSettleStill>=2?"memory settled":"memory still moving",
+                             " after ",int(clock-smokeSettleSince)," s at ",int(now)," MB");
+            return;
+        }
+        if(cheatOpen) {
+            if(engine.uiInteraction().focusedWebCanvas()!=ui) {
+                saida::Log::error("[World E2E] FAIL cheats: the line lost the keyboard after an update (press ",smokeCheatCycles/2,")");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            closeCheat();
+        } else openCheat();
+        if(++smokeCheatCycles<2*kSmokeCheatPresses)return;
+        if(cheatOpen)closeCheat();
+        smokeCheatCycles=0;
+        if(smokeCheatMemory<0)
+            saida::Log::warn("[World E2E] PASS cheats: ",kSmokeCheatPresses," presses of T kept the keyboard;"
+                             " memory not judged, the world never settled");
+        else {
+            const double grown=privateMegabytes()-smokeCheatMemory;
+            saida::Log::info("[World E2E] ",grown<64.?"PASS":"FAIL"," cheats: ",kSmokeCheatPresses,
+                             " presses of T kept the keyboard; private memory went from ",int(smokeCheatMemory),
+                             " MB by ",grown>=0?"+":"",int(grown)," MB");
+            if(grown>=64.){testFailed=true;engine.sceneTree().quit();return;}
+        }
+        smokeFinishPhase();
+    }
     bool smokeCheats() {
         smokeCheated=true;
         auto fail=[&](const std::string& why){
@@ -7683,21 +8199,38 @@ public:
             return fail("BUZZOFF left no helicopter: "+written["text:cheat-said"]);
         if(!type("Comet ")||parked.size()!=std::min(cars+1,kAbandonedCars)||vehicleSpec(*parked.back().node).name!="sport")
             return fail("COMET parked no sport car: "+written["text:cheat-said"]);
+        if(!type("moto")||vehicleSpec(*parked.back().node).name!="moto_city")
+            return fail("MOTO parked no city bike: "+written["text:cheat-said"]);
+        if(!type("rocket")||vehicleSpec(*parked.back().node).name!="moto_cross")
+            return fail("ROCKET parked no motocross bike: "+written["text:cheat-said"]);
         if(!type("plane")||leftAircraft.back().type->name!="bizjet")return fail("PLANE left no jet: "+written["text:cheat-said"]);
         for(const auto* a:{&leftAircraft[leftAircraft.size()-2],&leftAircraft.back()})
             if(metresBetween(a->lon,a->lat,lon,lat)>45.)return fail(a->type->name+" stands beyond 45 m");
         const size_t before=leftAircraft.size();
         if(!type("hesoyam")||leftAircraft.size()!=before)return fail("an unknown word did something");
-        const double hp=health.hp;
         if(!type("painkiller")||!health.invincible())return fail("PAINKILLER gave no invincibility");
-        hurtPlayer(500.,glm::vec3(1,0,0),"le test");
-        if(health.take(500.)||health.hp!=hp||wasted)return fail("an invincible player was hurt");
-        health.shield=0;
-        saida::Log::info("[World E2E] PASS cheats: helicopter, sport car and jet beside the player, invincibility");
+        const auto cityBike=std::find_if(parked.begin(),parked.end(),[&](const Parked& p) {
+            return p.node&&vehicleSpec(*p.node).name=="moto_city";
+        });
+        if(cityBike==parked.end())return fail("the city bike disappeared before the rider check");
+        const Parked bike=*cityBike;
+        lon=bike.lon;lat=bike.lat;alt=height(lon,lat,bike.alt);
+        if(car&&car->findByPath("Vehicle collider/Rider"))return fail("a parked bike contains a traffic rider");
+        if(bike.node->findByPath("Vehicle collider/Rider"))return fail("MOTO spawned an occupied bike");
+        if(!enterCar()||!ridingBike()||playerBikeRider!=playerBody||
+           playerBody->parent()!=r1::VehicleRuntime::body(*car)||car->findByPath("Vehicle collider/Rider"))
+            return fail("F did not mount exactly the real player body on the bike solver");
+        selectWeapon(r1::combat::Weapon::Pistol);setAiming(true);
+        // Weapon selection has a real 250 ms draw cooldown. Continue through
+        // ordinary frames so this check exercises it rather than bypassing it.
+        smokeMountedShotDelay=.35;
         return true;
     }
     void smokeFinishPhase() {
-        if(!smokeCheated&&!smokeCheats())return;
+        if(!smokeCheated) {
+            if(smokeCheats())smokeCheatCycles=1;
+            return;
+        }
         reportChurn("whole run");
         if(hopWanted&&!hopDone) {
             // Arrive from the driver's seat while looking out of a side window.
@@ -7860,6 +8393,7 @@ public:
     }
     void update(float delta) {
         SAIDA_PROFILE_SCOPE("World/Update");
+        SAIDA_PROFILE_COUNTER("World/PerfPhase", !perfSmoke.empty()&&perfReady?(smokeDriving?2:smokeStarted?1:0):0);
         const auto now=std::chrono::steady_clock::now();
         const double frameSeconds=lastFrame.time_since_epoch().count()
             ?std::chrono::duration<double>(now-lastFrame).count():0.;
@@ -7890,6 +8424,7 @@ public:
                          "city-choice-0","city-choice-1","city-choice-2","city-choice-3","city-choice-4",
                          "options","options-back","forced-apply","forced-clear",
                          "weather-real","weather-clear","weather-light-rain","weather-storm",
+                         "toaster-off","toaster-on",
                          "forced-preset-8","forced-preset-12","forced-preset-17","forced-preset-22"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
@@ -7978,8 +8513,9 @@ public:
         cost.parts=timed([&]{uploadParts();});
         updateBuildingLods();
         if(!playing)cost.warm=timed([&]{warm();});
+        updateRadio(delta);
         if(!playing||menu){updateRain(delta);return;}
-        updateCheats();
+        updateCheats(std::min(.05,double(delta)));
         updateInteriors(delta);
         const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail)
                         ||(piloting&&std::abs(plane.speed)>kFastDetail);
@@ -8003,11 +8539,15 @@ public:
         // The view reaches the horizon where something is drawn out to it:
         // 4.7 km at eye height, 113 km from a thousand metres, never past
         // the far pack. Elsewhere it stops at the 5 km haze, as it always has.
-        camera->farZ=farPack.node?float(std::clamp(std::sqrt(2.*r1::kRMean*std::max(2.,alt+10.))*1.2+1500.,5000.,r1::kFarPackRadius+5000.)):5000.f;
-        // Out to the farthest ring drawn: a summit 200 km off stands above
-        // the horizon from a beach, and the haze, not the far plane, hides it.
-        if(farRelief.node&&farRelief.node->visible()&&farRelief.reach>0)
-            camera->farZ=std::max(camera->farZ,float(farRelief.reach+2000.));
+        if(toasterMode) {
+            camera->farZ=800.f;
+        } else {
+            camera->farZ=farPack.node?float(std::clamp(std::sqrt(2.*r1::kRMean*std::max(2.,alt+10.))*1.2+1500.,5000.,r1::kFarPackRadius+5000.)):5000.f;
+            // Out to the farthest ring drawn: a summit 200 km off stands above
+            // the horizon from a beach, and the haze, not the far plane, hides it.
+            if(farRelief.node&&farRelief.node->visible()&&farRelief.reach>0)
+                camera->farZ=std::max(camera->farZ,float(farRelief.reach+2000.));
+        }
         updateSnow(delta);
         if(checkStanding)keepStanding();
         updateSnowCover();
@@ -8021,13 +8561,38 @@ public:
         if(driving||sailing||piloting) {
             if(std::abs(mouse.x)>1e-4){lookYaw=wrap(lookYaw+mouse.x*.12);lookIdle=0;}
             else lookIdle+=delta;
-            if(lookIdle>.6&&std::abs(driving?carSpeed:sailing?boat.speed:plane.speed)>2.)
+            if(!aiming&&lookIdle>.6&&std::abs(driving?carSpeed:sailing?boat.speed:plane.speed)>2.)
                 lookYaw-=lookYaw*(1-std::exp(-2.2*std::min(.05,double(delta))));
         } else yaw+=mouse.x*.12;
         pitch=std::clamp(pitch-mouse.y*.12,-65.,25.);
         double f=(held(GLFW_KEY_W)||held(GLFW_KEY_Z)?1.:0.)-(held(GLFW_KEY_S)?1.:0.);
         double r=(held(GLFW_KEY_D)?1.:0.)-(held(GLFW_KEY_A)||held(GLFW_KEY_Q)?1.:0.);
-        if(smokeStarted&&worldCapture.pngPath.empty()){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
+        if(smokeStarted&&worldCapture.pngPath.empty()){
+            if(!perfSmoke.empty()&&!perfReady) {
+                // Measure motion after the initial import, with normal real
+                // time and presentation. Later streaming remains included.
+                const bool ready=engine.resources().assetLoadsSettled()&&std::all_of(ring.begin(),ring.end(),[&](Tile t){
+                    const auto i=loaded.find(t.key());if(i==loaded.end())return false;
+                    const auto& resident=i->second;
+                    return resident.geography&&!resident.data.value("provisional",false)&&buildingsReady(resident)
+                        &&resident.nextPart>=std::any_cast<const PreparedTile&>(resident.served->prepared).parts.size()
+                        &&resident.nextProp==resident.props.size();
+                });
+                perfReadyWait=ready?perfReadyWait+delta:0.;
+                if(perfReadyWait>=2.){perfReady=true;saida::Log::info("[World perf] warm ",perfSmoke," starts, preset=",toasterMode?"toaster":"standard");}
+            }
+            if(perfSmoke.empty()||perfReady){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
+            else f=r=0;
+            if(qualitySwitchSmoke&&perfReady&&qualitySwitches<24) {
+                qualitySwitchWait+=delta;
+                if(qualitySwitchWait>=2.) {
+                    qualitySwitchWait=0;
+                    setToasterMode(!toasterMode);
+                    ++qualitySwitches;
+                    saida::Log::info("[World quality test] switch=",qualitySwitches," private_mb=",int(privateMegabytes()));
+                }
+            }
+        }
         if(wadeTo&&smokeStarted) {
             const auto to=origin.local(ecef(wadeTo->x,wadeTo->y,alt))-origin.local(ecef(lon,lat,alt));
             yaw=std::atan2(to.x,-to.z)/rad;
@@ -8226,6 +8791,7 @@ public:
         aimBlend+=((aiming?1.:0.)-aimBlend)*(1-std::exp(-12*dt));
         const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
                               :piloting?plane.type->length*.9+10.
+                              :ridingBike()?5.2-1.8*aimBlend
                               :driving?std::max(kDrivingFollow,vehicleSpec(*car).length*.7+5.)
                               :kOnFootFollow+(kAimFollow-kOnFootFollow)*aimBlend;
         const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?playerHeight*1.17
@@ -8283,6 +8849,17 @@ public:
                 const auto target=car->transform().position+rotation*glm::vec3(0,float(spec.height*.5),0);
                 player->setVisible(false);camera->transform().position=position;
                 camera->transform().rotation=glm::quatLookAt(glm::normalize(target-position),glm::vec3(0,1,0));
+            }
+            if(motorcycleCaptureStarted&&car) {
+                r1::VehicleRuntime::synchronize(*car);
+                const auto rotation=car->transform().rotation;
+                const auto at=car->transform().position;
+                const bool armed=std::getenv("R1WORLD_CAPTURE_MOTORCYCLE_AIM")!=nullptr;
+                camera->transform().position=at+rotation*(armed?glm::vec3(-1.8f,1.5f,2.6f):glm::vec3(1.7f,1.3f,-1.7f));
+                camera->transform().rotation=glm::quatLookAt(glm::normalize(at+glm::vec3(0,.95f,0)-camera->transform().position),glm::vec3(0,1,0));
+                if(std::getenv("R1WORLD_CAPTURE_MOTORCYCLE_AIM")) {
+                    selectWeapon(r1::combat::Weapon::Pistol);setAiming(true);poseArms();bikeHandlePose();
+                }
             }
             if(std::getenv("R1WORLD_CAPTURE_SIGNAL"))frameTrafficSignal();
             auto want=nearby(lon,lat);
@@ -8349,6 +8926,65 @@ public:
                 // The local weather is part of the picture: a few seconds for it.
                 &&(effectiveWeather().known||captureSeaWait>6.);
             if(settled&&seaReady&&!captureQueued){
+                if(const char* motorcycle=std::getenv("R1WORLD_CAPTURE_MOTORCYCLE")) {
+                    auto fail=[&](const char* reason){saida::Log::error("[World E2E] FAIL motorcycle: ",reason);testFailed=true;engine.sceneTree().quit();};
+                    if(!motorcycleCaptureStarted) {
+                        const std::string kind=motorcycle;
+                        if(kind=="traffic") {
+                            Reach target;
+                            for(auto& [key,t]:loaded)for(size_t i=0;i<t.cars.size();++i)
+                                if(t.cars[i]&&trafficSlotLive(t,i)&&r1::motorcycle(vehicleSpec(*t.cars[i]).name)){target={t.cars[i],&t,i,2};break;}
+                            if(!target.node){fail("no live traffic motorcycle at this spawn");return;}
+                            auto* collider=r1::VehicleRuntime::body(*target.node);
+                            if(!collider||!collider->findByPath("Rider")){fail("traffic motorcycle has no driver");return;}
+                            if(!takeTrafficCar(target)){fail("traffic takeover refused");return;}
+                            if(target.tile->cars[target.agent]){fail("traffic still owns the stolen motorcycle");return;}
+                        } else {
+                            if(kind!="moto_city"&&kind!="moto_cross"){fail("unknown requested motorcycle");return;}
+                            const auto error=spawnParkedVehicle(kind);
+                            if(!error.empty()){fail(error.c_str());return;}
+                            if(parked.back().node->findByPath("Vehicle collider/Rider")){fail("spawned motorcycle has a driver");return;}
+                            takeAbandonedCar({parked.back().node,nullptr,parked.size()-1,1});
+                        }
+                        lon=carLon;lat=carLat;alt=carAlt;
+                        if(!enterCar()||!playerBikeRider||playerBikeRider!=playerBody||playerBody->parent()!=r1::VehicleRuntime::body(*car)){
+                            fail("real player body is not attached to the solver");return;
+                        }
+                        if(car->findByPath("Vehicle collider/Rider")){fail("previous driver remains on the motorcycle");return;}
+                        motorcycleCaptureStarted=true;
+                        // Clear the unused parked car from this inspection view;
+                        // it otherwise stands between the camera and the saddle.
+                        for(const auto& p:parked)if(p.node!=car)p.node->setVisible(false);
+                        saida::Log::info("[World E2E] PASS motorcycle empty spawn or live traffic takeover and single solver-attached player");
+                        return;
+                    }
+                    motorcycleCaptureWait+=dt;
+                    if(std::getenv("R1WORLD_CAPTURE_MOTORCYCLE_AIM")) {
+                        selectWeapon(r1::combat::Weapon::Pistol);setAiming(true);poseArms();bikeHandlePose();
+                        if(motorcycleCaptureWait>1.&& !motorcycleCaptureFired) {
+                            const auto before=arsenal.loaded();fire();motorcycleCaptureFired=true;
+                            if(arsenal.loaded()!=before-1||combatFilter().ignore!=r1::VehicleRuntime::body(*car)->bodyId()){
+                                fail("mounted weapon shot or own-body filter failed");return;
+                            }
+                            saida::Log::info("[World E2E] PASS motorcycle pistol fires with shared ammo, effects and collider filtering");
+                        }
+                    }
+                    if(motorcycleCaptureWait<2.)return;
+                    // Inspect the final solved pose, not just the IK request:
+                    // an unreachable target must not pass with a floating hand.
+                    const auto* animator=animators.front();const auto& rig=*animator->rig();
+                    const auto& matrices=animator->globalPose().globalMatrices;
+                    for(int h=0;h<2;++h) {
+                        if(h==1&&aiming)continue;
+                        const int bone=rig.findBoneIndex(h?"Bip01 R Hand":"Bip01 L Hand");
+                        const auto palm=r1::rocketboxBarGrip(rig,h==1);
+                        const auto actual=glm::vec3(matrices.at(size_t(bone))*glm::vec4(palm.position,1.f));
+                        const float error=glm::length(actual-motorcycleContact(*playerBody,vehicleSpec(*car).name,h,true))*float(humanScale);
+                        saida::Log::info("[World E2E] motorcycle ",h?"right":"left"," palm grip error=",error," m");
+                        if(error>.015f){fail("solved palm is more than 1.5 cm from its handlebar grip");return;}
+                    }
+                    saida::Log::info("[World E2E] PASS solved motorcycle hand contacts");
+                }
                 // Optional visual proof uses the shipped car, normal cage API
                 // and renderer, after source/terrain streaming has completed.
                 if(std::getenv("R1WORLD_CAPTURE_VEHICLE_DENT")) {
@@ -8369,6 +9005,9 @@ public:
                 if(inspectAt){style("hud","display","none");minimapUi->setEnabled(false);}
                 size_t plants=0;for(auto& [key,t]:loaded)plants+=t.vegetation.size();
                 saida::Log::info("[World nature] resident plants=",plants," shared static prototypes=",naturePrototypes.size());
+                int measuredW=0,measuredH=0;engine.window().size(measuredW,measuredH);
+                saida::Log::info("[World capture quality] preset=",toasterMode?"toaster":"standard",
+                    " window=",measuredW,"x",measuredH," farZ=",camera->farZ);
                 std::array<size_t,3> buildingLevels{};size_t detailedBuildings=0;
                 for(const auto& [key,t]:loaded)for(const auto& b:t.buildings) {
                     const int level=b.lod->activeLevel();
@@ -8431,8 +9070,19 @@ public:
                 :swimming?" · À l'eau · ZQSD/WASD : nager · F : remonter à bord"
                 :nearestAircraft(standing,planeFar)?" · F : prendre l'appareil"
                 :nearestBoat(moored,boatFar)?" · F : prendre le bateau"
-                :(nearestCar(within,howFar)?" · F : monter dans la voiture":performanceDebug?" · Échap : carte":" · M : carte");
+                :(nearestCar(within,howFar)?" · F : monter dans le véhicule":performanceDebug?" · Échap : carte":" · M : carte");
             const auto* currentTile=tile(lon,lat);
+            // A cook that ran out of memory is said where the player looks,
+            // and fails the smoke on that reason (World service, OUT-OF-MEMORY).
+            const auto serviceStatus=service->status();
+            if(serviceStatus.outOfMemory>outOfMemorySaid) {
+                outOfMemorySaid=serviceStatus.outOfMemory;
+                saida::Log::warn("[World memory] the world service ran out of memory (",outOfMemorySaid," times); ",
+                                 serviceStatus.allowed," tile(s) cooked at once now, private ",int(privateMegabytes())," MB");
+                if(smoke){saida::Log::error("[World E2E] FAIL out of memory cooking ",serviceStatus.error);testFailed=true;engine.sceneTree().quit();return;}
+            }
+            if(outOfMemorySaid)mode+=" · Mémoire saturée : les tuiles se chargent "+std::string(serviceStatus.allowed>1?"plus lentement":"une à une");
+            if(serviceStatus.memoryPaused)mode+=" · Chargement en attente de mémoire disponible";
             if(currentTile&&currentTile->data.value("provisional",false))
                 mode+=" · Rues et bâtiments en route (OpenStreetMap)";
             if(currentTile&&currentTile->data.value("groundPending",false))
@@ -8504,7 +9154,7 @@ public:
             }
             return;
         }
-        if(!idleSmoke&&smokeStarted&&smokeWalk>4) {
+        if(!idleSmoke&&smokeStarted&&smokeWalk>4&&(!qualitySwitchSmoke||qualitySwitches>=24)) {
             if(!smokeRan||!smokeJumped||jumpOffset!=0||followDistance<.15||followDistance>kOnFootFollow+.001){
                 saida::Log::error("[World E2E] FAIL player animation/jump/follow");testFailed=true;engine.sceneTree().quit();return;
             }
@@ -8529,7 +9179,8 @@ public:
                 testFailed=true;engine.sceneTree().quit();return;
             }
             smokeStarted=false;
-            if(!smokeFought&&crowdLive()>0){startSmokeFight();return;}
+            if(perfSmoke=="walk") {saida::Log::info("[World perf] PASS warm walking");engine.sceneTree().quit();return;}
+            if(perfSmoke.empty()&&!smokeFought&&crowdLive()>0){startSmokeFight();return;}
             if(!smokeDroveOnce&&!onSeaIce(lon,lat)){startSmokeDrive();return;}
             if(!smokeDroveOnce)saida::Log::info("[World E2E] on the sea ice: no car to drive, the walk is the test");
             smokeFinishPhase();
@@ -8625,6 +9276,7 @@ public:
             }
             saida::Log::info("[World E2E] PASS moving exit at ",exitSpeed," m/s with vehicle momentum preserved");
             smokeDriving=false;
+            if(perfSmoke=="drive"){saida::Log::info("[World perf] PASS warm driving");engine.sceneTree().quit();return;}
             if(!smokeTookOver&&trafficLive()>0){runSmokeTakeover();return;}
             smokeFinishPhase();
             return;
@@ -8652,6 +9304,7 @@ int main(int argc,char** argv) {
         // for shaders/fonts, and the project's root for content.
         saida::PhysicsCapacity physics;physics.bodies=kPhysicsBodies;
         saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),false,{},physics);
+        engine.resources().assetLoader().setBudget(kDecodedAssetBudget);
         if(!saida::SceneSerializer::loadIntoScene(engine.scene(),engine.resources(),(game/"scenes/earth.scene").string()))throw std::runtime_error("Cannot load Earth scene");
         engine.mountWorld();saida::Time::setScale(1);
         saida::CaptureRequest capture;saida::runtime::CaptureViewpoint view;std::string error;

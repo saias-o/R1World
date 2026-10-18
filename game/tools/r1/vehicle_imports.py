@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import struct
 import subprocess
 import zipfile
 from pathlib import Path
@@ -24,6 +25,46 @@ IMPORTS = {
     'bus': ('cityBus', 'scopia', 'Scopia Visual Interfaces Systems, s.l. / Space Mushrooms'),
 }
 
+MOTORCYCLES = {
+    'moto_city': ('road-motorcycle', 2.118, .745, 1.363, 1.45, .327),
+    'moto_cross': ('dirt-motorcycle', 2.264, .626, 1.218, 1.48, .35),
+}
+
+
+def _glb_stats(path: Path) -> dict:
+    payload=path.read_bytes()
+    length,kind=struct.unpack_from('<II',payload,12)
+    if kind!=0x4e4f534a:
+        raise ValueError(f'Not a GLB file: {path}')
+    doc=json.loads(payload[20:20+length])
+    vertices=sum(doc['accessors'][primitive['attributes']['POSITION']]['count']
+                 for mesh in doc.get('meshes',[]) for primitive in mesh['primitives'])
+    triangles=sum(doc['accessors'][primitive['indices']]['count']//3
+                   for mesh in doc.get('meshes',[]) for primitive in mesh['primitives']
+                   if 'indices' in primitive)
+    return {'vertices':vertices,'triangles':triangles,'drawTriangles':triangles}
+
+
+def _motorcycle_entries():
+    source_path=SOURCES/'motorcycles'/'sources.json'
+    sources=json.loads(source_path.read_text(encoding='utf-8'))
+    entries=[]
+    for name,(source_key,length,width,height,wheelbase,wheel_radius) in MOTORCYCLES.items():
+        source=sources[source_key]
+        raw=SOURCES/'motorcycles'/source['file']
+        digest=hashlib.sha256(raw.read_bytes()).hexdigest()
+        if digest!=source['sha256']:
+            raise ValueError(f'Motorcycle source changed: {raw}')
+        entry={'name':name,'author':source['author'],'license':'CC0-1.0',
+            'sourceUrl':source['url'],'sourceSha256':digest,
+            'length':length,'width':width,'height':height,'wheelbase':wheelbase,
+            'wheelRadius':wheel_radius}
+        for level,suffix in (('near',''),('far','_far')):
+            model_path=f'assets/models/vehicles/{name}{suffix}.glb'
+            entry[level]={'path':model_path,**_glb_stats(GAME/'assets/models/vehicles'/f'{name}{suffix}.glb')}
+        entries.append(entry)
+    return entries
+
 def provenance_records():
     records=[]
     for collection,author,source in (
@@ -35,6 +76,15 @@ def provenance_records():
             'generatedBy':'game/tools/r1/vehicle_imports.py',
             'modifications':'Converted to metres and glTF; unbranded, opaque PBR materials, reduced geometry LODs, independent wheel pivots; source shading and UV detail retained.',
             'files':[f'assets/models/vehicles/{name}{suffix}.glb' for name in names for suffix in ('','_far')]})
+    sources=json.loads((SOURCES/'motorcycles'/'sources.json').read_text(encoding='utf-8'))
+    for name,(source_key,*_) in MOTORCYCLES.items():
+        source=sources[source_key]
+        records.append({'name':source['name'],'author':source['author'],
+            'source':source['url'],'license':'CC0 1.0',
+            'licenseFile':'assets/licenses/CC0-1.0.txt',
+            'generatedBy':'game/tools/r1/vehicle_imports.py',
+            'modifications':'Source GLB resized and decimated into Near/Far LODs, oriented for R1World, with independent wheel pivots and embedded textures.',
+            'files':[f'assets/models/vehicles/{name}{suffix}.glb' for suffix in ('','_far')]})
     return records
 
 def main():
@@ -63,10 +113,22 @@ def main():
                     str(Path(__file__).with_name('vehicle_imports_blender.py')),
                     '--',str(config)],check=True)
     output=work/'output'
-    for source in output.iterdir():
+    manifest=json.loads((output/'fleet.json').read_text(encoding='utf-8'))
+    for source in output.glob('*.glb'):
         target=GAME/'assets/models/vehicles'/source.name
         temporary=target.with_suffix(target.suffix+'.tmp')
         shutil.copyfile(source,temporary)
         temporary.replace(target)
+    subprocess.run([args.blender,'--background','--threads','2','--python-exit-code','1','--python',
+                    str(Path(__file__).with_name('motorcycles_blender.py'))],check=True)
+    manifest['vehicles'].extend(_motorcycle_entries())
+    manifest['description']=('Licensed road vehicles and CC0 online motorcycles; '
+        'opaque PBR materials, independent wheel pivots, and Near/Far geometry LODs.')
+    manifest['totalVertices']=sum(vehicle[level]['vertices'] for vehicle in manifest['vehicles']
+                                  for level in ('near','far'))
+    target=GAME/'assets/models/vehicles/fleet.json'
+    target.write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+    from r1.motorcycle_detail import update_manifest
+    update_manifest()
 
 if __name__=='__main__':main()

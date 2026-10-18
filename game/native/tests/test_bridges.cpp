@@ -5,6 +5,7 @@
 #include "gen/bridges.hpp"
 #include "gen/terrain.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 using namespace r1;
@@ -157,4 +158,34 @@ TEST(Bridges, a_tunnel_and_a_road_on_the_ground_are_left_where_they_are) {
     const GradePlan p = s.plan();
     CHECK(p.runs.empty() && p.carves.empty());
     CHECK(p.roads.size() == 2);
+}
+
+TEST(Bridges, deck_joining_respects_direction_height_distance_and_road_overlap) {
+    Scene s;
+    for (bool reversed : {false, true}) {
+        for (int variant = 0; variant < 5; ++variant) {
+            GradePlan p;
+            p.stats = nlohmann::json::object();
+            const double separation = variant == 1 ? 40. : variant == 3 ? 6. : 12.;
+            for (int side = 0; side < 2; ++side) {
+                RaisedRun r;
+                r.way = side + 1;
+                r.bridge = true;
+                r.tags = {{"highway", "primary"}, {"oneway", "yes"}, {"bridge", "yes"}};
+                r.points = variant == 4 && side ? std::vector<P2>{s.at(0, -40), s.at(0, 0), s.at(0, 40)}
+                    : std::vector<P2>{s.at(-40, side * separation), s.at(0, side * separation), s.at(40, side * separation)};
+                if (side && reversed) std::reverse(r.points.begin(), r.points.end());
+                r.levels.assign(3, 52.5 + (variant == 2 && side ? 5. : 0.));
+                r.grounds.assign(3, 50.);
+                p.runs.push_back(std::move(r));
+            }
+            const auto works = buildBridges(p, s.tile.bounds(), s.grid, s.anchor);
+            CHECK((works.stats["deckSidesJoined"].get<int>() > 0) == (variant == 0));
+            CHECK(works.raised.size() == 4);
+            for (const auto& piece : works.raised) {
+                const int rails = int(piece["rail"][0].get<bool>()) + int(piece["rail"][1].get<bool>());
+                CHECK(rails == (variant == 0 ? 1 : 2));
+            }
+        }
+    }
 }

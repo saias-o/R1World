@@ -25,6 +25,7 @@ constexpr auto kOfflinePause = std::chrono::seconds(60);
 // A tile that failed to cook is not retried before this: the same input would
 // fail the same way, and saying so once a minute is enough.
 constexpr auto kFailurePause = std::chrono::seconds(60);
+constexpr auto kOutOfMemoryPause = std::chrono::seconds(2);
 
 // Overpass allows two queries at once per client (its "slots"): the game
 // takes two, never more, whoever is asking.
@@ -66,8 +67,14 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     std::string error;
     Clock::time_point offlineUntil{};
     std::atomic<int> fetching{0}, cooking{0};
+    // How many cooks may run at once: the threads, halved by each cook that
+    // runs out of memory. Six Paris tiles cooking together hold some 800 MB
+    // more than two (16 October 2026); a machine without it said bad_alloc
+    // there and then failed wherever it allocated next.
+    int allowed = 1, outOfMemory = 0;
     uint64_t clock = 0, serial = 0;
     bool stopping = false;
+    bool memoryPaused = false;
     Slots overpass{2};
     Slots quickGroundSlots{4};
     Slots detailedGroundSlots{2};
@@ -93,7 +100,9 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     std::mutex seaIceLock;
 
     explicit State(Options o)
-        : options(std::move(o)), store(options.gameRoot, [this](const std::string& line) { say(line); }) {}
+        : options(std::move(o)), store(options.gameRoot, [this](const std::string& line) { say(line); }) {
+        options.keep = std::max(size_t(1), options.keep);
+    }
 
     // The first worker to want a file parses it; the others wait for that
     // parse rather than starting their own, and other files go on meanwhile.
@@ -135,6 +144,39 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     }
 
     void say(const std::string& line) const { if (options.log) options.log(line); }
+
+    // Under lock. Only cold tiles can be discarded: wanted tiles and their
+    // prepared meshes may already be mounted by the frame.
+    void trim(bool pressure = false) {
+        while (pressure || cooked.size() > options.keep) {
+            auto oldest = cooked.end();
+            for (auto it = cooked.begin(); it != cooked.end(); ++it) {
+                if (std::find(wanted.begin(), wanted.end(), it->first) != wanted.end()) continue;
+                if (oldest == cooked.end() || lastWanted[it->first] < lastWanted[oldest->first]) oldest = it;
+            }
+            if (oldest == cooked.end()) break;
+            lastWanted.erase(oldest->first);
+            cooked.erase(oldest);
+        }
+    }
+
+    bool memoryAllowsCook() {
+        if (!options.availableMemory) return true;
+        auto available = options.availableMemory();
+        if (!available) return true;
+        // Account for cooks admitted just now which have not allocated yet.
+        const uint64_t required = options.memoryReserve + options.memoryPerCook * (busy.size() + 1);
+        if (*available < required) {
+            trim(true);
+            available = options.availableMemory();
+        }
+        const bool paused = available && *available < required;
+        if (paused != memoryPaused) {
+            memoryPaused = paused;
+            say(paused ? "MEMORY-PAUSE waiting for host memory; cold tiles released" : "MEMORY-RESUME cooking continues");
+        }
+        return !paused;
+    }
 
     bool requested(const std::string& path) const {
         std::lock_guard<std::mutex> guard(lock);
@@ -629,12 +671,27 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     void cook(const Tile& tile, bool upgrade) {
         Counter c(cooking);
         const auto started = Clock::now();
-        std::shared_ptr<ServedTile> served = std::make_shared<ServedTile>();
+        std::shared_ptr<ServedTile> served;
         try {
+            served = std::make_shared<ServedTile>();
             Observations in = observe(tile);
             in.targetVertices = options.tileVertexTarget;
             served->cooked = cookTile(in);
             if (options.prepare) options.prepare(*served);
+        } catch (const std::bad_alloc&) {
+            // What the cook held is released by now. Fewer at once, and the
+            // tile again soon: it is wanted, and the pause is for sources.
+            served.reset();
+            std::lock_guard<std::mutex> guard(lock);
+            trim(true);
+            ++outOfMemory;
+            const int was = allowed;
+            allowed = std::max(1, allowed / 2);
+            failedUntil[tile] = Clock::now() + kOutOfMemoryPause;
+            error = tile.key() + ": out of memory";
+            say("OUT-OF-MEMORY " + tile.key() + ": " + std::to_string(was) + " cooks at once ran out of memory; now " +
+                std::to_string(allowed));
+            return;
         } catch (const std::exception& e) {
             std::lock_guard<std::mutex> guard(lock);
             failedUntil[tile] = Clock::now() + kFailurePause;
@@ -643,6 +700,9 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             return;
         }
         std::lock_guard<std::mutex> guard(lock);
+        // A completed cook for an old destination must not grow the cache
+        // again after want() has evicted that destination.
+        if (std::find(wanted.begin(), wanted.end(), tile) == wanted.end()) return;
         // Every landed observation must be published. An empty aero layer
         // still clears airportsPending; while it was pending, a new terrain,
         // OSM or canopy observation may have changed the tile as well.
@@ -665,15 +725,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         cooked[tile] = std::move(served);
         if (!approximate && !cooked[tile]->cooked.manifest.value("airportsPending", false)) failedUntil.erase(tile);
         // Keep what is wanted and what was wanted last; forget the oldest.
-        while (cooked.size() > options.keep) {
-            auto oldest = cooked.end();
-            for (auto it = cooked.begin(); it != cooked.end(); ++it) {
-                if (std::find(wanted.begin(), wanted.end(), it->first) != wanted.end()) continue;
-                if (oldest == cooked.end() || lastWanted[it->first] < lastWanted[oldest->first]) oldest = it;
-            }
-            if (oldest == cooked.end()) break;
-            cooked.erase(oldest);
-        }
+        trim();
     }
 
     static void run(std::shared_ptr<State> self) {
@@ -686,7 +738,11 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                 // Woken by a new request or by a finished cook; the timeout
                 // is for the offline pause and the failure pause running out.
                 self->wake.wait_for(guard, std::chrono::seconds(1), [&] {
-                    return self->stopping || (found = self->next(upgrade)).has_value();
+                    found.reset();
+                    if (self->stopping) return true;
+                    if (int(self->busy.size()) >= self->allowed || !self->memoryAllowsCook()) return false;
+                    found = self->next(upgrade);
+                    return found.has_value();
                 });
                 if (self->stopping) return;
                 if (!found) continue;
@@ -705,8 +761,9 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
 
 WorldService::WorldService(Options options) : state_(std::make_shared<State>(std::move(options))) {
     int threads = state_->options.threads;
-    if (threads <= 0) threads = std::max(1, std::min(6, int(std::thread::hardware_concurrency()) - 2));
+    if (threads <= 0) threads = std::max(1, std::min(2, int(std::thread::hardware_concurrency()) - 2));
     state_->threads = threads;
+    state_->allowed = threads;
     for (int i = 0; i < threads; ++i) std::thread(State::run, state_).detach();
     state_->say("world service: " + std::to_string(threads) + " cooking threads");
 }
@@ -722,7 +779,12 @@ WorldService::~WorldService() {
 void WorldService::want(std::vector<Tile> priority, std::vector<std::vector<Tile>> groups) {
     {
         std::lock_guard<std::mutex> guard(state_->lock);
+        // Never generate speculative tiles which cannot be retained: that
+        // caused either unbounded wanted residency or endless eviction/cooking.
+        if (priority.size() > std::max(size_t(1), state_->options.keep))
+            priority.resize(std::max(size_t(1), state_->options.keep));
         state_->wanted = std::move(priority);
+        state_->trim();
         state_->groups = std::move(groups);
         ++state_->clock;
         for (const Tile& t : state_->wanted) state_->lastWanted[t] = state_->clock;
@@ -730,6 +792,9 @@ void WorldService::want(std::vector<Tile> priority, std::vector<std::vector<Tile
         // which are no longer relevant. Otherwise old Overpass and elevation
         // requests monopolise the network for minutes after a teleport.
         const std::set<Tile> current(state_->wanted.begin(), state_->wanted.end());
+        for (auto it = state_->lastWanted.begin(); it != state_->lastWanted.end();)
+            if (!current.count(it->first) && !state_->cooked.count(it->first)) it = state_->lastWanted.erase(it);
+            else ++it;
         for (auto it = state_->awaiting.begin(); it != state_->awaiting.end();)
             if (!current.count(it->first)) it = state_->awaiting.erase(it);
             else ++it;
@@ -754,7 +819,7 @@ std::shared_ptr<const ServedTile> WorldService::find(const Tile& tile) const {
 WorldService::Status WorldService::status() const {
     std::lock_guard<std::mutex> guard(state_->lock);
     return {state_->error, Clock::now() < state_->offlineUntil, state_->cooking.load(), state_->fetching.load(),
-            state_->threads};
+            state_->threads, state_->outOfMemory, state_->allowed, state_->memoryPaused};
 }
 
 }  // namespace r1

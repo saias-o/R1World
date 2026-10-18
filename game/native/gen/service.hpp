@@ -30,10 +30,10 @@ class WorldService {
 public:
     struct Options {
         std::string gameRoot;
-        int threads = 0;  // 0: the machine's cores less two, kept for the frame
+        int threads = 0;  // 0: up to two cooks, keeping room for the frame
         std::function<void(ServedTile&)> prepare;
         std::function<void(const std::string&)> log;
-        size_t keep = 36;  // cooked tiles kept in memory
+        size_t keep = 36;  // hard cache/request limit; priority beyond it waits for the next want()
         size_t tileVertexTarget = kTileVertexBudget;
         // Explicit feature migration: supplement old observations without
         // re-downloading them. Cached retail layers never revalidate.
@@ -46,6 +46,10 @@ public:
         std::function<void(const Bounds&, const std::string&)> fetchAero;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> quickGround;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> fetchGround;
+        // Host headroom supplied by the runtime (no engine dependency here).
+        std::function<std::optional<uint64_t>()> availableMemory;
+        uint64_t memoryReserve = 512ull * 1024 * 1024; // frame/UI/asset uploads
+        uint64_t memoryPerCook = 256ull * 1024 * 1024; // Paris transient working set
     };
     explicit WorldService(Options options);
     // Returns at once: a worker still waiting on the network finishes alone.
@@ -62,6 +66,10 @@ public:
         std::string error;     // the last refusal, empty when none
         bool offline = false;  // the network did not answer lately
         int cooking = 0, fetching = 0, threads = 0;
+        // Cooks that ran out of memory, and how many may run at once since:
+        // each one halves it (CLAUDE.md rule 3: said, never a crash later).
+        int outOfMemory = 0, allowed = 0;
+        bool memoryPaused = false;
     };
     Status status() const;
 

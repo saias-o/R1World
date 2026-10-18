@@ -10,9 +10,12 @@ TEST(Cheats, each_word_is_its_code_whatever_the_case_and_the_spaces_around_it) {
     CHECK(parse("buzzoff") == Code::Helicopter);
     CHECK(parse("plane") == Code::Plane);
     CHECK(parse("comet") == Code::SportsCar);
+    CHECK(parse("moto") == Code::Moto);
+    CHECK(parse("rocket") == Code::Rocket);
     CHECK(parse("painkiller") == Code::Invincible);
     CHECK(parse("  BuzzOff \n") == Code::Helicopter);
     CHECK(parse("PAINKILLER") == Code::Invincible);
+    CHECK(parse(" Rocket ") == Code::Rocket);
 }
 
 TEST(Cheats, a_word_that_is_no_code_is_unknown_never_a_near_match) {

@@ -28,7 +28,7 @@
 
 namespace r1 {
 
-constexpr int kBridgeRevision = 2;
+constexpr int kBridgeRevision = 3;
 
 // The ground bridges are solved on: the tile's own relief and, past its
 // edges, its neighbours', so both sides of a tile boundary solve alike.

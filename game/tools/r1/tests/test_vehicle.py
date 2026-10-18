@@ -84,7 +84,7 @@ class Fleet(unittest.TestCase):
 
     def test_all_categories_and_two_lods_are_shipped(self):
         self.assertEqual({v['name'] for v in self.manifest['vehicles']},
-                         {'city','sedan','suv','offroad','sport','truck','bus'})
+                         {'city','sedan','suv','offroad','sport','truck','bus','moto_city','moto_cross'})
         compact=next(v for v in self.manifest['vehicles'] if v['name']=='city')
         # The full source compact is a ~46k-triangle mesh. Close-up geometry
         # must never silently return to the reduced or procedural version.
@@ -97,9 +97,11 @@ class Fleet(unittest.TestCase):
                 for image in doc.get('images',[]):
                     self.assertIn('bufferView',image,'Every detail texture must ship inside the GLB')
                     self.assertNotIn('uri',image)
-                self.assertLessEqual(len(doc.get('images',[])),2)
-                self.assertEqual({n['name'] for n in doc['nodes'] if n['name'].startswith('wheel-')},
+                self.assertLessEqual(len(doc.get('images',[])),9)
+                wheels={n['name'] for n in doc['nodes'] if n['name'].startswith('wheel-')}
+                expected=({'wheel-front','wheel-back'} if v['name'].startswith('moto_') else
                     {'wheel-front-left','wheel-front-right','wheel-back-left','wheel-back-right'})
+                self.assertEqual(wheels,expected)
 
     def test_budget_counts_every_exported_seam_and_resident_lod(self):
         total=0
@@ -115,14 +117,31 @@ class Fleet(unittest.TestCase):
                                     if n['name'].startswith('wheel-')))
             self.assertLess(v['far']['drawTriangles'],v['near']['drawTriangles']*.55)
         self.assertEqual(total,self.manifest['totalVertices'])
-        self.assertLessEqual(total,80000,'Full source meshes and resident distance LODs must fit the arena')
+        self.assertLessEqual(total,100000,'Full source meshes and resident distance LODs must fit the arena')
+
+    def test_motorcycle_textures_fit_the_runtime_budget(self):
+        import io
+        from PIL import Image
+        for v in self.manifest['vehicles']:
+            if not v['name'].startswith('moto_'):continue
+            self.assertEqual(v['authoredForward'],'+Z')
+            self.assertLess(v['near']['triangles'],9000 if v['name']=='moto_city' else 7000)
+            for level,limit in [('near',512),('far',128)]:
+                data=(GAME/v[level]['path']).read_bytes()
+                length=struct.unpack_from('<I',data,12)[0]
+                doc=json.loads(data[20:20+length]);binary=data[28+length:]
+                for image in doc.get('images',[]):
+                    view=doc['bufferViews'][image['bufferView']];start=view.get('byteOffset',0)
+                    decoded=Image.open(io.BytesIO(binary[start:start+view['byteLength']]))
+                    self.assertLessEqual(max(decoded.size),limit)
 
     def test_paint_does_not_include_glass_rubber_or_lights(self):
         for v in self.manifest['vehicles']:
             for lod in ('near','far'):
                 doc=document(v[lod]['path'])
                 roles={m['name'].split('-')[0] for m in doc['materials']}
-                self.assertTrue({'paint','rubber','glass','mirror'}<=roles)
+                required={'paint','rubber','alloy'} if v['name'].startswith('moto_') else {'paint','rubber','glass','mirror'}
+                self.assertTrue(required<=roles)
                 if lod=='near':self.assertIn('alloy',roles)
                 for node in doc['nodes']:
                     if 'mesh' not in node:continue
@@ -131,7 +150,7 @@ class Fleet(unittest.TestCase):
                         self.assertEqual(node['name'].startswith('paint-'),mat['name'].startswith('paint-'))
                         pbr=mat['pbrMetallicRoughness']
                         self.assertGreaterEqual(pbr['roughnessFactor'],.04)
-                        self.assertEqual(pbr['baseColorFactor'][3],1)
+                        self.assertEqual(pbr.get('baseColorFactor',[1,1,1,1])[3],1)
                         self.assertEqual(mat.get('alphaMode','OPAQUE'),'OPAQUE')
 
     def test_gloss_glazing_mirrors_and_rubber_have_distinct_pbr_responses(self):
@@ -139,20 +158,22 @@ class Fleet(unittest.TestCase):
             for lod in ('near','far'):
                 for m in document(vehicle[lod]['path'])['materials']:
                     role=m['name'].split('-')[0];p=m['pbrMetallicRoughness']
-                    if role=='paint':
+                    if role=='paint' and not vehicle['name'].startswith('moto_'):
                         self.assertLess(p['roughnessFactor'],.22)
                         self.assertGreater(p['metallicFactor'],.3)
                     if role=='glass':
                         self.assertLess(p['roughnessFactor'],.12)
                         self.assertEqual(p['metallicFactor'],0)
-                    if role in ('alloy','mirror'):self.assertGreater(p['metallicFactor'],.9)
+                    if role in ('alloy','mirror') and not vehicle['name'].startswith('moto_'):
+                        self.assertGreater(p['metallicFactor'],.9)
                     if role=='mirror':self.assertLess(p['roughnessFactor'],.1)
                     if role=='rubber':
                         self.assertEqual(p['metallicFactor'],0)
-                        self.assertGreater(p['roughnessFactor'],.7)
+                        self.assertGreater(p['roughnessFactor'],.6 if vehicle['name'].startswith('moto_') else .7)
 
     def test_mirror_lenses_are_inside_the_authored_housings(self):
         for vehicle in self.manifest['vehicles']:
+            if vehicle['name'].startswith('moto_'):continue
             meshes=mesh_data(vehicle['near']['path'])
             lenses=[p for name,(pts,_) in meshes.items() if name.startswith('mirror-') for p in pts]
             housing=[mesh for name,mesh in meshes.items() if name.endswith('-body')
@@ -198,13 +219,19 @@ class Fleet(unittest.TestCase):
             for lod in ('near','far'):
                 rows=[a for a in record['assets'] if v[lod]['path'] in a.get('files',[])]
                 self.assertEqual(len(rows),1)
-                self.assertEqual(rows[0]['license'],'CC BY 3.0')
+                expected_license='CC0 1.0' if v['name'].startswith('moto_') else 'CC BY 3.0'
+                self.assertEqual(rows[0]['license'],expected_license)
                 self.assertTrue((GAME/rows[0]['licenseFile']).is_file())
                 self.assertTrue((GAME.parent/rows[0]['generatedBy']).is_file())
-            sources=json.loads((GAME.parent/'data/source-assets/vehicles/sources.json').read_text())
-            source=next(s for s in sources.values() if s['url']==v['sourceUrl'])
-            archive=next(n for n,s in sources.items() if s==source)
-            self.assertEqual(hashlib.sha256((GAME.parent/f'data/source-assets/vehicles/{archive}.zip').read_bytes()).hexdigest(),v['sourceSha256'])
+                if expected_license=='CC BY 3.0':
+                    sources=json.loads((GAME.parent/'data/source-assets/vehicles/sources.json').read_text())
+                    source=next(s for s in sources.values() if s['url']==v['sourceUrl'])
+                    archive=next(n for n,s in sources.items() if s==source)
+                    self.assertEqual(hashlib.sha256((GAME.parent/f'data/source-assets/vehicles/{archive}.zip').read_bytes()).hexdigest(),v['sourceSha256'])
+                else:
+                    sources=json.loads((GAME.parent/'data/source-assets/vehicles/motorcycles/sources.json').read_text())
+                    source=next(s for s in sources.values() if s['url']==v['sourceUrl'])
+                    self.assertEqual(hashlib.sha256((GAME.parent/'data/source-assets/vehicles/motorcycles'/source['file']).read_bytes()).hexdigest(),v['sourceSha256'])
 
 
 class InTheEntryScene(unittest.TestCase):

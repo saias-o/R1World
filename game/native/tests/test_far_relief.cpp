@@ -66,6 +66,12 @@ TEST(FarRelief, cliffs_use_a_wall_scan_and_forests_follow_the_climate) {
     CHECK(temperate[FarLayers::kForest].baseColorTexture != tropical[FarLayers::kForest].baseColorTexture);
     for (const int at : {FarLayers::kSnow, FarLayers::kRock, FarLayers::kForest, FarLayers::kScrub}) {
         CHECK(!temperate[size_t(at)].normalTexture.empty());
+    }
+    for (const int at : {FarLayers::kSnow, FarLayers::kRock})
         CHECK(!temperate[size_t(at)].metallicRoughnessTexture.empty());
+    // Vegetation keeps its normal detail, but its ground stays matte.
+    for (const int at : {FarLayers::kForest, FarLayers::kScrub}) {
+        CHECK(temperate[size_t(at)].metallicRoughnessTexture.empty());
+        NEAR(temperate[size_t(at)].roughness, 1.0, 1e-9);
     }
 }

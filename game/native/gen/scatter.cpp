@@ -109,7 +109,7 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // ── vegetation ──────────────────────────────────────────────────────────────
 
 namespace {
-constexpr int kNatureRevision = 11;
+constexpr int kNatureRevision = 12;
 const std::string kCardDir = "assets/models/external/nature_cards";
 
 const char* coniferObservation(const Tags& tags) {
@@ -137,13 +137,18 @@ const char* coniferObservation(const Tags& tags) {
     return nullptr;
 }
 
-// A tree's model name is not evidence that it stands in a city. Use mapped
-// urban land use, or a local concentration of buildings, and explicitly veto
-// woodland and agricultural land even when a larger urban polygon surrounds it.
+// Residential land use and tightly packed buildings also occur in villages.
+// Require a nearby mapped city/town as well as urban land use/density; a nearer
+// village/hamlet vetoes inference. Missing settlement evidence stays ineligible.
 class UrbanPlanting {
 public:
     UrbanPlanting(const OsmData& osm, const Anchor& anchor) {
         auto xy = [&](P2 p) { const auto e = anchor.toEngine(p.x, p.y, 0); return P2{e.x, e.z}; };
+        for (const auto& n : osm.features) {
+            const auto place = tagOr(n.tags, "place");
+            if (place == "city" || place == "town" || place == "village" || place == "hamlet")
+                settlements_.push_back({xy({n.lon, n.lat}), place == "city" || place == "town"});
+        }
         auto areas = [&](const std::vector<OsmWay>& ways) {
             for (const auto& w : ways) {
                 const auto use = tagOr(w.tags, "landuse"), natural = tagOr(w.tags, "natural");
@@ -171,6 +176,15 @@ public:
         }
     }
     bool contains(P2 p) const {
+        // This is deliberately a local proof, not a guessed municipal boundary:
+        // do not extend a city label arbitrarily across surrounding settlements.
+        double cityDistance = 1500, ruralDistance = 1e300;
+        for (const auto& settlement : settlements_) {
+            const double distance = dist(p, settlement.position);
+            if (settlement.city) cityDistance = std::min(cityDistance, distance);
+            else ruralDistance = std::min(ruralDistance, distance);
+        }
+        if (cityDistance >= 1500 || ruralDistance <= cityDistance) return false;
         const Box point{p.x, p.y, p.x, p.y};
         bool mapped = false;
         for (size_t i : areasIndex_.near(point)) {
@@ -180,8 +194,7 @@ public:
             mapped = true;
         }
         if (mapped) return true;
-        // Same 350 m neighbourhood and 25-building threshold as road context;
-        // a rural park, isolated house or place-name alone cannot qualify.
+        // Density proves an urban position only after settlement classification.
         const Box neighbourhood = point.grown(175);
         int count = 0;
         for (size_t i : buildingsIndex_.near(neighbourhood))
@@ -189,6 +202,8 @@ public:
         return false;
     }
 private:
+    struct Settlement { P2 position; bool city; };
+    std::vector<Settlement> settlements_;
     struct Area { std::vector<P2> ring; bool excluded; };
     std::vector<Area> areas_;
     std::vector<P2> buildings_;
@@ -528,7 +543,7 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
             return (t.first == "genus" || t.first == "species") &&
                 std::any_of(t.second.begin(), t.second.end(), [](unsigned char ch) { return !std::isspace(ch); });
         });
-        const double cherryRate = osm.country == "JP" ? 0.15 : c.lat > 0 ? 0.05 : 0.0;
+        const double cherryRate = c.lat > 0 ? (osm.country == "JP" ? 0.15 : 0.05) : 0.0;
         if (!grass && !coniferForest && !coniferObservation(c.tags) && !botanical &&
             cherryRate > 0 && std::string(c.source) != "inferred-rural-roadside" && urbanPlanting.contains(p)) {
             ++urbanCherryEligible;
@@ -578,9 +593,10 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         PyRandom yawRng = seeded(c.ident, 71);
         const double yaw = yawRng.random() * kTau;
         const P3 at = ground(c.lon, c.lat);
+        const double verticalPlacement = !grass && model != "sakura" ? -0.10 : 0.0;
         out.nodes.push_back({{"type", "Node"}, {"name", std::string("Nature ") + c.source + " " + identString(c.ident)},
                              {"enabled", true}, {"groups", {"vegetation", grass ? "grass" : "tree"}}, {"children", children},
-                             {"transform", {{"position", {at.x, at.y, at.z}}, {"rotation", {0, std::sin(yaw / 2), 0, std::cos(yaw / 2)}},
+                             {"transform", {{"position", {at.x, at.y + verticalPlacement, at.z}}, {"rotation", {0, std::sin(yaw / 2), 0, std::cos(yaw / 2)}},
                                             {"scale", {width, height, width}}}}});
         ++sources[c.source];
         ++models[model];
@@ -590,7 +606,8 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
                  {"rejectedOverlap", rejected}, {"droppedForBudget", budgetDropped}, {"budget", budget},
                  {"representation", "urban, sakura and adult pine trees: Near/Mid/multi-view Far; other species: layered source cards"},
                  {"urbanCherryPlanting", {{"eligible", urbanCherryEligible}, {"selected", urbanCherrySelected},
-                                         {"japanRate", 0.15}, {"northRate", 0.05}}},
+                                         {"japanRate", 0.15}, {"northRate", 0.05},
+                                         {"settlementPolicy", "nearest mapped city/town within 1500m plus local urban landuse/density; village/hamlet and unknown excluded"}}},
                  {"canopy", canopy ? nlohmann::json{{"observed", true}, {"noSource", canopy->noSource},
                                                     {"treeCells", canopy->count(Canopy::Tree)},
                                                     {"treesFromCanopy", canopyTrees},

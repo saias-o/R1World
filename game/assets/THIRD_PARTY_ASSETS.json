@@ -952,6 +952,32 @@
         "assets/models/external/nature_selected/pine_tall_far_normal.png",
         "assets/licenses/pine_tall-CC0.txt"
       ]
+    },
+    {
+      "name": "Road motorcycle — Innerscene",
+      "author": "Innerscene",
+      "source": "https://www.innerscene.com/tools/library/3d-parts/road-motorcycle-f2519759",
+      "license": "CC0 1.0",
+      "licenseFile": "assets/licenses/CC0-1.0.txt",
+      "generatedBy": "game/tools/r1/motorcycles_blender.py",
+      "modifications": "Pinned source models, reduced Near/Far geometry with preserved textures and smooth shading; +Z forward, independent wheel pivots and separated paint/rubber/metal materials.",
+      "files": [
+        "assets/models/vehicles/moto_city.glb",
+        "assets/models/vehicles/moto_city_far.glb"
+      ]
+    },
+    {
+      "name": "Dirt motorcycle — Innerscene",
+      "author": "Innerscene",
+      "source": "https://www.innerscene.com/tools/library/3d-parts/dirt-motorcycle-0a9c8589",
+      "license": "CC0 1.0",
+      "licenseFile": "assets/licenses/CC0-1.0.txt",
+      "generatedBy": "game/tools/r1/motorcycles_blender.py",
+      "modifications": "Pinned source models, reduced Near/Far geometry with preserved textures and smooth shading; +Z forward, independent wheel pivots and separated paint/rubber/metal materials.",
+      "files": [
+        "assets/models/vehicles/moto_cross.glb",
+        "assets/models/vehicles/moto_cross_far.glb"
+      ]
     }
   ]
 }

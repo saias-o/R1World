@@ -11,7 +11,7 @@
 
 namespace r1::cheats {
 
-enum class Code : uint8_t { Unknown, Helicopter, Plane, SportsCar, Invincible };
+enum class Code : uint8_t { Unknown, Helicopter, Plane, SportsCar, Moto, Rocket, Invincible };
 
 struct Entry {
     const char* word;  // what the player types, in lower case
@@ -25,6 +25,8 @@ constexpr Entry kCodes[] = {
     {"buzzoff", Code::Helicopter, "Hélicoptère à côté de vous."},
     {"plane", Code::Plane, "Avion à côté de vous."},
     {"comet", Code::SportsCar, "Voiture de sport à côté de vous."},
+    {"moto", Code::Moto, "Moto de ville à côté de vous."},
+    {"rocket", Code::Rocket, "Motocross à côté de vous."},
     {"painkiller", Code::Invincible, "Invincible pendant 5 minutes."},
 };
 

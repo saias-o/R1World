@@ -49,7 +49,7 @@ TEST(Appearance, country_lookup_and_local_variety) {
 }
 
 TEST(Appearance, bundled_country_map_finds_ouagadougou_and_paris) {
-    std::ifstream source("assets/world/countries.geojson");
+    std::ifstream source(r1test::gameRoot() + "/assets/world/countries.geojson");
     CHECK(bool(source));
     nlohmann::json geojson; source >> geojson;
     CountryCrowd crowd;
@@ -57,7 +57,7 @@ TEST(Appearance, bundled_country_map_finds_ouagadougou_and_paris) {
     const Country burkina=crowd.at(-1.5197,12.3714), france=crowd.at(2.3522,48.8566);
     CHECK(burkina.code == "BF");
     CHECK(france.code == "FR");
-    std::ifstream humans("assets/models/humans/humans.json");
+    std::ifstream humans(r1test::gameRoot() + "/assets/models/humans/humans.json");
     CHECK(bool(humans));
     nlohmann::json manifest; humans >> manifest;
     std::vector<CrowdAppearance> avatars;
