@@ -1,0 +1,36 @@
+{
+  "name": "nettle_plant",
+  "source": "https://polyhaven.com/a/nettle_plant",
+  "authors": {
+    "Rob Tuytel": "Photography",
+    "Rico Cilliers": "modeling"
+  },
+  "license": "CC0-1.0",
+  "sourceFiles": {
+    "nettle_plant.gltf": "45baafa16feb0017e6a46712e2aa7afe7841fd00905075ead8316a5fc8314b0e",
+    "textures/nettle_plant_arm_1k.jpg": "8fb33e5e939b4e089f08c867bf449d9e27aa32af94990c3cad1a89dcabd44f14",
+    "textures/nettle_plant_nor_gl_1k.jpg": "ab5d0cdc9a487a8874b6e9a11bf67ef90319f02bbd74579576198aca90b0fa85",
+    "textures/nettle_plant_diff_1k.jpg": "7172a9971818a18a7cb7ebaa144d9d2313b83d2a6180c9582000f7260542ea7b",
+    "nettle_plant.bin": "24810f9d80b5fafdd71e1599b0cc81afa3eb9b744cfa8bf388c5e9f30271ba46",
+    "textures/alpha.png": "61d98e886a20e401f7eb6e2d64e8513b2409e54feb41e83ecbf3b10aaa035810"
+  },
+  "sourceTriangles": 29480,
+  "triangles": {
+    "near": 176,
+    "mid": 44
+  },
+  "heightMetres": 1,
+  "originalHeightMetres": 0.1314907819032669,
+  "extent": [
+    0.8794804215431213,
+    1.0,
+    0.949434757232666
+  ],
+  "sourcePlantsPerClump": 5,
+  "atlas": [
+    1152,
+    768
+  ],
+  "slabs": 22,
+  "method": "22 directional depth slabs, object-space leaf normals, 16-direction static visibility; no baked sunlight"
+}

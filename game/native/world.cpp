@@ -140,13 +140,11 @@ constexpr double kSwimDepth=.5;
 // the same resize so doors, cameras and collisions agree with the meshes.
 constexpr double kPeopleVehicleResize=.85;
 constexpr double kVehicleScale=.8*kPeopleVehicleResize;
-// §5: "on ne voit pas les poignées de porte à 130 km/h". 15 km/h is where
-// the plan's own table stops calling it walking.
-constexpr double kFastDetail=4.2;       // m/s
 // What a walker or a car climbs without noticing: a kerb, a ramp's next
 // metre. A surface higher than this above him is a wall or a ceiling.
 constexpr double kStepUp=1.2;
 constexpr double kStreamAheadSeconds=45.; // prepare the road before the car reaches it
+constexpr double kStreamAheadMinSpeed=4.2; // m/s; enable forward prefetch for moving vehicles
 // The floating origin follows the player (PLAN §3 I1).
 constexpr double kRebaseDistance=350.;
 // Soft per-frame budgets, in milliseconds: soft because one mesh upload or one
@@ -348,6 +346,7 @@ struct Plant {
     saida::Node* node=nullptr;
     bool grass=false;
     bool tree=false;
+    bool understory=false;
     // A tree with a middle level: its full model is allowed only close by.
     saida::LODGroupBehaviour* lod=nullptr;
     bool close=false;
@@ -574,8 +573,7 @@ struct Loaded {
     // tree: a body per trunk spent up to 640 of the world's bodies on one tile
     // of measured canopy, and nine Paris tiles ran it out. A trunk joins it
     // when its tree is mounted (World::streamProps), never before: a tree
-    // still waiting to stream -- all of them while driving -- was a wall
-    // nobody could see.
+    // still waiting to stream was a wall nobody could see.
     saida::StaticBodyNode* trunks=nullptr;
     std::vector<LiveInterior> interiors;
     std::vector<StoreParking> parking;
@@ -2849,7 +2847,7 @@ class World : public Rml::EventListener {
     }
     bool streamMotion(double& heading,double& speed) const {
         const double velocity=driving?carSpeed:sailing?boat.speed:piloting?plane.speed:0.;
-        if(!playing||pending||warming||std::abs(velocity)<kFastDetail)return false;
+        if(!playing||pending||warming||std::abs(velocity)<kStreamAheadMinSpeed)return false;
         heading=wrap((driving?carYaw:sailing?boat.yaw:plane.yaw)+(velocity<0?180.:0.));
         speed=std::abs(velocity);
         return true;
@@ -6711,7 +6709,8 @@ private:
             // its silhouette with one camera-facing quad. Full geometry is for
             // within kTreeNearRadius (`updateNature`), which cover far more
             // than 10% even when small.
-            if(node->findByPath("Mid"))lod->setLevels({{"Near", .1f}, {"Mid", .09f}, {"Far", 0.f}});
+            if(node->isInGroup("understory"))lod->setLevels({{"Near", .003f}, {"Far", 0.f}});
+            else if(node->findByPath("Mid"))lod->setLevels({{"Near", .1f}, {"Mid", .09f}, {"Far", 0.f}});
             else lod->setLevels({{"Near", .06f}, {"Far", 0.f}});
             // A level dissolves into the next over half a second instead of
             // swapping in one frame (Saida's screen-door cross-fade).
@@ -6719,11 +6718,7 @@ private:
         }
         return node;
     }
-    // `reach` is §5's detail band, 1 on foot and less at the wheel: the
-    // radius a plant is drawn in shrinks with the speed it is passed at, which
-    // is the cheapest of the plan's levers and the only one that costs nothing
-    // when standing still.
-    void updateNature(double reach) {
+    void updateNature() {
         SAIDA_PROFILE_SCOPE("World/Nature");
         for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles){
             const auto pos=t.frame.local(ecef(lon,lat,alt));
@@ -6731,13 +6726,18 @@ private:
                 if(plant.tree&&!debugTrees)continue;
                 const auto p=plant.node->transform().position;
                 double d=std::hypot(p.x-pos.x,p.z-pos.z);
-                const double maxDist=plant.grass?(toasterMode?35.:65.):(toasterMode?280.:550.);
-                plant.node->setVisible(d<maxDist*reach);
+                const double maxDist=plant.understory?(toasterMode?110.:170.):
+                    plant.grass?(toasterMode?35.:65.):(toasterMode?280.:550.);
+                plant.node->setVisible(d<maxDist);
                 if(plant.lod) {
                     // Entered inside the radius, left a tenth beyond it, so
                     // a tree at the edge does not flicker between two models.
-                    plant.close=d<kTreeNearRadius*(plant.close?1.1:1.);
-                    plant.lod->setFinestLevel(toasterMode?1:(plant.close?0:1));
+                    const double radius=plant.understory?22.:kTreeNearRadius;
+                    plant.close=d<radius*(plant.close?1.1:1.);
+                    // The low vegetation's fine mesh already has only 176
+                    // triangles. Both quality modes keep it within arm's reach.
+                    plant.lod->setFinestLevel(plant.understory?(plant.close?0:1):
+                        (toasterMode?1:(plant.close?0:1)));
                 }
             }
         }
@@ -7088,9 +7088,7 @@ private:
         l.trunks->addChild(std::move(shape));
         l.trunks->markDirty();
     }
-    // `roadside`: only what is read from the road -- the signs, which the
-    // tile lists before its furniture -- for a driver above 15 km/h.
-    void streamProps(bool roadside=false) {
+    void streamProps() {
         SAIDA_PROFILE_SCOPE("World/StreamProps");
         const auto start=std::chrono::steady_clock::now();
         // Scene/GPU APIs stay on the render thread. Yield between objects;
@@ -7109,10 +7107,6 @@ private:
             }
             if(msSince(start)>=kPropImportMs)return;
             while(l.nextProp<l.props.size()) {
-                if(roadside) {
-                    const auto& doc=l.props[l.nextProp];
-                    if(!doc.contains("groups")||std::find(doc["groups"].begin(),doc["groups"].end(),"roadside")==doc["groups"].end())break;
-                }
                 try {
                     auto doc=l.props[l.nextProp];
                     bool plant=doc.contains("groups")&&std::find(doc["groups"].begin(),doc["groups"].end(),"vegetation")!=doc["groups"].end();
@@ -7127,6 +7121,7 @@ private:
                         entry.node=n.get();
                         entry.grass=n->isInGroup("grass");
                         entry.tree=n->isInGroup("tree");
+                        entry.understory=n->isInGroup("understory");
                         if(entry.tree)n->setEnabled(debugTrees);
                         entry.lod=n->getBehaviour<saida::LODGroupBehaviour>();
                         if(toasterMode&&entry.lod)entry.lod->setFinestLevel(1);
@@ -8796,22 +8791,14 @@ public:
         if(!playing||menu){updateRain(delta);return;}
         updateCheats(std::min(.05,double(delta)));
         updateInteriors(delta);
-        const bool fast=(driving&&std::abs(carSpeed)>kFastDetail)||(sailing&&std::abs(boat.speed)>kFastDetail)
-                        ||(piloting&&std::abs(plane.speed)>kFastDetail);
         seaTime+=delta;
-        // §5, "le détail suit la vitesse": above 15 km/h the plan drops L5 --
-        // mobilier, clutter, détail de façade -- and shrinks the rest. Street
-        // furniture is streamed in rather than drawn from a pool, so dropping
-        // it means not spending the frame's 2 ms importing what the player is
-        // about to leave behind. It resumes the moment he slows down. The
-        // signs do not wait: they are what a driver reads (gen/predict.hpp).
         ring=nearby(lon,lat);
         const uint64_t moved=engine.sceneTree().world().indexedNodesTotal()-indexedAtFrame;
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
-        cost.props=timed([&]{streamProps(fast);});
+        cost.props=timed([&]{streamProps();});
         cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
-        cost.world=timed([&]{updateNature(fast?.55:1.);updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
+        cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
         if((farPack.node!=nullptr)!=fogFar)applyWeather();
@@ -9389,7 +9376,6 @@ public:
             if(!retailPlace.empty())mode=" · "+retailPlace+mode;
             combatHud();
             text("stream-status",std::to_string(loaded.size())+" active tiles"+mode
-                 +(fast?" · detail reduced at this speed":"")
                  +(physicsRefused?" · collisions incomplete: the physics world is full":""));
         }
         if(performanceSmoke){runPerformanceSmoke(delta);return;}

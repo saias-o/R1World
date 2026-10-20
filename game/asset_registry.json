@@ -90,6 +90,16 @@
             "path": "assets/world/relief/40_100.r1relief",
             "type": "Unknown"
         },
+        "1020435646066499820": {
+            "hash": 12469025477553182792,
+            "path": "assets/models/external/understory/shrub_01_mid.glb",
+            "type": "Mesh"
+        },
+        "10205228634676825404": {
+            "hash": 5056173151552891801,
+            "path": "assets/models/external/understory/fern_02_albedo.png",
+            "type": "Texture"
+        },
         "10227522817173145257": {
             "hash": 4206083514807481815,
             "path": "assets/models/signs/street/glyph_00d4-r1.glb",
@@ -650,6 +660,11 @@
             "path": "assets/textures/facades/render_and_window_mr.jpg",
             "type": "Texture"
         },
+        "11425026404226198891": {
+            "hash": 16658087995351455682,
+            "path": "assets/models/external/understory/nettle_plant_albedo.png",
+            "type": "Texture"
+        },
         "11429058891080532431": {
             "hash": 4557158484704506231,
             "path": "assets/models/signs/street/glyph_002d-r1.glb",
@@ -730,6 +745,11 @@
             "path": "assets/world/relief/30_-170.r1relief",
             "type": "Unknown"
         },
+        "11603350255915123835": {
+            "hash": 12345080227724434749,
+            "path": "assets/models/external/understory/nettle_plant_normal.png",
+            "type": "Texture"
+        },
         "11617494070500676161": {
             "hash": 4400410952531885863,
             "path": "assets/models/aircraft/helicopter_far.glb",
@@ -739,6 +759,11 @@
             "hash": 2808436352767885357,
             "path": "assets/world/relief/-90_40.r1relief",
             "type": "Unknown"
+        },
+        "11627939429298405938": {
+            "hash": 6534068231104163856,
+            "path": "assets/models/external/understory/shrub_02_albedo.png",
+            "type": "Texture"
         },
         "11636612132228961816": {
             "hash": 12696014756993588771,
@@ -828,6 +853,11 @@
         "11806950009897821499": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-10_80.r1relief",
+            "type": "Unknown"
+        },
+        "11826561230065978013": {
+            "hash": 13345046342215733184,
+            "path": "assets/models/external/understory/fern_02.source.json",
             "type": "Unknown"
         },
         "11847830737469193640": {
@@ -925,6 +955,11 @@
             "path": "assets/audio/combat/bullet_impact.wav",
             "type": "Unknown"
         },
+        "12054116289124444586": {
+            "hash": 16693464444382099550,
+            "path": "assets/models/external/understory/grass_dry_mid.glb",
+            "type": "Mesh"
+        },
         "12057630593147421748": {
             "hash": 2198512553149548541,
             "path": "assets/textures/surfaces/ashlar_large_normal.jpg",
@@ -1018,6 +1053,11 @@
         "12247026504541464426": {
             "hash": 2081708744146299073,
             "path": "assets/world/relief/60_-10.r1relief",
+            "type": "Unknown"
+        },
+        "12249922239487736542": {
+            "hash": 5196303282754023891,
+            "path": "assets/models/external/understory/nettle_plant.source.json",
             "type": "Unknown"
         },
         "12251253745137759690": {
@@ -1655,6 +1695,11 @@
             "path": "assets/world/relief/-20_80.r1relief",
             "type": "Unknown"
         },
+        "13683568459201822711": {
+            "hash": 3953647456031264431,
+            "path": "assets/models/external/understory/shrub_01_near.glb",
+            "type": "Mesh"
+        },
         "13688258639732206243": {
             "hash": 3312521557322825360,
             "path": "assets/models/signs/street/glyph_0047-r1.glb",
@@ -1895,6 +1940,11 @@
             "path": "assets/textures/surfaces/snow_clean_normal.jpg",
             "type": "Texture"
         },
+        "14294769140704629300": {
+            "hash": 7154237924357203565,
+            "path": "assets/models/external/understory/shrub_03_mid.glb",
+            "type": "Mesh"
+        },
         "14314225292672339883": {
             "hash": 3463023072231840374,
             "path": "assets/textures/facades/brick_buff_and_window_albedo.jpg",
@@ -1945,6 +1995,11 @@
             "path": "assets/world/relief/-90_-60.r1relief",
             "type": "Unknown"
         },
+        "14450859830058501690": {
+            "hash": 8618282200589786341,
+            "path": "assets/models/external/understory/grass_dry_near.glb",
+            "type": "Mesh"
+        },
         "14491187732939635241": {
             "hash": 8913768863926802874,
             "path": "assets/textures/facades/concrete_and_window_albedo.jpg",
@@ -1975,6 +2030,11 @@
             "path": "assets/world/relief/-90_140.r1relief",
             "type": "Unknown"
         },
+        "145772581263343209": {
+            "hash": 7714238151671444317,
+            "path": "assets/models/external/understory/grass_medium_02_albedo.png",
+            "type": "Texture"
+        },
         "14593234149963606598": {
             "hash": 10475227427477147203,
             "path": "assets/world/signs.json",
@@ -1984,6 +2044,11 @@
             "hash": 4067032017123208646,
             "path": "assets/world/relief/20_-10.r1relief",
             "type": "Unknown"
+        },
+        "14603475653608296299": {
+            "hash": 13556965365061893593,
+            "path": "assets/models/external/understory/shrub_02_normal.png",
+            "type": "Texture"
         },
         "14627230792766454977": {
             "hash": 2455855960700195902,
@@ -2425,6 +2490,11 @@
             "path": "assets/world/relief/60_140.r1relief",
             "type": "Unknown"
         },
+        "15510952960733871922": {
+            "hash": 6514861287229333469,
+            "path": "assets/models/external/understory/shrub_04_albedo.png",
+            "type": "Texture"
+        },
         "15511953347903124518": {
             "hash": 292342195946911020,
             "path": "assets/world/relief/60_50.r1relief",
@@ -2690,6 +2760,11 @@
             "path": "assets/models/signs/street/glyph_004b-r1.glb",
             "type": "Mesh"
         },
+        "16129408392370891649": {
+            "hash": 12499733387753170628,
+            "path": "assets/models/external/understory/shrub_01.source.json",
+            "type": "Unknown"
+        },
         "16140810302902304040": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/50_-40.r1relief",
@@ -2895,6 +2970,11 @@
             "path": "assets/world/relief/-30_-50.r1relief",
             "type": "Unknown"
         },
+        "16746999768878422106": {
+            "hash": 10757505343219134858,
+            "path": "assets/models/external/understory/grass_medium_02.source.json",
+            "type": "Unknown"
+        },
         "1677692118262414434": {
             "hash": 12612768739838237659,
             "path": "assets/models/external/nature_cards/quiver_tree_slim-slice.png",
@@ -2924,6 +3004,11 @@
             "hash": 4311128859942753648,
             "path": "assets/world/relief/-10_-60.r1relief",
             "type": "Unknown"
+        },
+        "16861988982510119170": {
+            "hash": 9075063506615331454,
+            "path": "assets/models/external/understory/fern_02_normal.png",
+            "type": "Texture"
         },
         "16890756045019253533": {
             "hash": 16228228619712968035,
@@ -3520,6 +3605,11 @@
             "path": "assets/textures/surfaces/step_stone_height.jpg",
             "type": "Texture"
         },
+        "18313371697808622208": {
+            "hash": 11222072676145111472,
+            "path": "assets/models/external/understory/shrub_02_mid.glb",
+            "type": "Mesh"
+        },
         "18315190416860295361": {
             "hash": 16673332415060304257,
             "path": "assets/textures/surfaces/grass_dry_albedo.jpg",
@@ -3645,6 +3735,11 @@
             "path": "assets/models/signs/faces/fr_ab4-normale-r1.png",
             "type": "Texture"
         },
+        "201044790415930027": {
+            "hash": 1878491404153222386,
+            "path": "assets/models/external/understory/grass_medium_02_mid.glb",
+            "type": "Mesh"
+        },
         "2029300259554516552": {
             "hash": 1947471436196920394,
             "path": "assets/world/relief/80_-110.r1relief",
@@ -3760,6 +3855,11 @@
             "path": "assets/models/external/kenney_cars/sedan.glb",
             "type": "Mesh"
         },
+        "2305412376791927861": {
+            "hash": 3121980794423140371,
+            "path": "assets/models/external/understory/shrub_02_near.glb",
+            "type": "Mesh"
+        },
         "2316850555359666094": {
             "hash": 6231938497060720297,
             "path": "assets/world/relief/-90_-170.r1relief",
@@ -3805,6 +3905,11 @@
             "path": "assets/models/signs/town/glyph_0055-r1.glb",
             "type": "Mesh"
         },
+        "239446624472743780": {
+            "hash": 14930807966191005901,
+            "path": "assets/models/external/understory/fern_02_mid.glb",
+            "type": "Mesh"
+        },
         "2403310405579371887": {
             "hash": 17304421315033703177,
             "path": "assets/models/signs/us_r2-1_60-rural-r1.glb",
@@ -3845,6 +3950,11 @@
             "path": "assets/textures/interiors/wood_normal.jpg",
             "type": "Texture"
         },
+        "2477387208570104504": {
+            "hash": 17151118271127492884,
+            "path": "assets/models/external/understory/shrub_04_near.glb",
+            "type": "Mesh"
+        },
         "2482294879918207624": {
             "hash": 5537844667250219054,
             "path": "assets/world/landmarks/pyramid_of_menkaure-r3-lod2.glb",
@@ -3868,6 +3978,11 @@
         "2510493875719856272": {
             "hash": 7406402467579101926,
             "path": "assets/world/relief/30_10.r1relief",
+            "type": "Unknown"
+        },
+        "2532414078987943455": {
+            "hash": 2370604906491365521,
+            "path": "assets/models/external/understory/shrub_04.source.json",
             "type": "Unknown"
         },
         "2558717325342585244": {
@@ -3965,6 +4080,11 @@
             "path": "assets/world/relief/-60_50.r1relief",
             "type": "Unknown"
         },
+        "2791062938284098285": {
+            "hash": 3338611980563831533,
+            "path": "assets/models/external/understory/grass_dry_albedo.png",
+            "type": "Texture"
+        },
         "2791850155702352182": {
             "hash": 9850005195929271461,
             "path": "assets/models/signs/street/glyph_004c-r1.glb",
@@ -3974,6 +4094,11 @@
             "hash": 15667248225956315213,
             "path": "assets/world/relief/60_160.r1relief",
             "type": "Unknown"
+        },
+        "283357904839232564": {
+            "hash": 3955565712810904781,
+            "path": "assets/models/external/understory/shrub_01_normal.png",
+            "type": "Texture"
         },
         "2834548127954339522": {
             "hash": 6271810807875847883,
@@ -4375,6 +4500,11 @@
             "path": "assets/models/external/kenney_boats/boat_house_d.glb",
             "type": "Mesh"
         },
+        "3675393764720456774": {
+            "hash": 368240660139475063,
+            "path": "assets/models/external/understory/grass_dry.source.json",
+            "type": "Unknown"
+        },
         "3690507090021532353": {
             "hash": 6639332098180831054,
             "path": "assets/world/relief/70_-120.r1relief",
@@ -4415,6 +4545,11 @@
             "path": "assets/models/signs/us_r2-1_35-rural-r1.glb",
             "type": "Mesh"
         },
+        "3801231083769793533": {
+            "hash": 17474854955706692644,
+            "path": "assets/models/external/understory/shrub_04_normal.png",
+            "type": "Texture"
+        },
         "3803946762037579383": {
             "hash": 922693262187477291,
             "path": "assets/world/relief/-10_50.r1relief",
@@ -4439,6 +4574,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-70_-170.r1relief",
             "type": "Unknown"
+        },
+        "3909295429217055768": {
+            "hash": 10088325518444789219,
+            "path": "assets/models/external/understory/grass_medium_02_near.glb",
+            "type": "Mesh"
         },
         "3916916485640998989": {
             "hash": 11559480275770802597,
@@ -5150,6 +5290,11 @@
             "path": "assets/world/relief/20_-180.r1relief",
             "type": "Unknown"
         },
+        "5564693382623470311": {
+            "hash": 6878214998098133497,
+            "path": "assets/models/external/understory/shrub_03_albedo.png",
+            "type": "Texture"
+        },
         "5582276904638797974": {
             "hash": 3480911654807863447,
             "path": "assets/models/signs/faces/us_r5-1-us-r1.png",
@@ -5213,6 +5358,11 @@
         "5761993470459516464": {
             "hash": 3218471393475271324,
             "path": "assets/textures/surfaces/snow_mr.jpg",
+            "type": "Texture"
+        },
+        "5764028059742773457": {
+            "hash": 16295619326233961383,
+            "path": "assets/models/external/understory/grass_medium_02_normal.png",
             "type": "Texture"
         },
         "5790264768507819584": {
@@ -5330,6 +5480,11 @@
             "path": "assets/world/relief/60_90.r1relief",
             "type": "Unknown"
         },
+        "6112224582028587480": {
+            "hash": 8990879434827099831,
+            "path": "assets/models/external/understory/shrub_02.source.json",
+            "type": "Unknown"
+        },
         "6133471860479118934": {
             "hash": 3007976836558444863,
             "path": "assets/audio/combat/swing.wav",
@@ -5389,6 +5544,11 @@
             "hash": 9801033151083107209,
             "path": "assets/world/relief/-90_-70.r1relief",
             "type": "Unknown"
+        },
+        "6236841575736105943": {
+            "hash": 10298512544000014559,
+            "path": "assets/models/external/understory/shrub_03_normal.png",
+            "type": "Texture"
         },
         "6257050832455094484": {
             "hash": 6271810807875847883,
@@ -5690,6 +5850,11 @@
             "path": "assets/world/relief/-70_-100.r1relief",
             "type": "Unknown"
         },
+        "6931626268006404158": {
+            "hash": 13097439767754220803,
+            "path": "assets/models/external/understory/nettle_plant_near.glb",
+            "type": "Mesh"
+        },
         "6997670599553788415": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-20_-20.r1relief",
@@ -5985,6 +6150,11 @@
             "path": "assets/models/vehicles/moto_cross_far.glb",
             "type": "Mesh"
         },
+        "7656428456394651826": {
+            "hash": 5439064414024520478,
+            "path": "assets/models/external/understory/shrub_04_mid.glb",
+            "type": "Mesh"
+        },
         "7665783974342712936": {
             "hash": 1757416664921700145,
             "path": "assets/world/relief/70_-180.r1relief",
@@ -6065,6 +6235,11 @@
             "path": "assets/models/signs/faces/us_r2-1_55-us-r1.png",
             "type": "Texture"
         },
+        "7844609046941091732": {
+            "hash": 12682425212515804252,
+            "path": "assets/models/external/understory/shrub_01_albedo.png",
+            "type": "Texture"
+        },
         "7850659110642887715": {
             "hash": 4674240779314912245,
             "path": "assets/models/signs/us_r2-1_60-urban-r1.glb",
@@ -6115,6 +6290,11 @@
             "path": "assets/world/relief/-60_-140.r1relief",
             "type": "Unknown"
         },
+        "8004333533485951057": {
+            "hash": 4682684900119050119,
+            "path": "assets/models/external/understory/nettle_plant_mid.glb",
+            "type": "Mesh"
+        },
         "8016605142829715317": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/40_-160.r1relief",
@@ -6131,7 +6311,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 13383877412461731987,
+            "hash": 6390398681582080786,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -6214,6 +6394,11 @@
             "hash": 9047129932480666723,
             "path": "assets/models/humans/female_adult_05.glb",
             "type": "Mesh"
+        },
+        "8221788914845137359": {
+            "hash": 8673767372512635902,
+            "path": "assets/models/external/understory/shrub_03.source.json",
+            "type": "Unknown"
         },
         "8268138679454517289": {
             "hash": 6271810807875847883,
@@ -6475,6 +6660,11 @@
             "path": "assets/world/relief/-50_30.r1relief",
             "type": "Unknown"
         },
+        "886411303202714337": {
+            "hash": 10702431279474502216,
+            "path": "assets/models/external/understory/fern_02_near.glb",
+            "type": "Mesh"
+        },
         "8875202158347261813": {
             "hash": 14839090757627161203,
             "path": "assets/world/relief/-10_160.r1relief",
@@ -6559,6 +6749,11 @@
             "hash": 4635720359396822624,
             "path": "assets/textures/surfaces/savanna_albedo.jpg",
             "type": "Texture"
+        },
+        "9099856291859029440": {
+            "hash": 2298204071846297024,
+            "path": "assets/models/external/understory/shrub_03_near.glb",
+            "type": "Mesh"
         },
         "9111121330652352470": {
             "hash": 14414267301332073462,

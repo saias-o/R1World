@@ -218,8 +218,8 @@ Une requête Overpass sert un voisinage de neuf tuiles. Le jeu cuit d'abord la
 tuile du joueur, puis ses voisines par distance, puis un couloir devant le
 véhicule. La géométrie résidente reste bornée par l'arène.
 
-**Le détail suit la vitesse.** On ne voit pas les poignées de porte à 130 km/h :
-au-delà de 15 km/h le mobilier n'est plus posé, tout revient quand on ralentit.
+**Le détail ne dépend pas de la vitesse.** Le mobilier continue à se charger et
+la portée de la végétation reste celle du mode graphique choisi, même en véhicule.
 
 ---
 
@@ -959,13 +959,19 @@ ni une technique nouvelle publiée, ni un réalisme ou un coût déjà démontr�
   les accès, les centres urbains et les budgets d'instances/LOD. Vérifier aux
   points GPS des photos, à heure et météo comparables, sans déplacer la caméra.
 
-### Raccord brouillard / skybox HDRI — à traiter plus tard
+### Raccord brouillard / skybox HDRI — livré le 19 octobre 2026
 
-- **Supprimer la démarcation visible à l'horizon** : fondre progressivement
-  le bas de la skybox vers `fogColor` sur quelques degrés, après les nuages
-  et avant le tonemapping, en HDR linéaire. Harmoniser la couleur, pas seulement
-  la luminosité moyenne ; vérifier aussi que le bord du terrain est masqué
-  par le brouillard avant son arrêt.
+- [x] Le bas du ciel rejoint la couleur RGB de `fogColor` en HDR linéaire,
+  après les nuages et avant le disque solaire et le tonemapping : raccord
+  complet sous 1°, retour progressif à la photographie jusqu'à 6°.
+  La verticale suit la planète et fonctionne aussi avec les poses des yeux XR.
+- [x] Les derniers 10 % de la distance de clipping finie s'estompent vers
+  cette même couleur pour masquer l'arrêt artificiel du terrain.
+- Preuves : 148 vérifications GPU météo/horizon sur la MX450, 100/100 CTest
+  moteur, shaders mono/XR/Web compilés, deux pipelines validés dans Chrome
+  WebGPU. Captures avant/après à Lasné, caméra, date et météo identiques.
+  Le principe ciel/brouillard partagé est décrit dans le
+  [tutoriel Crytek hébergé par NVIDIA, diapositives 18–20](https://developer.download.nvidia.com/presentations/2007/D3DTutorial_Crytek.pdf).
 
 ### Animals update
 - **Beaucoup d'animaux, adaptés à l'endroit** : l'espèce découle du biome, de

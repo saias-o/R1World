@@ -1,0 +1,35 @@
+{
+  "name": "shrub_04",
+  "source": "https://polyhaven.com/a/shrub_04",
+  "authors": {
+    "Rico Cilliers": "All"
+  },
+  "license": "CC0-1.0",
+  "sourceFiles": {
+    "shrub_04.gltf": "782832cbc57e96686b78c6ef9df6234c25f564f78421c8ed4bd42c3631f5aeae",
+    "textures/shrub_04_nor_gl_1k.jpg": "200d791e0474495bfc876ba1c289dade669c6a5b124647c55bc840a875f6b51c",
+    "textures/shrub_04_diff_1k.jpg": "0b0fa0a474753d13f3093858cea79d0de05da1e6a0c5d6e181cd351080980b6c",
+    "textures/shrub_04_arm_1k.jpg": "d1085df021928b29b0f38dde7e58e9a2e304c4e8d838e390b37cf57f8aa492e8",
+    "shrub_04.bin": "cb442c39682e54cc63f912aa78ab17a03566f947a61adbbbaaa6473166744f01",
+    "textures/alpha.png": "6ddd60dcdbdcf55d7258ae747866f68f5acc9d88a7735c9eb05b02d6dec527e3"
+  },
+  "sourceTriangles": 17490,
+  "triangles": {
+    "near": 176,
+    "mid": 44
+  },
+  "heightMetres": 1,
+  "originalHeightMetres": 0.21365737915039062,
+  "extent": [
+    1.0478150844573975,
+    1.0,
+    1.0461276769638062
+  ],
+  "sourcePlantsPerClump": 5,
+  "atlas": [
+    1152,
+    768
+  ],
+  "slabs": 22,
+  "method": "22 directional depth slabs, object-space leaf normals, 16-direction static visibility; no baked sunlight"
+}

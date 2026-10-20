@@ -1120,6 +1120,9 @@ shared colour atlas embedded in each GLB (a dangling URI renders magenta).
 `normalize.repaint_kit_model` repaints every material into albedo and refuses
 any material name the palette does not know.
 
+Benches align their long edge with the nearest road segment and face the
+carriageway, on either side and independently of the road's mapped direction.
+
 ### Trees
 
 Generator v52 also uses the user-selected Innerscene flowering cherry
@@ -1668,8 +1671,11 @@ photographed from before dawn to after dusk (`r1/skies.py`):
   and the runtime crossfades the two the real Sun stands between;
 - each is turned so its Sun sits at the real Sun's azimuth;
 - brightness comes from the model: the 0–4° band of each is scaled to the
-  model's horizon colour, which is also the fog, so the dome meets the fog
-  without a seam;
+  model's horizon brightness;
+- the renderer matches the lower sky's RGB to the fog in linear HDR after
+  clouds, fully below 1° and fading out by 6°; finite terrain fades before its
+  far clip. The separate Sun disc stays visible through this photographic
+  horizon correction;
 - each photograph's Sun is removed and the engine draws one disc where the
   light comes from (`SceneSettings::skySunDirection`).
 
@@ -1880,9 +1886,9 @@ contracts, Web player build and Chrome gameplay/restart checks pass. Frame-rate
 equivalence tests do not qualify a physical VR headset or a complete Web port
 of the geographic game.
 
-**The detail follows the speed.** Above 4.2 m/s (15 km/h) street furniture
-stops being imported and vegetation radii shrink to 55%; slow down and both
-come back.
+Street furniture continues importing at any speed. Vegetation keeps the same
+visibility radii for the selected graphics mode on foot and in vehicles.
+Vehicle motion still prioritizes loading the road ahead.
 
 ### Motorcycles and local radio — 17–18 October 2026
 
@@ -2281,8 +2287,7 @@ obstacle tests of its own. Each uploaded tile mesh gets a `StaticBodyNode` with
 a `Mesh` `CollisionShapeNode`; interior shells and doors are mesh bodies;
 furniture and vehicles have box colliders; a tile's trunks are one compound
 body, and a trunk joins it when its tree is mounted, never before. A tree
-still waiting to stream (all of them while driving above 15 km/h, when only
-the signs stream) was an obstacle nobody could see, on tiles cooked before OSM
+still waiting to stream was an obstacle nobody could see, on tiles cooked before OSM
 answered as much as after. Interior bodies are destroyed with their room. Arrivals wait
 for the destination's first physics sync. Character motion, ceilings,
 spawn/exit occupancy and camera obstacles use the engine API. Water navigation,
@@ -2622,3 +2627,49 @@ the ride along the tile's roads before and after (`rollPer10m`, `acrossSlope`)
 and the cuttings. Measured on Paris centre: across slope 1.7 % -> 0.5 %,
 roll 0.12 -> 0.06 m per 10 m. `r1cook` also prints `groundEdges` to compare a
 seam's two sides.
+
+## Photographed low vegetation
+
+`native/gen/understory.cpp` adds shared scene instances, independently of the
+existing photographed trees. Poly Haven / Rico Cilliers supplies four shrub
+forms, nettles, fern and meadow grass under CC0; an eighth variant retains the
+grass scan's veins and coverage with a senescent straw recolour. Download URLs,
+MD5/SHA-256 and authors are pinned in `tools/r1/understory_sources.json` and the
+runtime assets carry individual `.source.json` provenance.
+
+Each clump assembles one to five individual photographed plants. The bake keeps
+22 directional depth slabs with separate front/back views and overhead layers,
+source albedo, leaf normals and 16-direction hemisphere visibility. It contains
+**176 triangles Near, 44 Far**, with one material/draw per clump. The two levels
+share external atlases (1152 x 768), including edge padding and alpha masks.
+There are 15 shared RGBA8 atlases, approximately 67.5 MiB including full mip
+chains; dry grass reuses the fresh grass normal atlas. Full scanned source
+geometry is an authoring input, never a runtime dependency.
+
+The tile budget is 512 clumps in addition to the tree budget. Mapped hedges
+take priority, then two thirds of the remaining budget are reserved for verges
+and eligible detached-home massifs; mapped scrub and woodland margins fill the
+remainder. Road verges have a short maintained shoulder, herbs/grass in front and
+irregular woody cover behind. Inferred rural shrubs are 0.65–1.35 m, motorway
+shrubs 1.25–2.25 m; explicit hedge height/width win. All roads, crossing paths,
+buildings, driveways, water, beach sand and airport surfaces veto overlap.
+Bridges/tunnels and paved urban sidewalks do not acquire inferred wild verges;
+polar/arid climates retain surveyed hedges but no invented temperate scrub.
+Water and beach sand are rejected before allocating instances. Separate paths
+retain their clearance and shift the fringe toward the field. Detailed plants
+thin the procedural grass directly underneath, preserving its ground colour.
+Garden priors follow the existing country/region detached-home rules, preserve
+the entrance and are silenced by surveyed plot boundaries.
+
+The generic engine material supplies mapped foliage lighting, transmission,
+root-anchored vertex wind and angular rejection of grazing slices. Instances
+use 0.5 s screen-door LOD transitions, Near within 22 m in both presets and
+visibility limits of 170 m standard / 110 m toaster. No shrub collider or
+per-bush CPU animation is created. `python -m r1.understory_assets --download
+--bake` (from `game/tools`, NumPy/Pillow/ModernGL installed for authoring)
+rebuilds the assets; running the game requires none of those packages.
+
+Automated captures can set `R1WORLD_SMOKE_NO_UNDERSTORY=1` to omit this layer
+while retaining the same executable, observations, shaders and camera. This
+benchmark hook is absent from saved settings and the game UI. Compare warm
+profile tails with `tools/analyze_profile.py --tail 180 --skip-last 2`.

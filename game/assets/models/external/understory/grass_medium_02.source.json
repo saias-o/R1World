@@ -1,0 +1,35 @@
+{
+  "name": "grass_medium_02",
+  "source": "https://polyhaven.com/a/grass_medium_02",
+  "authors": {
+    "Rico Cilliers": "All"
+  },
+  "license": "CC0-1.0",
+  "sourceFiles": {
+    "grass_medium_02.gltf": "7037f8d2dfc6aeec0bf72f4eeb96cfa3f6b3a5e6c6f0bc5de537c055b2fd5d04",
+    "textures/grass_medium_02_nor_gl_1k.jpg": "0b464550366ed72a6cad9c357e19ac4c83fc9adc87272771479138129853b300",
+    "textures/grass_medium_02_diff_1k.jpg": "91ae99005b449011aceb207a68a937258fd9bfd66ff367d344c50398b1df389c",
+    "textures/grass_medium_02_arm_1k.jpg": "f0d57bfd95bff7710526b49d47cf2326ee3796e425639d53b983d1472480b57d",
+    "grass_medium_02.bin": "aa8493bc1544a89e08bf440c7ba361042bfe6ea48b1fefc7e4af2dfff42fdf4a",
+    "textures/alpha.png": "15976877b3dbd22cd496a9549f1eb7d86710846a3631fb87eedbf046519e339f"
+  },
+  "sourceTriangles": 3570,
+  "triangles": {
+    "near": 176,
+    "mid": 44
+  },
+  "heightMetres": 1,
+  "originalHeightMetres": 0.1569303721189499,
+  "extent": [
+    1.1160348653793335,
+    1.0,
+    0.9881455898284912
+  ],
+  "sourcePlantsPerClump": 5,
+  "atlas": [
+    1152,
+    768
+  ],
+  "slabs": 22,
+  "method": "22 directional depth slabs, object-space leaf normals, 16-direction static visibility; no baked sunlight"
+}

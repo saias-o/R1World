@@ -1002,6 +1002,17 @@
         "assets/models/vehicles/moto_cross.glb",
         "assets/models/vehicles/moto_cross_far.glb"
       ]
+    },
+    {
+      "name": "Photographed low vegetation (depth-sliced)",
+      "author": "Rico Cilliers / Poly Haven",
+      "source": "https://polyhaven.com/models",
+      "license": "CC0-1.0",
+      "license_url": "https://polyhaven.com/license",
+      "modified": "Individual plants assembled into asymmetric clumps; depth-sliced 176/44-triangle geometry, albedo/alpha/object normals/hemisphere visibility baked from scans; senescent grass recolour. Source lock: tools/r1/understory_sources.json.",
+      "files": [
+        "assets/models/external/understory/"
+      ]
     }
   ]
 }

@@ -1,0 +1,36 @@
+{
+  "name": "fern_02",
+  "source": "https://polyhaven.com/a/fern_02",
+  "authors": {
+    "Rob Tuytel": "scanning",
+    "Rico Cilliers": "modeling"
+  },
+  "license": "CC0-1.0",
+  "sourceFiles": {
+    "fern_02.gltf": "33974295ee19670af4877705fc7d91f33f42d6302f0d44a625e072271223031f",
+    "textures/fern_02_arm_1k.jpg": "ebfb5d76ce9cbdaec20bcd22dce9b755f0b1b8650ef29ca13555e3e6961025d7",
+    "textures/fern_02_diff_1k.jpg": "a828a6e7b4c01c826911e2eac4b3afc7457dab7b3b392a31c681ed88b7d50029",
+    "textures/fern_02_nor_gl_1k.jpg": "45bce132c6e96a0864bc89ab5da51361ab3f4afa83a6669ae499ab5ca811f621",
+    "fern_02.bin": "fe1abb762bcbbc7ad9e86925c8080437a62add257d9280e9142fdc85c226e64c",
+    "textures/alpha.png": "ea3c64284c7ebdeedf484d2d816eae92825ec526140c3bb83859ddc7a64001f9"
+  },
+  "sourceTriangles": 2384,
+  "triangles": {
+    "near": 176,
+    "mid": 44
+  },
+  "heightMetres": 1,
+  "originalHeightMetres": 0.427694708108902,
+  "extent": [
+    2.3141446113586426,
+    1.0,
+    2.089550733566284
+  ],
+  "sourcePlantsPerClump": 1,
+  "atlas": [
+    1152,
+    768
+  ],
+  "slabs": 22,
+  "method": "22 directional depth slabs, object-space leaf normals, 16-direction static visibility; no baked sunlight"
+}

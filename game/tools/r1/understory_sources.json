@@ -1,0 +1,326 @@
+{
+  "shrub_01": {
+    "source": "https://polyhaven.com/a/shrub_01",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "authors": {
+      "Rico Cilliers": "All"
+    },
+    "files": {
+      "shrub_01.gltf": {
+        "size": 2895,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_01/shrub_01_1k.gltf",
+        "md5": "4ac1312e5ea687b321b78382f5f209c8",
+        "sha256": "c3bb3340687d46c684b9dab82f5b2f92b7b0fe761842423d3c9e19f59a839393"
+      },
+      "textures/shrub_01_nor_gl_1k.jpg": {
+        "size": 746497,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_01/shrub_01_nor_gl_1k.jpg",
+        "md5": "985fa065ed411dc49e07d564330555ac",
+        "sha256": "076870a39a4e21a364cf94566e6dd1852a29045fdf1f23393637235b19d1c2e8"
+      },
+      "shrub_01.bin": {
+        "size": 5239664,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_01/shrub_01.bin",
+        "md5": "baf77d162f397f43fa4737b545d73e1a",
+        "sha256": "a8646f51386c84b12a6be8324dd0c2357c393c9108aac911847a203cf490b426"
+      },
+      "textures/shrub_01_arm_1k.jpg": {
+        "size": 386309,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_01/shrub_01_arm_1k.jpg",
+        "md5": "1682705926a9fc60ab34d079564f1a9e",
+        "sha256": "8faecdc28d8f03ba0ac139be16e617e8bfd0778780ec1d7850812230378b89be"
+      },
+      "textures/shrub_01_diff_1k.jpg": {
+        "size": 502162,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_01/shrub_01_diff_1k.jpg",
+        "md5": "c5ac2665a0e2b4f11fd20b3296d62fe2",
+        "sha256": "fe60e639d694e1807c0a3ae97dd1d5a7e7b3f84e5fc32d0610b868ce48f36331"
+      },
+      "textures/alpha.png": {
+        "size": 132597,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/shrub_01/shrub_01_alpha_1k.png",
+        "md5": "5ed0301c1bf12c291f183563a2b8c370",
+        "sha256": "eb693835205913dfc705a08fb45f3e8d1c338332bd0097e9837773765b421603"
+      }
+    }
+  },
+  "shrub_02": {
+    "source": "https://polyhaven.com/a/shrub_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "authors": {
+      "Rico Cilliers": "All"
+    },
+    "files": {
+      "shrub_02.gltf": {
+        "size": 8083,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_02/shrub_02_1k.gltf",
+        "md5": "8f7254d279c0c49c0b3edfe260aa5c86",
+        "sha256": "99de0a70fe88ad414615cc8d8e020617c8512e2abfe08b911b153a6fcc40d93e"
+      },
+      "textures/shrub_02_arm_1k.jpg": {
+        "size": 313715,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_arm_1k.jpg",
+        "md5": "28c218aeb7cab930d99ee16578984241",
+        "sha256": "7186bf604d5c02f873aef6de2346cc06b6fa48f47d054edbef36d2c3772c0890"
+      },
+      "textures/shrub_02_nor_gl_1k.jpg": {
+        "size": 490815,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_nor_gl_1k.jpg",
+        "md5": "51a7f2db7e06a207171fd725585241d5",
+        "sha256": "54c24e433365d5410223b7ebd2b33042b80831f80976e10768114db5ef6911d7"
+      },
+      "shrub_02.bin": {
+        "size": 758692,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_02/shrub_02.bin",
+        "md5": "683b5475238310899eac1458520903e6",
+        "sha256": "5c1b79da1cfdbac90599542ccd1f75ba433a3a4d356b1ea03655adb39b0e2c96"
+      },
+      "textures/shrub_02_diff_1k.jpg": {
+        "size": 395120,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_diff_1k.jpg",
+        "md5": "3f4ae281928de030c7d4e41ad5b88a8b",
+        "sha256": "9956eff294034d70516d867e9668428a23d782feb3d4c34061dce5e44bacd5a8"
+      },
+      "textures/alpha.png": {
+        "size": 91741,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/shrub_02/shrub_02_alpha_1k.png",
+        "md5": "64a1f609d80ea076b43412498a3d2db5",
+        "sha256": "5c2c31bac311051db77443e1780078403c2df0a832c40fe6ed7bcd982695cdf0"
+      }
+    }
+  },
+  "shrub_03": {
+    "source": "https://polyhaven.com/a/shrub_03",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "authors": {
+      "Rico Cilliers": "All"
+    },
+    "files": {
+      "shrub_03.gltf": {
+        "size": 7296,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_03/shrub_03_1k.gltf",
+        "md5": "2c1ef10ff17e23f81d29c851d1409c9a",
+        "sha256": "b76d7c14bc027e834e82d3f984c32b5d060e62908aa90ff9420a637ca253a8ea"
+      },
+      "shrub_03.bin": {
+        "size": 238684,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_03/shrub_03.bin",
+        "md5": "c26c6ed23b0034664eab5a0e3ee00f6a",
+        "sha256": "bf4df21e6d2a2bc5f00b4c9142f776171fe7da00cf960001825748067af542b6"
+      },
+      "textures/shrub_03_arm_1k.jpg": {
+        "size": 396238,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_03/shrub_03_arm_1k.jpg",
+        "md5": "67faf4c5c213589b41a3bd18d378fa7d",
+        "sha256": "3e2b16812a623037138eedace958210c5f3443a827bbe69663045bba5612f815"
+      },
+      "textures/shrub_03_diff_1k.jpg": {
+        "size": 481841,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_03/shrub_03_diff_1k.jpg",
+        "md5": "5da9190b7c2837a9e209a3fe774dba3c",
+        "sha256": "3cadc7aba46d3aabbd7d6d2b1d04aa32e2a7da0bc87c2d38ef3cb1ee42cb03ec"
+      },
+      "textures/shrub_03_nor_gl_1k.jpg": {
+        "size": 504734,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_03/shrub_03_nor_gl_1k.jpg",
+        "md5": "38956b2171644cfefda2ef542e055100",
+        "sha256": "ff856bacfce859b8a7555dd9a3b92fbd36b2e775d486be71df485afb4235d6c9"
+      },
+      "textures/alpha.png": {
+        "size": 79069,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/shrub_03/shrub_03_alpha_1k.png",
+        "md5": "57a2d0fd7ea02ebeb8de321652f9f58a",
+        "sha256": "daef00278879a024fd05216aaa1376067a5f25f1b911d08d9bbdc50fda4a0d66"
+      }
+    }
+  },
+  "shrub_04": {
+    "source": "https://polyhaven.com/a/shrub_04",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "authors": {
+      "Rico Cilliers": "All"
+    },
+    "files": {
+      "shrub_04.gltf": {
+        "size": 2882,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_04/shrub_04_1k.gltf",
+        "md5": "eba22f7e018dd3d9ed951150c2092f17",
+        "sha256": "782832cbc57e96686b78c6ef9df6234c25f564f78421c8ed4bd42c3631f5aeae"
+      },
+      "textures/shrub_04_nor_gl_1k.jpg": {
+        "size": 449241,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_nor_gl_1k.jpg",
+        "md5": "b08f500d19ee9b29d7da06fc0e874bb2",
+        "sha256": "200d791e0474495bfc876ba1c289dade669c6a5b124647c55bc840a875f6b51c"
+      },
+      "textures/shrub_04_diff_1k.jpg": {
+        "size": 373350,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_diff_1k.jpg",
+        "md5": "b2b4682a82f44be10b8d4b4d481a4fe8",
+        "sha256": "0b0fa0a474753d13f3093858cea79d0de05da1e6a0c5d6e181cd351080980b6c"
+      },
+      "textures/shrub_04_arm_1k.jpg": {
+        "size": 332957,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_arm_1k.jpg",
+        "md5": "65e414abd3533b7157f05aed63f5f329",
+        "sha256": "d1085df021928b29b0f38dde7e58e9a2e304c4e8d838e390b37cf57f8aa492e8"
+      },
+      "shrub_04.bin": {
+        "size": 749084,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_04/shrub_04.bin",
+        "md5": "987a672e598f9dc04b6d23cb8f36d697",
+        "sha256": "cb442c39682e54cc63f912aa78ab17a03566f947a61adbbbaaa6473166744f01"
+      },
+      "textures/alpha.png": {
+        "size": 42906,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/shrub_04/shrub_04_alpha_1k.png",
+        "md5": "c899653f9884941bdb2ada187809f4c8",
+        "sha256": "6ddd60dcdbdcf55d7258ae747866f68f5acc9d88a7735c9eb05b02d6dec527e3"
+      }
+    }
+  },
+  "nettle_plant": {
+    "source": "https://polyhaven.com/a/nettle_plant",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "authors": {
+      "Rob Tuytel": "Photography",
+      "Rico Cilliers": "modeling"
+    },
+    "files": {
+      "nettle_plant.gltf": {
+        "size": 10450,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/nettle_plant/nettle_plant_1k.gltf",
+        "md5": "474e138cdee694335ca4270ac43f9d49",
+        "sha256": "45baafa16feb0017e6a46712e2aa7afe7841fd00905075ead8316a5fc8314b0e"
+      },
+      "textures/nettle_plant_arm_1k.jpg": {
+        "size": 467172,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/nettle_plant/nettle_plant_arm_1k.jpg",
+        "md5": "7244d9f04fdc0b53212c3d38f5a215b4",
+        "sha256": "8fb33e5e939b4e089f08c867bf449d9e27aa32af94990c3cad1a89dcabd44f14"
+      },
+      "textures/nettle_plant_nor_gl_1k.jpg": {
+        "size": 654754,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/nettle_plant/nettle_plant_nor_gl_1k.jpg",
+        "md5": "471821200314d7eee64cbd35bf3e5bd0",
+        "sha256": "ab5d0cdc9a487a8874b6e9a11bf67ef90319f02bbd74579576198aca90b0fa85"
+      },
+      "textures/nettle_plant_diff_1k.jpg": {
+        "size": 388629,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/nettle_plant/nettle_plant_diff_1k.jpg",
+        "md5": "efa546b37e9a8669b214b1fea1422892",
+        "sha256": "7172a9971818a18a7cb7ebaa144d9d2313b83d2a6180c9582000f7260542ea7b"
+      },
+      "nettle_plant.bin": {
+        "size": 956560,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/nettle_plant/nettle_plant.bin",
+        "md5": "975cb59d9f42871bb448de70aeecbc01",
+        "sha256": "24810f9d80b5fafdd71e1599b0cc81afa3eb9b744cfa8bf388c5e9f30271ba46"
+      },
+      "textures/alpha.png": {
+        "size": 189288,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/nettle_plant/nettle_plant_alpha_1k.png",
+        "md5": "57a0ce5b6285f558786511ccff178aa1",
+        "sha256": "61d98e886a20e401f7eb6e2d64e8513b2409e54feb41e83ecbf3b10aaa035810"
+      }
+    }
+  },
+  "fern_02": {
+    "source": "https://polyhaven.com/a/fern_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "authors": {
+      "Rob Tuytel": "scanning",
+      "Rico Cilliers": "modeling"
+    },
+    "files": {
+      "fern_02.gltf": {
+        "size": 6899,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/fern_02/fern_02_1k.gltf",
+        "md5": "cf276874d37bfb73c299504a6b355b77",
+        "sha256": "33974295ee19670af4877705fc7d91f33f42d6302f0d44a625e072271223031f"
+      },
+      "textures/fern_02_arm_1k.jpg": {
+        "size": 280359,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fern_02/fern_02_arm_1k.jpg",
+        "md5": "1bbb2b22951f450720d28e17d93a2987",
+        "sha256": "ebfb5d76ce9cbdaec20bcd22dce9b755f0b1b8650ef29ca13555e3e6961025d7"
+      },
+      "textures/fern_02_diff_1k.jpg": {
+        "size": 315705,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fern_02/fern_02_diff_1k.jpg",
+        "md5": "82c18a6cfd5ae91c37c0e078f591181c",
+        "sha256": "a828a6e7b4c01c826911e2eac4b3afc7457dab7b3b392a31c681ed88b7d50029"
+      },
+      "textures/fern_02_nor_gl_1k.jpg": {
+        "size": 367222,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fern_02/fern_02_nor_gl_1k.jpg",
+        "md5": "43aed63dff79554f6064627515afd9d7",
+        "sha256": "45bce132c6e96a0864bc89ab5da51361ab3f4afa83a6669ae499ab5ca811f621"
+      },
+      "fern_02.bin": {
+        "size": 176176,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/fern_02/fern_02.bin",
+        "md5": "c061e9255f7d36ae9ce0e92ef3e100b2",
+        "sha256": "fe1abb762bcbbc7ad9e86925c8080437a62add257d9280e9142fdc85c226e64c"
+      },
+      "textures/alpha.png": {
+        "size": 114589,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/fern_02/fern_02_alpha_1k.png",
+        "md5": "1421e5e36946c23a7ddcc907de89025c",
+        "sha256": "ea3c64284c7ebdeedf484d2d816eae92825ec526140c3bb83859ddc7a64001f9"
+      }
+    }
+  },
+  "grass_medium_02": {
+    "source": "https://polyhaven.com/a/grass_medium_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "authors": {
+      "Rico Cilliers": "All"
+    },
+    "files": {
+      "grass_medium_02.gltf": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/grass_medium_02/grass_medium_02_1k.gltf",
+        "md5": "dd8f166a6399238553bc3b2931677b68",
+        "size": 8864,
+        "sha256": "7037f8d2dfc6aeec0bf72f4eeb96cfa3f6b3a5e6c6f0bc5de537c055b2fd5d04"
+      },
+      "textures/grass_medium_02_nor_gl_1k.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_nor_gl_1k.jpg",
+        "md5": "90b4c27b0c0ff058bd37b88bb70784c1",
+        "size": 118146,
+        "sha256": "0b464550366ed72a6cad9c357e19ac4c83fc9adc87272771479138129853b300"
+      },
+      "textures/grass_medium_02_diff_1k.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_diff_1k.jpg",
+        "md5": "4bb5230e09358d60dd767331685b2d36",
+        "size": 161235,
+        "sha256": "91ae99005b449011aceb207a68a937258fd9bfd66ff367d344c50398b1df389c"
+      },
+      "textures/grass_medium_02_arm_1k.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_arm_1k.jpg",
+        "md5": "2b7a7e6f8b71fd2da62cf172d4784bbb",
+        "size": 241181,
+        "sha256": "f0d57bfd95bff7710526b49d47cf2326ee3796e425639d53b983d1472480b57d"
+      },
+      "grass_medium_02.bin": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/grass_medium_02/grass_medium_02.bin",
+        "md5": "145041ae03fe02783a0adbd1cdcb4988",
+        "size": 272048,
+        "sha256": "aa8493bc1544a89e08bf440c7ba361042bfe6ea48b1fefc7e4af2dfff42fdf4a"
+      },
+      "textures/alpha.png": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/grass_medium_02/grass_medium_02_alpha_1k.png",
+        "md5": "b231cd6a1b5eb7ae21e7c2e626f8318c",
+        "size": 110617,
+        "sha256": "15976877b3dbd22cd496a9549f1eb7d86710846a3631fb87eedbf046519e339f"
+      }
+    }
+  }
+}

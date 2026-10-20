@@ -478,11 +478,26 @@ TEST(Props, a_thousand_lamps_do_not_squeeze_out_five_benches) {
     CHECK(out.stats["byKind"]["bench"] == 5 && out.stats["placed"] == 260);
     CHECK(out.stats["droppedForBudget"] == 1005 - 260);
 }
-TEST(Props, a_bench_faces_the_street) {
+TEST(Props, a_bench_runs_parallel_to_the_street_and_faces_it) {
     const OsmNode bench{1, 0, 0, {{"amenity", "bench"}}};
-    const auto out = planProps({&bench}, [](double, double) { return P3{0, 0, 2}; }, profileByKey("PARIS"), {{{-10, 0}, {10, 0}}});
-    const double yaw = 2 * std::atan2(out.nodes[0]["transform"]["rotation"][1].get<double>(), out.nodes[0]["transform"]["rotation"][3].get<double>());
-    NEAR(std::abs(std::sin(yaw)), 1.0, 1e-9);  // along the street, which runs east-west
+    const auto bounds = modelBounds("assets/models/external/kenney_props/bench.glb");
+    CHECK(bounds.high.x - bounds.low.x > bounds.high.z - bounds.low.z);
+    for (P2 direction : {P2{1, 0}, P2{0, 1}, P2{.6, .8}, P2{-.8, .6}})
+        for (double side : {-1., 1.})
+            for (double order : {-1., 1.}) {
+                const P3 position{-direction.y * side * 2., 0., direction.x * side * 2.};
+                const Segment2 road{{-direction.x * order * 10., -direction.y * order * 10.},
+                                    {direction.x * order * 10., direction.y * order * 10.}};
+                const auto out = planProps({&bench}, [&](double, double) { return position; }, profileByKey("PARIS"), {road});
+                CHECK(out.nodes.size() == 1);
+                const auto& rotation = out.nodes[0]["transform"]["rotation"];
+                const double yaw = 2 * std::atan2(rotation[1].get<double>(), rotation[3].get<double>());
+                // Rotated local X (the bench's long edge) follows the road.
+                NEAR(direction.x * -std::sin(yaw) - direction.y * std::cos(yaw), 0., 1e-9);
+                // Local +Z faces the nearest point on the road, on either side
+                // and regardless of the road's mapped direction.
+                CHECK(-position.x * std::sin(yaw) - position.z * std::cos(yaw) > 0.);
+            }
 }
 TEST(Nature, rural_roads_gain_trees_beyond_the_shoulder) {
     const Tile tile = tileAt(2.3522, 48.8566);

@@ -9,6 +9,7 @@
 #include "peaks.hpp"
 #include "predict.hpp"
 #include "scatter.hpp"
+#include "understory.hpp"
 #include "seaice.hpp"
 #include "streets.hpp"
 #include "terrain.hpp"
@@ -594,16 +595,28 @@ CookedTile cookTile(const Observations& in) {
         // trees, not a sample of them (see kMeasuredNatureBudget).
         nature = planNature(osm, tile, anchor, ground, in.canopy ? kMeasuredNatureBudget : 320,
                             in.canopy ? &*in.canopy : nullptr, &roadside, &gardens.drives);
+        const auto coastalWater = sea ? projectWater(sea->region, anchor) : clip::Paths64{};
+        const auto understory = planUnderstory(osm, tile, anchor, ground, roadside, gardens.drives,512,
+            [&](P2 p) {return !beach.sand(p) && !clip::contains(coastalWater,p);});
+        for (const auto& node : understory.nodes) nature.nodes.push_back(node);
+        nature.stats["understory"] = understory.stats;
         const auto beforeBeachNature=nature.nodes.size();
         nature.nodes.erase(std::remove_if(nature.nodes.begin(),nature.nodes.end(),[&](const nlohmann::json& n){
             const auto name=n.value("name",std::string());
             if(name.find("osm-point")!=std::string::npos||name.find("osm-row")!=std::string::npos||
                name.find("canopy-measured")!=std::string::npos)return false;
             const auto& p=n.at("transform").at("position");
+            if (name.rfind("Understory ",0)==0 && clip::contains(coastalWater,P2{p[0].get<double>(),p[2].get<double>()})) return true;
             return beach.sand({p[0].get<double>(),p[2].get<double>()});
         }),nature.nodes.end());
         nature.stats["beachExcludedInferred"]=beforeBeachNature-nature.nodes.size();
         nature.stats["placed"]=nature.nodes.size();
+        const size_t lowCount = std::count_if(nature.nodes.begin(), nature.nodes.end(), [](const auto& n) {
+            return n.value("name",std::string()).rfind("Understory ",0)==0;
+        });
+        nature.stats["understory"]["placed"] = lowCount;
+        nature.stats["understory"]["excludedWaterOrSand"] = understory.nodes.size() - lowCount;
+        maskUnderstoryGrass(out.grass,nature.nodes);
         // The signs were placed on the surveyed ground: they stand on the dug
         // one, or on the embankment beside them.
         for (auto& n : predicted.nodes) {
@@ -615,8 +628,7 @@ CookedTile cookTile(const Observations& in) {
         // The landmark first after the ground: it is what the player came to
         // see, and the game swaps its far model out once it has streamed.
         for (auto& n : landmarks.nodes) out.props.push_back(n);
-        // The signs next: they are read from the road, so they stream while
-        // driving, when the rest of the furniture waits (native/world.cpp).
+        // Road signs precede decorative props in the bounded import queue.
         for (auto& n : predicted.nodes) out.props.push_back(n);
         for (auto& n : nature.nodes) out.props.push_back(n);
         for (auto& n : props.nodes) out.props.push_back(n);

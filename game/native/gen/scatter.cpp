@@ -91,7 +91,16 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
                 const double t = std::max(0.0, std::min(1.0, ((p.x - start.x) * dx + (p.z - start.y) * dz) / length));
                 const double px = start.x + t * dx, pz = start.y + t * dz;
                 const double d = (p.x - px) * (p.x - px) + (p.z - pz) * (p.z - pz);
-                if (d < best) { best = d; yaw = std::atan2(dx, dz); }
+                if (d < best) {
+                    best = d;
+                    yaw = std::atan2(dx, dz);
+                    if (kind.name == "bench") {
+                        // The bench's length is local X; its seat faces +Z.
+                        yaw = std::atan2(-dz, dx);
+                        if ((px - p.x) * std::sin(*yaw) + (pz - p.z) * std::cos(*yaw) < 0.)
+                            *yaw += kPi;
+                    }
+                }
             }
         }
         if (!yaw) { PyRandom yawRng = seeded(node->id, kSaltYaw); yaw = yawRng.random() * kTau; }
