@@ -44,13 +44,20 @@ observed frame rates and limitations.
 
 ## Playing
 
-On Windows, double-click `Jouer.cmd` in the repository root to build and play.
+On Windows, double-click `Play.cmd` in the repository root to build and play.
 The launcher limits compilation to two jobs when Windows denies the system
 memory query; `R1_BUILD_JOBS` can explicitly choose the compilation job count.
 
 ```powershell
 powershell -File game\Play.ps1
 ```
+
+The main menu plays `assets/audio/menu/life.mp3` once per application launch
+through SaidaEngine's `AudioManager`, without looping. Returning to the menu or
+reloading its UI does not replay it; restarting the game does. The existing
+background music continues independently. Three small white subtitles with a
+black halo appear above Go/Settings at 0–2 s, 2–4.5 s and 4.5–8 s, measured from
+the startup sound on the monotonic clock; they disappear after eight seconds.
 
 A map of the Earth opens. Search for a city or commune (Photon, while online),
 pick a suggestion, click the map or type coordinates, then press **Go**. The
@@ -2289,7 +2296,7 @@ R1World's native build now consumes SaidaEngine's source/build-tree CMake SDK.
 `CMakeLists.txt` with `SaidaEngine_DIR=../engine/build-rel/sdk`, and builds its
 `R1World` target. Ninja tracks actual C++ dependencies; the launcher no longer
 extracts flags or library lists from the engine's generated Ninja files.
-`R1_BUILD_JOBS` and `Jouer.cmd` keep their existing interfaces. The vehicle,
+`R1_BUILD_JOBS` and `Play.cmd` keep their existing interfaces. The vehicle,
 motorcycle-pose and radio integration checks also use named CMake targets.
 Geography, generation and the optional traffic integration remain game-owned.
 

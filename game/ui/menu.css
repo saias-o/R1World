@@ -1,7 +1,10 @@
 body { color: #f3f5f7; }
 #menu { position: absolute; width: 1440px; height: 900px; }
 #map { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; cursor: move; }
-#brand { position: absolute; top: 30px; left: 0; width: 1440px; margin: 0; font-size: 64px; font-weight: bold; letter-spacing: 13px; text-align: center; pointer-events: none; }
+#branding { position: absolute; top: 30px; left: 0; width: 1440px; text-align: center; pointer-events: none; }
+#brand-lockup { display: inline-block; }
+#brand { margin: 0; font-size: 64px; line-height: 75px; font-weight: bold; letter-spacing: 13px; text-align: left; }
+#engine-credit { margin: 0 13px 0 0; font-size: 14px; line-height: 18px; color: #a9bbcf; text-align: right; }
 #city-lookup { position: absolute; left: 460px; top: 132px; width: 520px; height: 56px; background-color: rgba(12, 19, 29, 0.88); border: 1px solid rgba(204, 223, 244, 0.18); border-radius: 28px; }
 #search-icon { position: absolute; left: 22px; top: 18px; width: 13px; height: 13px; border: 2px solid #a6b8cd; border-radius: 10px; pointer-events: none; }
 #search-icon div { position: absolute; left: 12px; top: 12px; width: 7px; height: 2px; background-color: #a6b8cd; transform: rotate(45deg); }
@@ -17,6 +20,7 @@ button:active { transform: translateY(1px); }
 button:focus { border-color: #c4e2ff; }
 #city-results button { display: none; width: 100%; padding: 12px 14px; margin: 0; background-color: transparent; border-width: 0; text-align: left; font-size: 16px; }
 #city-results button:hover { background-color: #25364c; }
+#startup-subtitle { display: none; position: absolute; left: 240px; bottom: 126px; width: 960px; height: 24px; margin: 0; font-size: 16px; line-height: 24px; color: #ffffff; text-align: center; font-effect: glow(1px 3px #000000); pointer-events: none; }
 #main-actions { position: absolute; left: 524px; bottom: 48px; width: 392px; height: 58px; display: flex; justify-content: center; gap: 14px; }
 #main-actions button { height: 58px; width: 188px; border-radius: 29px; font-size: 19px; letter-spacing: 1px; }
 #go { color: #111923; background-color: #edf5fb; border-color: #edf5fb; font-weight: bold; }

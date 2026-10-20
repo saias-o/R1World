@@ -23,10 +23,17 @@ foreach(stage vert frag)
 endforeach()
 
 add_executable(r1_menu_globe_test EXCLUDE_FROM_ALL native/tests_engine/menu_globe_test.cpp native/menu_globe_view.cpp)
+
 target_link_libraries(r1_menu_globe_test PRIVATE Saida::Engine)
 target_include_directories(r1_menu_globe_test PRIVATE native)
 target_compile_options(r1_menu_globe_test PRIVATE -UNDEBUG)
 set_target_properties(r1_menu_globe_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated/world-windows")
+
+add_executable(r1_menu_intro_test EXCLUDE_FROM_ALL native/tests_engine/menu_intro_test.cpp)
+target_compile_features(r1_menu_intro_test PRIVATE cxx_std_17)
+target_include_directories(r1_menu_intro_test PRIVATE native)
+target_compile_options(r1_menu_intro_test PRIVATE -UNDEBUG)
+set_target_properties(r1_menu_intro_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated/native-tests")
 
 add_executable(r1_menu_preview EXCLUDE_FROM_ALL native/tests_engine/menu_preview.cpp native/menu_globe.cpp native/menu_globe_view.cpp)
 target_link_libraries(r1_menu_preview PRIVATE Saida::Engine)

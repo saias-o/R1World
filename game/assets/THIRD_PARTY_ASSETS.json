@@ -2,6 +2,16 @@
   "schema": 1,
   "assets": [
     {
+      "name": "life.mp3 startup sound",
+      "source": "life.mp3 supplied by the project owner on 2026-10-20",
+      "license": "Not specified by the provider",
+      "sourceSha256": "e2f59368172efca28009dd6cccb003f516adaeb46fff721292da372de2a8afcf",
+      "modified": "Unmodified MP3; played once per application launch through SaidaEngine AudioManager, independently of the menu background music.",
+      "files": [
+        "assets/audio/menu/life.mp3"
+      ]
+    },
+    {
       "name": "Sentinel-2 cloudless 2016 menu globe imagery",
       "author": "EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016)",
       "source": "https://s2maps.eu",

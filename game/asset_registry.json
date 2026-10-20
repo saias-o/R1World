@@ -3300,6 +3300,11 @@
             "path": "assets/textures/facades/brick_dark_and_window_albedo.jpg",
             "type": "Texture"
         },
+        "17696609549917261071": {
+            "hash": 5253311788745646698,
+            "path": "assets/audio/menu/life.mp3",
+            "type": "Unknown"
+        },
         "17706538492136850522": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-30_-120.r1relief",
@@ -6126,7 +6131,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 12464696948456047762,
+            "hash": 13383877412461731987,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },

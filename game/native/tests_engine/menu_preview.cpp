@@ -1,4 +1,5 @@
 #include "menu_globe.hpp"
+#include "menu_intro.hpp"
 #include "Engine.hpp"
 #include "core/Window.hpp"
 #include "scene/Scene.hpp"
@@ -22,6 +23,12 @@ int main(int argc,char** argv) {
     }
     if(argc>4)globe->view.zoom=std::stod(argv[4]);
     if(argc>6){globe->view.lon=std::stod(argv[5]);globe->view.lat=std::stod(argv[6]);}
+    // Optional eighth argument freezes a subtitle time for visual inspection.
+    if(argc>7) {
+        const std::string subtitle(r1::MenuIntro::subtitleAt(std::stod(argv[7])));
+        canvas->executeJS("document.getElementById('startup-subtitle').textContent="+nlohmann::json(subtitle).dump()+
+            ";document.getElementById('startup-subtitle').style.display='"+(subtitle.empty()?"none":"block")+"';");
+    }
     // Detail layers from whatever the game already cached for this view.
     {
         const int level=globe->view.tileLevel(900);

@@ -52,11 +52,11 @@ From the repository root in **PowerShell**:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File game\Play.ps1 -BuildOnly
-.\Jouer.cmd
+.\Play.cmd
 ```
 
 The launcher builds both SaidaEngine and R1World using `RelWithDebInfo`, then
-starts the game unless `-BuildOnly` is set. You can also double-click `Jouer.cmd`.
+starts the game unless `-BuildOnly` is set. You can also double-click `Play.cmd`.
 The game executable is `game/generated/world-windows/R1World.exe`.
 An internet connection fetches geographic data for new locations; visited areas
 are cached locally.
