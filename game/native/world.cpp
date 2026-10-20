@@ -7687,7 +7687,10 @@ public:
         if(zoom!=1)return fail("zoom must keep the whole-Earth lower bound");
         zoomMap(1e9);
         if(zoom!=131072.)return fail("zoom must keep the street-level upper bound");
+        // Whole Earth lives on the Destination tab: press it where a player can.
+        showOptions(true);ui->executeJS("showSettingsTab('destination');");
         testClick("reset-map");
+        ui->executeJS("showSettingsTab('time');");showOptions(false);
         if(zoom!=1)return fail("reset must restore the whole Earth");
         zoomMap(previousZoom);
         saida::Log::info("[World menu E2E] PASS zoom: bounds and reset");
@@ -7718,10 +7721,12 @@ public:
         if(forcedMinutes||forcedSent)return fail("Real time did not give the Sun back to the clock");
         // From the menu no tile may be resident yet: forcing the weather there
         // once threw "Missing terrain" and closed the game.
+        ui->executeJS("showSettingsTab('weather');");
         testClick("weather-clear",false);
         if(forcedWeather!=r1::WeatherOverride::Clear)return fail("Clear sky did not force clear weather");
         testClick("weather-real",false);
         if(forcedWeather!=r1::WeatherOverride::Real)return fail("Real weather did not restore the forecast");
+        ui->executeJS("showSettingsTab('graphics');");
         testClick("toaster-on",false);
         if(!toasterMode)return fail("Mode grille-pain did not enable toaster mode");
         testClick("toaster-off",false);
@@ -7731,11 +7736,13 @@ public:
         {
             const std::string latitude=value("latitude"),longitude=value("longitude");
             const bool wasPending=pending;
+            ui->executeJS("showSettingsTab('destination');");
             field("latitude",std::string("91"));testClick("destination-go",false);
             if(!optionsOpen||pending!=wasPending)return fail("Go accepted latitude 91 or left the settings");
             if(auto* status=ui->findElementById("destination-status");!status||status->GetInnerRML().empty())
                 return fail("Go refused latitude 91 without saying why");
             field("latitude",latitude);field("longitude",longitude);
+            ui->executeJS("showSettingsTab('time');");
         }
         testClick("options-back",false);
         if(optionsOpen)return fail("Retour did not close the screen");
@@ -8655,21 +8662,25 @@ public:
                 if(menuSmoke){engine.sceneTree().quit();return;}
                 if(smoke) {
                     double sx=pickLon,sy=pickLat;
-                    testClick("map");
-                    double expectedLon=10./r1::MapView::width*360.-180.,expectedLat=90.-10./r1::MapView::height*180.;
-                    if(std::abs(pickLon-expectedLon)>1e-5||std::abs(pickLat-expectedLat)>1e-5){
-                        saida::Log::error("[World E2E] FAIL map click coordinate conversion");testFailed=true;engine.sceneTree().quit();return;
+                    // A press and release on the globe picks the point under
+                    // it, through the same projection the globe is drawn with.
+                    {
+                        const double cx=ui->width()*.5,cy=ui->height()*r1::GlobeView::centreY;
+                        if(auto* map=ui->findElementById("map"))map->GetContext()->Update();
+                        const auto expected=globe->view.pick(cx,cy,ui->width(),ui->height());
+                        ui->fireMouseEvent(saida::WebCanvasNode::MouseEvent::Move,int(cx),int(cy),saida::WebCanvasNode::MouseButton::None);
+                        ui->fireMouseEvent(saida::WebCanvasNode::MouseEvent::Down,int(cx),int(cy),saida::WebCanvasNode::MouseButton::Left);
+                        ui->fireMouseEvent(saida::WebCanvasNode::MouseEvent::Up,int(cx),int(cy),saida::WebCanvasNode::MouseButton::Left);
+                        if(!expected||std::abs(std::remainder(pickLon-expected->lon,360.))>1e-3||std::abs(pickLat-expected->lat)>1e-3){
+                            saida::Log::error("[World E2E] FAIL globe click picks ",pickLon,", ",pickLat);testFailed=true;engine.sceneTree().quit();return;
+                        }
                     }
-                    select(sx,sy);zoomMap(2);
-                    const r1::MapPoint zoomClick=r1::MapView(sx,sy,mapZoomLevel()).pointAt(10,10);
-                    testClick("map");
-                    if(std::abs(pickLon-zoomClick.lon)>1e-5||std::abs(pickLat-zoomClick.lat)>1e-5){
-                        saida::Log::error("[World E2E] FAIL detailed map click coordinate conversion");
-                        testFailed=true;engine.sceneTree().quit();return;
-                    }
-                    select(sx,sy);testClick("street-map",false);
-                    if(mapZoomLevel()!=17){
-                        saida::Log::error("[World E2E] FAIL street map zoom level");testFailed=true;engine.sceneTree().quit();return;
+                    select(sx,sy);
+                    showOptions(true);ui->executeJS("showSettingsTab('destination');");
+                    testClick("street-map",false);
+                    ui->executeJS("showSettingsTab('time');");showOptions(false);
+                    if(zoom<32768.){
+                        saida::Log::error("[World E2E] FAIL street view zoom ",zoom);testFailed=true;engine.sceneTree().quit();return;
                     }
                     zoomMap(1);
                     showCityChoices({{"Paris","Paris · France",2.3522,48.8566}});
