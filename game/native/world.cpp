@@ -2515,6 +2515,22 @@ class World : public Rml::EventListener {
     static constexpr double kMenuMusicFade=1.5; // seconds, either way
     saida::AudioID menuMusic=saida::kInvalidAudioID; float menuMusicGain=0; bool menuMusicSaid=false;
     r1::MenuIntro menuIntro;
+    void updateMenuIntro() {
+        if(!smoke&&menuIntro.takeStart()) {
+            saida::AudioSettings startupSound;
+            startupSound.loop=false;
+            startupSound.spatialized=false;
+            const auto id=saida::AudioManager::get().play("assets/audio/menu/life.mp3",startupSound);
+            if(id==saida::kInvalidAudioID)saida::Log::error("[World menu] startup sound life.mp3 could not play");
+            else {
+                menuIntro.start();
+                saida::Log::info("[World menu] startup sound life.mp3 started once after the 3-second delay");
+            }
+        }
+        const auto subtitle=menuIntro.subtitle();
+        text("startup-subtitle",std::string(subtitle));
+        style("startup-subtitle","display",!subtitle.empty()&&!pending?"block":"none");
+    }
     void updateMenuMusic(double dt) {
         if(smoke)return;
         auto& audio=saida::AudioManager::get();
@@ -2550,9 +2566,7 @@ class World : public Rml::EventListener {
     }
     void updateGlobe(double dt) {
         updateMenuMusic(dt);
-        const auto subtitle=menuIntro.subtitle();
-        text("startup-subtitle",std::string(subtitle));
-        style("startup-subtitle","display",!subtitle.empty()&&!pending?"block":"none");
+        updateMenuIntro();
         if(!globe)return;
         globe->visible=menu;
         if(!menu)return;
@@ -7591,7 +7605,6 @@ public:
         globe=std::move(model);globeTarget=globe->view;
     }
     bool failed() const {return testFailed;}
-    void startIntroSubtitles() {menuIntro.start();}
     void inspectInstant(double unixSeconds) {inspectAt=unixSeconds;}
     void inspectConditions(std::array<double,3> conditions) {
         if(!inspectAt||worldCapture.pngPath.empty())throw std::runtime_error("--weather requires --at and --screenshot");
@@ -9608,18 +9621,6 @@ int main(int argc,char** argv) {
             engine.setAfterSimulation(world.needsAfterSimulation()?followPhysics:saida::Engine::FrameFn{});
         });
         if(!smoke&&!capture.pngPath.empty())engine.captureFrameThenExit(capture);
-        // Process startup only: menu returns and UI reloads never replay this cue.
-        if(!smoke) {
-            saida::AudioSettings startupSound;
-            startupSound.loop=false;
-            startupSound.spatialized=false;
-            const auto id=saida::AudioManager::get().play("assets/audio/menu/life.mp3",startupSound);
-            if(id==saida::kInvalidAudioID)saida::Log::error("[World menu] startup sound life.mp3 could not play");
-            else {
-                world.startIntroSubtitles();
-                saida::Log::info("[World menu] startup sound life.mp3 started once for this application launch");
-            }
-        }
         engine.run();return engine.captureFailed()||world.failed()?1:0;
     }catch(const std::exception& e){saida::Log::error("R1World: ",e.what());return 1;}
 }

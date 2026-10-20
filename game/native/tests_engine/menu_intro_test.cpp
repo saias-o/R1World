@@ -24,16 +24,26 @@ int main() {
     const auto start = MenuIntro::Clock::time_point{};
     const auto later = [&](int milliseconds) {return start + std::chrono::milliseconds(milliseconds);};
     assert(intro.subtitle(start).empty());
-    intro.start(start);
-    assert(intro.subtitle(start) == first);
-    assert(intro.subtitle(later(2200)) == second);
-    // Returning to the menu during or after the voice never resets its clock.
+    assert(!intro.takeStart(start));
+    assert(!intro.takeStart(later(2999)));
+    assert(intro.subtitle(later(2999)).empty());
+    assert(intro.takeStart(later(3000)));
+    assert(!intro.takeStart(later(3000)));
     intro.start(later(3000));
-    assert(intro.subtitle(later(4500)) == third);
+    assert(intro.subtitle(later(3000)) == first);
+    assert(intro.subtitle(later(4999)) == first);
+    assert(intro.subtitle(later(5000)) == second);
+    // Returning to the menu during or after the voice never resets its clock.
+    intro.start(later(6000));
+    assert(intro.subtitle(later(7500)) == third);
+    assert(intro.subtitle(later(11000)).empty());
     intro.start(later(12000));
+    assert(!intro.takeStart(later(12000)));
     assert(intro.subtitle(later(12000)).empty());
     MenuIntro restarted;
-    restarted.start(later(12000));
-    assert(restarted.subtitle(later(12000)) == first);
-    std::cout << "PASS menu intro: cue boundaries, elapsed time, no replay and restart\n";
+    assert(!restarted.takeStart(later(12000)));
+    assert(restarted.takeStart(later(15000)));
+    restarted.start(later(15000));
+    assert(restarted.subtitle(later(15000)) == first);
+    std::cout << "PASS menu intro: three-second delay, cue boundaries, no replay and restart\n";
 }

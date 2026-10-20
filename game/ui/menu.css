@@ -20,7 +20,7 @@ button:active { transform: translateY(1px); }
 button:focus { border-color: #c4e2ff; }
 #city-results button { display: none; width: 100%; padding: 12px 14px; margin: 0; background-color: transparent; border-width: 0; text-align: left; font-size: 16px; }
 #city-results button:hover { background-color: #25364c; }
-#startup-subtitle { display: none; position: absolute; left: 240px; bottom: 126px; width: 960px; height: 24px; margin: 0; font-size: 16px; line-height: 24px; color: #ffffff; text-align: center; font-effect: glow(1px 3px #000000); pointer-events: none; }
+#startup-subtitle { display: none; position: absolute; left: 240px; bottom: 126px; width: 960px; height: 24px; margin: 0; font-size: 16px; line-height: 24px; color: #ffffff; text-align: center; font-effect: glow(3px 8px #000000); pointer-events: none; }
 #main-actions { position: absolute; left: 524px; bottom: 48px; width: 392px; height: 58px; display: flex; justify-content: center; gap: 14px; }
 #main-actions button { height: 58px; width: 188px; border-radius: 29px; font-size: 19px; letter-spacing: 1px; }
 #go { color: #111923; background-color: #edf5fb; border-color: #edf5fb; font-weight: bold; }

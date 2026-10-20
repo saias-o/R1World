@@ -53,8 +53,9 @@ powershell -File game\Play.ps1
 ```
 
 The main menu plays `assets/audio/menu/life.mp3` once per application launch
-through SaidaEngine's `AudioManager`, without looping. Returning to the menu or
-reloading its UI does not replay it; restarting the game does. The existing
+through SaidaEngine's `AudioManager`, after a three-second delay, without looping.
+Returning to the menu or reloading its UI does not replay it; restarting the game
+does. The existing
 background music continues independently. Three small white subtitles with a
 black halo appear above Go/Settings at 0–2 s, 2–4.5 s and 4.5–8 s, measured from
 the startup sound on the monotonic clock; they disappear after eight seconds.

@@ -11,6 +11,13 @@ class MenuIntro {
 public:
     using Clock = std::chrono::steady_clock;
 
+    bool takeStart(Clock::time_point now = Clock::now()) {
+        if (!shown_) shown_ = now;
+        if (attempted_ || now - *shown_ < kStartupDelay) return false;
+        attempted_ = true;
+        return true;
+    }
+
     void start(Clock::time_point now = Clock::now()) {
         if (!started_) started_ = now;
     }
@@ -26,6 +33,7 @@ public:
     }
 
 private:
+    static constexpr auto kStartupDelay = std::chrono::seconds(3);
     struct Cue { double begin, end; std::string_view text; };
     static constexpr std::array<Cue, 3> kCues{{
         {0.0, 2.0, "Welcome to Earth."},
@@ -33,6 +41,8 @@ private:
         {4.5, 8.0, "of all that is left to discover, learn, and explore."},
     }};
     std::optional<Clock::time_point> started_;
+    std::optional<Clock::time_point> shown_;
+    bool attempted_ = false;
 };
 
 } // namespace r1
