@@ -31,10 +31,10 @@ inline const char* weatherOverrideKey(WeatherOverride mode) {
 }
 inline const char* weatherOverrideLabel(WeatherOverride mode) {
     switch (mode) {
-    case WeatherOverride::Clear: return "Dégagé";
-    case WeatherOverride::LightRain: return "Petite pluie";
-    case WeatherOverride::Storm: return "Forte pluie / orage";
-    default: return "Météo réelle";
+    case WeatherOverride::Clear: return "Clear sky";
+    case WeatherOverride::LightRain: return "Light rain";
+    case WeatherOverride::Storm: return "Heavy rain / storm";
+    default: return "Real weather";
     }
 }
 

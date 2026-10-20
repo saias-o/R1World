@@ -22,5 +22,5 @@ TEST(Minimap, cached_osm_roads_and_addresses_drive_the_hud) {
     neighbour.cities["Lyon"] = 100;
     CHECK(miniMapPlace({&tile, &neighbour}, {}, {{"FR", "France"}}, "", 0.0, 0.0) == "Paris · France");
     CHECK(miniMapPlace({}, {{"Europe/Paris", "FR"}}, {{"FR", "France"}}, "Europe/Paris", 0.0, 0.0) ==
-          "Ville non renseignée · France");
+          "Unknown city · France");
 }

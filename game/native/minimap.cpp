@@ -174,8 +174,8 @@ std::string miniMapPlace(const std::vector<const MiniMapTile*>& tiles,
     auto found = countryNames.find(code);
     if (found != countryNames.end()) country = found->second;
     else if (!code.empty()) country = code;
-    return (city.empty() ? "Ville non renseignée" : city) + " · " +
-           (country.empty() ? "Pays non renseigné" : country);
+    return (city.empty() ? "Unknown city" : city) + " · " +
+           (country.empty() ? "Unknown country" : country);
 }
 
 }  // namespace r1

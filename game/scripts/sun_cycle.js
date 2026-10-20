@@ -222,6 +222,17 @@ function solarGeometry(t) {
     return { declination: declination, equationOfTime: equationOfTime };
 }
 
+// Where the Sun stands at the zenith at gameTime(): the menu globe lights the
+// Earth from it, so the globe and the world cannot disagree about the hour.
+// Latitude is the declination; longitude is where the hour angle is zero.
+function subsolarPoint() {
+    const unixSeconds = gameTime();
+    const geometry = solarGeometry(julianCentury(unixSeconds));
+    const minutes = (((unixSeconds % 86400.0) + 86400.0) % 86400.0) / 60.0;
+    const lon = (720.0 - minutes - geometry.equationOfTime) / 4.0;
+    return { lon: ((lon + 180.0) % 360.0 + 360.0) % 360.0 - 180.0, lat: geometry.declination };
+}
+
 function refraction(trueElevation) {
     if (trueElevation > 85.0) return 0.0;
     const tanE = Math.tan(trueElevation * RAD);
@@ -592,8 +603,10 @@ function refreshSun() {
 
     const sky = skyLight(light.sun.elevation);
     scene.setSetting("ambientLight", sky.ambient);
-    // The horizon band is both the fog and what shows behind the sky: one
-    // colour, because they are one scattering column.
+    // The horizon band is what shows behind the sky, and the fog's colour
+    // until the sky has loaded: the scene's fogSkyColor then has the engine
+    // take the fog from the sky as rendered (photograph and storm clouds), so
+    // far buildings fade into the very sky behind them.
     scene.setSetting("fogColor", sky.horizonColor);
     scene.setSetting("clearColor", sky.horizonColor);
     scene.setSetting("fogDensity", aerosolAtSeaLevel());

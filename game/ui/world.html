@@ -1,49 +1,72 @@
-<rml>
-<head><title>R1World — La Terre, à votre rythme</title><link type="text/rcss" href="world.css"/></head>
+<!doctype html>
+<html>
+<head>
+ <title>R1WORLD</title>
+ <link rel="stylesheet" href="world.css">
+ <link rel="stylesheet" href="menu.css">
+ <script src="world.js"></script>
+</head>
 <body>
- <div id="menu">
-  <div id="brand">R1<span>WORLD</span></div><div id="engine">EXPLORATION LIBRE / SAIDA ENGINE</div>
-  <h1>Votre prochain point de départ.</h1>
-  <p id="intro">Choisissez un endroit sur Terre, puis appuyez sur Go.</p>
-  <div id="map" class="ui-hit"><img id="earth" src="earth.png"/><div id="map-tiles"></div><div id="pin">+</div><div id="map-detail-status"></div><div id="map-attribution">© OpenStreetMap contributors</div></div>
-  <div id="map-tools"><button id="zoom-in">+</button><button id="zoom-out">−</button><button id="street-map">Vue rue</button><button id="reset-map">Terre entière</button></div>
-  <div id="city-lookup"><label for="city-query">VILLE OU COMMUNE</label><input id="city-query" type="text" placeholder="Rechercher une ville…"/></div>
-  <div id="city-results"><div id="city-feedback"></div><button id="city-choice-0"></button><button id="city-choice-1"></button><button id="city-choice-2"></button><button id="city-choice-3"></button><button id="city-choice-4"></button></div>
-  <div id="places"><button id="paris">Paris</button><button id="tokyo">Tokyo</button><button id="newyork">New York</button><button id="lawrence">Lawrence</button><button id="cape">Le Cap</button><button id="sydney">Sydney</button><button id="pole">Pôle Nord</button></div>
-  <div id="destination"><label>LATITUDE</label><input id="latitude" type="text" value="48.856600"/><label>LONGITUDE</label><input id="longitude" type="text" value="2.352200"/><button id="go">Go</button><button id="resume">Reprendre</button><button id="options">Options</button></div>
-  <p id="status">Carte prête. Sélectionnez votre destination.</p>
-  <div id="credits">Carte : Natural Earth · Bâtiments et routes : © OpenStreetMap · Recherche : Photon / OpenStreetMap · Relief : IGN RGE ALTI · Terrain Tiles (Mapzen ; USGS SRTM/3DEP/GMTED, NOAA ETOPO1, EU-DEM Copernicus, Geoscience Australia, Kartverket, LINZ, Environment Agency, INEGI, Gouvernement du Canada, DGM Österreich, ArcticDEM) · Copernicus DEM / Open-Meteo · Sommets : © OpenStreetMap · Météo : Open-Meteo · Banquise : NOAA PolarWatch (ASCAT) · Canopée : Meta & WRI (CC BY 4.0) · Personnages : Microsoft Rocketbox (MIT) · Voitures : Ruff (Ford Focus, Blend Swap 76275), Scopia et Space Mushrooms / Sweet Home 3D (CC BY 3.0) · Motos : Innerscene (CC0 1.0) · Catalogue radio : Radio Browser (stations et flux de leurs diffuseurs)</div>
- </div>
- <div id="options-screen">
-  <div id="options-brand">R1<span>WORLD</span></div>
-  <h1>Options</h1>
-  <div id="forced-hour">
-   <label for="forced-time">FORCER L’HEURE À :</label><input id="forced-time" type="text" placeholder="HH:MM"/><button id="forced-apply">Appliquer</button><button id="forced-clear">Heure réelle</button>
-   <div id="forced-presets"><button id="forced-preset-8">08:00</button><button id="forced-preset-12">12:00</button><button id="forced-preset-17">17:00</button><button id="forced-preset-22">22:00</button></div>
-   <p id="forced-help">L’heure s’applique au monde entier, à l’heure locale de chaque lieu : 14:00 donne 14:00 à Paris comme à Tokyo. Le Soleil, le ciel, la foule et les navires suivent.</p>
-   <p id="options-status"></p>
+ <main id="menu">
+  <div id="map" class="ui-hit"></div>
+  <div id="pin"><div id="pin-core"></div></div>
+  <h1 id="brand">R1WORLD</h1>
+  <div id="city-lookup">
+   <div id="search-icon"><div></div></div>
+   <input id="city-query" type="text" placeholder="Search for a place…" aria-label="Search for a city or town">
   </div>
-  <div id="weather-options">
-   <label>MÉTÉO DANS LE MONDE</label>
-   <div id="weather-presets"><button id="weather-real" class="weather-option selected">Météo réelle</button><button id="weather-clear" class="weather-option">Dégagé</button><button id="weather-light-rain" class="weather-option">Petite pluie</button><button id="weather-storm" class="weather-option">Forte pluie / orage</button></div>
-   <p id="weather-options-help">Votre choix s’applique partout dans le monde, même après un changement de destination. « Météo réelle » retrouve la météo locale.</p>
-   <p id="weather-options-status">Météo réelle : chaque lieu suit sa météo locale.</p>
+  <div id="city-results">
+   <div id="city-feedback"></div>
+   <button id="city-choice-0"></button><button id="city-choice-1"></button><button id="city-choice-2"></button><button id="city-choice-3"></button><button id="city-choice-4"></button>
   </div>
-   <div id="toaster-options">
-    <label>PERFORMANCES DU MONDE</label>
-    <div id="toaster-presets"><button id="toaster-off" class="toaster-option selected">Qualité standard</button><button id="toaster-on" class="toaster-option">Mode grille-pain</button></div>
-    <p id="toaster-options-help">Pour jouer fluidement même sur des PC très modestes : résolution 720p, arbres en LOD intermédiaire/lointain uniquement, distance d’affichage réduite avec brouillard.</p>
-    <p id="toaster-options-status">Qualité standard : graphismes et distance normaux.</p>
-   </div>
-  <button id="options-back">Retour</button>
- </div>
+  <div id="main-actions"><button id="go">Go</button><button id="options">Settings</button></div>
+  <div id="status"></div>
+  <div id="map-detail-status"></div>
+  <div id="map-attribution">© OpenStreetMap contributors</div>
+ </main>
+ <section id="options-screen" class="ui-hit">
+  <div id="settings-card">
+   <h2>Settings</h2><button id="options-back" aria-label="Close settings">×</button>
+   <nav id="settings-tabs">
+    <button class="settings-tab active" data-tab="time" aria-selected="true">Time</button>
+    <button class="settings-tab" data-tab="weather">Weather</button>
+    <button class="settings-tab" data-tab="graphics">Graphics</button>
+    <button class="settings-tab" data-tab="destination">Destination</button>
+    <button class="settings-tab" data-tab="credits">Credits</button>
+   </nav>
+   <section id="settings-time" class="settings-panel active">
+    <div id="forced-hour"><label for="forced-time">Local time</label><div class="form-row"><input id="forced-time" type="text" placeholder="HH:MM"><button id="forced-apply" class="primary">Apply</button><button id="forced-clear">Real time</button></div>
+    <div id="forced-presets" class="chips"><button id="forced-preset-8">08:00</button><button id="forced-preset-12">12:00</button><button id="forced-preset-17">17:00</button><button id="forced-preset-22">22:00</button></div>
+    <p id="options-status" class="feedback"></p></div>
+   </section>
+   <section id="settings-weather" class="settings-panel">
+    <div id="weather-presets" class="choice-grid"><button id="weather-real" class="weather-option selected">Real weather</button><button id="weather-clear" class="weather-option">Clear sky</button><button id="weather-light-rain" class="weather-option">Light rain</button><button id="weather-storm" class="weather-option">Storm</button></div>
+    <p id="weather-options-status" class="feedback"></p>
+   </section>
+   <section id="settings-graphics" class="settings-panel">
+    <div id="toaster-presets" class="choice-grid"><button id="toaster-off" class="toaster-option selected">Standard quality</button><button id="toaster-on" class="toaster-option">Toaster mode</button></div>
+    <p class="hint">Toaster mode: 720p, reduced vegetation and draw distance.</p><p id="toaster-options-status" class="feedback"></p>
+   </section>
+   <section id="settings-destination" class="settings-panel">
+    <div class="form-row"><div><label for="latitude">Latitude</label><input id="latitude" type="text" value="48.856600"></div><div><label for="longitude">Longitude</label><input id="longitude" type="text" value="2.352200"></div><button id="destination-go" class="primary">Go</button></div>
+    <p id="destination-status" class="feedback"></p>
+    <div class="chips"><button id="street-map">Street view</button><button id="reset-map">Whole Earth</button><button id="resume">Resume</button></div>
+    <div id="places" class="chips"><button id="paris">Paris</button><button id="tokyo">Tokyo</button><button id="newyork">New York</button><button id="lawrence">Lawrence</button><button id="cape">Cape Town</button><button id="sydney">Sydney</button><button id="pole">North Pole</button></div>
+   </section>
+   <section id="settings-credits" class="settings-panel">
+    <p class="description">R1World · Saida Engine</p>
+    <p id="globe-credits">Earth &amp; Milky Way textures: Solar System Scope / INOVE, based on NASA imagery. CC BY 4.0 — solarsystemscope.com/textures. Day map 8K; clouds, night lights and Milky Way 2K. Animated lighting and atmosphere by R1World.</p>
+    <div id="credits">Map: Natural Earth · Buildings and roads: © OpenStreetMap · Search: Photon / OpenStreetMap · Relief: IGN RGE ALTI · Terrain Tiles (Mapzen ; USGS SRTM/3DEP/GMTED, NOAA ETOPO1, EU-DEM Copernicus, Geoscience Australia, Kartverket, LINZ, Environment Agency, INEGI, Government of Canada, DGM Österreich, ArcticDEM) · Copernicus DEM / Open-Meteo · Peaks: © OpenStreetMap · Weather: Open-Meteo · Sea ice: NOAA PolarWatch (ASCAT) · Canopy: Meta & WRI (CC BY 4.0) · Characters: Microsoft Rocketbox (MIT) · Cars: Ruff (Ford Focus, Blend Swap 76275), Scopia and Space Mushrooms / Sweet Home 3D (CC BY 3.0) · Motorcycles: Innerscene (CC0 1.0) · Radio catalogue: Radio Browser (stations and their broadcasters' streams)</div>
+   </section>
+  </div>
+ </section>
  <div id="hud"><div id="coordinates"></div><div id="stream-status"></div><div id="local-conditions"></div><div id="vehicle-radio"></div>
-  <div id="controls">ZQSD / WASD : marcher ou conduire · Maj : courir · F : monter / descendre (voiture, bateau, avion, hélicoptère) · Espace : sauter, frein à main, cabrer ou monter · Souris : caméra · Clic : frapper / tirer · Clic droit : viser · 1 / 2 : poings / pistolet · E : recharger · B : radio · N : station · T : code de triche · R : FPS / debug · M / Échap : carte</div>
-  <div id="combat"><div id="weapon-name">Poings</div><div id="weapon-ammo"></div><div id="health-row"><div id="health-bar"><div id="health-fill"></div></div><span id="health-value">100</span></div><div id="shield"></div></div>
-  <div id="cheat"><span id="cheat-label">CODE</span><input id="cheat-input" type="text" maxlength="24"/><span id="cheat-help">Entrée : valider · Échap : fermer</span></div>
+  <div id="controls">WASD / ZQSD: walk or drive · Shift: run · F: get in / out (car, boat, plane, helicopter) · Space: jump, handbrake, pitch up or climb · Mouse: camera · Click: punch / shoot · Right click: aim · 1 / 2: fists / pistol · E: reload · B: radio · N: station · T: cheat code · R: FPS / debug · M / Esc: map</div>
+  <div id="combat"><div id="weapon-name">Fists</div><div id="weapon-ammo"></div><div id="health-row"><div id="health-bar"><div id="health-fill"></div></div><span id="health-value">100</span></div><div id="shield"></div></div>
+  <div id="cheat"><span id="cheat-label">CODE</span><input id="cheat-input" type="text" maxlength="24"/><span id="cheat-help">Enter: confirm · Esc: close</span></div>
   <div id="cheat-said"></div>
   <div id="crosshair">+</div>
   <div id="hurt"></div>
-  <div id="wasted"><div id="wasted-title">MORT</div><div id="wasted-detail"></div></div></div>
+  <div id="wasted"><div id="wasted-title">WASTED</div><div id="wasted-detail"></div></div></div>
 </body>
-</rml>
+</html>

@@ -51,8 +51,8 @@ struct WeaponSpec {
 
 // A Glock-class pistol: 9 mm, 17 rounds; the impulse is a game's, enough to
 // spin a body already falling, far above what a round really transfers.
-constexpr WeaponSpec kFists{"Poings", 14, 1.4, 1.5, 0.38, 0, 0, 0, 55};
-constexpr WeaponSpec kPistol{"Pistolet", 34, 3.2, 80, 0.2, 0.012, 1.4, 17, 40};
+constexpr WeaponSpec kFists{"Fists", 14, 1.4, 1.5, 0.38, 0, 0, 0, 55};
+constexpr WeaponSpec kPistol{"Pistol", 34, 3.2, 80, 0.2, 0.012, 1.4, 17, 40};
 inline const WeaponSpec& spec(Weapon w) { return w == Weapon::Pistol ? kPistol : kFists; }
 
 // What the player carries: the weapon in hand, the rounds, and the clock of

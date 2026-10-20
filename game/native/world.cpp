@@ -65,6 +65,8 @@
 #include "gen/service.hpp"
 #include "gen/terrain.hpp"
 #include "minimap.hpp"
+#include "menu_globe.hpp"
+#include <RmlUi/Core/Context.h>
 #include "weather.hpp"
 #include "forced_time.hpp"
 #include "density_policy.hpp"
@@ -83,6 +85,7 @@
 #include <chrono>
 #include <cstring>
 #include <functional>
+#include <unordered_set>
 #include <future>
 #include <mutex>
 #include <thread>
@@ -151,7 +154,7 @@ constexpr double kOnFootFollow=3.8,kDrivingFollow=8.5;
 constexpr double kAimFollow=1.9,kAimShoulder=.42;
 // One message for the whole wait after Go: every change of the status line
 // re-renders the interface, a quarter of a second on the map screen.
-constexpr const char* kPreparing="Préparation du terrain de départ… Vous pouvez changer de destination.";
+constexpr const char* kPreparing="Preparing the starting area… You can still change destination.";
 // ── boats ───────────────────────────────────────────────────────────────────
 // A boat is sailed the way the car is driven: a longitude, a latitude and a
 // heading moved in the tangent plane, with one authority on position for the
@@ -620,54 +623,97 @@ struct Loaded {
 // Interactive map tiles are requested only when their pixels are on screen.
 // A completed PNG is cached indefinitely, satisfying the tile server's
 // minimum seven-day cache rule without conditional re-downloads.
+// One remote tile layer of the menu globe, cached on disk for good: a place
+// already looked at never touches the network again.
 class MenuTileCache {
-    struct Result { bool ready=false; std::string error; };
+public:
+    struct Source {
+        std::string name;      // cache folder, and what the log calls it
+        std::string extension; // ".png" / ".jpg", checked by signature
+        std::function<std::string(const r1::MapTile&)> url;
+        size_t parallel=1;     // the provider's connection policy
+    };
+private:
+    // `refused`: the server answered without an image for that tile, which no
+    // retry will change; anything else is the network, retried after a pause.
+    struct Result { bool ready=false,refused=false; std::string error; };
+    Source source;
     fs::path root;
     std::vector<r1::MapTile> visibleTiles;
-    std::future<Result> flight;
+    std::vector<std::pair<std::string,std::future<Result>>> flights;
+    std::unordered_set<std::string> present,absent,checkedAbsent;
     std::chrono::steady_clock::time_point retryAfter{};
     std::string lastError;
-public:
-    explicit MenuTileCache(fs::path project):root(std::move(project)/"cache/map-tiles/osm"){}
-    fs::path path(const r1::MapTile& tile) const {
-        return root/std::to_string(tile.z)/std::to_string(tile.x)/(std::to_string(tile.y)+".png");
+    static std::string key(const r1::MapTile& t){return std::to_string(t.z)+"/"+std::to_string(t.x)+"/"+std::to_string(t.y);}
+    // Either format, whatever the extension: EOX answers a plain area (open
+    // sea, no data) with a tiny PNG. The decoder reads the signature.
+    static bool validImage(const std::string& body) {
+        return (body.size()>8&&std::memcmp(body.data(),"\x89PNG\r\n\x1a\n",8)==0)||
+               (body.size()>3&&std::memcmp(body.data(),"\xff\xd8\xff",3)==0);
     }
-    bool ready(const r1::MapTile& tile) const {
+public:
+    MenuTileCache(fs::path project,Source s):source(std::move(s)),root(std::move(project)/"cache/map-tiles"/source.name){}
+    fs::path path(const r1::MapTile& tile) const {
+        return root/std::to_string(tile.z)/std::to_string(tile.x)/(std::to_string(tile.y)+source.extension);
+    }
+    // Asked every frame for every visible tile and its ancestors: the disk is
+    // consulted once per tile, then remembered.
+    bool ready(const r1::MapTile& tile) {
+        const auto k=key(tile);
+        if(present.count(k))return true;
+        std::error_code ec;const auto p=path(tile);
+        if(!fs::is_regular_file(p,ec)||fs::file_size(p,ec)<=8)return false;
+        present.insert(k);return true;
+    }
+    // A tile the server has no image for: left out of what a view waits for,
+    // and remembered on disk (an empty "<y>.none" beside where the image would
+    // be) so no later session asks again.
+    fs::path marker(const r1::MapTile& tile) const {return path(tile).string()+".none";}
+    bool missingForGood(const r1::MapTile& tile) {
+        const auto k=key(tile);
+        if(absent.count(k))return true;
+        if(!checkedAbsent.insert(k).second)return false;
         std::error_code ec;
-        const auto p=path(tile);
-        return fs::is_regular_file(p,ec)&&fs::file_size(p,ec)>8;
+        if(!fs::exists(marker(tile),ec))return false;
+        absent.insert(k);return true;
     }
     void setVisible(std::vector<r1::MapTile> tiles){visibleTiles=std::move(tiles);}
-    size_t missing() const {
-        return size_t(std::count_if(visibleTiles.begin(),visibleTiles.end(),[&](const auto& tile){return !ready(tile);}));
+    size_t missing() {
+        return size_t(std::count_if(visibleTiles.begin(),visibleTiles.end(),[&](const auto& tile){return !ready(tile)&&!missingForGood(tile);}));
     }
     bool unavailable() const {return !lastError.empty()&&std::chrono::steady_clock::now()<retryAfter;}
     bool pump() {
         const auto now=std::chrono::steady_clock::now();
         bool changed=false;
-        if(flight.valid()) {
-            if(flight.wait_for(std::chrono::seconds(0))!=std::future_status::ready)return false;
-            const Result result=flight.get();
-            if(result.ready){lastError.clear();changed=true;}
-            else {
+        for(auto it=flights.begin();it!=flights.end();) {
+            if(it->second.wait_for(std::chrono::seconds(0))!=std::future_status::ready){++it;continue;}
+            const Result result=it->second.get();
+            if(result.ready){lastError.clear();present.insert(it->first);}
+            else if(result.refused) {
+                absent.insert(it->first);
+                {std::error_code ec;fs::create_directories(root/it->first.substr(0,it->first.rfind('/')),ec);}
+                std::ofstream(root/(it->first+source.extension+".none"));
+                saida::Log::info("[World map] ",source.name," has no tile ",it->first,": ",result.error);
+            } else {
                 lastError=result.error;
                 retryAfter=now+std::chrono::seconds(30);
-                saida::Log::info("[World map] detailed tiles unavailable: ",lastError);
-                changed=true;
+                saida::Log::info("[World map] ",source.name," tiles unavailable: ",lastError);
             }
+            changed=true;it=flights.erase(it);
         }
         if(now<retryAfter)return changed;
         for(const auto& tile:visibleTiles) {
-            if(ready(tile))continue;
+            if(flights.size()>=source.parallel)break;
+            const auto k=key(tile);
+            if(ready(tile)||missingForGood(tile)||std::any_of(flights.begin(),flights.end(),[&](const auto& f){return f.first==k;}))continue;
             const fs::path target=path(tile);
-            flight=std::async(std::launch::async,[tile,target]() -> Result {
+            const std::string url=source.url(tile);
+            flights.emplace_back(k,std::async(std::launch::async,[this,url,target]() -> Result {
                 try {
-                    const std::string url="https://tile.openstreetmap.org/"+std::to_string(tile.z)+"/"+
-                                          std::to_string(tile.x)+"/"+std::to_string(tile.y)+".png";
                     const auto response=r1::net::request("GET",url,{}, {},10.);
-                    constexpr char png[]="\x89PNG\r\n\x1a\n";
-                    if(response.status!=200||response.body.size()<8||std::memcmp(response.body.data(),png,8)!=0)
-                        return {false,"HTTP "+std::to_string(response.status)+" or invalid PNG"};
+                    if(response.status!=200||!validImage(response.body))
+                        return {false,(response.status>=400&&response.status<500)||response.status==200,
+                                "HTTP "+std::to_string(response.status)+", "+std::to_string(response.body.size())+" bytes, no image, from "+url};
                     fs::create_directories(target.parent_path());
                     const fs::path temporary=target.string()+".part";
                     {std::ofstream output(temporary,std::ios::binary);
@@ -676,11 +722,11 @@ public:
                     fs::rename(temporary,target);
                     return {true,{}};
                 } catch(const std::exception& e) {return {false,e.what()};}
-            });
-            break;
+            }));
         }
         return changed;
     }
+    ~MenuTileCache(){for(auto& f:flights)if(f.second.valid())f.second.wait();}
 };
 
 class World : public Rml::EventListener {
@@ -1358,7 +1404,7 @@ class World : public Rml::EventListener {
                 saida::Log::error("[World combat] a knocked-down body was refused by the physics world (kCombatBodies ",
                                   kCombatBodies," of kPhysicsBodies ",kPhysicsBodies,"): the person only staggers");
             if(p.body)p.body->setEnabled(true);
-            text("stream-status","Monde physique plein : la chute n’a pas pu être simulée.");
+            text("stream-status","Physics world full: the fall could not be simulated.");
             return false;
         }
         tile.crowd.knockDown(slot);
@@ -1442,7 +1488,7 @@ class World : public Rml::EventListener {
             const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown;
             if(onFoot&&glm::length(glm::vec2(to.x-from.x,to.z-from.z))<r1::Crowd::kFightReach+.45) {
                 sounds.play(r1::CombatSounds::Punch,glm::length(camera->transform().position-to));
-                hurtPlayer(r1::combat::kFists.damage*.65,glm::normalize(glm::vec3(to.x-from.x,0.f,to.z-from.z)+glm::vec3(0,.001f,0)),"un passant");
+                hurtPlayer(r1::combat::kFists.damage*.65,glm::normalize(glm::vec3(to.x-from.x,0.f,to.z-from.z)+glm::vec3(0,.001f,0)),"a passer-by");
             } else sounds.play(r1::CombatSounds::Swing,glm::length(camera->transform().position-from),.6f);
         }
         if(p.punch>=r1::combat::Punch::kRecover){p.punch=-1;if(arm)arm->release();}
@@ -1483,7 +1529,7 @@ class World : public Rml::EventListener {
         const double damage=r1::combat::fallDamage(speed);
         if(damage<=0||health.invincible())return;
         sounds.play(r1::CombatSounds::Fall,followDistance,std::min(1.,speed/12.));
-        hurtPlayer(damage,glm::vec3(0,-1,0),"la chute");
+        hurtPlayer(damage,glm::vec3(0,-1,0),"the fall");
         if(!playerDown&&damage>=35)knockPlayerDown(glm::vec3(0,-1.f,0),glm::vec3(0),false);
     }
     // A car the engine says his feet touched, closing on him: thrown.
@@ -1556,7 +1602,7 @@ class World : public Rml::EventListener {
             const double d=glm::length(point-here);
             if(d<best) {
                 best=d;const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
-                at={geo.x,geo.y};name=room.plan.name.empty()?"l’hôpital":room.plan.name;
+                at={geo.x,geo.y};name=room.plan.name.empty()?"the hospital":room.plan.name;
             }
         }
         playerRagdoll->release();
@@ -1567,14 +1613,14 @@ class World : public Rml::EventListener {
         player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+.06)));
         arrivalClock=fightClock;
         request(lon,lat);
-        respawnSaid=best<1e29?"Réveil devant "+name+".":"Aucun hôpital cartographié à proximité : réveil sur place.";
+        respawnSaid=best<1e29?"Waking up outside "+name+".":"No mapped hospital nearby: waking up where you fell.";
         saida::Log::info("[World combat] respawn ",best<1e29?"at "+name:std::string("where he fell")," (",lon,", ",lat,")");
         showWasted(false);
         text("stream-status",respawnSaid);
     }
     void showWasted(bool show) {
         style("wasted","display",show?"block":"none");
-        if(show)text("wasted-detail","Réveil à l’hôpital le plus proche…");
+        if(show)text("wasted-detail","Waking up at the nearest hospital…");
     }
 
     // ── the player's weapons ──
@@ -1849,7 +1895,7 @@ class World : public Rml::EventListener {
         fightClock+=dt;
         if(health.invincible()) {
             health.tick(dt);
-            if(!health.invincible()){cheatSay("Fin de l'invincibilité.");saida::Log::info("[World cheat] invincibility over");}
+            if(!health.invincible()){cheatSay("Invincibility over.");saida::Log::info("[World cheat] invincibility over");}
         }
         recoil=std::max(0.,recoil-dt*2.2);
         arsenal.update(dt);
@@ -1902,7 +1948,7 @@ class World : public Rml::EventListener {
         text("health-value",std::to_string(hp));
         const bool pistolHeld=arsenal.held()==r1::combat::Weapon::Pistol;
         text("weapon-name",r1::combat::spec(arsenal.held()).name);
-        text("weapon-ammo",pistolHeld?(arsenal.reloading()?"Rechargement…":std::to_string(arsenal.loaded())+" / "+std::to_string(arsenal.reserve())):"");
+        text("weapon-ammo",pistolHeld?(arsenal.reloading()?"Reloading…":std::to_string(arsenal.loaded())+" / "+std::to_string(arsenal.reserve())):"");
         style("hurt","display",fightClock-hurtShown<.45?"block":"none");
     }
 
@@ -1970,7 +2016,7 @@ class World : public Rml::EventListener {
         case Code::Invincible: health.protect(r1::cheats::kInvincibleSeconds);combatHud();break;
         case Code::Unknown: break;
         }
-        cheatSay(code==Code::Unknown?"Code inconnu : "+typed:refused.empty()?r1::cheats::said(code):refused);
+        cheatSay(code==Code::Unknown?"Unknown code: "+typed:refused.empty()?r1::cheats::said(code):refused);
         saida::Log::info("[World cheat] \"",typed,"\": ",code==Code::Unknown?"unknown":refused.empty()?"done":"refused");
     }
     // Where a vehicle `length` long and `width` wide stands parallel to the
@@ -2032,11 +2078,11 @@ class World : public Rml::EventListener {
         const bool rotor=type&&type->klass=="helicopter";
         if(!type||prototype==aircraftPrototypes.end()) {
             saida::Log::error("[World cheat] the aircraft fleet has no ",name);
-            return "Cet appareil n'est pas dans la flotte.";
+            return "This aircraft is not in the fleet.";
         }
         if(piloting&&plane.airborne) {
             saida::Log::info("[World cheat] no ",name," in flight");
-            return "Impossible en vol — posez-vous d'abord.";
+            return "Not while flying — land first.";
         }
         double x=0,y=0;
         parkingCar=true;  // a shop a walker may enter is a wall to it
@@ -2045,7 +2091,7 @@ class World : public Rml::EventListener {
         if(!found) {
             saida::Log::warn("[World cheat] no room for a ",name," (",type->length," x ",type->span,
                              " m) within 40 m of ",lon,", ",lat);
-            return std::string("Pas assez de place ici pour ")+(rotor?"un hélicoptère":"un avion")+" — trouvez un endroit dégagé.";
+            return std::string("Not enough room here for ")+(rotor?"a helicopter":"a plane")+" — find an open spot.";
         }
         auto node=clonePlant(*prototype->second);
         node->setName("cheat-"+name);
@@ -2064,11 +2110,11 @@ class World : public Rml::EventListener {
         const auto spec=std::find_if(fleet.begin(),fleet.end(),[](const VehicleModel& m){return m.name=="sport";});
         if(spec==fleet.end()) {
             saida::Log::error("[World cheat] the road vehicle fleet has no sport car");
-            return "Aucune voiture de sport dans la flotte.";
+            return "No sports car in the fleet.";
         }
         if(piloting&&plane.airborne) {
             saida::Log::info("[World cheat] no car in flight");
-            return "Impossible en vol — posez-vous d'abord.";
+            return "Not while flying — land first.";
         }
         double x=0,y=0;
         parkingCar=true;
@@ -2076,7 +2122,7 @@ class World : public Rml::EventListener {
         parkingCar=false;
         if(!found) {
             saida::Log::warn("[World cheat] no room for a car within 40 m of ",lon,", ",lat);
-            return "Pas assez de place ici pour une voiture.";
+            return "Not enough room here for a car.";
         }
         auto node=clonePlant(*spec->prototype);
         vehicleLod(*node);vehicleCollider(*node,*spec);
@@ -2096,11 +2142,11 @@ class World : public Rml::EventListener {
         const auto spec=std::find_if(fleet.begin(),fleet.end(),[&](const VehicleModel& m){return m.name==name;});
         if(spec==fleet.end()) {
             saida::Log::error("[World cheat] the road vehicle fleet has no ",name);
-            return name=="moto_cross"?"Aucune motocross dans la flotte.":"Aucune moto de ville dans la flotte.";
+            return name=="moto_cross"?"No dirt bike in the fleet.":"No city motorcycle in the fleet.";
         }
         if(piloting&&plane.airborne) {
             saida::Log::info("[World cheat] no ",name," while in flight");
-            return "Impossible en vol — posez-vous d'abord.";
+            return "Not while flying — land first.";
         }
         double x=0,y=0;
         parkingCar=true;
@@ -2108,7 +2154,7 @@ class World : public Rml::EventListener {
         parkingCar=false;
         if(!found) {
             saida::Log::warn("[World cheat] no room for a ",name," within 40 m of ",lon,", ",lat);
-            return name=="moto_cross"?"Pas assez de place ici pour une motocross.":"Pas assez de place ici pour une moto.";
+            return name=="moto_cross"?"Not enough room here for a dirt bike.":"Not enough room here for a motorcycle.";
         }
         auto node=clonePlant(*spec->prototype);
         vehicleCollider(*node,*spec);
@@ -2210,7 +2256,16 @@ class World : public Rml::EventListener {
     bool checkStanding=false;
     Frame origin; double lon=2.3522,lat=48.8566,alt=0,yaw=0,pitch=-12;
     double pickLon=2.3522,pickLat=48.8566,zoom=1,mapCenterLon=2.3522,mapCenterLat=48.8566;
-    MenuTileCache menuTiles;
+    // OpenStreetMap allows two connections (tile usage policy); EOX serves the
+    // Sentinel-2 cloudless 2016 mosaic, CC BY 4.0, under its attribution.
+    MenuTileCache menuTiles{game,{"osm",".png",[](const r1::MapTile& t){
+        return "https://tile.openstreetmap.org/"+std::to_string(t.z)+"/"+std::to_string(t.x)+"/"+std::to_string(t.y)+".png";},2}};
+    MenuTileCache imageryTiles{game,{"s2cloudless-2016",".jpg",[](const r1::MapTile& t){
+        return "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/"+std::to_string(t.z)+"/"+std::to_string(t.y)+"/"+std::to_string(t.x)+".jpg";},6}};
+    std::shared_ptr<r1::MenuGlobeState> globe;
+    r1::GlobeView globeTarget,globeDragView;
+    glm::dvec2 globePress{};
+    bool globeDragging=false,globeMoved=false;
     bool menu=true,playing=false,pending=false,warming=false,wasMenuKey=false;
     bool performanceDebug=false,debugTraffic=true,debugGrass=true,debugWater=true,debugTrees=true;
     saida::WebCanvasNode* performanceUi=nullptr;
@@ -2277,6 +2332,7 @@ class World : public Rml::EventListener {
     double hopLon=0,hopLat=0,hopWait=0; bool hopWanted=false,hopDone=false,hopArmed=false;
     std::optional<double> smokeArrivalHeading;
     saida::ScriptBehaviour* sunScript=nullptr; bool sunReported=false;
+    double subsolarAge=1e9; bool subsolarRefused=false;
     // Options screen. `forcedMinutes` is "Forcer l'heure à" (minutes after
     // local midnight), kept in cache/options.json between runs; `forcedSent`
     // is the instant last handed to the Sun, so the script is told only when
@@ -2329,6 +2385,7 @@ class World : public Rml::EventListener {
         std::string shown=s;
         for(size_t at;(at=shown.find('\''))!=std::string::npos;)shown.replace(at,1,"’");
         if(ui->setElementText(id,shown))last=s;
+        if(id=="status")style("status","display",s.empty()?"none":"block");
     }
     void miniText(const std::string& id,const std::string& s) {
         auto& last=written["mini:text:"+id];
@@ -2386,6 +2443,7 @@ class World : public Rml::EventListener {
         for(size_t i=0;i<5;++i) {
             const std::string id="city-choice-"+std::to_string(i);
             style(id,"display",i<choices.size()?"block":"none");
+            if(auto* e=ui->findElementById(id))e->SetAttribute("data-available",i<choices.size()?"true":"false");
             if(i<choices.size())text(id,choices[i].label);
         }
     }
@@ -2395,8 +2453,8 @@ class World : public Rml::EventListener {
             const auto first=query.find_first_not_of(" \t\r\n");
             query=first==std::string::npos?"":query.substr(first,query.find_last_not_of(" \t\r\n")-first+1);
             if(query!=cityInput) {
-                cityInput=query;cityChangedAt=clock;
-                showCityChoices({},query.size()<2?"":"Recherche…");
+                cityInput=query;cityChangedAt=clock;touchGlobe();
+                showCityChoices({},query.size()<2?"":"Searching…");
             }
         }
         if(cityFuture.valid()&&cityFuture.wait_for(std::chrono::seconds(0))==std::future_status::ready) {
@@ -2406,10 +2464,10 @@ class World : public Rml::EventListener {
                 auto choices=cityFuture.get();
                 if(cityCache.size()>=64)cityCache.clear();
                 cityCache[completed]=choices;
-                if(cityInput==completed)showCityChoices(choices,choices.empty()?"Aucune ville trouvée.":"");
+                if(cityInput==completed)showCityChoices(choices,choices.empty()?"No city found.":"");
             } catch(const std::exception& e) {
                 saida::Log::info("[World places] search unavailable: ",e.what());
-                if(cityInput==completed)showCityChoices({},"Recherche indisponible. Saisissez les coordonnées.");
+                if(cityInput==completed)showCityChoices({},"Search unavailable. Pick a spot on the globe or in Settings → Destination.");
             }
         }
         if(!menu)return;
@@ -2418,7 +2476,7 @@ class World : public Rml::EventListener {
            clock-cityLastRequestAt<1.0)return;
         citySubmitted=query;
         if(const auto cached=cityCache.find(query);cached!=cityCache.end()) {
-            showCityChoices(cached->second,cached->second.empty()?"Aucune ville trouvée.":"");
+            showCityChoices(cached->second,cached->second.empty()?"No city found.":"");
             return;
         }
         cityInFlight=query;cityLastRequestAt=clock;
@@ -2427,6 +2485,7 @@ class World : public Rml::EventListener {
     // Press-only checks immediate activation; a full gesture also checks that
     // its release/click does not activate the same control a second time.
     void testClick(const std::string& id,bool release=true) {
+        if(auto* e=ui->findElementById(id))e->GetContext()->Update();
         auto* element=ui->findElementById(id);
         if(!element)throw std::runtime_error("Missing UI target "+id);
         auto p=element->GetAbsoluteOffset();
@@ -2437,15 +2496,86 @@ class World : public Rml::EventListener {
     void select(double x,double y) {
         pickLon=wrap(x);pickLat=std::clamp(y,-90.,90.);
         field("latitude",pickLat);field("longitude",pickLon);
-        const r1::MapPixel pixel=zoom>1?r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).screen(pickLon,pickLat)
-                                        :r1::MapPixel{(pickLon+180)/360*r1::MapView::width,(90-pickLat)/180*r1::MapView::height};
-        double px=pixel.x,py=pixel.y;
-        style("pin","left",number(px,2)+"px");style("pin","top",number(py,2)+"px");
+        if(globe)globe->selected={pickLon,pickLat};
+        updateGlobePin();
+    }
+    void updateGlobePin() {
+        if(!globe)return;
+        const auto pixel=globe->view.project(pickLon,pickLat,ui->width(),ui->height());
+        const bool visible=pixel&&pixel->x>16&&pixel->x<ui->width()-16&&pixel->y>200&&pixel->y<ui->height()-130;
+        style("pin","display",visible?"block":"none");
+        if(visible){style("pin","left",number(pixel->x,2)+"px");style("pin","top",number(pixel->y,2)+"px");}
+    }
+    // The menu's music, through the engine's audio: looping, quiet, fading out
+    // when the world takes over and back in -- where it left off -- on return.
+    static constexpr const char* kMenuMusic="assets/audio/menu/la.mp3";
+    static constexpr float kMenuMusicVolume=.25f;
+    static constexpr double kMenuMusicFade=1.5; // seconds, either way
+    saida::AudioID menuMusic=saida::kInvalidAudioID; float menuMusicGain=0; bool menuMusicSaid=false;
+    void updateMenuMusic(double dt) {
+        if(smoke)return;
+        auto& audio=saida::AudioManager::get();
+        const float target=menu?1.f:0.f;
+        if(target>0&&menuMusic==saida::kInvalidAudioID) {
+            saida::AudioSettings settings;settings.loop=true;settings.volume=0;
+            menuMusic=audio.play(kMenuMusic,settings);
+            if(menuMusic==saida::kInvalidAudioID) {
+                if(!menuMusicSaid)saida::Log::error("[World menu] music ",kMenuMusic," could not play; the menu stays silent");
+                menuMusicSaid=true;return;
+            }
+        }
+        if(menuMusic==saida::kInvalidAudioID)return;
+        const float step=float(std::min(dt,.1)/kMenuMusicFade);
+        menuMusicGain=target>menuMusicGain?std::min(target,menuMusicGain+step):std::max(target,menuMusicGain-step);
+        if(menuMusicGain>0&&!audio.isPlaying(menuMusic))audio.resume(menuMusic);
+        audio.setVolume(menuMusic,kMenuMusicVolume*menuMusicGain);
+        if(menuMusicGain<=0&&audio.isPlaying(menuMusic))audio.pause(menuMusic);
+    }
+    // Left alone at the whole-Earth view, the globe turns slowly eastward under
+    // the Sun. Any click, wheel or typing stops it; it resumes only after 20 s
+    // untouched and only at the minimum zoom -- never while a place is sought.
+    static constexpr double kGlobeSpinDegreesPerSecond=2.5,kGlobeIdleSeconds=20;
+    double globeIdle=0; bool globeSpinning=true;
+    void touchGlobe(){globeIdle=0;globeSpinning=false;}
+    void spinGlobe(double dt) {
+        if(smoke||std::getenv("R1WORLD_MENU_SMOKE")){globeSpinning=false;return;}
+        globeIdle+=dt;
+        const bool wholeEarth=zoom<=1&&globe->view.zoom<1.01;
+        if(!wholeEarth||globeDragging||optionsOpen){if(!wholeEarth)globeSpinning=false;return;}
+        if(!globeSpinning&&globeIdle>=kGlobeIdleSeconds)globeSpinning=true;
+        if(globeSpinning)globeTarget.lon=wrap(globeTarget.lon+kGlobeSpinDegreesPerSecond*std::min(dt,.1));
+    }
+    void updateGlobe(double dt) {
+        updateMenuMusic(dt);
+        if(!globe)return;
+        globe->visible=menu;
+        if(!menu)return;
+        int w=1,h=1;engine.window().size(w,h);
+        const auto origin=ui->screenPosition(),size=ui->screenSize();
+        globe->viewport={origin.x/w,origin.y/h,size.x/w,size.y/h};
+        spinGlobe(dt);
+        const double blend=1.-std::exp(-std::min(dt,.1)*10.);
+        auto& view=globe->view;
+        view.lon=wrap(view.lon+wrap(globeTarget.lon-view.lon)*blend);
+        view.lat+=(globeTarget.lat-view.lat)*blend;
+        view.zoom=std::exp(std::log(view.zoom)+(std::log(zoom)-std::log(view.zoom))*blend);
+        // The Sun moves 0.25 degrees a minute; once a second is smooth.
+        if((subsolarAge+=dt)>=1.&&findSun()) {
+            json point;
+            if(sunScript->callExport("subsolarPoint",json::array(),point)==saida::ScriptCallStatus::Succeeded&&point.is_object()) {
+                globe->subsolar={point.value("lon",0.),point.value("lat",0.)};subsolarAge=0;
+            } else if(!subsolarRefused) {
+                subsolarRefused=true;saida::Log::warn("[World menu] sun_cycle.js gave no subsolar point; the globe keeps its last light");
+            }
+        }
+        updateGlobePin();
+        renderMapTiles();
     }
     void showMap(bool show) {
         if(show&&cheatOpen)closeCheat();
         menu=show;style("menu","display",show?"block":"none");style("hud","display",show?"none":"block");
         optionsOpen=false;style("options-screen","display","none");
+        if(globe)globe->visible=show;
         minimapUi->setEnabled(!show);
         if(performanceUi)performanceUi->setEnabled(performanceDebug&&!show);
         style("resume","display",playing?"inline-block":"none");
@@ -2453,7 +2583,7 @@ class World : public Rml::EventListener {
     }
     void resetPerformanceSample() {
         performanceSeconds=0;performanceFrames=0;
-        if(performanceDebug)performanceText("debug-fps","FPS : mesure en cours…");
+        if(performanceDebug)performanceText("debug-fps","FPS: measuring…");
     }
     void performanceText(const std::string& id,const std::string& value) {
         if(!performanceUi)return;
@@ -2481,10 +2611,10 @@ class World : public Rml::EventListener {
         engine.sceneTree().world().addChild(std::move(canvas));
     }
     void performanceStatus() {
-        performanceText("debug-traffic",std::string("V · Trafic routier : ")+(debugTraffic?"ON":"OFF"));
-        performanceText("debug-grass",std::string("Y · Herbe volumétrique : ")+(debugGrass?"ON":"OFF"));
-        performanceText("debug-water",std::string("M · Eau (WaterNode) : ")+(debugWater?"ON":"OFF"));
-        performanceText("debug-trees",std::string("T · Arbres : ")+(debugTrees?"ON":"OFF"));
+        performanceText("debug-traffic",std::string("V · Road traffic: ")+(debugTraffic?"ON":"OFF"));
+        performanceText("debug-grass",std::string("Y · Volumetric grass: ")+(debugGrass?"ON":"OFF"));
+        performanceText("debug-water",std::string("M · Water (WaterNode): ")+(debugWater?"ON":"OFF"));
+        performanceText("debug-trees",std::string("T · Trees: ")+(debugTrees?"ON":"OFF"));
     }
     void applyPerformanceTile(Loaded& tile) {
         if(tile.grass)tile.grass->setEnabled(debugGrass);
@@ -2526,7 +2656,7 @@ class World : public Rml::EventListener {
         // Whole-frame wall time includes GPU waits and pacing. Do not enable the
         // full profiler or copy its scopes/history just to display two numbers.
         performanceText("debug-fps",number(double(performanceFrames)/performanceSeconds,1)+" FPS · "+
-                         number(performanceSeconds*1000./double(performanceFrames),2)+" ms/image");
+                         number(performanceSeconds*1000./double(performanceFrames),2)+" ms/frame");
         performanceSeconds=0;performanceFrames=0;
     }
     void pressPerformanceKey(size_t key) {
@@ -2607,32 +2737,76 @@ class World : public Rml::EventListener {
             }
         } else engine.sceneTree().quit();
     }
-    int mapZoomLevel() const {return std::clamp(int(std::lround(std::log2(zoom)))+2,3,19);}
+    int mapZoomLevel() const {return globe?globe->view.tileLevel(ui->height()):3;}
+    // One detail layer: the tiles of the level shown, what is on disk to
+    // stand in for them, and the downloads in the order they matter -- what is
+    // seen (centre first), where the wheel is taking the view, the next level
+    // in, the level out -- so a zoom lands on tiles that are already there.
+    void fillLayer(MenuTileCache& cache,r1::GlobeLayer& layer,int z,int coarsest,int finest,
+                   const r1::GlobeView& target,int targetZ) {
+        const auto& view=globe->view;
+        const double w=ui->width(),h=ui->height();
+        layer.z=z;layer.coarsest=coarsest;
+        layer.visible=view.tiles(w,h,z);
+        layer.visible.erase(std::remove_if(layer.visible.begin(),layer.visible.end(),[&](const auto& t){return cache.missingForGood(t);}),layer.visible.end());
+        const double n=double(1<<z);
+        const double cx=(view.lon+180.)/360.*n;
+        const double cy=(1.-std::asinh(std::tan(std::clamp(view.lat,-r1::MapView::mercatorLimit,r1::MapView::mercatorLimit)*r1::kPi/180.))/r1::kPi)*.5*n;
+        auto distance=[&](const r1::MapTile& t){const double dx=std::remainder(t.x+.5-cx,n),dy=t.y+.5-cy;return dx*dx+dy*dy;};
+        std::sort(layer.visible.begin(),layer.visible.end(),[&](const auto& a,const auto& b){return distance(a)<distance(b);});
+        std::vector<r1::MapTile> wanted=layer.visible;
+        auto add=[&](std::vector<r1::MapTile> more){wanted.insert(wanted.end(),more.begin(),more.end());};
+        if(targetZ!=z&&targetZ>=coarsest&&targetZ<=finest)add(target.tiles(w,h,targetZ));
+        if(z+1<=finest)add(view.tiles(w,h,z+1,.5));
+        if(z-1>=coarsest)add(view.tiles(w,h,z-1));
+        layer.cached.clear();
+        std::set<std::tuple<int,int,int>> seen;
+        auto keep=[&](const r1::MapTile& t){
+            if(cache.ready(t)&&seen.insert({t.z,t.x,t.y}).second)layer.cached.push_back({t,cache.path(t)});
+        };
+        for(const auto& t:wanted)keep(t);
+        for(const auto& t:layer.visible)
+            for(int up=1;z-up>=coarsest;++up)keep({z-up,t.x>>up,t.y>>up});
+        cache.setVisible(std::move(wanted));
+    }
     void renderMapTiles() {
-        std::ostringstream markup;
-        if(zoom>1) {
-            const auto tiles=r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).visible();
-            menuTiles.setVisible(tiles);
-            for(const auto& tile:tiles) {
-                if(!menuTiles.ready(tile))continue;
-                markup<<"<img class='map-tile' src='../cache/map-tiles/osm/"<<tile.z<<"/"<<tile.x<<"/"<<tile.y
-                      <<".png' style='left:"<<number(tile.left,1)<<"px;top:"<<number(tile.top,1)<<"px;'/>";
-            }
-            const size_t missing=menuTiles.missing();
-            style("map-detail-status","display",missing?"block":"none");
-            if(missing)text("map-detail-status",menuTiles.unavailable()?"Carte détaillée indisponible hors ligne":"Chargement de la carte détaillée…");
-        } else {
-            menuTiles.setVisible({});
-            style("map-detail-status","display","none");
-        }
-        auto& previous=written["map:tiles"];
-        const std::string html=markup.str();
-        if(previous!=html&&ui->setElementRml("map-tiles",html))previous=html;
+        if(!globe)return;
+        const auto& view=globe->view;
+        const double h=ui->height();
+        const int level=view.tileLevel(h);
+        r1::GlobeView target=view;target.lon=globeTarget.lon;target.lat=globeTarget.lat;target.zoom=zoom;
+        const int targetLevel=target.tileLevel(h);
+        size_t missing=0;bool unavailable=false;
+        auto count=[&](MenuTileCache& cache,const r1::GlobeLayer& layer){
+            for(const auto& t:layer.visible)if(!cache.ready(t))++missing;
+            unavailable=unavailable||cache.unavailable();
+        };
+        // Imagery once the 8K day map runs out of pixels, or as soon as the
+        // wheel is heading there.
+        if(std::max(level,targetLevel)>=r1::kImageryFirstLevel) {
+            fillLayer(imageryTiles,globe->imagery,std::clamp(level,r1::kImageryFirstLevel,r1::kImageryLastLevel),
+                      r1::kImageryFirstLevel,r1::kImageryLastLevel,target,std::min(targetLevel,r1::kImageryLastLevel));
+            if(level<r1::kImageryFirstLevel)globe->imagery.z=-1; // fetched ahead, not drawn yet
+            else count(imageryTiles,globe->imagery);
+        } else {globe->imagery={};imageryTiles.setVisible({});}
+        const bool osm=view.zoom>=r1::kOsmZoom;
+        if(std::max(view.zoom,zoom)>=r1::kOsmZoom/2) {
+            fillLayer(menuTiles,globe->map,level,std::max(0,level-6),19,target,targetLevel);
+            globe->map.opacity=float(std::clamp(std::log2(view.zoom/r1::kOsmZoom),0.,1.));
+            if(!osm)globe->map.z=-1;
+            else count(menuTiles,globe->map);
+        } else {globe->map={};menuTiles.setVisible({});}
+        style("map-detail-status","display",missing?"block":"none");
+        if(missing)text("map-detail-status",unavailable?"Detailed map unavailable offline":"Loading the detailed map…");
+        const bool imagery=level>=r1::kImageryFirstLevel;
+        style("map-attribution","display",osm||imagery?"block":"none");
+        if(osm||imagery)text("map-attribution",osm?"© OpenStreetMap contributors":
+            "Sentinel-2 cloudless – s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016)");
     }
     void zoomMap(double z) {
         zoom=std::clamp(z,1.,131072.);
         mapCenterLon=pickLon;mapCenterLat=pickLat;
-        style("earth","display",zoom>1?"none":"block");
+        globeTarget.lon=pickLon;globeTarget.lat=pickLat;
         renderMapTiles();
         select(pickLon,pickLat);
     }
@@ -2703,7 +2877,7 @@ class World : public Rml::EventListener {
         service->want(std::move(genTiles),std::move(genGroups));requested=signature;
     }
     int goCount=0;
-    void go() {
+    bool go() {
         ++goCount;
         try {
             size_t a,b;std::string x=value("longitude"),y=value("latitude");
@@ -2714,7 +2888,13 @@ class World : public Rml::EventListener {
             arrivalFrames=arrivalHitches=0;arrivalWorst=0;arrivalSaid=false;
             text("status",kPreparing);
             saida::Log::info("[World] destination ",lo,", ",la);
-        } catch(...) {text("status","Coordonnées invalides : latitude −90 à 90, longitude −180 à 180 (point décimal).");}
+            text("destination-status",std::string());
+            return true;
+        } catch(...) {
+            text("status","Invalid coordinates: latitude −90 to 90, longitude −180 to 180 (decimal point).");
+            saida::Log::info("[World] destination refused: '",value("latitude"),"', '",value("longitude"),"'");
+            return false;
+        }
     }
     // The Sun is a function of where the player stands, and in this game that
     // moves: a fixed anchor would light Sydney at Paris's hour, on the wrong
@@ -3335,7 +3515,7 @@ class World : public Rml::EventListener {
             // times (see `refused`, and the spawn refusal below).
             saida::Log::warn("[World car] no free kerb within 14 m of ",lon,", ",lat,
                              "; the player spawns on foot with no car");
-            text("stream-status","Aucune place pour la voiture ici — départ à pied.");
+            text("stream-status","No room for the car here — starting on foot.");
             return;
         }
         carLon=x;carLat=y;carAlt=groundAt(x,y,alt);carYaw=yaw;carParked=true;
@@ -3549,7 +3729,7 @@ class World : public Rml::EventListener {
         for(auto* a:animators)a->play("idle");
         mountPlayerOnBike();
         jumpOffset=jumpVelocity=0;
-        text("stream-status",ridingBike()?"À moto. F : descendre · Espace : frein arrière · 2 : pistolet · Clic droit : viser.":"Au volant. F : descendre · Espace : frein à main.");
+        text("stream-status",ridingBike()?"Riding. F: get off · Space: rear brake · 2: pistol · Right click: aim.":"Driving. F: get out · Space: handbrake.");
         saida::Log::info("[World car] entered at ",carLon,", ",carLat);
         return true;
     }
@@ -3591,7 +3771,7 @@ class World : public Rml::EventListener {
         player->setEnabled(true);
         player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
         followDistance=std::min(followDistance,kOnFootFollow);
-        text("stream-status","À pied. F : remonter dans le véhicule.");
+        text("stream-status","On foot. F: get back in the vehicle.");
         saida::Log::info("[World car] left at ",lon,", ",lat," speed=",exitSpeed," m/s, fall=",jumpOffset," m");
         request(lon,lat);
         return true;
@@ -3609,7 +3789,7 @@ class World : public Rml::EventListener {
         lookYaw=0;lookIdle=0;jumpOffset=jumpVelocity=0;
         followDistance=std::min(followDistance,kOnFootFollow);
         player->setEnabled(true);
-        text("stream-status",swimming?"Le véhicule coule — nagez vers la rive.":"Le véhicule s'enlise — vous avez pied.");
+        text("stream-status",swimming?"The vehicle is sinking — swim for the shore.":"The vehicle is bogged down — you can stand.");
         saida::Log::info("[World car] sank at ",lon,", ",lat);
         request(lon,lat);
     }
@@ -3665,7 +3845,7 @@ private:
             throttle=0;brake=1;
             if(carStop!="terrain")saida::Log::info("[World car] braking before unloaded terrain at ",ahead.x,", ",ahead.y);
             carStop="terrain";
-            text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
+            text("stream-status","Edge of the loaded area — more data is on its way.");
         } else {
             carStop.clear();
             if(throttle*carSpeed<0&&std::abs(carSpeed)>kReverseBrakeThreshold) { throttle=0;brake=1; }
@@ -3761,7 +3941,7 @@ private:
         player->setEnabled(false);
         for(auto* a:animators)a->play("idle");
         jumpOffset=jumpVelocity=0;
-        text("stream-status","À la barre. F : débarquer près d'un quai · S : marche arrière.");
+        text("stream-status","At the helm. F: disembark near a quay · S: reverse.");
         saida::Log::info("[World boat] took the helm of a ",boat.kind," (",boat.length," m) at ",lon,", ",lat);
         return true;
     }
@@ -3795,13 +3975,13 @@ private:
     bool leaveBoat() {
         if(!sailing)return false;
         if(std::abs(boat.speed)>kBoatExitSpeed) {
-            text("stream-status","Trop rapide pour débarquer — ralentissez.");
+            text("stream-status","Too fast to disembark — slow down.");
             saida::Log::info("[World boat] landing refused at ",std::abs(boat.speed)," m/s");
             return false;
         }
         const auto exit=boatExit();
         if(!exit) {
-            text("stream-status","Eau et rive hors du terrain chargé — attendez les données.");
+            text("stream-status","Water and shore outside the loaded area — wait for the data.");
             saida::Log::info("[World boat] no loaded exit beside ",boat.lon,", ",boat.lat);
             return false;
         }
@@ -3813,8 +3993,8 @@ private:
         player->setEnabled(true);
         player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
         followDistance=std::min(followDistance,kOnFootFollow);
-        text("stream-status",swimming?"À l'eau. ZQSD/WASD : nager · F : remonter à bord."
-                                     :"À terre. F : reprendre le bateau.");
+        text("stream-status",swimming?"In the water. WASD/ZQSD: swim · F: climb back aboard."
+                                     :"Ashore. F: take the boat again.");
         saida::Log::info(swimming?"[World boat] swimming at ":"[World boat] ashore at ",lon,", ",lat);
         request(lon,lat);
         return true;
@@ -3832,7 +4012,7 @@ private:
                                                   std::cos(other->yaw*rad)*other->speed):glm::dvec2(0);
         const double relativeSpeed=glm::length(mine-theirs);
         if(relativeSpeed>kHopSpeed) {
-            text("stream-status","Réglez votre vitesse sur la sienne pour passer à bord.");
+            text("stream-status","Match its speed to step aboard.");
             saida::Log::info("[World boat] hop refused at ",relativeSpeed," m/s relative");
             return HopResult::Refused;
         }
@@ -3874,14 +4054,14 @@ private:
         if(!tile(next.x,next.y)||!tile(bow.x,bow.y))stream();
         if(!tile(next.x,next.y)||!tile(bow.x,bow.y)) {
             boat.speed=0;
-            text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
+            text("stream-status","Edge of the loaded area — more data is on its way.");
             return;
         }
         if(!navigable(next.x,next.y)||!navigable(bow.x,bow.y)) {
             // Aground is a refusal like any other: the boat stops, and the
             // player is told which way is out.
             boat.speed=0;
-            text("stream-status","Rivage ou haut-fond — le bateau s'arrête. S : marche arrière.");
+            text("stream-status","Shore or shallows — the boat stops. S: reverse.");
             return;
         }
         lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
@@ -4090,7 +4270,7 @@ private:
             auto owned=t.node->detachChild(spot.node);
             if(!owned) {
                 saida::Log::warn("[World aircraft] ",spot.name," could not be detached from its tile");
-                text("stream-status","Cet appareil ne peut pas être pris.");
+                text("stream-status","This aircraft cannot be taken.");
                 return false;
             }
             spot.taken=true;spot.node=nullptr;
@@ -4109,8 +4289,8 @@ private:
         for(auto* anim:animators)anim->play("idle");
         jumpOffset=jumpVelocity=0;
         text("stream-status",plane.helicopter()
-            ?"Aux commandes. Espace/Maj : monter/descendre · Z/S : avancer/reculer · Q/D : tourner · F : descendre."
-            :"Aux commandes. Z/S : gaz · Q/D : virer · Espace/Maj : cabrer/piquer · F : descendre.");
+            ?"Flying. Space/Shift: climb/descend · W/S: forward/back · A/D: turn · F: get out."
+            :"Flying. W/S: throttle · A/D: bank · Space/Shift: pitch up/down · F: get out.");
         saida::Log::info("[World aircraft] took the controls of a ",plane.type->name," at ",lon,", ",lat,
                          plane.helicopter()?" (helicopter)":"");
         return true;
@@ -4149,7 +4329,7 @@ private:
         const double around=plane.airborne?t.span*.5+80.:t.span*.5+8.;
         if(!dry&&!wet&&freeSpot(plane.lon,plane.lat,around,x,y))dry=glm::dvec2(x,y);
         if(!dry&&!wet) {
-            text("stream-status","Impossible de descendre ici — le sol en dessous n'est pas encore chargé.");
+            text("stream-status","Cannot get out here — the ground below is not loaded yet.");
             saida::Log::warn("[World aircraft] no loaded ground beside the aircraft at ",plane.lon,", ",plane.lat);
             return false;
         }
@@ -4170,7 +4350,7 @@ private:
         player->setEnabled(true);
         player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
         followDistance=std::min(followDistance,kOnFootFollow);
-        text("stream-status",falls?"Saut !":swimming?"À l'eau. F : remonter à bord.":"À pied. F : reprendre l'appareil.");
+        text("stream-status",falls?"Jump!":swimming?"In the water. F: climb back aboard.":"On foot. F: take the aircraft again.");
         saida::Log::info("[World aircraft] ",falls?"jumped":"stepped down"," at ",lon,", ",lat,
                          falls?", falling "+std::to_string(int(drop))+" m":"",!dry?" into the water":"");
         request(lon,lat);
@@ -4207,14 +4387,14 @@ private:
         if(!tile(next.x,next.y))stream();
         if(!tile(next.x,next.y)&&!plane.airborne) {
             plane.speed=0;
-            text("stream-status","Bord du terrain chargé — les données suivantes arrivent.");
+            text("stream-status","Edge of the loaded area — more data is on its way.");
             return false;
         }
         const double heading=horizontal<0?wrap(plane.yaw+180.):plane.yaw;
         if(aircraftHits(next.x,next.y,plane.alt,heading,true)&&!aircraftHits(plane.lon,plane.lat,plane.alt,heading)) {
             plane.speed=0;
             if(!planeStopped) {
-                text("stream-status","Bâtiment — l'appareil s'arrête.");
+                text("stream-status","Building — the aircraft stops.");
                 saida::Log::info("[World aircraft] stopped by a building at ",plane.lon,", ",plane.lat,
                                  ", ",plane.alt-planeGround," m up");
             }
@@ -4223,7 +4403,7 @@ private:
         }
         if(!plane.airborne&&!plane.helicopter()&&tile(next.x,next.y)&&onWater(next.x,next.y)&&!onWater(plane.lon,plane.lat)) {
             plane.speed=0;
-            text("stream-status","Bord de l'eau — l'appareil s'arrête.");
+            text("stream-status","Water's edge — the aircraft stops.");
             return false;
         }
         planeStopped=false;
@@ -4259,7 +4439,7 @@ private:
                 // Off the ground with the climb the rotation already gives,
                 // or the next hump of the terrain would set it back down.
                 p.airborne=true;p.climb=std::max(1.5,p.speed*std::sin(p.pitch*rad));p.alt+=.2;
-                text("stream-status","Décollage.");
+                text("stream-status","Take-off.");
                 saida::Log::info("[World aircraft] lift-off at ",p.speed," m/s");
             }
             moveAircraft(dt,p.speed);
@@ -4293,8 +4473,8 @@ private:
             p.alt=ground;p.airborne=false;
             const bool hard=p.climb<-7.||std::abs(p.roll)>25.||p.pitch<-8.;
             if(hard){p.speed=0;p.lever=0;p.thrust=0;}
-            text("stream-status",hard?"Atterrissage brutal — l'appareil s'arrête."
-                                 :wet?"Amerrissage.":onRoof?"Posé sur le toit.":"Atterrissage.");
+            text("stream-status",hard?"Hard landing — the aircraft stops."
+                                 :wet?"Water landing.":onRoof?"Landed on the roof.":"Landing.");
             saida::Log::info("[World aircraft] ",hard?"hard landing":"landed"," at ",p.climb," m/s vertical, ",
                              p.speed," m/s",wet?" on water":onRoof?" on a roof":"");
             p.climb=0;p.roll=0;p.pitch=std::max(0.,p.pitch);
@@ -4325,14 +4505,14 @@ private:
         const double ground=surfaceUnder(h.lon,h.lat,h.alt+.5,&onRoof,&wet);
         if(h.alt<=ground) {
             if(h.airborne) {
-                text("stream-status",onRoof?"Posé sur le toit.":wet?"Posé sur l'eau.":"Posé.");
+                text("stream-status",onRoof?"Landed on the roof.":wet?"Landed on the water.":"Landed.");
                 saida::Log::info("[World aircraft] helicopter set down",onRoof?" on a roof":wet?" on water":"",
                                  " at ",h.lon,", ",h.lat);
             }
             h.alt=ground;h.airborne=false;h.climb=std::max(0.,h.climb);
         } else if(h.alt>ground+.3&&!h.airborne) {
             h.airborne=true;
-            text("stream-status","Décollage.");
+            text("stream-status","Take-off.");
             saida::Log::info("[World aircraft] helicopter lifted off");
         }
         h.mainSpin=std::fmod(h.mainSpin+h.rotor*h.rotor*28.*dt,kTwoPi);
@@ -4538,7 +4718,7 @@ private:
         if(!freeSpot(lon,lat,40.,x,y))return;
         saida::Log::info("[World] a building arrived where the player stood: moved to ",x,", ",y);
         lon=x;lat=y;alt=height(lon,lat);jumpOffset=jumpVelocity=0;
-        text("stream-status","Les bâtiments sont arrivés : vous voilà dans la rue.");
+        text("stream-status","The buildings have arrived: here you are in the street.");
     }
     // ── snow in the air ─────────────────────────────────────────────────────
     //
@@ -4646,7 +4826,7 @@ private:
         const std::time_t local=std::time_t(unixSeconds)+offset;
         std::tm parts{};gmtime_s(&parts,&local);
         std::ostringstream out;out<<std::put_time(&parts,"%H:%M");
-        return out.str()+(known?" · heure locale":" · fuseau estimé")+(forcedMinutes?" (forcée)":"");
+        return out.str()+(known?" · local time":" · estimated time zone")+(forcedMinutes?" (forced)":"");
     }
     // "Forcer l'heure à" (Options). The hour is the one the HUD clock shows,
     // so the instant depends on the zone under the player: it is recomputed
@@ -4667,7 +4847,7 @@ private:
             if(!forcedSaid) {
                 saida::Log::error("[World options] scripts/sun_cycle.js refused setForcedTime(",
                                   wanted?number(*wanted,0):std::string("null"),")");
-                sayForcedTime("Le Soleil a refusé l'heure forcée : voir game.log.");
+                sayForcedTime("The Sun refused the forced time: see game.log.");
                 forcedSaid=true;
             }
             return;
@@ -4738,16 +4918,16 @@ private:
         output.flush();
         if(!output) {
             saida::Log::error("[World options] could not write ",optionsFile().string());
-            sayForcedTime("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
-            sayForcedWeather("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
-            sayToasterMode("Option appliquée, mais impossible de l'enregistrer : voir game.log.");
+            sayForcedTime("Option applied, but it could not be saved: see game.log.");
+            sayForcedWeather("Option applied, but it could not be saved: see game.log.");
+            sayToasterMode("Option applied, but it could not be saved: see game.log.");
         }
     }
     void sayForcedTime(const std::string& problem={}) {
         if(!problem.empty()){text("options-status",problem);return;}
         text("options-status",forcedMinutes
-            ?"Partout dans le monde, il est "+r1::formatClockTime(*forcedMinutes)+" à l'heure locale. Le temps ne s'écoule plus."
-            :"Heure réelle : chaque lieu est à son heure du moment.");
+            ?"Everywhere in the world it is "+r1::formatClockTime(*forcedMinutes)+" local time. Time no longer passes."
+            :"Real time: every place is at its current hour.");
     }
     void sayForcedWeather(const std::string& problem={}) {
         for(const auto mode:{r1::WeatherOverride::Real,r1::WeatherOverride::Clear,
@@ -4757,16 +4937,16 @@ private:
         }
         ui->notifyJsMutation();
         text("weather-options-status",!problem.empty()?problem:
-            forcedWeather==r1::WeatherOverride::Real?"Météo réelle : chaque lieu suit sa prévision locale.":
-            std::string("Partout dans le monde : ")+r1::weatherOverrideLabel(forcedWeather)+". Ce choix est conservé après un déplacement.");
+            forcedWeather==r1::WeatherOverride::Real?"Real weather: every place follows its local forecast.":
+            std::string("Everywhere in the world: ")+r1::weatherOverrideLabel(forcedWeather)+". This choice stays after you travel.");
     }
     void sayToasterMode(const std::string& problem={}) {
         if(auto* off=ui->findElementById("toaster-off"))off->SetClass("selected",!toasterMode);
         if(auto* on=ui->findElementById("toaster-on"))on->SetClass("selected",toasterMode);
         ui->notifyJsMutation();
         text("toaster-options-status",!problem.empty()?problem:
-            toasterMode?"Mode grille-pain actif : 720p, LOD arbres intermédiaire/lointain, brouillard rapproché."
-                       :"Qualité standard : graphismes et distance normaux.");
+            toasterMode?"Toaster mode on: 720p, mid/far tree LODs, closer fog."
+                       :"Standard quality: normal graphics and draw distance.");
     }
     void applyToasterResolution() {
         if(toasterMode) {
@@ -4804,7 +4984,7 @@ private:
         saveOptions();
         if(findSun()&&!applyWeather()) {
             saida::Log::error("[World options] scripts/sun_cycle.js refused forced weather");
-            sayForcedWeather("Le ciel a refusé la météo choisie : voir game.log.");
+            sayForcedWeather("The sky refused the chosen weather: see game.log.");
         }
         updateSnowCover();
         updateSnow(0.);
@@ -4813,7 +4993,10 @@ private:
     }
     void showOptions(bool show) {
         optionsOpen=show;
+        globeDragging=false;
         style("options-screen","display",show?"block":"none");
+        style("menu","display",show?"none":"block");
+        if(auto* e=ui->findElementById(show?"options-back":"options"))e->Focus();
         if(!show)return;
         field("forced-time",forcedMinutes?r1::formatClockTime(*forcedMinutes):std::string());
         sayForcedTime();
@@ -4831,19 +5014,19 @@ private:
         const std::string typed=value("forced-time");
         if(const auto minutes=r1::parseClockTime(typed)){forceTime(minutes);field("forced-time",r1::formatClockTime(*minutes));return;}
         saida::Log::info("[World options] refused forced time '",typed,"': not HH:MM between 00:00 and 23:59");
-        sayForcedTime("Heure invalide « "+typed+" » : écrivez HH:MM, de 00:00 à 23:59 (par exemple 14:00).");
+        sayForcedTime("Invalid time \""+typed+"\": type HH:MM, from 00:00 to 23:59 (for example 14:00).");
     }
     std::string weatherLabel() {
         if(forcedWeather!=r1::WeatherOverride::Real&&!inspectAt)
-            return std::string("météo forcée : ")+r1::weatherOverrideLabel(forcedWeather)+" · partout";
-        if(!localConditions())return "Météo locale indisponible";
+            return std::string("forced weather: ")+r1::weatherOverrideLabel(forcedWeather)+" · everywhere";
+        if(!localConditions())return "Local weather unavailable";
         const auto weather=conditions.value("weather",json());
-        if(!weather.is_object())return "Météo locale indisponible";
+        if(!weather.is_object())return "Local weather unavailable";
         const int code=weather.value("code",-1);
-        const char* state=code==0?"dégagé":code<=3?"nuageux":code<=48?"brouillard"
-                          :code<=67?"pluie":code<=77?"neige":code<=82?"averses":"orage";
-        return std::string("prévision : ")+state+" · "+number(weather.value("temperature",0.),0)+" °C"
-             +" · "+number(weather.value("cloudCover",0.),0)+" % nuages";
+        const char* state=code==0?"clear":code<=3?"cloudy":code<=48?"fog"
+                          :code<=67?"rain":code<=77?"snow":code<=82?"showers":"storm";
+        return std::string("forecast: ")+state+" · "+number(weather.value("temperature",0.),0)+" °C"
+             +" · "+number(weather.value("cloudCover",0.),0)+" % cloud";
     }
     double metresFrom(double x,double y) const {
         const glm::dvec3 d=origin.local(ecef(x,y,0.))-origin.local(ecef(lon,lat,0.));
@@ -5866,7 +6049,7 @@ private:
                         state.failed=true;
                         saida::Log::error("[World building LOD] ",source.id," level=",level,
                             " GPU upload failed; retaining available representation");
-                        if(level==2)text("stream-status","Un bâtiment n'a pas pu être chargé.");
+                        if(level==2)text("stream-status","A building could not be loaded.");
                         if(smoke){testFailed=true;engine.sceneTree().quit();return;}
                     }
                     if(level<2&&state.started)for(const auto& part:parts) {
@@ -5975,7 +6158,7 @@ private:
                     room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
                     room.refused=true;released=true;
                     saida::Log::error("[World interiors] geometry upload failed: ",room.plan.name);
-                    text("stream-status","Impossible de charger cet intérieur.");
+                    text("stream-status","This interior could not be loaded.");
                     if(smoke){testFailed=true;engine.sceneTree().quit();return;}
                 }
             }
@@ -6045,7 +6228,7 @@ private:
         const auto used=engine.resources().geometryUsage();const auto cap=engine.resources().geometryCapacity();
         if(vertices>24000||used.vertices+vertices+4096>cap.vertices||used.indices+indices+12000>cap.indices) {
             room.refused=true;saida::Log::warn("[World interiors] arena refused ",p.name," vertices=",vertices);
-            text("stream-status","Intérieur indisponible : budget de géométrie atteint.");return;
+            text("stream-status","Interior unavailable: geometry budget reached.");return;
         }
         auto root=std::make_unique<saida::Node>("Interior "+std::to_string(p.id));
         auto upload=[&](saida::Node& parent,const std::vector<r1::MeshPart>& list) {
@@ -6161,7 +6344,7 @@ private:
             root.reset();trim();
             room.refused=true;room.leaves[0]=room.leaves[1]=nullptr;
             saida::Log::error("[World interiors] ",p.name,": ",e.what());
-            text("stream-status","Impossible de charger cet intérieur.");
+            text("stream-status","This interior could not be loaded.");
         }
     }
     int retailTestPhase=0;int64_t retailTestId=0;double retailTestTime=0,retailTestV=-3;const char* retailTestWait="";
@@ -6670,7 +6853,7 @@ private:
                     if(engine.resources().assetLoadsSettled()) {
                         nextFarPack.refused=true;
                         saida::Log::error("[World ice] far pack geometry upload failed");
-                        text("stream-status","Banquise lointaine indisponible : transfert de géométrie refusé.");
+                        text("stream-status","Distant sea ice unavailable: geometry upload refused.");
                         if(smoke){testFailed=true;engine.sceneTree().quit();}
                     }
                     return;
@@ -6891,7 +7074,7 @@ private:
             catch(const std::exception& e) {
                 l.nextLettering=l.data.value("lettering",json::array()).size();
                 saida::Log::error("[World lettering] ",t.key(),": ",e.what());
-                text("stream-status","Impossible de charger une enseigne.");
+                text("stream-status","A sign could not be loaded.");
                 if(smoke){testFailed=true;engine.sceneTree().quit();return;}
             }
             if(msSince(start)>=kPropImportMs)return;
@@ -7141,7 +7324,7 @@ private:
             try {
                 const size_t vertices=residentVertices(data),tileIndices=residentIndices(data);
                 if(count+vertices>residentVertexBudget||indices+tileIndices>residentIndexBudget) {
-                    text("stream-status","Limite de détail atteinte dans cette zone.");
+                    text("stream-status","Detail limit reached in this area.");
                     if(refused.empty()) {
                         refused=t.key();
                         // Loud on purpose. A skipped tile used to be a UI string
@@ -7170,7 +7353,7 @@ private:
                                  " cook_ms=",served->cooked.cookMs," since_go_ms=",
                                  msSince(goStarted)," private_mb=",int(privateMegabytes()));
             }catch(const std::exception& e){
-                text("status",std::string("Tuile indisponible : ")+e.what());
+                text("status",std::string("Tile unavailable: ")+e.what());
                 saida::Log::error("[World streaming] mount failed for ",t.key(),": ",e.what());
                 if(smoke){testFailed=true;engine.sceneTree().quit();return;}
             }
@@ -7185,7 +7368,7 @@ private:
             // outcome than spawning and a far better one than a counter that
             // never moves -- and it is the truth (§3 I5).
             pending=false;warming=false;showMap(true);
-            text("status","Ce quartier dépasse la mémoire géométrique disponible. Choisissez un point voisin.");
+            text("status","This neighbourhood exceeds the available geometry memory. Pick a nearby spot.");
             return;
         }
         auto ready=[&](double x,double y){auto* t=tile(x,y);if(!t)return false;
@@ -7206,7 +7389,7 @@ private:
                 // that exceptional spawn waits for the rest of the search area.
                 if(!surroundingReady && refused.empty())return;
                 pending=false;
-                text("status","Point situé dans un bâtiment. Choisissez une rue voisine.");
+                text("status","This point is inside a building. Pick a nearby street.");
                 // Third time this shape of bug appears in this file, so it is
                 // written down rather than rediscovered: a spawn that is
                 // *refused* used to leave the E2E waiting for one that would
@@ -7275,15 +7458,15 @@ private:
         }
         if(pending) {
             const auto status=service->status();
-            if(status.outOfMemory)text("status","Mémoire saturée : chargement ralenti, nouvelle tentative automatique. Fermer d'autres applications aide.");
-            else if(status.memoryPaused)text("status","Chargement en attente de mémoire disponible.");
-            else if(!status.error.empty())text("status","Erreur de chargement, nouvelle tentative automatique. "+status.error);
-            else if(status.offline)text("status","Une source ne répond pas : affichage des données déjà reçues.");
+            if(status.outOfMemory)text("status","Memory full: loading slowed, retrying automatically. Closing other applications helps.");
+            else if(status.memoryPaused)text("status","Loading is waiting for free memory.");
+            else if(!status.error.empty())text("status","Loading error, retrying automatically. "+status.error);
+            else if(status.offline)text("status","A source is not responding: showing the data already received.");
             else text("status",kPreparing);
         }
     }
 public:
-    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),menuTiles(g),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
+    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         performanceSmoke=smoke&&std::getenv("R1WORLD_DEBUG_SMOKE");
         if(!perfSmoke.empty()&&(!smoke||(perfSmoke!="walk"&&perfSmoke!="drive")))
             throw std::runtime_error("R1WORLD_PERF_SMOKE requires --smoke and walk or drive");
@@ -7397,7 +7580,10 @@ public:
         e.window().setCursorCaptured(false);
     }
     ~World(){for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
-        e->RemoveEventListener("click",this);e->RemoveEventListener("mousedown",this);}}
+        for(const char* type:{"click","mousedown","mouseup","mousemove","mousescroll","dblclick"})e->RemoveEventListener(type,this);}}
+    void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model) {
+        globe=std::move(model);globeTarget=globe->view;
+    }
     bool failed() const {return testFailed;}
     void inspectInstant(double unixSeconds) {inspectAt=unixSeconds;}
     void inspectConditions(std::array<double,3> conditions) {
@@ -7413,18 +7599,48 @@ public:
     void captureAtGeography(std::array<double,3> camera) {captureGeo=camera;}
     void ProcessEvent(Rml::Event& event) override {
         auto id=event.GetCurrentElement()->GetId();
+        const auto type=event.GetType();
+        if(type=="mousedown"||type=="mousescroll"||type=="dblclick")touchGlobe();
+        if(id=="map"||id=="menu") {
+            if(!globe||optionsOpen||!menu)return;
+            const double x=event.GetParameter<float>("mouse_x",0),y=event.GetParameter<float>("mouse_y",0);
+            if(type=="mousedown"&&event.GetParameter<int>("button",0)==0) {
+                globeDragging=globe->view.pick(x,y,ui->width(),ui->height()).has_value();
+                globeMoved=false;globePress={x,y};globeDragView=globe->view;
+            } else if(type=="mousemove"&&globeDragging) {
+                const glm::dvec2 movement=glm::dvec2(x,y)-globePress;
+                globeMoved=globeMoved||glm::length(movement)>4.;
+                if(globeMoved) {
+                    const double degrees=globeDragView.altitude()*2.*r1::GlobeView::tangent/ui->height()/rad;
+                    globeTarget.lon=wrap(globeDragView.lon-movement.x*degrees/std::max(.08,std::cos(globeDragView.lat*rad)));
+                    globeTarget.lat=std::clamp(globeDragView.lat+movement.y*degrees,-89.8,89.8);
+                    globe->view.lon=globeTarget.lon;globe->view.lat=globeTarget.lat;
+                    updateGlobePin();
+                }
+            } else if(type=="mouseup"&&globeDragging) {
+                globeDragging=false;
+                if(!globeMoved)if(auto hit=globe->view.pick(x,y,ui->width(),ui->height())) {
+                    select(hit->lon,hit->lat);field("city-query",std::string());showCityChoices({});
+                    warming=true;if(!smoke&&!std::getenv("R1WORLD_MENU_SMOKE"))request(pickLon,pickLat);
+                }
+            } else if(type=="mousescroll") {
+                const double wheel=event.GetParameter<float>("wheel_delta_y",0);
+                if(wheel<0)if(auto hit=globe->view.pick(x,y,ui->width(),ui->height())) {
+                    globeTarget.lon=hit->lon;globeTarget.lat=hit->lat;
+                }
+                zoom=std::clamp(zoom*std::pow(1.6,-wheel),1.,131072.);
+                event.StopPropagation();
+            } else if(type=="dblclick") {
+                if(auto hit=globe->view.pick(x,y,ui->width(),ui->height())) {
+                    select(hit->lon,hit->lat);zoomMap(zoom*2.);
+                }
+            }
+            return;
+        }
         const bool press=event.GetType()=="mousedown";
         if(!press&&id==pressedId){pressedId.clear();return;}
         if(press)pressedId=id;
-        if(id=="map") {
-            auto* map=ui->findElementById("map");auto o=map->GetAbsoluteOffset();
-            double x=event.GetParameter<float>("mouse_x",0)-o.x,y=event.GetParameter<float>("mouse_y",0)-o.y;
-            const r1::MapPoint clicked=zoom>1?r1::MapView(mapCenterLon,mapCenterLat,mapZoomLevel()).pointAt(x,y)
-                                                :r1::MapPoint{x/r1::MapView::width*360.-180.,90.-y/r1::MapView::height*180.};
-            select(clicked.lon,clicked.lat);
-            field("city-query",std::string());showCityChoices({});
-            warming=true;if(!smoke)request(pickLon,pickLat);
-        } else if(id=="go")go();
+        if(id=="go")go();
         else if(id=="options")showOptions(true);
         else if(id=="options-back")showOptions(false);
         else if(id=="forced-apply")applyTypedTime();
@@ -7437,8 +7653,12 @@ public:
         else if(id=="toaster-off")setToasterMode(false);
         else if(id=="toaster-on")setToasterMode(true);
         else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
-        else if(id=="zoom-in")zoomMap(zoom*2);
-        else if(id=="zoom-out")zoomMap(zoom/2);
+        else if(id=="destination-go") {
+            // The typed coordinates, from the Destination tab: leave the
+            // settings only when they hold, and say why when they do not.
+            if(go())showOptions(false);
+            else text("destination-status","Invalid coordinates: latitude −90 to 90, longitude −180 to 180 (decimal point).");
+        }
         else if(id=="street-map")zoomMap(std::max(zoom,32768.));
         else if(id=="reset-map")zoomMap(1);
         else if(id.rfind("city-choice-",0)==0) {
@@ -7459,35 +7679,18 @@ public:
     }
     bool smokeZoom() {
         auto fail=[&](const char* why){
-            saida::Log::error("[World menu E2E] FAIL zoom: ",why," (zoom=",zoom,
-                             ", last press=",pressedId,")");
+            saida::Log::error("[World menu E2E] FAIL zoom: ",why," (zoom=",zoom,")");
             testFailed=true;engine.sceneTree().quit();return false;
         };
         const double previousZoom=zoom;
-        zoomMap(1);
-        testClick("zoom-in");
-        if(zoom!=2)return fail("one click must advance one level");
-        testClick("zoom-in",false);
-        if(zoom!=4)return fail("a press must advance one level immediately");
-        // Release after the old half-second deduplication window has elapsed.
-        clock+=1.;
-        auto* element=ui->findElementById("zoom-in");
-        auto p=element->GetAbsoluteOffset();
-        ui->fireMouseEvent(saida::WebCanvasNode::MouseEvent::Up,int(p.x+10),int(p.y+10),
-                           saida::WebCanvasNode::MouseButton::Left);
-        if(zoom!=4)return fail("a long hold must not zoom again on release");
-        for(int i=0;i<3;++i)testClick("zoom-in");
-        if(zoom!=32)return fail("three rapid clicks must advance three levels");
-        for(int i=0;i<5;++i)testClick("zoom-out");
-        if(zoom!=1)return fail("each zoom-out click must retreat one level");
-        testClick("zoom-out");
-        if(zoom!=1)return fail("zoom-out must preserve the whole-Earth lower bound");
-        zoomMap(131072.);testClick("zoom-in");
-        if(zoom!=131072.)return fail("zoom-in must preserve the street-level upper bound");
+        zoomMap(.25);
+        if(zoom!=1)return fail("zoom must keep the whole-Earth lower bound");
+        zoomMap(1e9);
+        if(zoom!=131072.)return fail("zoom must keep the street-level upper bound");
         testClick("reset-map");
         if(zoom!=1)return fail("reset must restore the whole Earth");
         zoomMap(previousZoom);
-        saida::Log::info("[World menu E2E] PASS zoom: single click, long hold, rapid clicks, zoom-out, bounds and reset");
+        saida::Log::info("[World menu E2E] PASS zoom: bounds and reset");
         return true;
     }
     // The Options screen, as a player uses it: open it, force an hour, see the
@@ -7512,20 +7715,31 @@ public:
         testClick("forced-preset-12",false);
         if(forcedMinutes!=12*60)return fail("the 12:00 preset did not apply");
         testClick("forced-clear",false);
-        if(forcedMinutes||forcedSent)return fail("Heure réelle did not give the Sun back to the clock");
+        if(forcedMinutes||forcedSent)return fail("Real time did not give the Sun back to the clock");
         // From the menu no tile may be resident yet: forcing the weather there
         // once threw "Missing terrain" and closed the game.
         testClick("weather-clear",false);
-        if(forcedWeather!=r1::WeatherOverride::Clear)return fail("Dégagé did not force clear weather");
+        if(forcedWeather!=r1::WeatherOverride::Clear)return fail("Clear sky did not force clear weather");
         testClick("weather-real",false);
-        if(forcedWeather!=r1::WeatherOverride::Real)return fail("Météo réelle did not restore the forecast");
+        if(forcedWeather!=r1::WeatherOverride::Real)return fail("Real weather did not restore the forecast");
         testClick("toaster-on",false);
         if(!toasterMode)return fail("Mode grille-pain did not enable toaster mode");
         testClick("toaster-off",false);
-        if(toasterMode)return fail("Qualité standard did not disable toaster mode");
+        if(toasterMode)return fail("Standard quality did not disable toaster mode");
+        // Go from the Destination tab refuses what is not a coordinate and
+        // stays open to say so (the valid trip is the smoke's own Go below).
+        {
+            const std::string latitude=value("latitude"),longitude=value("longitude");
+            const bool wasPending=pending;
+            field("latitude",std::string("91"));testClick("destination-go",false);
+            if(!optionsOpen||pending!=wasPending)return fail("Go accepted latitude 91 or left the settings");
+            if(auto* status=ui->findElementById("destination-status");!status||status->GetInnerRML().empty())
+                return fail("Go refused latitude 91 without saying why");
+            field("latitude",latitude);field("longitude",longitude);
+        }
         testClick("options-back",false);
         if(optionsOpen)return fail("Retour did not close the screen");
-        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled)");
+        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, bad destination refused in place)");
         forceTime(savedTime);
         forceWeather(savedWeather);
         // Testing both buttons must not silently change the measured preset.
@@ -8140,7 +8354,7 @@ public:
                 fail("leaving a bike did not return the real body and leave an empty saddle");return;
             }
             saida::Log::info("[World E2E] PASS motorcycle empty spawn, solver mount, armed shot and empty dismount");
-            const double hp=health.hp;hurtPlayer(500.,glm::vec3(1,0,0),"le test");
+            const double hp=health.hp;hurtPlayer(500.,glm::vec3(1,0,0),"the test");
             if(health.take(500.)||health.hp!=hp||wasted){fail("an invincible player was hurt");return;}
             health.shield=0;
             saida::Log::info("[World E2E] PASS cheats: helicopter, sport car, city bike, motocross and jet beside the player, invincibility");
@@ -8420,7 +8634,8 @@ public:
         if(checkPhysics())return;
         if(generation!=ui->documentGeneration()||listeners.empty()) {
             generation=ui->documentGeneration();listeners.clear();
-            for(auto id:{"map","go","resume","zoom-in","zoom-out","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
+            written.clear();
+            for(auto id:{"go","destination-go","resume","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
                          "city-choice-0","city-choice-1","city-choice-2","city-choice-3","city-choice-4",
                          "options","options-back","forced-apply","forced-clear",
                          "weather-real","weather-clear","weather-light-rain","weather-storm",
@@ -8428,6 +8643,11 @@ public:
                          "forced-preset-8","forced-preset-12","forced-preset-17","forced-preset-22"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
+            for(auto id:{"map","menu"})if(auto* e=ui->findElementById(id)) {
+                if(std::string(id)=="map")for(auto type:{"mousedown","mousescroll","dblclick"})e->AddEventListener(type,this);
+                for(auto type:{"mousemove","mouseup"})e->AddEventListener(type,this);
+                listeners.push_back(e);
+            }
             if(!listeners.empty()) {
                 select(pickLon,pickLat);
                 const bool menuSmoke=std::getenv("R1WORLD_MENU_SMOKE")!=nullptr;
@@ -8476,7 +8696,8 @@ public:
         clock+=delta;
         applyForcedTime();
         updateCityLookup();
-        if(menu&&zoom>1&&menuTiles.pump())renderMapTiles();
+        updateGlobe(saida::Time::unscaledDelta());
+        if(menu&&globe){const bool map=menuTiles.pump(),imagery=imageryTiles.pump();if(map||imagery)renderMapTiles();}
         if(smoke && pending && refused==tileAt(pickLon,pickLat).key()) {
             saida::Log::error("[World E2E] FAIL ",refused," did not fit the resident vertex budget");
             testFailed=true;engine.sceneTree().quit();return;
@@ -8507,7 +8728,7 @@ public:
         // Escape closes an open cheat line rather than opening the map
         // (World::updateCheats); M is a letter typed in it.
         bool key=(!performanceDebug&&held(GLFW_KEY_M))||engine.window().keyDown(GLFW_KEY_ESCAPE);
-        if(key&&!wasMenuKey&&!cheatOpen){if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
+        if(key&&!wasMenuKey&&!cheatOpen){if(optionsOpen)showOptions(false);else if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
         poll+=delta;hud+=delta;
         if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)cost.stream=timed([&]{stream();});}
         cost.parts=timed([&]{uploadParts();});
@@ -8548,6 +8769,10 @@ public:
             if(farRelief.node&&farRelief.node->visible()&&farRelief.reach>0)
                 camera->farZ=std::max(camera->farZ,float(farRelief.reach+2000.));
         }
+        // The sky takes the haze of the farthest ground drawn, so the horizon
+        // is one gradient rather than a silhouette between fogged land and
+        // clear sky (engine fogSkyDistance).
+        engine.sceneTree().world().settings().fogSkyDistance=camera->farZ;
         updateSnow(delta);
         if(checkStanding)keepStanding();
         updateSnowCover();
@@ -8619,7 +8844,7 @@ public:
             else if(sailing){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
             else if(piloting)leaveAircraft();
             else if(swimming){
-                if(!enterBoat()&&!enterAircraft())text("stream-status","Aucun bateau à portée — nagez vers une embarcation.");
+                if(!enterBoat()&&!enterAircraft())text("stream-status","No boat in reach — swim to one.");
             }
             else {
                 // The nearest of a car, a boat and an aircraft: one key for every vehicle.
@@ -8633,8 +8858,8 @@ public:
                     // and it gets an answer rather than silence.
                     if(carParked||!parked.empty()||trafficLive()>0)
                         text("stream-status",car
-                             ?"Portière bloquée."
-                             :"Aucun véhicule à portée — approchez-vous.");
+                             ?"Door blocked."
+                             :"No vehicle in reach — get closer.");
                 }
             }
         }
@@ -8678,12 +8903,12 @@ public:
                     } else if(!obstructed(next.x,next.y,alt)) {
                         const bool wading=onWater(next.x,next.y);
                         lon=next.x;lat=next.y;alt=height(lon,lat,alt);swimming=false;moving=true;
-                        text("stream-status",wading?"Vous avez pied.":"À terre.");
+                        text("stream-status",wading?"You can stand.":"Ashore.");
                         if(wading)saida::Log::info("[World swim] standing at ",lon,", ",lat," in ",waterLevel(lon,lat)-alt," m of water");
                         else saida::Log::info("[World swim] ashore at ",lon,", ",lat);
                     }
                     if(moving)swimHeading=wrap(std::atan2(east,north)/rad);
-                } else text("stream-status","Les données suivantes arrivent… nage retenue au bord du terrain.");
+                } else text("stream-status","More data is on its way… swimming held at the edge of the area.");
             }
             if(moving)request(lon,lat);
         } else if(length>0&&jumpOffset<3.) {  // falling from higher, he cannot steer
@@ -8704,7 +8929,7 @@ public:
                     swimming=true;swimTime=0;swimLean=0;
                     swimHeading=wrap(std::atan2(east,north)/rad);
                     jumpOffset=jumpVelocity=0;moving=true;
-                    text("stream-status","À l'eau — nagez vers la rive.");
+                    text("stream-status","In the water — swim for the shore.");
                     const auto bed=waterBed(lon,lat);
                     if(bed)saida::Log::info("[World swim] entered water at ",lon,", ",lat," depth=",waterLevel(lon,lat)-*bed," m");
                     else saida::Log::info("[World swim] entered water at ",lon,", ",lat," (no known bed: deep)");
@@ -8713,7 +8938,7 @@ public:
                     auto facing=glm::angleAxis(float(-std::atan2(east,north)),glm::vec3(0,1,0));
                     player->transform().rotation=glm::slerp(player->transform().rotation,facing,float(1-std::exp(-16*dt)));
                 }
-            }else text("stream-status","Les données suivantes arrivent… déplacement retenu au bord du terrain.");
+            }else text("stream-status","More data is on its way… movement held at the edge of the area.");
             request(lon,lat);
         } else if(jumpOffset<=0) {
             // Standing still, he is still a body: whoever walks into him
@@ -8750,7 +8975,7 @@ public:
                     // Come down on water, from an aircraft: he swims.
                     if(jumpVelocity<-5.&&tile(lon,lat)&&deepWater(lon,lat,alt)) {
                         swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);
-                        text("stream-status","À l'eau — nagez vers la rive.");
+                        text("stream-status","In the water — swim for the shore.");
                     } else if(jumpVelocity<0)landed(-jumpVelocity);
                     jumpOffset=0;jumpVelocity=0;
                 }
@@ -9055,22 +9280,22 @@ public:
             text("local-conditions",weatherLabel());
             text("coordinates",number(lat)+"°  /  "+number(lon)+"°     "+number(alt,1)+" m"
                  +(driving?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":"")
-                 +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" nœuds":"")
+                 +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" knots":"")
                  +(piloting?"     "+std::to_string(int(std::round(std::abs(plane.speed)*3.6)))+" km/h · "
-                    +std::to_string(int(std::round(plane.alt-planeGround)))+" m sol"
-                    +(plane.helicopter()?"":" · gaz "+std::to_string(int(std::round(plane.lever*100)))+" %"):""));
+                    +std::to_string(int(std::round(plane.alt-planeGround)))+" m AGL"
+                    +(plane.helicopter()?"":" · throttle "+std::to_string(int(std::round(plane.lever*100)))+" %"):""));
             Reach within;BoatReach moored;PlaneReach standing;double howFar=0,boatFar=0,planeFar=0;
             std::string mode=driving
-                ?" · Au volant · F : descendre"
+                ?" · Driving · F: get out"
                 :piloting?std::string(plane.helicopter()
-                    ?" · Hélicoptère · Espace/Maj : monter/descendre · Z/S : avancer/reculer · Q/D : tourner · F : descendre"
-                    :" · Avion · Z/S : gaz · Q/D : virer · Espace/Maj : cabrer/piquer · F : descendre")
-                  +(tile(lon,lat)?"":" · relief inconnu sous l'appareil")
-                :sailing?" · À la barre · F : débarquer ou passer à bord"
-                :swimming?" · À l'eau · ZQSD/WASD : nager · F : remonter à bord"
-                :nearestAircraft(standing,planeFar)?" · F : prendre l'appareil"
-                :nearestBoat(moored,boatFar)?" · F : prendre le bateau"
-                :(nearestCar(within,howFar)?" · F : monter dans le véhicule":performanceDebug?" · Échap : carte":" · M : carte");
+                    ?" · Helicopter · Space/Shift: climb/descend · W/S: forward/back · A/D: turn · F: get out"
+                    :" · Plane · W/S: throttle · A/D: bank · Space/Shift: pitch up/down · F: get out")
+                  +(tile(lon,lat)?"":" · terrain below the aircraft unknown")
+                :sailing?" · At the helm · F: disembark or step aboard"
+                :swimming?" · In the water · WASD/ZQSD: swim · F: climb back aboard"
+                :nearestAircraft(standing,planeFar)?" · F: take the aircraft"
+                :nearestBoat(moored,boatFar)?" · F: take the boat"
+                :(nearestCar(within,howFar)?" · F: get in the vehicle":performanceDebug?" · Esc: map":" · M: map");
             const auto* currentTile=tile(lon,lat);
             // A cook that ran out of memory is said where the player looks,
             // and fails the smoke on that reason (World service, OUT-OF-MEMORY).
@@ -9081,25 +9306,25 @@ public:
                                  serviceStatus.allowed," tile(s) cooked at once now, private ",int(privateMegabytes())," MB");
                 if(smoke){saida::Log::error("[World E2E] FAIL out of memory cooking ",serviceStatus.error);testFailed=true;engine.sceneTree().quit();return;}
             }
-            if(outOfMemorySaid)mode+=" · Mémoire saturée : les tuiles se chargent "+std::string(serviceStatus.allowed>1?"plus lentement":"une à une");
-            if(serviceStatus.memoryPaused)mode+=" · Chargement en attente de mémoire disponible";
+            if(outOfMemorySaid)mode+=" · Memory full: tiles load "+std::string(serviceStatus.allowed>1?"more slowly":"one at a time");
+            if(serviceStatus.memoryPaused)mode+=" · Loading waits for free memory";
             if(currentTile&&currentTile->data.value("provisional",false))
-                mode+=" · Rues et bâtiments en route (OpenStreetMap)";
+                mode+=" · Streets and buildings on their way (OpenStreetMap)";
             if(currentTile&&currentTile->data.value("groundPending",false))
-                mode+=" · Relief provisoire : altitude en cours de chargement";
+                mode+=" · Provisional terrain: elevation loading";
             std::string retailPlace;
             for(const auto& [key,t]:loaded) {
                 auto p=t.frame.local(ecef(lon,lat,alt));const r1::P2 q{p.x,p.z};
                 for(const auto& room:t.interiors)if(r1::pointInPolygon(q,room.plan.ring))retailPlace=room.plan.place(q);
                 if(!retailPlace.empty())break;
                 for(const auto& lot:t.parking){bool in=false;for(const auto& ring:lot.rings)in^=r1::pointInPolygon(q,ring);
-                    if(in){retailPlace="Parking de "+lot.name;break;}}
+                    if(in){retailPlace="Car park "+lot.name;break;}}
             }
             if(!retailPlace.empty())mode=" · "+retailPlace+mode;
             combatHud();
-            text("stream-status",std::to_string(loaded.size())+" tuiles actives"+mode
-                 +(fast?" · détail réduit à cette vitesse":"")
-                 +(physicsRefused?" · collisions incomplètes : le monde physique est plein":""));
+            text("stream-status",std::to_string(loaded.size())+" active tiles"+mode
+                 +(fast?" · detail reduced at this speed":"")
+                 +(physicsRefused?" · collisions incomplete: the physics world is full":""));
         }
         if(performanceSmoke){runPerformanceSmoke(delta);return;}
         if(smokeFighting){runSmokeFight(dt);return;}
@@ -9303,6 +9528,7 @@ int main(int argc,char** argv) {
         // This development executable uses the existing engine's baked paths
         // for shaders/fonts, and the project's root for content.
         saida::PhysicsCapacity physics;physics.bodies=kPhysicsBodies;
+        auto menuGlobe=r1::registerMenuGlobe();
         saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),false,{},physics);
         engine.resources().assetLoader().setBudget(kDecodedAssetBudget);
         if(!saida::SceneSerializer::loadIntoScene(engine.scene(),engine.resources(),(game/"scenes/earth.scene").string()))throw std::runtime_error("Cannot load Earth scene");
@@ -9317,6 +9543,7 @@ int main(int argc,char** argv) {
         // reads before any tile is cooked, and refuses to run without.
         r1::loadPalette(game.string());
         World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly);
+        world.setMenuGlobe(menuGlobe);
         for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--at") {
             const double at=std::stod(argv[i+1]);
             if(!std::isfinite(at))throw std::runtime_error("Invalid --at instant");

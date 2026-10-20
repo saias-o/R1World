@@ -55,18 +55,18 @@ public:
         if(state.state==saida::AudioStream::State::Failed||state.state==saida::AudioStream::State::Ended||waiting_>15.) {
             saida::Log::warn("[World radio] stream unavailable: ",catalogue_.stations[selected_].name," error=",state.error);
             if(attempts_<catalogue_.stations.size())tune(1);
-            else {stream_.stop();playing_=false;catalogue_.error="Stations indisponibles — N pour réessayer.";}
+            else {stream_.stop();playing_=false;catalogue_.error="Stations unavailable — N to retry.";}
         }
     }
     std::string label(double lon,double lat) const {
-        const std::string keys="B : radio · N / Maj+N : station · Pg↑/Pg↓ : volume";
-        if(!wanted_)return "Radio éteinte · "+keys;
-        if(!catalogue_.error.empty())return catalogue_.error+" · B : éteindre";
-        if(catalogue_.stations.empty())return "Recherche de radios locales… · B : éteindre";
+        const std::string keys="B: radio · N / Shift+N: station · PgUp/PgDn: volume";
+        if(!wanted_)return "Radio off · "+keys;
+        if(!catalogue_.error.empty())return catalogue_.error+" · B: turn off";
+        if(catalogue_.stations.empty())return "Looking for local stations… · B: turn off";
         const auto& station=catalogue_.stations[selected_];
         const double km=radio::distanceMetres(lon,lat,station.lon,station.lat)/1000.;
         const auto state=stream_.status().state;
-        const std::string status=state==saida::AudioStream::State::Playing?"":state==saida::AudioStream::State::AwaitingGesture?" · Toucher pour écouter":" · Connexion…";
+        const std::string status=state==saida::AudioStream::State::Playing?"":state==saida::AudioStream::State::AwaitingGesture?" · Tap to listen":" · Connecting…";
         return station.name+" · "+std::to_string(int(std::round(km)))+" km"+status+
             " · "+std::to_string(int(volume_*100))+" %\n"+keys+" · Radio Browser";
     }

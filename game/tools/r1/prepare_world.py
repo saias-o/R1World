@@ -1,8 +1,6 @@
 """Generate the world entry scene and its offline Natural Earth basemap."""
 import json
-import struct
 import urllib.request
-import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,40 +27,15 @@ FAR_PLANE = 5000
 
 
 def basemap():
+    # Natural Earth land polygons: the harbour finder's coastline
+    # (gen/harbours.cpp). The menu once drew a flat map from them too; the
+    # globe (native/menu_globe.cpp) replaced it.
     cache = GAME / "assets" / "world" / "land.geojson"
     cache.parent.mkdir(parents=True, exist_ok=True)
     if not cache.exists():
         with urllib.request.urlopen(URL, timeout=40) as response:
             cache.write_bytes(response.read())
-    doc = json.loads(cache.read_text(encoding="utf-8"))
-    width, height = 1440, 720
-    pixels = bytearray(bytes((14, 35, 48)) * width * height)
-    for y in range(height):
-        for x in range(width):
-            if x % 120 == 0 or y % 120 == 0:
-                pixels[(y*width+x)*3:(y*width+x)*3+3] = bytes((25, 49, 61))
-    for feature in doc["features"]:
-        geom = feature["geometry"]
-        polys = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
-        for rings in polys:
-            for index, ring in enumerate(rings):
-                points = [((lon + 180)*4, (90-lat)*4) for lon, lat in ring]
-                color = bytes((88, 120, 117)) if index == 0 else bytes((14, 35, 48))
-                for y in range(max(0, int(min(p[1] for p in points))), min(height, int(max(p[1] for p in points))+1)):
-                    cross = []
-                    for a,b in zip(points, points[1:]+points[:1]):
-                        if (a[1] <= y+.5 < b[1]) or (b[1] <= y+.5 < a[1]):
-                            cross.append(a[0]+(y+.5-a[1])*(b[0]-a[0])/(b[1]-a[1]))
-                    cross.sort()
-                    for a,b in zip(cross[::2],cross[1::2]):
-                        lo,hi=max(0,int(a)),min(width,int(b)+1)
-                        pixels[(y*width+lo)*3:(y*width+hi)*3] = color*(hi-lo)
-    def chunk(kind, data):
-        return struct.pack(">I",len(data))+kind+data+struct.pack(">I",zlib.crc32(kind+data))
-    raw = b"".join(b"\0"+pixels[y*width*3:(y+1)*width*3] for y in range(height))
-    png = b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">IIBBBBB",width,height,8,2,0,0,0))+chunk(b"IDAT",zlib.compress(raw))+chunk(b"IEND",b"")
-    (GAME/"ui"/"earth.png").write_bytes(png)
-    (cache.parent/"SOURCES.json").write_text(json.dumps({"map":{"source":URL,"license":"Natural Earth public domain","use":"Selection map only; not terrain or elevation"}},indent=2),encoding="utf-8")
+    (cache.parent/"SOURCES.json").write_text(json.dumps({"map":{"source":URL,"license":"Natural Earth public domain","use":"Coastlines for harbours only; not terrain or elevation"}},indent=2),encoding="utf-8")
 
 
 def main():

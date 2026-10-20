@@ -545,6 +545,11 @@
             "path": "assets/textures/surfaces/slate_mr.jpg",
             "type": "Texture"
         },
+        "11148869327952334574": {
+            "hash": 20283765161314038,
+            "path": "assets/menu/earth-day-preview.jpg",
+            "type": "Texture"
+        },
         "11178310644759046021": {
             "hash": 5686412886186456060,
             "path": "assets/world/landmarks/pyramid_of_khafre-r3-lod2.glb",
@@ -1860,6 +1865,11 @@
             "path": "assets/world/relief/-70_-30.r1relief",
             "type": "Unknown"
         },
+        "14173629491927499990": {
+            "hash": 8119637515340927292,
+            "path": "assets/audio/menu/la.mp3",
+            "type": "Unknown"
+        },
         "14219444032277492959": {
             "hash": 12435981215151756996,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_twigs_arm_1k.jpg",
@@ -2180,6 +2190,11 @@
             "path": "assets/models/signs/fr_a2b-rural-r1.glb",
             "type": "Mesh"
         },
+        "15068845917293142120": {
+            "hash": 3004427826308849521,
+            "path": "assets/menu/earth-clouds.jpg",
+            "type": "Texture"
+        },
         "15070003261571789216": {
             "hash": 8383334368469404781,
             "path": "assets/world/relief/70_80.r1relief",
@@ -2321,7 +2336,7 @@
             "type": "Unknown"
         },
         "15336490900835210494": {
-            "hash": 17132935539486642364,
+            "hash": 1270031335195377664,
             "path": "assets/models/external/nature_selected/urban_tree_far.source.json",
             "type": "Unknown"
         },
@@ -2766,7 +2781,7 @@
             "type": "Unknown"
         },
         "16422651030829251198": {
-            "hash": 10954432584959326379,
+            "hash": 3481531013316873479,
             "path": "assets/licenses/CC0-1.0.txt",
             "type": "Unknown"
         },
@@ -2794,6 +2809,11 @@
             "hash": 17239871382869383530,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_02.bin",
             "type": "Unknown"
+        },
+        "16464312002446392299": {
+            "hash": 13408903062989963644,
+            "path": "assets/menu/earth-night.jpg",
+            "type": "Texture"
         },
         "16478976479121131687": {
             "hash": 6271810807875847883,
@@ -2964,6 +2984,11 @@
             "hash": 9942423568889586522,
             "path": "assets/world/relief/70_160.r1relief",
             "type": "Unknown"
+        },
+        "17064759109021311776": {
+            "hash": 8691150692682033735,
+            "path": "assets/menu/earth-day.jpg",
+            "type": "Texture"
         },
         "1708021577617294569": {
             "hash": 6271810807875847883,
@@ -3926,7 +3951,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 792732916330860535,
+            "hash": 5014788597052132413,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },
@@ -5285,6 +5310,11 @@
             "path": "assets/models/signs/faces/fr_a2b-normale-r1.png",
             "type": "Texture"
         },
+        "6083935461610681520": {
+            "hash": 14820475465637803567,
+            "path": "assets/menu/milky-way.jpg",
+            "type": "Texture"
+        },
         "6084285013785884658": {
             "hash": 7597585586211863537,
             "path": "assets/skies/qwantani_sunset.hdr",
@@ -5711,7 +5741,7 @@
             "type": "Unknown"
         },
         "7092704690704086645": {
-            "hash": 10751105507613868751,
+            "hash": 9118485586078917401,
             "path": "assets/models/external/nature_selected/pine_tall_far.source.json",
             "type": "Unknown"
         },
@@ -6096,7 +6126,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 4969814885691471619,
+            "hash": 17808544314045697059,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -6276,7 +6306,7 @@
             "type": "Mesh"
         },
         "8505060791082797504": {
-            "hash": 1655919096764856391,
+            "hash": 409823669061320585,
             "path": "assets/models/external/nature_selected/sakura_far.source.json",
             "type": "Unknown"
         },
@@ -6746,7 +6776,7 @@
             "type": "Texture"
         },
         "9569450703380592770": {
-            "hash": 1363941381018045837,
+            "hash": 7828148219094515023,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
         },

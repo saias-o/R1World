@@ -53,7 +53,7 @@ std::vector<PlaceChoice> searchPlaceChoices(const std::string& query) {
     // The public Photon instance supports search-as-you-type. Debouncing and
     // one in-flight request are enforced by the menu, never by this worker.
     const std::string url = "https://photon.komoot.io/api/?q=" + net::urlEncode(query) +
-                            "&lang=fr&limit=10&layer=city&layer=locality";
+                            "&lang=en&limit=10&layer=city&layer=locality";
     const net::Response response = net::request("GET", url, {}, {}, 8.0);
     if (response.status < 200 || response.status >= 300)
         throw std::runtime_error("place search HTTP " + std::to_string(response.status));

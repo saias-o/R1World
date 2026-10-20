@@ -22,12 +22,12 @@ struct Entry {
 // GTA's own words where GTA has one: BUZZOFF and COMET are San Andreas and
 // Vice City spawns, PAINKILLER is Vice City's invincibility.
 constexpr Entry kCodes[] = {
-    {"buzzoff", Code::Helicopter, "Hélicoptère à côté de vous."},
-    {"plane", Code::Plane, "Avion à côté de vous."},
-    {"comet", Code::SportsCar, "Voiture de sport à côté de vous."},
-    {"moto", Code::Moto, "Moto de ville à côté de vous."},
-    {"rocket", Code::Rocket, "Motocross à côté de vous."},
-    {"painkiller", Code::Invincible, "Invincible pendant 5 minutes."},
+    {"buzzoff", Code::Helicopter, "Helicopter beside you."},
+    {"plane", Code::Plane, "Plane beside you."},
+    {"comet", Code::SportsCar, "Sports car beside you."},
+    {"moto", Code::Moto, "City motorcycle beside you."},
+    {"rocket", Code::Rocket, "Dirt bike beside you."},
+    {"painkiller", Code::Invincible, "Invincible for 5 minutes."},
 };
 
 // PAINKILLER: five minutes in which nothing takes a hit point.
@@ -50,7 +50,7 @@ inline Code parse(std::string_view typed) {
 inline const char* said(Code code) {
     for (const auto& entry : kCodes)
         if (entry.code == code) return entry.said;
-    return "Code inconnu.";
+    return "Unknown code.";
 }
 
 // "4:59" -- what the HUD shows of an invincibility, rounded up so that the

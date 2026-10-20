@@ -225,6 +225,7 @@
       ],
       "fogStart": 160,
       "fogDensity": 0.0000261,
+      "fogSkyColor": 1.0,
       "iblEnabled": true,
       "iblDiffuseIntensity": 0.0,
       "iblSpecularIntensity": 1.0,

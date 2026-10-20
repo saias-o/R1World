@@ -71,7 +71,7 @@ struct Discovery::Impl {
     }
     void finish() {
         done=true;
-        if(result.stations.empty()){result.error="Aucune station géolocalisée compatible disponible.";return;}
+        if(result.stations.empty()){result.error="No compatible geolocated station available.";return;}
         result.error.clear();
         try {
             std::filesystem::create_directories(path.parent_path());
@@ -129,7 +129,7 @@ void Discovery::accept(int status,const std::string& body,const std::string& err
         d.servers=false;d.rotate();return;
     }
     if(!ok){
-        d.result.error=error.empty()?"Réponse du catalogue radio invalide.":error;
+        d.result.error=error.empty()?"Invalid response from the radio catalogue.":error;
         if(++d.attempt<std::min(size_t(3),d.hosts.size()))return;
         d.done=true;if(!d.stale.stations.empty())d.result=std::move(d.stale);
         else if(!d.result.stations.empty())d.result.error.clear();

@@ -2,13 +2,27 @@
   "schema": 1,
   "assets": [
     {
-      "name": "Natural Earth 50m shaded relief menu map",
-      "author": "Natural Earth",
-      "source": "https://www.naturalearthdata.com/downloads/50m-raster-data/50m-natural-earth-1/",
-      "license": "Public domain",
-      "modified": "Resized to 4096 × 2048 and color graded for the menu",
+      "name": "Sentinel-2 cloudless 2016 menu globe imagery",
+      "author": "EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016)",
+      "source": "https://s2maps.eu",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "modified": "256 px Web Mercator tiles, levels 6-14, fetched on demand while zooming the menu globe and cached under cache/map-tiles/s2cloudless-2016; lit at runtime. Attribution shown on screen while visible.",
+      "files": []
+    },
+    {
+      "name": "Earth day, clouds, night lights and Milky Way menu textures",
+      "author": "Solar System Scope / INOVE, based on NASA imagery",
+      "source": "https://www.solarsystemscope.com/textures/",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "modified": "Unmodified JPEG textures; day map 8K, clouds/night/Milky Way 2K. earth-day-preview.jpg is the day map downscaled to 1024x512, shown while the 8K map decodes. Lighting and cloud animation applied at runtime.",
       "files": [
-        "ui/earth.png"
+        "assets/menu/earth-day.jpg",
+        "assets/menu/earth-day-preview.jpg",
+        "assets/menu/earth-clouds.jpg",
+        "assets/menu/earth-night.jpg",
+        "assets/menu/milky-way.jpg"
       ]
     },
     {

@@ -24,7 +24,7 @@ TEST(Cheats, a_word_that_is_no_code_is_unknown_never_a_near_match) {
     CHECK(parse("buzz off") == Code::Unknown);
     CHECK(parse("comets") == Code::Unknown);
     CHECK(parse("pain") == Code::Unknown);
-    CHECK(std::string(said(Code::Unknown)) == "Code inconnu.");
+    CHECK(std::string(said(Code::Unknown)) == "Unknown code.");
 }
 
 TEST(Cheats, painkiller_lasts_five_minutes_and_its_clock_never_reads_zero_while_it_holds) {

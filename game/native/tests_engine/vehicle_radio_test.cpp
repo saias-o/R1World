@@ -35,7 +35,7 @@ int main(int argc,char** argv) {
     {std::ofstream out(root/"cache/radio/1800_900.json");out<<json{{"version",1},{"stations",rows}};}
     r1::VehicleRadio radio(root);
     radio.update(.025,0,0,false,true,false,false,0);
-    require(radio.label(0,0).find("Radio éteinte")!=std::string::npos,"radio cannot be enabled on foot");
+    require(radio.label(0,0).find("Radio off")!=std::string::npos,"radio cannot be enabled on foot");
     radio.update(.025,0,0,true,true,false,false,0);
     waitFor(radio,"Local station one");
     std::puts("PASS radio skips failed nearest stream and plays the next local station");
@@ -46,6 +46,6 @@ int main(int argc,char** argv) {
     radio.update(.025,0,0,true,false,false,true,-1);waitFor(radio,"Local station one");
     std::puts("PASS radio next/previous station and volume controls");
     radio.update(.025,0,0,true,true,false,false,0);
-    require(radio.label(0,0).find("Radio éteinte")!=std::string::npos,"radio toggles off during playback");
+    require(radio.label(0,0).find("Radio off")!=std::string::npos,"radio toggles off during playback");
     std::puts("PASS vehicle-radio complete lifecycle");
 }
