@@ -91,6 +91,20 @@ Node smoke; these build checks do not claim browser menu interaction coverage.
 | N / Maj+N | | next / previous local station | |
 | Page Up / Page Down | | radio volume | |
 
+### VR
+
+```powershell
+powershell -File game\Play.ps1 --vr --spawn 2.3522 48.8566
+```
+
+`--vr` opens an OpenXR session (Quest Link or another runtime must be active)
+and skips the map: the game travels straight to `--spawn` (Paris by default).
+The view is first person from where the player stands; turning the head is the
+only control. The rig (SaidaEngine's `XROrigin`) follows the player's feet and
+heading, and the player's body is hidden. Tracked hands (Quest hand tracking,
+controllers put down) are drawn as SaidaEngine's `XRHand` joints in a skin albedo. The desktop window stays hidden; close
+the session from the headset to quit.
+
 ### Cheat codes
 
 As in GTA, **T** opens a line above the controls; type a code, **Enter** runs

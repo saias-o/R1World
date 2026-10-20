@@ -23,6 +23,10 @@
 #include "nodes/GrassNode.hpp"
 #include "nodes/WaterNode.hpp"
 #include "nodes/CameraNode.hpp"
+#ifdef SAIDA_ENABLE_XR
+#include "xr/toolkit/XROrigin.hpp"
+#include "xr/toolkit/XRHand.hpp"
+#endif
 #include "nodes/MeshNode.hpp"
 #include "nodes/LightNode.hpp"
 #include "nodes/ParticleSystemNode.hpp"
@@ -812,6 +816,12 @@ class World : public Rml::EventListener {
     // that have not streamed yet, rather than inventing a ground.
     double planeGround=0; bool planeStopped=false;
     bool smokeFly=false,smokeFlyWait=false; int smokeFlyPhase=0;
+    // --vr: a headset is the camera. The rig stands on the ground the player
+    // stands on; the head turns freely above it. Nothing else changes.
+    bool vr=false;
+#ifdef SAIDA_ENABLE_XR
+    saida::XROrigin* vrRig=nullptr;
+#endif
     double smokeFlyTime=0,smokeFlyAlt=0,smokeFlyTop=0,smokeFlyClear=0,smokeF=0,smokeR=0,smokeUp=0;
     glm::dvec3 smokeFlyStart{0}; std::set<std::string> smokeFlown;
     glm::dvec3 smokeSwimStart{0}; saida::Node* smokeSwimBoat=nullptr;
@@ -7486,7 +7496,7 @@ private:
         }
     }
 public:
-    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
+    World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false,bool headset=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),vr(headset),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         performanceSmoke=smoke&&std::getenv("R1WORLD_DEBUG_SMOKE");
         if(!perfSmoke.empty()&&(!smoke||(perfSmoke!="walk"&&perfSmoke!="drive")))
             throw std::runtime_error("R1WORLD_PERF_SMOKE requires --smoke and walk or drive");
@@ -7498,6 +7508,21 @@ public:
         minimapUi=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("minimap-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
         if(!ui||!minimapUi||!camera)throw std::runtime_error("Earth scene is missing its camera, map or minimap");
+#ifdef SAIDA_ENABLE_XR
+        // First child of the world: the engine finds the rig by a depth-first
+        // group walk every frame, which then stops at once.
+        if(vr) {
+            vrRig=static_cast<saida::XROrigin*>(e.sceneTree().world().addChildAt(std::make_unique<saida::XROrigin>(),0));
+            // The tracked hands, in the same world space as the head. Skin is
+            // a measured albedo (CLAUDE.md §2), not the engine's debug colours.
+            for(auto side:{saida::XRHand::Left,saida::XRHand::Right}) {
+                auto hand=std::make_unique<saida::XRHandNode>(side);
+                hand->setColor({.34f,.24f,.19f,1.f});
+                hand->buildVisuals(e.resources());
+                e.sceneTree().world().addChildAt(std::move(hand),1);
+            }
+        }
+#endif
         minimapUi->setEnabled(false);
         {
             std::ifstream input(game/"assets/world/timezone-countries.json");
@@ -8680,6 +8705,8 @@ public:
                 const bool menuSmoke=std::getenv("R1WORLD_MENU_SMOKE")!=nullptr;
                 if((smoke||menuSmoke)&&!smokeZoom())return;
                 if(menuSmoke){engine.sceneTree().quit();return;}
+                // A headset has no mouse for the globe: go straight to --spawn.
+                if(vr&&!smoke){go();saida::Log::info("[World VR] menu skipped, travelling to ",pickLon,", ",pickLat);}
                 if(smoke) {
                     double sx=pickLon,sy=pickLat;
                     // A press and release on the globe picks the point under
@@ -9072,6 +9099,14 @@ public:
         }
         followDistance=clear<followDistance?clear:followDistance+(clear-followDistance)*(1-std::exp(-7*dt));
         camera->transform().position=target+backward*float(followDistance);
+#ifdef SAIDA_ENABLE_XR
+        if(vrRig) {
+            // First person: the body would fill the view from inside.
+            player->setVisible(false);
+            vrRig->transform().position=anchor;
+            vrRig->yawDegrees=float(-(yaw+lookYaw));
+        }
+#endif
         if(smoke&&!worldCapture.pngPath.empty()) {
             if(captureView.set) {
                 // The viewpoint is relative to where the player stands now, not
@@ -9553,14 +9588,17 @@ int main(int argc,char** argv) {
             std::cout<<result.dump()<<std::endl;return 0;
         }
         fs::path game=fs::absolute(fs::path(argv[0])).parent_path().parent_path().parent_path();
-        bool smoke=false,sail=false,fly=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
-        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--fly")fly=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
+        bool smoke=false,sail=false,fly=false,vr=false;double startLon=2.3522,startLat=48.8566;bool hop=false;double hopLon=0,hopLat=0;
+        for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--fly")fly=true;else if(a=="--vr")vr=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
         if(!std::isfinite(startLon)||!std::isfinite(startLat)||std::abs(startLat)>90||std::abs(startLon)>180)throw std::runtime_error("Invalid --spawn coordinate");
         // This development executable uses the existing engine's baked paths
         // for shaders/fonts, and the project's root for content.
         saida::PhysicsCapacity physics;physics.bodies=kPhysicsBodies;
         auto menuGlobe=r1::registerMenuGlobe();
-        saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),false,{},physics);
+        #ifndef SAIDA_ENABLE_XR
+        if(vr)throw std::runtime_error("--vr: this build of the engine has no OpenXR (SAIDA_ENABLE_XR=OFF)");
+#endif
+        saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),vr,{},physics);
         engine.resources().assetLoader().setBudget(kDecodedAssetBudget);
         if(!saida::SceneSerializer::loadIntoScene(engine.scene(),engine.resources(),(game/"scenes/earth.scene").string()))throw std::runtime_error("Cannot load Earth scene");
         engine.mountWorld();saida::Time::setScale(1);
@@ -9573,7 +9611,7 @@ int main(int argc,char** argv) {
         // The Atlas, the ground classes and the surfaces: data the generator
         // reads before any tile is cooked, and refuses to run without.
         r1::loadPalette(game.string());
-        World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly);
+        World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly,vr);
         world.setMenuGlobe(menuGlobe);
         for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--at") {
             const double at=std::stod(argv[i+1]);
