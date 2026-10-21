@@ -2917,7 +2917,10 @@ class World : public Rml::EventListener {
     std::vector<Tile> orderedNearby(double x,double y) const {
         auto tiles=nearby(x,y);
         if(drop.phase==Drop::Zoom) {
-            tiles.erase(std::remove_if(tiles.begin()+1,tiles.end(),[&](Tile t){return !dropShows(t);}),tiles.end());
+            // What the picture shows first, then the closest, so that the
+            // kDropTiles the fade waits for are always asked for.
+            const auto shown=std::stable_partition(tiles.begin()+1,tiles.end(),[&](Tile t){return dropShows(t);});
+            tiles.erase(tiles.begin()+std::max<ptrdiff_t>(shown-tiles.begin(),std::min<ptrdiff_t>(kDropTiles,tiles.size())),tiles.end());
             return tiles;
         }
         double heading=0,speed=0;
@@ -3050,6 +3053,9 @@ class World : public Rml::EventListener {
     // collisions -- the streets OSM has yet to send, the trees and street
     // furniture, the textures -- at most this long; then it goes, and says so.
     static constexpr double kDropExtrasWait=25.;
+    // Tiles of the neighbourhood ready, the landing one among them, before
+    // the world shows.
+    static constexpr size_t kDropTiles=4;
     static constexpr double kDropAlignSeconds=.8;
     // The pelvis, as a fraction of his height (humans.json: 0.896 of 1.826).
     static constexpr double kPelvis=.49;
@@ -3225,6 +3231,20 @@ class World : public Rml::EventListener {
         int width=1,height=1;engine.window().size(width,height);
         return view.shows(b.west,b.south,b.east,b.north,width,height,globe?globe->viewport:glm::vec4(0,0,1,1));
     }
+    // Empty when tile `t` has its ground, collisions and buildings mounted;
+    // otherwise what it still lacks.
+    std::string tileReadiness(Tile t,const std::string& sources) const {
+        const auto i=loaded.find(t.key());
+        if(i==loaded.end())return "tile "+t.key()+sources;
+        const auto& r=i->second;
+        const size_t parts=r.served?std::any_cast<const PreparedTile&>(r.served->prepared).parts.size():0;
+        if(!r.geography||r.nextPart<parts)return "the ground of tile "+t.key();
+        for(auto* mesh:r.partMeshes)if(!mesh->loaded())return "the ground of tile "+t.key();
+        if(!r.geography->children().empty()&&static_cast<saida::CollisionObjectNode*>(r.geography->children().back().get())->bodyId().IsInvalid())
+            return "the collisions of tile "+t.key();
+        if(!buildingsReady(r))return "the buildings of tile "+t.key();
+        return {};
+    }
     bool dropReady() {
         SAIDA_PROFILE_SCOPE("World/ArrivalReady");
         if(drop.phase!=Drop::Zoom)return true;
@@ -3237,22 +3257,27 @@ class World : public Rml::EventListener {
                                  :status.offline?" -- a source is not responding":"";
         if(!drop.armed)return missing("the ground of the drop zone"+sources);
         if(drop.aligned<1)return missing("the picture to meet the ground");
+        // The fall begins once kDropTiles of the neighbourhood are ready, the
+        // one he lands on among them; the rest cook behind the visible ground.
         const auto want=nearby(drop.goalLon,drop.goalLat);
-        size_t streets=0,objects=0,later=0;
+        const Tile landing=tileAt(drop.goalLon,drop.goalLat);
+        size_t streets=0,objects=0,ready=0;
+        std::string first;  // why the first tile not ready is not
         for(Tile t:want) {
-            const auto i=loaded.find(t.key());
-            if(!dropShows(t)){later+=i==loaded.end();continue;}
-            if(i==loaded.end())return missing("tile "+t.key()+sources);
-            const auto& r=i->second;
-            const size_t parts=r.served?std::any_cast<const PreparedTile&>(r.served->prepared).parts.size():0;
-            if(!r.geography||r.nextPart<parts)return missing("the ground of tile "+t.key());
-            for(auto* mesh:r.partMeshes)if(!mesh->loaded())return missing("the ground of tile "+t.key());
-            if(!r.geography->children().empty()&&static_cast<saida::CollisionObjectNode*>(r.geography->children().back().get())->bodyId().IsInvalid())
-                return missing("the collisions of tile "+t.key());
-            if(!buildingsReady(r))return missing("the buildings of tile "+t.key());
+            const auto why=tileReadiness(t,sources);
+            if(!why.empty()) {
+                if(t==landing)return missing(why);
+                if(first.empty())first=why;
+                continue;
+            }
+            const auto& r=loaded.at(t.key());
+            ++ready;
             streets+=r.data.value("provisional",false);
             objects+=r.nextProp<r.props.size();
         }
+        const size_t needed=std::min(kDropTiles,want.size());
+        if(ready<needed)return missing(std::to_string(ready)+" of "+std::to_string(needed)+" tiles ready; "+first);
+        const size_t later=want.size()-ready;
         drop.groundReady=true;
         if(drop.held<kDropExtrasWait&&!status.memoryPaused) {
             // The picture going: the finest imagery over the drop zone, all
@@ -3261,12 +3286,8 @@ class World : public Rml::EventListener {
                 return missing("the satellite picture of the drop zone");
             if(streets&&!status.offline&&status.error.empty())
                 return missing(std::to_string(streets)+" tiles' streets and buildings (OpenStreetMap)");
-            if(objects)return missing("the trees and street furniture of "+std::to_string(objects)+" tiles");
-            if(!engine.resources().assetLoadsSettled()) {
-                const auto loads=engine.resources().assetLoader().stats();
-                return missing("textures and models ("+std::to_string(loads.queued)+" queued, "
-                               +std::to_string(loads.loading)+" decoding)");
-            }
+            // Trees, street furniture, textures and models never hold the
+            // fall: they come in while he falls.
         }
         drop.waitingFor=streets||objects||later
             ?"fading after "+number(drop.held,0)+" s with "+std::to_string(later)+" tiles of the neighbourhood still cooking, "
@@ -3733,20 +3754,20 @@ class World : public Rml::EventListener {
     }
     // ── --dive: the smoke flies the whole arrival ──
     void smokeDiveFade() {
-        // The tiles the fade shows were cooked before it, and the world's
-        // camera is the globe's.
-        std::string why;
+        // The fade began with the landing tile and kDropTiles of the
+        // neighbourhood cooked, and the world's camera is the globe's.
         const auto want=nearby(drop.goalLon,drop.goalLat);
-        size_t shown=0,mounted=0;
+        const Tile landing=tileAt(drop.goalLon,drop.goalLat);
+        size_t ready=0;
         for(Tile t:want) {
-            mounted+=loaded.count(t.key());
-            if(!dropShows(t))continue;
-            ++shown;
-            if(!loaded.count(t.key())){saida::Log::error("[World E2E] FAIL the fade began without ",t.key(),", which it shows");testFailed=true;engine.sceneTree().quit();return;}
+            const bool cooked=tileReadiness(t,"").empty();
+            ready+=cooked;
+            if(t==landing&&!cooked){saida::Log::error("[World E2E] FAIL the fade began without the landing tile ",t.key());testFailed=true;engine.sceneTree().quit();return;}
         }
+        if(ready<std::min(kDropTiles,want.size())){saida::Log::error("[World E2E] FAIL the fade began with ",ready," tiles ready of ",kDropTiles);testFailed=true;engine.sceneTree().quit();return;}
         smokeDiveFaded=true;smokeDiveHealth=health.hp;
-        saida::Log::info("[World E2E] PASS the fade found the drop zone cooked: the ",shown," tiles it shows mounted with ground, buildings and collisions, ",
-                         mounted," of ",want.size()," of the neighbourhood");
+        saida::Log::info("[World E2E] PASS the fade found the drop zone cooked: the landing tile and ",ready," of ",want.size(),
+                         " tiles of the neighbourhood with ground, buildings and collisions");
     }
     void runSmokeDive() {
         using namespace r1::arrival;
