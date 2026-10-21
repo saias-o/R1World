@@ -1013,6 +1013,20 @@
       "files": [
         "assets/models/external/understory/"
       ]
+    },
+    {
+      "name": "Parachute — Poly by Google",
+      "author": "Poly by Google",
+      "source": "https://poly.pizza/m/3Z7vJ96JIEB",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "licenseFile": "assets/licenses/Poly-by-Google-Parachute-CC-BY-3.0.txt",
+      "generatedBy": "game/tools/r1/parachute.py",
+      "sourceSha256": "a8e25997fa97b434fd8516ffceb3f9248318f21441ea03e29d8b656a4834a28f",
+      "modifications": "Kite bar removed and line ends brought onto the shoulders; painted texture replaced by five flat measured-albedo materials (red, yellow, blue and black ripstop, white lines); front at +Z (the wing is symmetric fore and aft). Geometry otherwise as downloaded.",
+      "files": [
+        "assets/models/external/parachute/parachute.glb"
+      ]
     }
   ]
 }

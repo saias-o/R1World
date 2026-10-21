@@ -2401,7 +2401,7 @@
             "type": "Unknown"
         },
         "15336490900835210494": {
-            "hash": 1270031335195377664,
+            "hash": 17132935539486642364,
             "path": "assets/models/external/nature_selected/urban_tree_far.source.json",
             "type": "Unknown"
         },
@@ -2856,7 +2856,7 @@
             "type": "Unknown"
         },
         "16422651030829251198": {
-            "hash": 3481531013316873479,
+            "hash": 10954432584959326379,
             "path": "assets/licenses/CC0-1.0.txt",
             "type": "Unknown"
         },
@@ -2939,6 +2939,11 @@
             "hash": 7710069683272314898,
             "path": "assets/textures/surfaces/step_stone_normal.jpg",
             "type": "Texture"
+        },
+        "16655433571255381515": {
+            "hash": 7739817527359589309,
+            "path": "assets/models/external/parachute/parachute.glb",
+            "type": "Mesh"
         },
         "16674097435083625614": {
             "hash": 654653369609063748,
@@ -3690,6 +3695,11 @@
             "path": "assets/world/relief/80_70.r1relief",
             "type": "Unknown"
         },
+        "1884494921934651947": {
+            "hash": 14387648165064406046,
+            "path": "assets/audio/arrival/sounds.json",
+            "type": "Unknown"
+        },
         "1887205277330797107": {
             "hash": 4437979255958693355,
             "path": "assets/world/relief/60_-20.r1relief",
@@ -3778,6 +3788,11 @@
         "2098393769646493544": {
             "hash": 15248288244507242047,
             "path": "assets/world/relief/10_170.r1relief",
+            "type": "Unknown"
+        },
+        "2107652068066236247": {
+            "hash": 4774784834176561931,
+            "path": "assets/audio/arrival/wind_freefall.wav",
             "type": "Unknown"
         },
         "2121697836578779773": {
@@ -5415,6 +5430,11 @@
             "path": "assets/world/relief/-40_80.r1relief",
             "type": "Unknown"
         },
+        "59068046576923134": {
+            "hash": 5645271522768717222,
+            "path": "assets/licenses/Poly-by-Google-Parachute-CC-BY-3.0.txt",
+            "type": "Unknown"
+        },
         "5907497426095796392": {
             "hash": 9320371301622099807,
             "path": "assets/models/signs/street/glyph_00cb-r1.glb",
@@ -5911,7 +5931,7 @@
             "type": "Unknown"
         },
         "7092704690704086645": {
-            "hash": 9118485586078917401,
+            "hash": 10751105507613868751,
             "path": "assets/models/external/nature_selected/pine_tall_far.source.json",
             "type": "Unknown"
         },
@@ -6115,6 +6135,11 @@
             "path": "assets/world/relief/40_-60.r1relief",
             "type": "Unknown"
         },
+        "7548257604577729556": {
+            "hash": 7292483853519055850,
+            "path": "assets/audio/arrival/canopy_open.wav",
+            "type": "Unknown"
+        },
         "7577451729707294511": {
             "hash": 7886341381319024339,
             "path": "assets/world/relief/-40_70.r1relief",
@@ -6311,7 +6336,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 6390398681582080786,
+            "hash": 5317855497758492657,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -6496,7 +6521,7 @@
             "type": "Mesh"
         },
         "8505060791082797504": {
-            "hash": 409823669061320585,
+            "hash": 1655919096764856391,
             "path": "assets/models/external/nature_selected/sakura_far.source.json",
             "type": "Unknown"
         },
@@ -6699,6 +6724,11 @@
             "hash": 13740037881141145756,
             "path": "assets/models/external/kenney_nature_kit/tree_pineTallC.glb",
             "type": "Mesh"
+        },
+        "8908645349687224406": {
+            "hash": 11659896872855052589,
+            "path": "assets/audio/arrival/canopy_flutter.wav",
+            "type": "Unknown"
         },
         "890981829071782937": {
             "hash": 18323050565890074457,
@@ -6976,7 +7006,7 @@
             "type": "Texture"
         },
         "9569450703380592770": {
-            "hash": 7828148219094515023,
+            "hash": 1363941381018045837,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
         },

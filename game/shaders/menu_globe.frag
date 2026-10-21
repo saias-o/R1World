@@ -6,6 +6,16 @@ layout(set=0,binding=1) uniform sampler2D cloudMap;
 layout(set=0,binding=2) uniform sampler2D nightMap;
 layout(set=0,binding=3) uniform sampler2D galaxyMap;
 layout(set=0,binding=4) uniform sampler2D tileMap;
+layout(set=0,binding=5) uniform sampler2D tileWest;
+layout(set=0,binding=6) uniform sampler2D tileEast;
+layout(set=0,binding=7) uniform sampler2D tileNorth;
+layout(set=0,binding=8) uniform sampler2D tileSouth;
+layout(set=0,binding=9) uniform sampler2D tileNorthWest;
+layout(set=0,binding=10) uniform sampler2D tileNorthEast;
+layout(set=0,binding=11) uniform sampler2D tileSouthWest;
+layout(set=0,binding=12) uniform sampler2D tileSouthEast;
+// east.w is the globe's opacity, faded out by the arrival into the world it
+// shows; north.w the strength of its vignette; outward.w the neighbour mask.
 layout(push_constant) uniform Parameters {
     vec4 east,north,outward,viewport,lens,tile,sun;
 } pc;
@@ -33,6 +43,37 @@ vec2 tileCoord(vec2 coord,vec3 offset) {
     return pc.tile.yz+d;
 }
 bool offTile(vec2 t) {return any(lessThan(t,vec2(0)))||any(greaterThanEqual(t,vec2(1)));}
+// A geographic boundary is halfway between the last texel of one image and
+// the first of its neighbour. Clamping two separate images leaves a step at
+// that boundary; fetch the same four texels from either side instead. Fetches
+// decode sRGB before interpolation, just like the hardware linear sampler.
+vec3 tileTexel(ivec2 p,ivec2 size) {
+    int x=p.x<0?-1:p.x>=size.x?1:0,y=p.y<0?-1:p.y>=size.y?1:0;
+    int neighbour=y==0?(x<0?0:1):x==0?(y<0?2:3):y<0?(x<0?4:5):(x<0?6:7);
+    if((x==0&&y==0)||(int(pc.outward.w)&(1<<neighbour))==0)
+        return texelFetch(tileMap,clamp(p,ivec2(0),size-1),0).rgb;
+    p-=ivec2(x,y)*size;
+    if(neighbour==0)return texelFetch(tileWest,p,0).rgb;
+    if(neighbour==1)return texelFetch(tileEast,p,0).rgb;
+    if(neighbour==2)return texelFetch(tileNorth,p,0).rgb;
+    if(neighbour==3)return texelFetch(tileSouth,p,0).rgb;
+    if(neighbour==4)return texelFetch(tileNorthWest,p,0).rgb;
+    if(neighbour==5)return texelFetch(tileNorthEast,p,0).rgb;
+    if(neighbour==6)return texelFetch(tileSouthWest,p,0).rgb;
+    return texelFetch(tileSouthEast,p,0).rgb;
+}
+vec3 tileSample(vec2 t,vec2 dx,vec2 dy) {
+    ivec2 size=textureSize(tileMap,0);
+    // Preserve the sampler's mipmapping and anisotropy when minifying, and
+    // its interior magnification. Neighbours are needed only along an edge.
+    vec2 p=t*vec2(size)-.5;
+    if(max(length(dx*vec2(size)),length(dy*vec2(size)))>=1.||
+       (all(greaterThanEqual(p,vec2(0)))&&all(lessThan(p,vec2(size-1)))))
+        return textureGrad(tileMap,t,dx,dy).rgb;
+    ivec2 a=ivec2(floor(p));vec2 f=fract(p);
+    return mix(mix(tileTexel(a,size),tileTexel(a+ivec2(1,0),size),f.x),
+               mix(tileTexel(a+ivec2(0,1),size),tileTexel(a+ivec2(1,1),size),f.x),f.y);
+}
 vec2 sphere(vec3 eye,vec3 ray,float radius) {
     float b=dot(eye,ray),c=dot(eye,eye)-radius*radius,h=b*b-c;
     if(h<0.)return vec2(-1.);
@@ -40,7 +81,7 @@ vec2 sphere(vec3 eye,vec3 ray,float radius) {
 }
 void main() {
     gl_FragDepth=1.;
-    if(pc.tile.w<-.5) {colour=vec4(.0005,.001,.0025,1.);return;}
+    if(pc.tile.w<-.5) {colour=vec4(.0005,.001,.0025,pc.east.w);return;}
     vec2 local=(uv-pc.viewport.xy)/pc.viewport.zw;
     float aspect=pc.lens.x*pc.viewport.z/pc.viewport.w;
     vec3 cameraRay=normalize(vec3((local.x-.5)*2.*aspect*tangent,(.58-local.y)*2.*tangent,-1.));
@@ -50,11 +91,15 @@ void main() {
     // The map is drawn as a map, unlit; imagery is surface and is lit below.
     bool imagery=pc.tile.w>1.5;
     vec2 tileUv=vec2(0);
+    vec3 tileAlbedo=vec3(0);
     if(pc.tile.w>.5) {
         if(hit.x<=0.)discard;
         tileUv=tileCoord(globeUv(normalize(eye+ray*hit.x)),pc.outward.xyz*pc.lens.y+ray*hit.x);
+        // Derivatives must be taken before the per-tile discard.
+        vec2 dx=dFdx(tileUv),dy=dFdy(tileUv);
         if(offTile(tileUv))discard;
-        if(!imagery){colour=vec4(texture(tileMap,tileUv).rgb*.85,pc.lens.w*pc.sun.w);return;}
+        tileAlbedo=tileSample(tileUv,dx,dy);
+        if(!imagery){colour=vec4(tileAlbedo*.85,pc.lens.w*pc.sun.w*pc.east.w);return;}
     }
     // A real equirectangular Milky Way behind the globe. Its orientation moves
     // with the orbit camera, rather than being painted onto the screen.
@@ -67,7 +112,7 @@ void main() {
     if(hit.x>0.) {
         vec3 point=eye+ray*hit.x,n=normalize(point);
         vec2 coord=globeUv(n);
-        vec3 albedo=imagery?texture(tileMap,tileUv).rgb:texture(dayMap,coord).rgb;
+        vec3 albedo=imagery?tileAlbedo:texture(dayMap,coord).rgb;
         float daylight=dot(n,sun);
         float light=smoothstep(-.18,.8,daylight);
         float night=1.-smoothstep(-.12,.15,daylight);
@@ -104,7 +149,7 @@ void main() {
         result+=scattering;
     }
     // Subtle edge falloff keeps the sparse controls legible without a panel.
-    float vignette=1.-.28*pow(length((uv-.5)*vec2(1.,.85)),1.4);
+    float vignette=1.-.28*pc.north.w*pow(length((uv-.5)*vec2(1.,.85)),1.4);
     // A tile fading in over its stand-in; the base globe is opaque.
-    colour=vec4(result*vignette,imagery?pc.sun.w:1.);
+    colour=vec4(result*vignette,(imagery?pc.sun.w:1.)*pc.east.w);
 }

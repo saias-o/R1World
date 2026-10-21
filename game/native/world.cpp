@@ -72,6 +72,7 @@
 #include "minimap.hpp"
 #include "menu_globe.hpp"
 #include "menu_intro.hpp"
+#include "arrival.hpp"
 #include <RmlUi/Core/Context.h>
 #include "weather.hpp"
 #include "forced_time.hpp"
@@ -645,7 +646,11 @@ private:
     fs::path root;
     std::vector<r1::MapTile> visibleTiles;
     std::vector<std::pair<std::string,std::future<Result>>> flights;
-    std::unordered_set<std::string> present,absent,checkedAbsent;
+    // `unread`: looked for on disk and not there. Only this cache's own
+    // download puts a tile there, and it says so (pump), so the disk is not
+    // asked again: a zoom sweeping levels of tiles not yet fetched asked it
+    // for each of them every frame, a second a frame on a synced folder.
+    std::unordered_set<std::string> present,absent,checkedAbsent,unread;
     std::chrono::steady_clock::time_point retryAfter{};
     std::string lastError;
     static std::string key(const r1::MapTile& t){return std::to_string(t.z)+"/"+std::to_string(t.x)+"/"+std::to_string(t.y);}
@@ -665,8 +670,9 @@ public:
     bool ready(const r1::MapTile& tile) {
         const auto k=key(tile);
         if(present.count(k))return true;
+        if(unread.count(k))return false;
         std::error_code ec;const auto p=path(tile);
-        if(!fs::is_regular_file(p,ec)||fs::file_size(p,ec)<=8)return false;
+        if(!fs::is_regular_file(p,ec)||fs::file_size(p,ec)<=8){unread.insert(k);return false;}
         present.insert(k);return true;
     }
     // A tile the server has no image for: left out of what a view waits for,
@@ -692,7 +698,7 @@ public:
         for(auto it=flights.begin();it!=flights.end();) {
             if(it->second.wait_for(std::chrono::seconds(0))!=std::future_status::ready){++it;continue;}
             const Result result=it->second.get();
-            if(result.ready){lastError.clear();present.insert(it->first);}
+            if(result.ready){lastError.clear();present.insert(it->first);unread.erase(it->first);}
             else if(result.refused) {
                 absent.insert(it->first);
                 {std::error_code ec;fs::create_directories(root/it->first.substr(0,it->first.rfind('/')),ec);}
@@ -724,8 +730,8 @@ public:
                      output.write(response.body.data(),std::streamsize(response.body.size()));
                      if(!output)throw std::runtime_error("cannot cache map tile");}
                     fs::rename(temporary,target);
-                    return {true,{}};
-                } catch(const std::exception& e) {return {false,e.what()};}
+                    return {true,false,{}};
+                } catch(const std::exception& e) {return {false,false,e.what()};}
             }));
         }
         return changed;
@@ -905,7 +911,6 @@ class World : public Rml::EventListener {
             // A seated pelvis sits about 14 cm above the seat it was captured
             // on (a 45 cm chair under a 59 cm pelvis), at the avatar's scale.
             kind.seatDrop=(entry.at("seat").at("pelvisHeight").get<double>()-.14)*humanScale;
-            warmList.push_back(kind.model);
             crowdKinds.push_back(std::move(kind));
         }
         if(crowdKinds.empty())throw std::runtime_error("humans.json lists no crowd");
@@ -1359,6 +1364,9 @@ class World : public Rml::EventListener {
         }
         effects.build(engine.sceneTree().world());
         sounds.load();
+        for(const char* path:{kWindSound,kFlutterSound,kOpeningSound})
+            if(!saida::AudioManager::get().preload(path))
+                saida::Log::error("[World arrival] missing sound ",path," (python -m r1.arrival_sounds): the fall will be silent");
         saida::Log::info("[World combat] ready: ",ragdollProfile.parts.size()," bodies per ragdoll, ",kLiveRagdolls,
                          " tumbling at once; arm ",playerReach," m");
     }
@@ -1914,11 +1922,12 @@ class World : public Rml::EventListener {
         if(playerDown)updatePlayerDown(dt);
         const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown&&player->enabled();
         const bool onBike=ridingBike()&&playerBikeRider&&!playerDown;
-        if((!onFoot&&!onBike)||menu||smoke) {
+        // In the air his arms are the arrival's (World::poseDrop): no fight.
+        if((!onFoot&&!onBike)||menu||smoke||dropFlying()) {
             if(aiming)setAiming(false);
             wasFire=clicked(GLFW_MOUSE_BUTTON_LEFT);
             if(!onFoot)for(auto* arm:playerArms)if(arm&&arm->weight()>0&&!playerDown)arm->release();
-            if(onFoot&&smoke)poseArms();
+            if(onFoot&&smoke&&!dropFlying())poseArms();
             if(onBike)bikeHandlePose();
             return;
         }
@@ -2542,7 +2551,9 @@ class World : public Rml::EventListener {
     void updateMenuMusic(double dt) {
         if(smoke)return;
         auto& audio=saida::AudioManager::get();
-        const float target=menu?1.f:0.f;
+        // On through the arrival's zoom, giving way to the wind of the fall.
+        const bool flying=drop.phase==Drop::Zoom&&drop.clock.seconds<r1::arrival::kZoomSeconds-2.;
+        const float target=menu||flying?1.f:0.f;
         if(target>0&&menuMusic==saida::kInvalidAudioID) {
             saida::AudioSettings settings;settings.loop=true;settings.volume=0;
             menuMusic=audio.play(kMenuMusic,settings);
@@ -2573,14 +2584,22 @@ class World : public Rml::EventListener {
         if(globeSpinning)globeTarget.lon=wrap(globeTarget.lon+kGlobeSpinDegreesPerSecond*std::min(dt,.1));
     }
     void updateGlobe(double dt) {
+        SAIDA_PROFILE_SCOPE("World/Globe");
         updateMenuMusic(dt);
         updateMenuIntro();
         if(!globe)return;
-        globe->visible=menu;
-        if(!menu)return;
+        globe->visible=menu||dropGlobe();
+        if(!globe->visible)return;
         int w=1,h=1;engine.window().size(w,h);
         const auto origin=ui->screenPosition(),size=ui->screenSize();
         globe->viewport={origin.x/w,origin.y/h,size.x/w,size.y/h};
+        if(!menu) {
+            // The arrival flies it (World::flyGlobe), drawn as satellite
+            // imagery only, fading out into the world.
+            flyGlobe();renderMapTiles();
+            return;
+        }
+        globe->opacity=1;globe->vignette=1;
         spinGlobe(dt);
         const double blend=1.-std::exp(-std::min(dt,.1)*10.);
         auto& view=globe->view;
@@ -2601,6 +2620,18 @@ class World : public Rml::EventListener {
     }
     void showMap(bool show) {
         if(show&&cheatOpen)closeCheat();
+        // The map opened while the globe still flies to a place not yet
+        // ready calls the arrival off; once he is in the air it waits there
+        // for Resume.
+        if(show&&drop.phase!=Drop::None&&!drop.armed) {
+            saida::Log::info("[World arrival] called off ",drop.clock.seconds," s after Go: the map is back");
+            pending=false;endDrop();
+        }
+        if(show&&drop.phase!=Drop::None) {
+            if(arrivalUi)arrivalUi->setEnabled(false);
+            auto& audio=saida::AudioManager::get();
+            for(auto id:{windSound,flutterSound})if(id!=saida::kInvalidAudioID&&audio.isPlaying(id))audio.pause(id);
+        }
         menu=show;style("menu","display",show?"block":"none");style("hud","display",show?"none":"block");
         optionsOpen=false;style("options-screen","display","none");
         if(globe)globe->visible=show;
@@ -2608,6 +2639,7 @@ class World : public Rml::EventListener {
         if(performanceUi)performanceUi->setEnabled(performanceDebug&&!show);
         style("resume","display",playing?"inline-block":"none");
         engine.window().setCursorCaptured(!show);
+        if(!show)applyDropUi();
     }
     void resetPerformanceSample() {
         performanceSeconds=0;performanceFrames=0;
@@ -2785,8 +2817,11 @@ class World : public Rml::EventListener {
         std::vector<r1::MapTile> wanted=layer.visible;
         auto add=[&](std::vector<r1::MapTile> more){wanted.insert(wanted.end(),more.begin(),more.end());};
         if(targetZ!=z&&targetZ>=coarsest&&targetZ<=finest)add(target.tiles(w,h,targetZ));
-        if(z+1<=finest)add(view.tiles(w,h,z+1,.5));
-        if(z-1>=coarsest)add(view.tiles(w,h,z-1));
+        // The arrival passes a level a second: prefetching around each one
+        // only fills the decoder ahead of the world it flies to.
+        const bool passing=dropGlobe();
+        if(!passing&&z+1<=finest)add(view.tiles(w,h,z+1,.5));
+        if(!passing&&z-1>=coarsest)add(view.tiles(w,h,z-1));
         layer.cached.clear();
         std::set<std::tuple<int,int,int>> seen;
         auto keep=[&](const r1::MapTile& t){
@@ -2794,15 +2829,19 @@ class World : public Rml::EventListener {
         };
         for(const auto& t:wanted)keep(t);
         for(const auto& t:layer.visible)
-            for(int up=1;z-up>=coarsest;++up)keep({z-up,t.x>>up,t.y>>up});
+            for(int up=1;z-up>=coarsest&&(!passing||up==1);++up)keep({z-up,t.x>>up,t.y>>up});
         cache.setVisible(std::move(wanted));
     }
     void renderMapTiles() {
+        SAIDA_PROFILE_SCOPE("World/MapTiles");
         if(!globe)return;
         const auto& view=globe->view;
         const double h=ui->height();
         const int level=view.tileLevel(h);
         r1::GlobeView target=view;target.lon=globeTarget.lon;target.lat=globeTarget.lat;target.zoom=zoom;
+        // Flying to the drop zone, what it lands on is fetched first.
+        const bool arriving=dropGlobe();
+        if(arriving){target.lon=drop.plannedLon;target.lat=drop.plannedLat;target.zoom=zoomForAltitude(drop.plannedAbove/r1::kRMean);}
         const int targetLevel=target.tileLevel(h);
         size_t missing=0;bool unavailable=false;
         auto count=[&](MenuTileCache& cache,const r1::GlobeLayer& layer){
@@ -2817,8 +2856,9 @@ class World : public Rml::EventListener {
             if(level<r1::kImageryFirstLevel)globe->imagery.z=-1; // fetched ahead, not drawn yet
             else count(imageryTiles,globe->imagery);
         } else {globe->imagery={};imageryTiles.setVisible({});}
-        const bool osm=view.zoom>=r1::kOsmZoom;
-        if(std::max(view.zoom,zoom)>=r1::kOsmZoom/2) {
+        // The arrival shows the Earth as seen from above: imagery, no map.
+        const bool osm=view.zoom>=r1::kOsmZoom&&!arriving;
+        if(!arriving&&std::max(view.zoom,zoom)>=r1::kOsmZoom/2) {
             fillLayer(menuTiles,globe->map,level,std::max(0,level-6),19,target,targetLevel);
             globe->map.opacity=float(std::clamp(std::log2(view.zoom/r1::kOsmZoom),0.,1.));
             if(!osm)globe->map.z=-1;
@@ -2854,6 +2894,10 @@ class World : public Rml::EventListener {
     }
     std::vector<Tile> orderedNearby(double x,double y) const {
         auto tiles=nearby(x,y);
+        if(drop.phase==Drop::Zoom) {
+            tiles.erase(std::remove_if(tiles.begin()+1,tiles.end(),[&](Tile t){return !dropShows(t);}),tiles.end());
+            return tiles;
+        }
         double heading=0,speed=0;
         if(streamMotion(heading,speed))
             std::stable_sort(tiles.begin()+1,tiles.end(),[&](Tile a,Tile b){
@@ -2914,7 +2958,8 @@ class World : public Rml::EventListener {
             select(lo,la);pending=true;request(pickLon,pickLat);
             goStarted=std::chrono::steady_clock::now();poll=1;
             arrivalFrames=arrivalHitches=0;arrivalWorst=0;arrivalSaid=false;
-            text("status",kPreparing);
+            if(cinematicArrival())startDrop();
+            else text("status",kPreparing);
             saida::Log::info("[World] destination ",lo,", ",la);
             text("destination-status",std::string());
             return true;
@@ -2923,6 +2968,810 @@ class World : public Rml::EventListener {
             saida::Log::info("[World] destination refused: '",value("latitude"),"', '",value("longitude"),"'");
             return false;
         }
+    }
+    // ── the arrival (native/arrival.hpp) ────────────────────────────────────
+    //
+    // Go flies the globe down to the place picked for ten seconds while the
+    // tiles there cook and mount behind it; at ten its satellite picture fades
+    // into them, the player falling through it, Fortnite-style; at twenty he
+    // opens his parachute fifty metres above the ground he chose and lands it
+    // himself. He steers from the moment the world shows. The fade never
+    // finds the world unready: the zoom waits for it instead, and says what
+    // for, on screen and in the log (CLAUDE.md §3).
+    enum class Drop { None, Zoom, Fall, Canopy };
+    struct Arrival {
+        Drop phase=Drop::None;
+        r1::arrival::Clock clock;
+        r1::arrival::GlobeFlight flight;
+        r1::arrival::Freefall fall;
+        r1::arrival::Canopy canopy;
+        // He hangs in the air over the ground chosen, the world under him
+        // mounting: gameplay runs behind the globe from here on.
+        bool armed=false,water=false,ready=false;
+        double goalLon=0,goalLat=0,openLon=0,openLat=0,ground=0;
+        // The globe was flown to a fall planned from the point picked; the
+        // ground found there can be a few metres off, a hill higher. Once it
+        // is known the globe moves onto it, over kDropAlignSeconds.
+        double plannedLon=0,plannedLat=0,plannedAbove=0;
+        double shiftLon=0,shiftLat=0,shiftAltitude=0,aligned=0;
+        double lookYaw=0,lookPitch=0;   // his look while the autopilot flies him
+        double held=0,heldSaid=-1e9;    // real seconds the zoom has waited
+        std::string waitingFor,place;
+        // Opened: when, how high above what was under him, and above the
+        // ground chosen -- the fifty metres promised are above that.
+        double agl=0,openedAt=0,openedAbove=0,openedOverGoal=0,upright=0,canopyCamera=0;
+        double canopyWanted=0;          // the heading the canopy is turning to
+        double ui=1e9;                  // seconds since the caption was written
+        bool named=false;               // `place` is a name, not the coordinates
+        bool groundReady=false;         // visible ground/buildings/collisions precede props
+        // Smoothness by phase -- the globe, the world fading in, the fall, the
+        // canopy -- said when he lands: frames, frames over 33 ms, the worst.
+        int frames[4]{},hitches[4]{}; double worst[4]{};
+        std::chrono::steady_clock::time_point started;
+        int stage() const {
+            using namespace r1::arrival;
+            return phase==Drop::Canopy?3:clock.seconds>=kFadeSeconds?2:clock.seconds>=kZoomSeconds?1:0;
+        }
+        std::string smoothness() const {
+            static const char* names[4]={"globe","fade","fall","canopy"};
+            std::string out;
+            for(int k=0;k<4;++k)out+=std::string(k?", ":"")+names[k]+" "+std::to_string(hitches[k])+"/"+std::to_string(frames[k])
+                                     +" over 33 ms (worst "+std::to_string(int(worst[k]))+" ms)";
+            return out;
+        }
+    } drop;
+    static constexpr const char* kParachuteModel="assets/models/external/parachute/parachute.glb";
+    static constexpr const char* kWindSound="assets/audio/arrival/wind_freefall.wav";
+    static constexpr const char* kFlutterSound="assets/audio/arrival/canopy_flutter.wav";
+    static constexpr const char* kOpeningSound="assets/audio/arrival/canopy_open.wav";
+    // What the fade waits for beyond the ground, the buildings and the
+    // collisions -- the streets OSM has yet to send, the trees and street
+    // furniture, the textures -- at most this long; then it goes, and says so.
+    static constexpr double kDropExtrasWait=25.;
+    static constexpr double kDropAlignSeconds=.8;
+    // The pelvis, as a fraction of his height (humans.json: 0.896 of 1.826).
+    static constexpr double kPelvis=.49;
+    // The shoulders, where the risers meet, likewise.
+    static constexpr double kShoulders=.82;
+    // The canopy is his equipment: drawn at the people's scale (humans.json).
+    static constexpr double kParachuteScale=.8*kPeopleVehicleResize;
+    saida::Node* canopyNode=nullptr; double canopyFold=-1;
+    glm::vec3 canopyRest{0},canopyGround{0}; glm::quat canopyTurn{1,0,0,0};
+    bool canopyMissingSaid=false;
+    saida::WebCanvasNode* arrivalUi=nullptr;
+    saida::AudioID windSound=saida::kInvalidAudioID,flutterSound=saida::kInvalidAudioID;
+    bool dropSoundSaid=false;
+    float sceneFov=62.f;
+    // A camera handed from one rig to the other eases between them.
+    struct CameraPose { glm::vec3 position{0}; glm::quat rotation{1,0,0,0}; float fov=62.f; };
+    std::optional<CameraPose> cameraFrom; double cameraHandoff=1;
+    // --dive: the smoke flies the whole arrival (World::runSmokeDive).
+    bool smokeDive=false,smokeDiveFaded=false,smokeDiveShotQueued=false;
+    glm::dvec2 smokeDiveSteerFrom{0}; bool smokeDiveSteerSet=false; double smokeDiveSlid=-1,smokeDiveHealth=0;
+
+    bool dropFlying() const {return drop.phase!=Drop::None&&drop.armed;}
+    bool dropGlobe() const {return drop.phase!=Drop::None&&!menu&&drop.clock.seconds<r1::arrival::kFadeSeconds;}
+    bool dropSteered() const {return drop.phase==Drop::Canopy?drop.canopy.steered:drop.fall.steered;}
+    // A headset has no globe to fly; the smoke spawns at once unless --dive.
+    bool cinematicArrival() const {return !vr&&(!smoke||smokeDive)&&(worldCapture.pngPath.empty()||smokeDive);}
+    static double smooth(double x) {x=std::clamp(x,0.,1.);return x*x*(3-2*x);}
+    static double smoother(double x) {x=std::clamp(x,0.,1.);return x*x*x*(x*(x*6-15)+10);}
+    // Where the world streams from: the point picked while it loads, the
+    // ground chosen while he falls toward it -- steering or not, the nine
+    // tiles cooked for the fade stay while he is within kDropStreamReach of
+    // it (a row further would evict three of them in front of him) --
+    // otherwise him.
+    static constexpr double kDropStreamReach=450.;
+    glm::dvec2 streamAnchor() const {
+        if(pending||warming)return {pickLon,pickLat};
+        if(dropFlying()&&metresBetween(lon,lat,drop.goalLon,drop.goalLat)<kDropStreamReach)return {drop.goalLon,drop.goalLat};
+        return {lon,lat};
+    }
+    // Metres east and north from one point to another, in the origin's frame
+    // (the frame headings are measured in).
+    glm::dvec2 metresTo(double x,double y,double tx,double ty) const {
+        const glm::dvec3 d=glm::transpose(origin.basis)*(ecef(tx,ty,0.)-ecef(x,y,0.));
+        return {d.x,-d.z};
+    }
+    // The globe's zoom for an altitude in Earth radii (GlobeView::altitude
+    // decreases with the zoom, so this is a bisection).
+    static double zoomForAltitude(double altitude) {
+        double low=std::log(.05),high=std::log(1e8);
+        for(int i=0;i<80;++i){
+            const double mid=.5*(low+high);r1::GlobeView v;v.zoom=std::exp(mid);
+            (v.altitude()>altitude?low:high)=mid;
+        }
+        return std::exp(.5*(low+high));
+    }
+    std::string dropLabel() {
+        const std::string chosen=value("city-query");
+        if(!chosen.empty())return chosen;
+        return number(std::abs(pickLat),4)+"° "+(pickLat<0?"S":"N")+"   "+number(std::abs(pickLon),4)+"° "+(pickLon<0?"W":"E");
+    }
+    // What is under him in the air: the ground, a deck, the water or a roof,
+    // as an aircraft sees it (World::surfaceUnder); over a tile not yet in,
+    // the ground chosen.
+    double dropSurface(double x,double y,double from) {return tile(x,y)?surfaceUnder(x,y,from):drop.ground;}
+    void startDrop() {
+        using namespace r1::arrival;
+        endDrop();
+        drop=Arrival{};
+        drop.phase=Drop::Zoom;
+        drop.started=std::chrono::steady_clock::now();
+        drop.goalLon=pickLon;drop.goalLat=pickLat;
+        // Planned from the point picked, before its ground is known: the fall
+        // begins south of it, so it flies north, up the globe's picture.
+        const auto start=advance(pickLon,pickLat,0,-(kGlideLead+kApproach));
+        drop.plannedLon=start.x;drop.plannedLat=start.y;
+        drop.plannedAbove=fallHeight(kZoomSeconds)+playerHeight*kPelvis+kCameraAbove;
+        const GlobePose from=globe?GlobePose{globe->view.lon,globe->view.lat,globe->view.altitude()}
+                                  :GlobePose{pickLon,pickLat,2.2};
+        drop.flight=GlobeFlight(from,{start.x,start.y,drop.plannedAbove/r1::kRMean},kTerminal,r1::kRMean);
+        request(drop.goalLon,drop.goalLat); // visible tiles before the rest of the neighbourhood
+        drop.place=dropLabel();drop.named=!value("city-query").empty();
+        try{prototype(kParachuteModel);}
+        catch(const std::exception& e){saida::Log::error("[World arrival] ",e.what(),": he will land without a canopy");}
+        menu=false;optionsOpen=false;globeDragging=false;
+        if(cheatOpen)closeCheat();
+        applyDropUi();
+        saida::Log::info("[World arrival] Go: the globe flies ",int(drop.flight.arc()*r1::kRMean/1000.)," km from ",
+                         from.lon,", ",from.lat," (",int(from.altitude*r1::kRMean/1000.)," km up) to ",
+                         pickLon,", ",pickLat," (",drop.place,")");
+    }
+    // A drop given up or replaced: nothing of it is left on screen or heard.
+    void endDrop() {
+        auto& audio=saida::AudioManager::get();
+        for(auto* id:{&windSound,&flutterSound})if(*id!=saida::kInvalidAudioID){audio.stop(*id);*id=saida::kInvalidAudioID;}
+        if(canopyNode){canopyNode->queueFree();canopyNode=nullptr;}
+        canopyFold=-1;
+        if(drop.armed)releaseDropPose();
+        if(arrivalUi)arrivalUi->setEnabled(false);
+        if(globe){globe->opacity=1;globe->vignette=1;}
+        camera->fovDegrees=sceneFov;
+        drop.phase=Drop::None;drop.armed=false;
+        style("combat","display","block");style("controls","display","block");
+    }
+    // The ground under the point picked is ready: he is put in the air above
+    // it, where the fall begins, and the world behind the globe comes alive.
+    void armDrop(double x,double y,bool water) {
+        using namespace r1::arrival;
+        drop.goalLon=x;drop.goalLat=y;drop.water=water;
+        drop.ground=water?waterLevel(x,y):height(x,y);
+        const auto open=advance(x,y,0,-kGlideLead),start=advance(x,y,0,-(kGlideLead+kApproach));
+        drop.openLon=open.x;drop.openLat=open.y;
+        // Spawned as Go always spawned him -- the car that brought him waits
+        // beside the ground chosen, the Sun lights it -- then lifted to where
+        // the fall begins.
+        lon=x;lat=y;alt=drop.ground;
+        conditions=json::object();conditionsDoc.reset();observedWeather=Weather{};clearRain();
+        // The origin halfway down, over the opening point: the whole fall
+        // stays within the 350 m it is rebased at (PLAN §3 I1).
+        origin=Frame(open.x,open.y,drop.ground+kDeployHeight+.5*(fallHeight(kZoomSeconds)-kDeployHeight));
+        placeTiles();moveSun();
+        jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
+        yaw=0;lookYaw=0;lookIdle=0;pitch=-12;
+        dismountPlayerFromBike();
+        driving=false;swimming=water;swimTime=0;swimLean=0;swimHeading=yaw;
+        clearBoats();clearAircraft();
+        if(aiming)setAiming(false);
+        player->setEnabled(true);
+        player->transform().rotation=glm::quat(1,0,0,0);
+        parkCar();
+        swimming=false;
+        lon=start.x;lat=start.y;alt=drop.ground+fallHeight(drop.clock.seconds);
+        // What the globe was flown to, against what is found.
+        const double terrain=tile(start.x,start.y)?height(start.x,start.y):drop.ground;
+        const double above=alt+playerHeight*kPelvis+kCameraAbove-terrain;
+        drop.shiftLon=std::remainder(start.x-drop.plannedLon,360.);drop.shiftLat=start.y-drop.plannedLat;
+        drop.shiftAltitude=std::log(std::max(1.,above)/drop.plannedAbove);
+        drop.armed=true;drop.aligned=0;
+        playing=true;pending=false;warming=false;
+        // Picked on the globe, not searched: the tiles say where it is.
+        if(!drop.named) {
+            std::vector<const r1::MiniMapTile*> tiles;
+            for(const auto& [key,entry]:loaded)tiles.push_back(&entry.served->cooked.minimap);
+            std::string place=r1::miniMapPlace(tiles,zoneCountries,countryNames,"",x,y);
+            // The country can wait for the weather's time zone; the city is enough.
+            if(const auto unknown=place.find(" · Unknown country");unknown!=std::string::npos)place.erase(unknown);
+            if(place.rfind("Unknown city",0)!=0){drop.place=place;drop.named=true;drop.ui=1e9;}
+        }
+        request(x,y);
+        saida::Log::info("[World arrival] armed ",drop.clock.seconds," s after Go: lands at ",x,", ",y,
+                         water?" (water)":"",", ground ",drop.ground," m; the fall begins ",kApproach+kGlideLead,
+                         " m south, ",fallHeight(kZoomSeconds)," m up; the globe moves ",
+                         int(metresBetween(drop.plannedLon,drop.plannedLat,start.x,start.y))," m and ",
+                         int(above-drop.plannedAbove)," m to meet it");
+    }
+    // Is the world behind the globe what the fade must find? The ground,
+    // buildings and collisions of what the fade shows -- the tiles within
+    // the globe's last picture, and the one he lands on -- then,
+    // waited for at most kDropExtrasWait, their streets, trees and textures.
+    // The rest of the neighbourhood streams during the fall. A machine short of memory cooks fewer
+    // tiles at once (the service waits for memory): the fade must not wait
+    // for nine where it shows four. Names what is missing (CLAUDE.md §3).
+    bool dropShows(Tile t) const {
+        if(t==tileAt(drop.goalLon,drop.goalLat))return true;
+        const auto pose=drop.flight.at(r1::arrival::kZoomSeconds);
+        r1::GlobeView view;
+        view.lon=wrap(pose.lon+(drop.armed?drop.shiftLon:0.));
+        view.lat=pose.lat+(drop.armed?drop.shiftLat:0.);
+        view.zoom=zoomForAltitude(pose.altitude*std::exp(drop.armed?drop.shiftAltitude:0.));
+        const r1::Bounds b=t.gen().bounds();
+        int width=1,height=1;engine.window().size(width,height);
+        return view.shows(b.west,b.south,b.east,b.north,width,height,globe?globe->viewport:glm::vec4(0,0,1,1));
+    }
+    bool dropReady() {
+        SAIDA_PROFILE_SCOPE("World/ArrivalReady");
+        if(drop.phase!=Drop::Zoom)return true;
+        drop.groundReady=false;
+        auto missing=[&](std::string why){drop.waitingFor=std::move(why);return false;};
+        const auto status=service->status();
+        const std::string sources=status.outOfMemory?" -- memory full, retrying"
+                                 :status.memoryPaused?" -- waiting for free memory"
+                                 :!status.error.empty()?" -- "+status.error
+                                 :status.offline?" -- a source is not responding":"";
+        if(!drop.armed)return missing("the ground of the drop zone"+sources);
+        if(drop.aligned<1)return missing("the picture to meet the ground");
+        const auto want=nearby(drop.goalLon,drop.goalLat);
+        size_t streets=0,objects=0,later=0;
+        for(Tile t:want) {
+            const auto i=loaded.find(t.key());
+            if(!dropShows(t)){later+=i==loaded.end();continue;}
+            if(i==loaded.end())return missing("tile "+t.key()+sources);
+            const auto& r=i->second;
+            const size_t parts=r.served?std::any_cast<const PreparedTile&>(r.served->prepared).parts.size():0;
+            if(!r.geography||r.nextPart<parts)return missing("the ground of tile "+t.key());
+            for(auto* mesh:r.partMeshes)if(!mesh->loaded())return missing("the ground of tile "+t.key());
+            if(!r.geography->children().empty()&&static_cast<saida::CollisionObjectNode*>(r.geography->children().back().get())->bodyId().IsInvalid())
+                return missing("the collisions of tile "+t.key());
+            if(!buildingsReady(r))return missing("the buildings of tile "+t.key());
+            streets+=r.data.value("provisional",false);
+            objects+=r.nextProp<r.props.size();
+        }
+        drop.groundReady=true;
+        if(drop.held<kDropExtrasWait&&!status.memoryPaused) {
+            // The picture going: the finest imagery over the drop zone, all
+            // of it on the GPU -- unless the imagery cannot come (offline).
+            if(globe&&globe->imagery.z>=0&&!globe->imageryCovers&&!imageryTiles.unavailable())
+                return missing("the satellite picture of the drop zone");
+            if(streets&&!status.offline&&status.error.empty())
+                return missing(std::to_string(streets)+" tiles' streets and buildings (OpenStreetMap)");
+            if(objects)return missing("the trees and street furniture of "+std::to_string(objects)+" tiles");
+            if(!engine.resources().assetLoadsSettled())return missing("textures and models");
+        }
+        drop.waitingFor=streets||objects||later
+            ?"fading after "+number(drop.held,0)+" s with "+std::to_string(later)+" tiles of the neighbourhood still cooking, "
+             +std::to_string(streets)+" without OSM and "+std::to_string(objects)+" still placing objects":std::string();
+        return true;
+    }
+    // Every frame of the arrival, whether or not the world shows yet.
+    void advanceDrop(double dt) {
+        SAIDA_PROFILE_SCOPE("World/Arrival");
+        using namespace r1::arrival;
+        if(drop.phase==Drop::None||menu)return;
+        const bool ready=dropReady();
+        drop.ready=ready;
+        drop.clock.advance(std::min(dt,.1),ready);
+        if(drop.armed)drop.aligned=std::min(1.,drop.aligned+dt/kDropAlignSeconds);
+        if(drop.clock.holding()) {
+            drop.held+=dt;
+            if(drop.held-drop.heldSaid>=5.) {
+                drop.heldSaid=drop.held;
+                saida::Log::info("[World arrival] the fade waits ",int(drop.held)," s for ",drop.waitingFor);
+            }
+        }
+        if(drop.phase==Drop::Zoom&&drop.clock.seconds>=kZoomSeconds) {
+            drop.phase=Drop::Fall;
+            request(drop.goalLon,drop.goalLat); // the rest may now cook behind the visible ground
+            saida::Log::info("[World arrival] the world shows ",msSince(drop.started)/1000.," s after Go, the zoom having waited ",
+                             drop.held," s",drop.waitingFor.empty()?std::string(", everything in"):"; "+drop.waitingFor);
+            if(smokeDive)smokeDiveFade();
+        }
+        if(globe) {
+            const double fade=(drop.clock.seconds-kZoomSeconds)/(kFadeSeconds-kZoomSeconds);
+            globe->opacity=float(1-smooth(fade));
+            globe->vignette=float(1-smooth((drop.clock.seconds-(kZoomSeconds-2.5))/2.5));
+        }
+        smokeDiveShot();
+        hideBehindGlobe();
+        if(!drop.armed)return;
+        const bool cinematic=drop.clock.seconds<kFadeSeconds;
+        if(cinematic!=(written["style:hud:display"]!="block"))applyDropUi();
+    }
+    void applyDropUi() {
+        using namespace r1::arrival;
+        if(drop.phase==Drop::None||menu)return;
+        const bool cinematic=drop.clock.seconds<kFadeSeconds;
+        style("menu","display","none");style("options-screen","display","none");
+        style("hud","display",cinematic?"none":"block");
+        style("combat","display","none");style("controls","display","none");
+        minimapUi->setEnabled(!cinematic);
+        if(performanceUi)performanceUi->setEnabled(performanceDebug&&!cinematic);
+        ensureArrivalCanvas();arrivalUi->setEnabled(true);drop.ui=1e9;
+        engine.window().setCursorCaptured(true);
+    }
+    void ensureArrivalCanvas() {
+        if(arrivalUi)return;
+        // Its own small texture: the caption and the altimeter change five
+        // times a second, and every write to the main interface re-renders all
+        // of it (World::text).
+        json doc={{"type","WebCanvasNode"},{"name","Arrival"},{"width",640},{"height",170},
+            {"mode",0},{"url",(game/"ui/arrival.html").string()},{"hotReload",false},
+            {"interactive",false},{"renderOrder",1003},{"enabled",false},
+            {"transform",{{"position",{400,40,0}},{"scale",{1,1,1}},{"rotation",{1,0,0,0}}}}};
+        auto canvas=saida::SceneSerializer::nodeFromJson(doc.dump(),engine.resources());
+        arrivalUi=dynamic_cast<saida::WebCanvasNode*>(canvas.get());
+        if(!arrivalUi||!arrivalUi->lastLoadOk())throw std::runtime_error("Arrival caption failed to load (ui/arrival.html)");
+        engine.sceneTree().world().addChild(std::move(canvas));
+    }
+    void arrivalText(const std::string& id,const std::string& value) {
+        auto& previous=written["drop:"+id];
+        if(previous!=value&&arrivalUi->setElementText(id,value))previous=value;
+    }
+    void captionDrop(double dt) {
+        SAIDA_PROFILE_SCOPE("World/ArrivalCaption");
+        using namespace r1::arrival;
+        if(drop.phase==Drop::None||menu||!arrivalUi)return;
+        const glm::vec2 scale=ui->screenSize()/glm::vec2(ui->width(),ui->height());
+        // Over the picture while the globe flies; under the HUD's panels once
+        // they show.
+        const float top=drop.clock.seconds<kFadeSeconds?40.f:150.f;
+        const glm::vec2 at=ui->screenPosition()+glm::vec2(400.f*scale.x,top*scale.y);
+        arrivalUi->transform().position={at.x,at.y,0};
+        arrivalUi->transform().scale={scale.x,scale.y,1};
+        if((drop.ui+=dt)<.2)return;
+        drop.ui=0;
+        const double tau=drop.clock.seconds;
+        const bool imagery=globe&&globe->imagery.z>=0&&tau<kFadeSeconds;
+        arrivalText("drop-credit",imagery?"Sentinel-2 cloudless – s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016)":"");
+        arrivalText("drop-place",tau<kFadeSeconds?drop.place:"");
+        if(drop.phase==Drop::Zoom) {
+            const std::string where=number(std::abs(drop.goalLat),4)+"° "+(drop.goalLat<0?"S":"N")+"  ·  "
+                                    +number(std::abs(drop.goalLon),4)+"° "+(drop.goalLon<0?"W":"E");
+            arrivalText("drop-line",drop.named?where:"");
+            arrivalText("drop-help",drop.clock.holding()?"Preparing the drop zone… waiting for "+drop.waitingFor:"");
+            return;
+        }
+        const int altitude=int(std::round(std::max(0.,drop.agl)));
+        if(drop.phase==Drop::Fall) {
+            const int speed=int(std::round(std::hypot(fallSpeed(tau),drop.fall.speed())*3.6));
+            const int left=int(std::ceil(std::max(0.,kDeploySeconds-tau)));
+            arrivalText("drop-line","ALTITUDE  "+std::to_string(altitude)+" m   ·   "+std::to_string(speed)+" km/h   ·   parachute in "+std::to_string(left)+" s");
+            arrivalText("drop-help","Mouse: look around   ·   WASD / ZQSD: steer the fall");
+        } else {
+            const auto& c=drop.canopy;
+            arrivalText("drop-line","ALTITUDE  "+std::to_string(altitude)+" m   ·   "+std::to_string(int(std::round(c.forward*3.6)))+" km/h   ·   canopy open");
+            arrivalText("drop-help","A / D or Q / D: turn   ·   W / Z: dive   ·   S: brake   ·   Mouse: look");
+        }
+    }
+    void updateDropSounds(double dt) {
+        using namespace r1::arrival;
+        if(smoke)return;
+        auto& audio=saida::AudioManager::get();
+        auto loop=[&](saida::AudioID& id,const char* path,float volume){
+            if(volume<=.002f) {
+                if(id!=saida::kInvalidAudioID&&audio.isPlaying(id))audio.pause(id);
+                return;
+            }
+            if(id==saida::kInvalidAudioID) {
+                saida::AudioSettings settings;settings.loop=true;settings.volume=0;
+                id=audio.play(path,settings);
+                if(id==saida::kInvalidAudioID) {
+                    if(!dropSoundSaid)saida::Log::error("[World arrival] ",path," could not play (python -m r1.arrival_sounds): the fall is silent");
+                    dropSoundSaid=true;return;
+                }
+            } else if(!audio.isPlaying(id))audio.resume(id);
+            audio.setVolume(id,volume);
+        };
+        const double tau=drop.clock.seconds;
+        // The wind rises as the globe comes down, roars at terminal speed and
+        // drops away under the canopy; then the fabric's flutter.
+        double wind=0,flutter=0;
+        if(drop.phase==Drop::Zoom)wind=.5*smooth((tau-(kZoomSeconds-3.))/3.);
+        else if(drop.phase==Drop::Fall) {
+            const double v=std::hypot(fallSpeed(tau),drop.fall.speed())/kTerminal;
+            wind=.75*std::min(1.2,v*v);
+        } else if(drop.phase==Drop::Canopy) {
+            wind=.75*std::pow(std::clamp(drop.canopy.sink/kTerminal,0.,1.),2.)*(1-smooth(drop.canopy.age/1.5));
+            flutter=.45*drop.canopy.inflation();
+        }
+        (void)dt;
+        loop(windSound,kWindSound,float(wind));
+        loop(flutterSound,kFlutterSound,float(flutter));
+    }
+    // ── in the air ──
+    void flyDrop(double dt,double f,double r) {
+        SAIDA_PROFILE_SCOPE("World/ArrivalFlight");
+        using namespace r1::arrival;
+        const double tau=drop.clock.seconds;
+        const Steer in{tau>=kZoomSeconds?f:0.,tau>=kZoomSeconds?r:0.};
+        if(drop.phase==Drop::Canopy)flyCanopy(dt,in);
+        else {
+            if(drop.phase==Drop::Fall) {
+                // The arrival's own seconds: the fall keeps the clock's pace.
+                const double step=std::min(.1,dt*drop.clock.rate);
+                if(!drop.fall.steered&&touched(in)){yaw=wrap(drop.fall.facing(yaw)+drop.lookYaw);drop.lookYaw=0;
+                    saida::Log::info("[World arrival] the player takes the fall over ",tau," s after Go, ",int(drop.agl)," m up");}
+                const auto goal=metresTo(lon,lat,drop.openLon,drop.openLat);
+                drop.fall.step(step,in,yaw,goal.x,goal.y,kDeploySeconds-tau);
+                const auto next=onward(lon,lat,drop.fall.east*step,drop.fall.north*step);
+                if(tile(next.x,next.y)){lon=next.x;lat=next.y;}
+                else {drop.fall.east=drop.fall.north=0;text("stream-status","More data is on its way… the fall is held at the edge of the area.");}
+            }
+            alt=drop.ground+fallHeight(tau);
+            drop.agl=alt+playerHeight*kPelvis-dropSurface(lon,lat,alt+playerHeight*kPelvis);
+            // Over higher ground than the ground chosen -- a hill, a tower --
+            // it opens early, higher the faster he still falls, so the wing
+            // always has the height it needs to bite (r1test Arrival).
+            if(drop.phase==Drop::Fall&&(tau>=kDeploySeconds||drop.agl<=openingHeight(fallSpeed(tau))))openCanopy();
+            feet->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+.06)));
+        }
+        const auto anchor=streamAnchor();request(anchor.x,anchor.y);
+        if(drop.phase==Drop::None)return;  // landed this frame
+        poseDrop(dt,in);
+        placeCanopy(dt);
+    }
+    void openCanopy() {
+        using namespace r1::arrival;
+        const double tau=drop.clock.seconds;
+        const double facing=drop.fall.facing(yaw);
+        // Along where he faces, what he flew across at.
+        const double h=facing*rad,along=std::max(0.,drop.fall.east*std::sin(h)+drop.fall.north*std::cos(h));
+        drop.canopy.open(facing,along,fallSpeed(tau));
+        // A player who flew the fall flies the canopy.
+        drop.canopy.steered=drop.fall.steered;
+        if(!drop.canopy.steered){yaw=facing;}
+        drop.phase=Drop::Canopy;drop.openedAt=tau;drop.openedAbove=drop.agl;drop.upright=0;drop.canopyCamera=0;
+        drop.openedOverGoal=alt-drop.ground;
+        saida::AudioSettings opening;opening.loop=false;opening.volume=.9f;
+        if(!smoke&&saida::AudioManager::get().play(kOpeningSound,opening)==saida::kInvalidAudioID&&!dropSoundSaid) {
+            dropSoundSaid=true;saida::Log::error("[World arrival] ",kOpeningSound," could not play (python -m r1.arrival_sounds)");
+        }
+        saida::Log::info("[World arrival] canopy open ",tau," s after Go, ",drop.openedOverGoal," m above the ground chosen and ",
+                         drop.agl," m above what is under him, ",
+                         int(metresBetween(lon,lat,drop.goalLon,drop.goalLat))," m from the ground chosen",
+                         drop.canopy.steered?" (steered)":" (autopilot)");
+    }
+    void flyCanopy(double dt,const r1::arrival::Steer& in) {
+        auto& c=drop.canopy;
+        if(!c.steered&&r1::arrival::touched(in)) {
+            yaw=wrap(c.heading+drop.lookYaw);drop.lookYaw=0;
+            saida::Log::info("[World arrival] the player takes the canopy over, ",int(drop.agl)," m up");
+        }
+        const auto goal=metresTo(lon,lat,drop.goalLon,drop.goalLat);
+        const double below=dropSurface(lon,lat,alt+.5);
+        drop.agl=alt-below;
+        const double wanted=c.step(dt,in,yaw,goal.x,goal.y,drop.agl);
+        drop.canopyWanted=wanted;
+        if(c.steered)yaw=wanted;
+        // His feet are a body: the canopy flies him down onto what is there,
+        // a roof as well as a street, and he slides along a wall he meets.
+        auto next=onward(lon,lat,c.east()*dt,c.north()*dt);
+        if(!tile(next.x,next.y)){next={lon,lat};text("stream-status","More data is on its way… the canopy is held at the edge of the area.");}
+        const glm::vec3 from(origin.local(ecef(lon,lat,alt+.06))),to(origin.local(ecef(next.x,next.y,alt-c.sink*dt+.06)));
+        feet->transform().position=from;
+        const glm::vec3 end=feet->moveAndSlide((to-from)/float(dt),float(dt));
+        const auto moved=onward(lon,lat,end.x-from.x,-(end.z-from.z));
+        lon=moved.x;lat=moved.y;alt+=end.y-from.y;
+        const bool wet=tile(lon,lat)&&deepWater(lon,lat)&&alt<=waterLevel(lon,lat);
+        const double ground=tile(lon,lat)?height(lon,lat,alt):below;
+        if(wet||feet->isOnFloor()||alt<=ground+.02)landDrop(wet,ground);
+    }
+    void landDrop(bool wet,double ground) {
+        using namespace r1::arrival;
+        const double sink=drop.canopy.sink,tau=drop.clock.seconds;
+        const double away=metresBetween(lon,lat,drop.goalLon,drop.goalLat);
+        cameraFrom=CameraPose{camera->transform().position,camera->transform().rotation,camera->fovDegrees};cameraHandoff=0;
+        // He looks on where the camera looked; on foot the camera stands
+        // behind him again.
+        yaw=wrap(dropSteered()?yaw:drop.canopy.heading+drop.lookYaw);
+        pitch=-12;lookYaw=0;lookIdle=0;
+        followDistance=std::min(kOnFootFollow,double(glm::length(camera->transform().position-player->transform().position)));
+        jumpOffset=jumpVelocity=0;wasJump=false;
+        if(wet){swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);}
+        else alt=std::max(alt,ground);
+        // A landing is not a fall (World::landed).
+        arrivalClock=fightClock;
+        releaseDropPose();
+        player->transform().rotation=glm::angleAxis(float(-drop.canopy.heading*rad),glm::vec3(0,1,0));
+        player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+.06)));
+        playPlayerClip("idle");
+        // The wing comes down in front of him and settles.
+        if(canopyNode) {
+            canopyFold=0;canopyRest=canopyNode->transform().position;canopyTurn=canopyNode->transform().rotation;
+            const auto ahead=onward(lon,lat,std::sin(drop.canopy.heading*rad)*3.,std::cos(drop.canopy.heading*rad)*3.);
+            canopyGround=glm::vec3(origin.local(ecef(ahead.x,ahead.y,tile(ahead.x,ahead.y)?height(ahead.x,ahead.y,alt):alt)));
+        }
+        auto& audio=saida::AudioManager::get();
+        for(auto* id:{&windSound,&flutterSound})if(*id!=saida::kInvalidAudioID){audio.stop(*id);*id=saida::kInvalidAudioID;}
+        const double seconds=msSince(drop.started)/1000.;
+        saida::Log::info("[World arrival] landed ",seconds," s after Go (",tau-drop.openedAt," s under the canopy) at ",lon,", ",lat,
+                         wet?" in the water":"",", ",away," m from the ground chosen, at ",sink," m/s; frames: ",drop.smoothness());
+        const bool steered=dropSteered();
+        drop.phase=Drop::None;drop.armed=false;
+        if(arrivalUi)arrivalUi->setEnabled(false);
+        style("combat","display","block");style("controls","display","block");
+        text("stream-status",wet?"In the water — swim for the shore.":"Landed. Welcome to "+drop.place+".");
+        request(lon,lat);
+        if(smokeDive)smokeDiveLanded(sink,away,steered,tau);
+    }
+    // ── his body in the air ──
+    void releaseDropPose() {
+        for(auto* arm:playerArms)if(arm){arm->release();arm->clearTipRotation();arm->clearPole();}
+        for(auto* leg:playerBikeLegs)if(leg){leg->release();leg->clearTipRotation();leg->clearPole();}
+        if(playerBikeLook)playerBikeLook->release();
+    }
+    void poseDrop(double dt,const r1::arrival::Steer& in) {
+        using namespace r1::arrival;
+        const bool canopy=drop.phase==Drop::Canopy;
+        const double facing=canopy?drop.canopy.heading:drop.fall.facing(yaw);
+        if(canopy)drop.upright=std::min(1.,drop.upright+dt/.9);
+        const double u=smooth(drop.upright);
+        // In free fall he lies on the air, belly to earth, his head along the
+        // way he flies, head lower the faster he tracks, banked into a slide;
+        // the canopy's opening swings him upright under it.
+        const double h=facing*rad;
+        const double forward=drop.fall.east*std::sin(h)+drop.fall.north*std::cos(h);
+        const double side=drop.fall.east*std::cos(h)-drop.fall.north*std::sin(h);
+        const double track=std::clamp(forward/Freefall::kForward,0.,1.);
+        const double slide=std::clamp(side/Freefall::kSide,-1.,1.)*18.;
+        const glm::quat turn=glm::angleAxis(float(-h),glm::vec3(0,1,0));
+        const glm::quat lying=turn*glm::angleAxis(float(-slide*rad),glm::vec3(0,0,1))
+                             *glm::angleAxis(float((-90.+8.-14.*track)*rad),glm::vec3(1,0,0));
+        const glm::quat hanging=turn*glm::angleAxis(float(-drop.canopy.bank(drop.canopyWanted)*rad),glm::vec3(0,0,1));
+        const glm::quat body=glm::normalize(glm::slerp(lying,hanging,float(u)));
+        const glm::vec3 pelvis(0,float(playerHeight*kPelvis),0);
+        player->transform().rotation=body;
+        player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+playerHeight*kPelvis)))-body*pelvis;
+        playPlayerClip(u>.5?"idle":"jump");
+        // The limbs, in the rig's own space (+Z his front, +Y up): the box
+        // position of free fall -- upper arms out, forearms up beside the head,
+        // knees bent, feet to the sky -- then, hanging, hands up on the
+        // toggles and legs down.
+        auto* animator=animators.front();
+        if(!animator||!animator->rig())return;
+        const auto& pose=animator->globalPose().globalMatrices;
+        const saida::Rig& rig=*animator->rig();
+        const int shoulders[2]={rig.findBoneIndex("Bip01 L UpperArm"),rig.findBoneIndex("Bip01 R UpperArm")};
+        const int hips[2]={rig.findBoneIndex("Bip01 L Thigh"),rig.findBoneIndex("Bip01 R Thigh")};
+        if(shoulders[0]<0||shoulders[1]<0||hips[0]<0||hips[1]<0||pose.size()<rig.boneCount())return;
+        const glm::vec3 Y(0,1,0),Z(0,0,1);
+        const float hang=float(u),brake=float(canopy&&drop.canopy.steered?std::max(0.,-in.forward):0.);
+        // The toggle of the side he turns to is pulled down (k: 0 left, 1 right).
+        const float turning=float(canopy?std::clamp(drop.canopy.bank(drop.canopyWanted)/25.,-1.,1.):0.);
+        for(int k=0;k<2;++k) {
+            const glm::vec3 shoulder(pose[size_t(shoulders[k])][3]),hip(pose[size_t(hips[k])][3]);
+            // Out is away from his middle, whichever side the rig puts left.
+            const glm::vec3 out(shoulder.x>=0?1.f:-1.f,0,0);
+            const float pull=brake+std::max(0.f,k?turning:-turning);
+            const glm::vec3 hand=glm::mix(shoulder+out*.30f+Y*.22f-Z*.10f,shoulder+out*.12f+Y*(.42f-.34f*std::min(1.f,pull))+Z*.08f,hang);
+            const glm::vec3 elbow=glm::mix(shoulder+out*.55f-Y*.12f-Z*.18f,shoulder+out*.45f+Y*.05f-Z*.10f,hang);
+            const glm::vec3 foot=glm::mix(hip+out*.20f-Y*.48f-Z*.40f,hip+out*.07f-Y*.85f+Z*.12f,hang);
+            const glm::vec3 knee=glm::mix(hip+out*.28f-Y*.35f+Z*.55f,hip+out*.06f-Y*.40f+Z*.60f,hang);
+            if(auto* arm=playerArms[k]){arm->clearTipRotation();arm->reach(hand);arm->setPole(elbow);}
+            if(auto* leg=playerBikeLegs[k]){leg->clearTipRotation();leg->reach(foot);leg->setPole(knee);}
+        }
+        // Falling, he lifts his head to see where he flies.
+        if(playerBikeLook)playerBikeLook->lookAt(glm::mix(glm::vec3(0,100,40),glm::vec3(0,1.5f,100),hang));
+    }
+    // The canopy over his shoulders: out of the container as a snake of
+    // fabric, then a wing; its lines meet where his risers would.
+    void placeCanopy(double dt) {
+        using namespace r1::arrival;
+        if(drop.phase!=Drop::Canopy)return;
+        if(!canopyNode) {
+            saida::Node* source=nullptr;
+            try{source=prototype(kParachuteModel);}
+            catch(const std::exception& e){if(!canopyMissingSaid)saida::Log::error("[World arrival] ",e.what());canopyMissingSaid=true;return;}
+            if(!source) {
+                if(!canopyMissingSaid)saida::Log::warn("[World arrival] the parachute model is still loading: the canopy shows when it is in");
+                canopyMissingSaid=true;return;
+            }
+            canopyNode=engine.sceneTree().world().addChild(clonePlant(*source));
+            canopyNode->setName("parachute");
+        }
+        (void)dt;
+        const auto& c=drop.canopy;
+        const double age=c.age,p=c.inflation();
+        // A wing snatched open overshoots a little and settles.
+        const double snap=1+.06*std::sin(age*9.)*std::exp(-age*2.5)*smooth((age-.6)/.4);
+        const glm::vec3 scale=float(kParachuteScale)*glm::vec3(float((.12+.88*p)*snap),float(.15+.85*smooth(age/.7)),float(.25+.75*p));
+        const glm::quat turn=glm::angleAxis(float(-c.heading*rad),glm::vec3(0,1,0))
+                            *glm::angleAxis(float(-c.bank(drop.canopyWanted)*rad),glm::vec3(0,0,1))
+                            // The wing trails behind him until it bites.
+                            *glm::angleAxis(float((1-p)*35.*rad),glm::vec3(1,0,0))
+                            // The model's front is glTF's +Z; his is -Z.
+                            *glm::angleAxis(float(r1::arrival::kPi),glm::vec3(0,1,0));
+        const glm::vec3 harness=player->transform().position+player->transform().rotation*glm::vec3(0,float(playerHeight*kShoulders),0);
+        canopyNode->transform().position=harness;
+        canopyNode->transform().rotation=turn;
+        canopyNode->transform().scale=scale;
+    }
+    // After the landing the wing comes down in front of him, then is packed.
+    void foldCanopy(double dt) {
+        if(canopyFold<0||!canopyNode)return;
+        canopyFold+=dt;
+        const double s=smooth(canopyFold/2.4);
+        canopyNode->transform().position=glm::mix(canopyRest,canopyGround,float(s));
+        canopyNode->transform().rotation=glm::slerp(canopyTurn,canopyTurn*glm::angleAxis(float(-80.*rad),glm::vec3(1,0,0)),float(s));
+        canopyNode->transform().scale=float(kParachuteScale)*glm::vec3(float(1-.2*s),float(1-.92*s),float(1-.35*s));
+        if(canopyFold>5.){canopyNode->queueFree();canopyNode=nullptr;canopyFold=-1;}
+    }
+    // ── the camera in the air ──
+    void placeDropCamera(double dt) {
+        using namespace r1::arrival;
+        const double tau=drop.clock.seconds;
+        const glm::vec3 body(origin.local(ecef(lon,lat,alt+playerHeight*kPelvis)));
+        // The globe's own camera, as the world draws it: straight down over
+        // him, north up, the globe's lens and its off-centre framing (the
+        // globe's centre sits at GlobeView::centreY of the document).
+        CameraPose overhead;
+        {
+            const glm::vec4 vp=globe?globe->viewport:glm::vec4(0,0,1,1);
+            const double vh=std::max(.05,double(vp.w)),middle=(.5-double(vp.y))/vh;
+            const double up=(r1::GlobeView::centreY-middle)*2*r1::GlobeView::tangent;
+            overhead.position=body+glm::vec3(0,float(kCameraAbove),0);
+            overhead.rotation=glm::angleAxis(float(-90*rad),glm::vec3(1,0,0))*glm::angleAxis(float(std::atan(up)),glm::vec3(1,0,0));
+            overhead.fov=float(2*std::atan(r1::GlobeView::tangent/vh)/rad);
+        }
+        const double facing=drop.phase==Drop::Canopy?drop.canopy.heading:drop.fall.facing(yaw);
+        const double look=wrap(dropSteered()?yaw:facing+drop.lookYaw);
+        auto chase=[&](double below,double distance,double rise,double lead,float fov){
+            // `below`: degrees under the horizon the camera looks down at him.
+            CameraPose eye;
+            const glm::quat turn=glm::angleAxis(float(-look*rad),glm::vec3(0,1,0));
+            const glm::vec3 back=turn*glm::vec3(0,0,1);
+            const glm::vec3 target=body+glm::vec3(0,float(rise),0)-back*float(lead);
+            eye.position=target+back*float(distance*std::cos(below*rad))+glm::vec3(0,float(distance*std::sin(below*rad)),0);
+            eye.rotation=glm::quatLookAt(glm::normalize(target-eye.position),glm::vec3(0,1,0));
+            eye.fov=fov;return eye;
+        };
+        auto blend=[](const CameraPose& a,const CameraPose& b,double s){
+            CameraPose out;out.position=glm::mix(a.position,b.position,float(s));
+            out.rotation=glm::normalize(glm::slerp(a.rotation,b.rotation,float(s)));
+            out.fov=glm::mix(a.fov,b.fov,float(s));return out;
+        };
+        // Steeply over him high up, flatter as the ground comes, as a
+        // skydiving camera flies; the mouse tilts it.
+        const double steep=40.+22.*std::clamp((drop.agl-kDeployHeight)/500.,0.,1.);
+        const auto falling=chase(std::clamp(steep-drop.lookPitch,10.,85.),7.,0.,2.,64.f);
+        CameraPose eye;
+        if(drop.phase==Drop::Canopy) {
+            drop.canopyCamera=std::min(1.,drop.canopyCamera+dt/1.5);
+            eye=blend(falling,chase(std::clamp(4.-drop.lookPitch,-25.,60.),7.5,1.3,0.,64.f),smoother(drop.canopyCamera));
+        } else eye=blend(overhead,falling,smoother((tau-kFadeSeconds)/(kSwoopSeconds-kFadeSeconds)));
+        // The air buffets the camera at terminal speed.
+        if(drop.phase==Drop::Fall&&tau>kFadeSeconds) {
+            const double t=msSince(drop.started)/1000.,a=.25*rad*smooth((tau-kFadeSeconds)/2.);
+            eye.rotation=eye.rotation*glm::angleAxis(float(a*std::sin(t*7.3)),glm::vec3(1,0,0))*glm::angleAxis(float(a*std::sin(t*11.1+1.)),glm::vec3(0,1,0));
+        }
+        // Never inside a wall or under the ground: it comes in along its line
+        // to him, as the camera on foot does.
+        if(auto* physics=engine.sceneTree().world().physics()) {
+            const glm::vec3 line=eye.position-body;const float d=glm::length(line);
+            if(d>.3f){const auto hit=physics->raycast(body,line/d,d,obstacleFilter());if(hit.hit)eye.position=body+line/d*std::max(.4f,hit.distance-.3f);}
+        }
+        {
+            const glm::dvec3 world=origin.origin+origin.basis*glm::dvec3(eye.position);
+            const auto geo=r1::ecefToGeodetic(world.x,world.y,world.z);
+            if(tile(geo.x,geo.y)) {
+                const double floor=height(geo.x,geo.y)+.4;
+                if(geo.z<floor)eye.position+=glm::vec3(0,float(floor-geo.z),0);
+            }
+        }
+        camera->transform().position=eye.position;
+        camera->transform().rotation=eye.rotation;
+        camera->fovDegrees=eye.fov;
+        hideBehindGlobe();
+        // While the globe fades it is this camera, straight down: the
+        // picture going is the picture coming.
+        if(globe&&dropGlobe()&&drop.clock.seconds>=kZoomSeconds)flyGlobe();
+    }
+    // Behind the opaque globe nothing of the world is drawn: a city seen from
+    // the air cost 75 ms a frame there for no picture -- 26 of them the relief
+    // to the horizon, which the far plane does not cut (World::updateFarRelief
+    // hides it) -- and texture uploads go one a frame, so slow frames filled
+    // the decoder until it refused models.
+    // Streaming, mounting and levels of detail go on; the world is drawn
+    // again half a second before the fade, so its first frames are warm.
+    // Hidden until half a second before the fade, and for as long as the zoom
+    // waits for the world: the warm-up begins when it is ready.
+    bool behindGlobe() const {return drop.phase==Drop::Zoom&&(drop.clock.seconds<r1::arrival::kZoomSeconds-.5||!drop.ready);}
+    void hideBehindGlobe() {
+        if(!behindGlobe())return;
+        camera->farZ=1.f;
+        if(farRelief.node&&farRelief.node->visible())farRelief.node->setVisible(false);
+    }
+    // The globe's pose: flown to the drop zone, then, fading, the world's camera.
+    void flyGlobe() {
+        using namespace r1::arrival;
+        auto& view=globe->view;
+        double gLon=0,gLat=0,gAltitude=1;
+        if(drop.clock.seconds<kZoomSeconds||!drop.armed) {
+            const auto pose=drop.flight.at(drop.clock.seconds);
+            const double a=drop.armed?smooth(drop.aligned):0.;
+            gLon=wrap(pose.lon+a*drop.shiftLon);gLat=pose.lat+a*drop.shiftLat;
+            gAltitude=pose.altitude*std::exp(a*drop.shiftAltitude);
+        } else {
+            const glm::dvec3 world=origin.origin+origin.basis*glm::dvec3(camera->transform().position);
+            const auto eye=r1::ecefToGeodetic(world.x,world.y,world.z);
+            const double terrain=tile(eye.x,eye.y)?height(eye.x,eye.y):drop.ground;
+            gLon=eye.x;gLat=eye.y;gAltitude=std::max(1.,eye.z-terrain)/r1::kRMean;
+        }
+        view.lon=gLon;view.lat=gLat;view.zoom=zoomForAltitude(gAltitude);
+        // The map, opened from the air, opens where he is.
+        globeTarget.lon=gLon;globeTarget.lat=gLat;zoom=std::clamp(view.zoom,1.,131072.);
+    }
+    // ── --dive: the smoke flies the whole arrival ──
+    void smokeDiveFade() {
+        // The tiles the fade shows were cooked before it, and the world's
+        // camera is the globe's.
+        std::string why;
+        const auto want=nearby(drop.goalLon,drop.goalLat);
+        size_t shown=0,mounted=0;
+        for(Tile t:want) {
+            mounted+=loaded.count(t.key());
+            if(!dropShows(t))continue;
+            ++shown;
+            if(!loaded.count(t.key())){saida::Log::error("[World E2E] FAIL the fade began without ",t.key(),", which it shows");testFailed=true;engine.sceneTree().quit();return;}
+        }
+        smokeDiveFaded=true;smokeDiveHealth=health.hp;
+        saida::Log::info("[World E2E] PASS the fade found the drop zone cooked: the ",shown," tiles it shows mounted with ground, buildings and collisions, ",
+                         mounted," of ",want.size()," of the neighbourhood");
+    }
+    void runSmokeDive() {
+        using namespace r1::arrival;
+        if(!smokeDive||drop.phase==Drop::None)return;
+        const double tau=drop.clock.seconds;
+        if(drop.phase==Drop::Fall&&tau>=kZoomSeconds+.5&&tau<kZoomSeconds+.6&&globe) {
+            // The globe draws what the world's camera sees.
+            const glm::dvec3 world=origin.origin+origin.basis*glm::dvec3(camera->transform().position);
+            const auto eye=r1::ecefToGeodetic(world.x,world.y,world.z);
+            const double off=metresBetween(eye.x,eye.y,globe->view.lon,globe->view.lat);
+            if(off>1.){saida::Log::error("[World E2E] FAIL the fading globe is ",off," m off the world's camera");testFailed=true;engine.sceneTree().quit();return;}
+        }
+        // The autopilot flies him north: two seconds sliding right, east,
+        // are the player's and nobody else's.
+        if(drop.phase==Drop::Fall&&tau>=13.&&!smokeDiveSteerSet){smokeDiveSteerFrom={lon,lat};smokeDiveSteerSet=true;}
+        if(drop.phase!=Drop::Zoom&&tau>=15.&&smokeDiveSteerSet&&smokeDiveSlid<0)
+            smokeDiveSlid=metresTo(smokeDiveSteerFrom.x,smokeDiveSteerFrom.y,lon,lat).x;
+    }
+    // R1WORLD_DIVE_SHOT=<png> at R1WORLD_DIVE_SHOT_AT=<seconds after Go>:
+    // a picture of that instant of the arrival, as it is, then the run ends.
+    void smokeDiveShot() {
+        const char* png=std::getenv("R1WORLD_DIVE_SHOT");
+        if(!smokeDive||!png||smokeDiveShotQueued||drop.phase==Drop::None)return;
+        const char* at=std::getenv("R1WORLD_DIVE_SHOT_AT");
+        const double when=at?std::atof(at):r1::arrival::kZoomSeconds+1.;
+        if(drop.clock.seconds<when)return;
+        saida::CaptureRequest shot;shot.pngPath=png;shot.frame=1;
+        // The instant asked for, whatever is still loading: the arrival is
+        // the moment the world loads.
+        shot.waitForAssets=false;
+        smokeDiveShotQueued=true;
+        saida::Log::info("[World E2E] dive picture ",drop.clock.seconds," s after Go, ",int(drop.agl)," m up (",png,")");
+        engine.captureFrameThenExit(shot);
+    }
+    // The smoke's keys during the arrival: two seconds of right from 13 s.
+    void smokeDiveKeys(double& f,double& r) {
+        f=r=0;
+        if(drop.phase==Drop::Fall&&drop.clock.seconds>=13.&&drop.clock.seconds<15.)r=1;
+    }
+    void smokeDiveLanded(double sink,double away,bool steered,double tau) {
+        using namespace r1::arrival;
+        auto fail=[&](const std::string& why){saida::Log::error("[World E2E] FAIL dive: ",why);testFailed=true;engine.sceneTree().quit();};
+        if(!smokeDiveFaded)return fail("landed without the fade having been checked");
+        if(!steered)return fail("the keys did not take the fall over");
+        if(smokeDiveSlid<8.)return fail("two seconds sliding right moved him "+number(smokeDiveSlid,1)+" m east");
+        const bool onTime=std::abs(drop.openedAt-kDeploySeconds)<.1&&std::abs(drop.openedOverGoal-kDeployHeight)<.5;
+        const bool early=drop.openedAt<kDeploySeconds;
+        if(!onTime&&!early)return fail("the canopy opened "+number(drop.openedAt,2)+" s after Go, "+number(drop.openedOverGoal,1)+" m above the ground chosen");
+        if(tau-drop.openedAt<3.)return fail("only "+number(tau-drop.openedAt,1)+" s under the canopy");
+        if(r1::combat::fallDamage(sink)>0||health.hp<smokeDiveHealth)return fail("the landing hurt: "+number(sink,1)+" m/s");
+        saida::Log::info("[World E2E] PASS dive: canopy open ",drop.openedAt," s after Go, ",drop.openedOverGoal," m above the ground chosen",
+                         onTime?"":" (early, over higher ground)",", slid ",smokeDiveSlid," m east under the keys, landed at ",sink," m/s, ",away,
+                         " m from the ground chosen; frames: ",drop.smoothness());
+        engine.sceneTree().quit();
     }
     // The Sun is a function of where the player stands, and in this game that
     // moves: a fixed anchor would light Sydney at Paris's hour, on the wrong
@@ -3016,6 +3865,11 @@ class World : public Rml::EventListener {
             return wrap(std::atan2(glm::dot(d,next.basis[0]),-glm::dot(d,next.basis[2]))/rad);
         };
         const double delta=wrap(turn(yaw)-yaw);
+        if(drop.phase!=Drop::None) {
+            drop.canopy.heading=turn(drop.canopy.heading);drop.canopyWanted=turn(drop.canopyWanted);
+            const double speed=drop.fall.speed(),heading=turn(std::atan2(drop.fall.east,drop.fall.north)/rad);
+            drop.fall.east=speed*std::sin(heading*rad);drop.fall.north=speed*std::cos(heading*rad);
+        }
         yaw=turn(yaw);carYaw=turn(carYaw);swimHeading=turn(swimHeading);
         boat.yaw=turn(boat.yaw);plane.yaw=turn(plane.yaw);
         for(auto& entry:parked)entry.yaw=turn(entry.yaw);
@@ -4734,7 +5588,7 @@ private:
     // ground, and told why.
     void keepStanding() {
         checkStanding=false;
-        if(!playing||pending||driving||sailing||piloting||swimming||!tile(lon,lat))return;
+        if(!playing||pending||driving||sailing||piloting||swimming||dropFlying()||!tile(lon,lat))return;
         // The finer survey (IGN) may have replaced the quick one under him.
         // A breakwater the feet stand on is not in the grid: keep what holds him.
         if(jumpOffset<=0) {
@@ -5023,7 +5877,7 @@ private:
         optionsOpen=show;
         globeDragging=false;
         style("options-screen","display",show?"block":"none");
-        style("menu","display",show?"none":"block");
+        style("menu","display",show||!menu?"none":"block");
         if(auto* e=ui->findElementById(show?"options-back":"options"))e->Focus();
         if(!show)return;
         field("forced-time",forcedMinutes?r1::formatClockTime(*forcedMinutes):std::string());
@@ -5987,7 +6841,8 @@ private:
     // Physics follows each uploaded mesh; arrivals wait for its first sync.
     void uploadParts() {
         const auto start=std::chrono::steady_clock::now();
-        const auto priority=orderedNearby((pending||warming)?pickLon:lon,(pending||warming)?pickLat:lat);
+        const auto anchor=streamAnchor();
+        const auto priority=orderedNearby(anchor.x,anchor.y);
         // A tile's replacement uploads right after it: the old one is shown
         // until then, so it is the one standing in for it on screen.
         std::vector<std::pair<const std::string*,Loaded*>> order;
@@ -6592,11 +7447,29 @@ private:
     // Each shared model parsed once: instances share its mesh and material
     // pointers, avoiding thousands of repeated GLB and texture decodes.
     std::map<std::string,saida::AssetHandle> prototypeLoads;
+    // A model the decoder's budget refused is not a model that does not
+    // load: the budget was full of decoded images waiting their turn for the
+    // GPU (one is prepared a frame). It is asked for again a second later, up
+    // to kBudgetRetries times; then the refusal stands and is said.
+    static constexpr int kBudgetRetries=30;
+    struct BudgetRetry { std::chrono::steady_clock::time_point at; int tries=0; };
+    std::map<std::string,BudgetRetry> budgetRetries;
     saida::Node* prototype(const std::string& path) {
         auto& found=naturePrototypes[path];
         if(!found) {
+            const auto retry=budgetRetries.find(path);
+            if(retry!=budgetRetries.end()&&std::chrono::steady_clock::now()<retry->second.at)return nullptr;
             auto& handle=prototypeLoads[path];
             if(!handle)handle=saida::GLTFLoader::request((game/path).string(),engine.resources());
+            if(handle&&handle.failed()&&handle.error().find("budget exceeded")!=std::string::npos) {
+                auto& again=budgetRetries[path];
+                if(again.tries<kBudgetRetries) {
+                    if(again.tries==0)saida::Log::info("[World streaming] ",path," refused by the decode budget for now; asked again each second");
+                    ++again.tries;again.at=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+                    prototypeLoads.erase(path);
+                    return nullptr;
+                }
+            }
             if(!handle||handle.failed())throw std::runtime_error("Model load failed: "+path+" "+handle.error());
             if(!handle.ready())return nullptr;
             auto imported=std::make_unique<saida::Node>(fs::path(path).stem().string());
@@ -6655,9 +7528,32 @@ private:
             std::this_thread::yield();
         }
     }
-    // Warm shared models through the engine worker while the map is on screen.
+    // Warm only what the selected tile actually uses. Warming the entire
+    // catalogue pinned every biome's scanned trees, boats and signs under
+    // disabled prototype nodes; after time in the menu, the cooker could no
+    // longer allocate the next required ground tile.
     std::vector<std::string> warmList;
+    std::string warmTile;
+    uint64_t warmSerial=0;
     void warm() {
+        // Ground has priority once Go is pressed. The visible props continue
+        // through streamProps after the player is armed, using the same assets.
+        if(pending||drop.phase!=Drop::None||service->status().memoryPaused)return;
+        const auto at=tileAt(pickLon,pickLat);
+        const auto served=service->find(at.gen());
+        if(!served)return;
+        if(warmTile!=at.key()||warmSerial!=served->serial) {
+            warmTile=at.key();warmSerial=served->serial;
+            std::set<std::string> models;
+            auto collect=[&](const auto& self,const json& node)->void {
+                const auto path=node.value("importedFrom",std::string());
+                if(!path.empty())models.insert(path);
+                if(node.contains("children"))for(const auto& child:node.at("children"))self(self,child);
+            };
+            for(const auto& prop:served->cooked.props)collect(collect,prop);
+            warmList.assign(models.begin(),models.end());
+            saida::Log::info("[World prefetch] ",warmTile,": ",warmList.size()," local models to warm");
+        }
         if(warmList.empty())return;
         const std::string path=warmList.back();
         if(prototype(path))warmList.pop_back();
@@ -6968,7 +7864,8 @@ private:
             n->levels=kFarLevels;n->baseSpacing=float(kFarBaseSpacing);
             farRelief.node=static_cast<saida::TerrainRingsNode*>(engine.sceneTree().world().addChild(std::move(n)));
         }
-        if(!farRelief.node->visible())farRelief.node->setVisible(true);
+        // Sampled behind the arrival's opaque globe, drawn once it fades.
+        if(farRelief.node->visible()==behindGlobe())farRelief.node->setVisible(!behindGlobe());
         auto& f=farRelief;
         // A new tangent frame where the player is, when the old one is far.
         glm::dvec2 focus{0.};
@@ -7265,7 +8162,8 @@ private:
     }
     void stream() {
         SAIDA_PROFILE_SCOPE("World/StreamTiles");
-        double x=(pending||warming)?pickLon:lon,y=(pending||warming)?pickLat:lat;
+        const auto anchor=streamAnchor();
+        const double x=anchor.x,y=anchor.y;
         auto want=orderedNearby(x,y);std::set<std::string> wanted;for(auto t:want)wanted.insert(t.key());
         std::set<std::string> keep=wanted;
         // Retain the current tile during an in-progress teleport, so the player
@@ -7427,8 +8325,11 @@ private:
                     saida::Log::error("[World E2E] FAIL spawn refused: inside a building");
                     testFailed=true;engine.sceneTree().quit();
                 }
+                // Said where the player looks: the arrival hands the map back.
+                if(drop.phase!=Drop::None)showMap(true);
                 return;
             }
+            if(drop.phase==Drop::Zoom&&!drop.armed){armDrop(x0,y0,waterSpawn);return;}
             lon=x0;lat=y0;alt=waterSpawn?waterLevel(lon,lat):height(lon,lat);
             conditions=json::object();conditionsDoc.reset();observedWeather=Weather{};clearRain();
             origin=Frame(lon,lat,alt);placeTiles();moveSun();
@@ -7503,6 +8404,7 @@ public:
         minimapUi=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("minimap-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
         if(!ui||!minimapUi||!camera)throw std::runtime_error("Earth scene is missing its camera, map or minimap");
+        sceneFov=camera->fovDegrees;
 #ifdef SAIDA_ENABLE_XR
         // First child of the world: the engine finds the rig by a depth-first
         // group walk every frame, which then stops at once.
@@ -7598,22 +8500,6 @@ public:
         options.prepare=[](r1::ServedTile& tile){tile.prepared=prepareTile(tile.cooked);releaseCookedGeometry(tile.cooked);};
         options.log=[](const std::string& line){saida::Log::info("[World service] ",line);};
         service=std::make_unique<r1::WorldService>(std::move(options));
-        // Nearest first to be needed last: warm() takes from the back.
-        for(const auto& b:r1::palette().boats)warmList.push_back("assets/models/external/kenney_boats/"+b.model+".glb");
-        for(const auto& k:r1::palette().props)for(const auto& m:k.models)warmList.push_back(m);
-        for(const auto& [code,sign]:r1::palette().signs)for(const auto& [mount,m]:sign.mounts)warmList.push_back(m);
-        for(const auto* kits:{&r1::palette().townSigns,&r1::palette().streetSigns})for(const auto& [country,kit]:*kits) {
-            for(const auto& m:{kit.post,kit.bar})if(!m.empty())warmList.push_back(m);
-            for(const auto& [lines,p]:kit.plates)for(const auto& m:{p.left,p.middle,p.right})warmList.push_back(m);
-            for(const auto& [ch,g]:kit.glyphs)warmList.push_back(g.first);
-        }
-        for(const char* dir:{"assets/models/external/nature_selected","assets/models/external/nature_cards"}) {
-            std::error_code ec;
-            for(const auto& f:fs::directory_iterator(game/dir,ec))
-                if(f.path().extension()==".glb")warmList.push_back(std::string(dir)+"/"+f.path().filename().string());
-        }
-        std::sort(warmList.begin(),warmList.end());
-        warmList.erase(std::unique(warmList.begin(),warmList.end()),warmList.end());
         sea=std::make_unique<r1::SeaService>(game.string(),[](const std::string& line){saida::Log::info("[World sea] ",line);});
         sky=std::make_unique<r1::ConditionsService>(game.string(),[](const std::string& line){saida::Log::info("[World sky] ",line);});
         readFarLandmarks();
@@ -7625,6 +8511,18 @@ public:
         globe=std::move(model);globeTarget=globe->view;
     }
     bool failed() const {return testFailed;}
+    void diveSmoke() {
+        if(!smoke)throw std::runtime_error("--dive requires --smoke");
+        smokeDive=true;
+        // R1WORLD_DIVE_HOUR: the local hour the pictures are taken at, held
+        // for this run only (World::forceTime would save it as the player's).
+        if(const char* hour=std::getenv("R1WORLD_DIVE_HOUR")) {
+            const double h=std::atof(hour);
+            if(!std::isfinite(h)||h<0||h>=24)throw std::runtime_error("R1WORLD_DIVE_HOUR must be an hour in [0,24)");
+            forcedMinutes=int(h*60);
+            saida::Log::info("[World E2E] the arrival is flown at ",r1::formatClockTime(*forcedMinutes)," local");
+        }
+    }
     void inspectInstant(double unixSeconds) {inspectAt=unixSeconds;}
     void inspectConditions(std::array<double,3> conditions) {
         if(!inspectAt||worldCapture.pngPath.empty())throw std::runtime_error("--weather requires --at and --screenshot");
@@ -8508,7 +9406,9 @@ public:
             hopArmed=true;hopWait=0;
             return;
         }
-        showMap(true);testResume=true;
+        // Resume is on the settings' Destination tab since the globe menu:
+        // reached there, as a player does.
+        showMap(true);showOptions(true);ui->executeJS("showSettingsTab('destination');");testResume=true;
     }
     void sayBodies() {
         auto* physics=engine.sceneTree().world().physics();
@@ -8736,6 +9636,12 @@ public:
                     // The press alone must start the journey.
                     goCount=0;testClick("go",false);
                     if(!pending||goCount!=1){saida::Log::error("[World E2E] FAIL Go press, pending=",pending," calls=",goCount);testFailed=true;engine.sceneTree().quit();return;}
+                    if(smokeDive) {
+                        // The press starts the arrival and the menu goes with it.
+                        if(drop.phase!=Drop::Zoom){saida::Log::error("[World E2E] FAIL Go did not start the arrival");testFailed=true;engine.sceneTree().quit();return;}
+                        saida::Log::info("[World E2E] map click and Go passed: the globe flies to the drop zone");
+                        return;
+                    }
                     // A full press+release must still act exactly once.
                     testClick("go");
                     if(goCount!=2){saida::Log::error("[World E2E] FAIL Go press+release ran ",goCount," times");testFailed=true;engine.sceneTree().quit();return;}
@@ -8749,13 +9655,20 @@ public:
         clock+=delta;
         applyForcedTime();
         updateCityLookup();
+        advanceDrop(saida::Time::unscaledDelta());
         updateGlobe(saida::Time::unscaledDelta());
-        if(menu&&globe){const bool map=menuTiles.pump(),imagery=imageryTiles.pump();if(map||imagery)renderMapTiles();}
+        if((menu||dropGlobe())&&globe){SAIDA_PROFILE_SCOPE("World/MapPump");const bool map=menuTiles.pump(),imagery=imageryTiles.pump();if(map||imagery)renderMapTiles();}
+        if(drop.phase!=Drop::None&&!menu) {
+            // How smooth the whole arrival was, said when he lands.
+            const int k=drop.stage();
+            ++drop.frames[k];drop.hitches[k]+=frameSeconds>.033;drop.worst[k]=std::max(drop.worst[k],frameSeconds*1000.);
+            captionDrop(delta);updateDropSounds(delta);
+        }
         if(smoke && pending && refused==tileAt(pickLon,pickLat).key()) {
             saida::Log::error("[World E2E] FAIL ",refused," did not fit the resident vertex budget");
             testFailed=true;engine.sceneTree().quit();return;
         }
-        if(smoke){testElapsed+=delta;if(testElapsed>(trafficValidation_?trafficValidationSeconds_*3.+120.:hopWanted?420:smokeFly?300:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return;}}
+        if(smoke){testElapsed+=delta;if(testElapsed>(trafficValidation_?trafficValidationSeconds_*3.+120.:hopWanted?420:smokeFly?300:smokeDive?240:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return;}}
         if(testResume){
             resumeWait+=delta;
             if(resumeWait>.25){
@@ -8788,17 +9701,23 @@ public:
         updateBuildingLods();
         if(!playing)cost.warm=timed([&]{warm();});
         updateRadio(delta);
-        if(!playing||menu){updateRain(delta);return;}
+        // A drop not yet armed: the world under the globe is still the one
+        // left, or none; nothing of it plays.
+        if(!playing||menu||(drop.phase!=Drop::None&&!drop.armed)){updateRain(delta);return;}
         updateCheats(std::min(.05,double(delta)));
         updateInteriors(delta);
         seaTime+=delta;
-        ring=nearby(lon,lat);
+        {const auto anchor=streamAnchor();ring=orderedNearby(anchor.x,anchor.y);}
         const uint64_t moved=engine.sceneTree().world().indexedNodesTotal()-indexedAtFrame;
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
-        cost.props=timed([&]{streamProps();});
-        cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
-        cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
+        // Do not let optional models, crowd and far relief consume the memory
+        // reserved for a visible tile whose cook is still waiting to start.
+        if(drop.phase!=Drop::Zoom||drop.groundReady) {
+            cost.props=timed([&]{streamProps();});
+            cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
+            cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
+        }
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
         if((farPack.node!=nullptr)!=fogFar)applyWeather();
@@ -8828,15 +9747,24 @@ public:
         // at a junction and what the first drive was missing entirely. It
         // recentres behind the car once the mouse stops and the car is rolling,
         // so the default view is still the road ahead.
-        if(driving||sailing||piloting) {
+        if(dropFlying()) {
+            // In the air the mouse looks round him while the autopilot flies
+            // him; once he steers it turns him, as on foot. Not before the
+            // world shows.
+            if(drop.clock.seconds>=r1::arrival::kZoomSeconds) {
+                if(dropSteered())yaw=wrap(yaw+mouse.x*.12);else drop.lookYaw=wrap(drop.lookYaw+mouse.x*.12);
+                drop.lookPitch=std::clamp(drop.lookPitch-mouse.y*.12,-35.,35.);
+            }
+        } else if(driving||sailing||piloting) {
             if(std::abs(mouse.x)>1e-4){lookYaw=wrap(lookYaw+mouse.x*.12);lookIdle=0;}
             else lookIdle+=delta;
             if(!aiming&&lookIdle>.6&&std::abs(driving?carSpeed:sailing?boat.speed:plane.speed)>2.)
                 lookYaw-=lookYaw*(1-std::exp(-2.2*std::min(.05,double(delta))));
         } else yaw+=mouse.x*.12;
-        pitch=std::clamp(pitch-mouse.y*.12,-65.,25.);
+        if(!dropFlying())pitch=std::clamp(pitch-mouse.y*.12,-65.,25.);
         double f=(held(GLFW_KEY_W)||held(GLFW_KEY_Z)?1.:0.)-(held(GLFW_KEY_S)?1.:0.);
         double r=(held(GLFW_KEY_D)?1.:0.)-(held(GLFW_KEY_A)||held(GLFW_KEY_Q)?1.:0.);
+        if(smokeDive&&dropFlying())smokeDiveKeys(f,r);
         if(smokeStarted&&worldCapture.pngPath.empty()){
             if(!perfSmoke.empty()&&!perfReady) {
                 // Measure motion after the initial import, with normal real
@@ -8884,7 +9812,7 @@ public:
         // One door key for both directions, and the refusals are inside
         // enterCar/leaveCar so that every one of them says something.
         bool doorKey=held(GLFW_KEY_F);
-        if(doorKey&&!wasEnterKey&&!playerDown) {
+        if(doorKey&&!wasEnterKey&&!playerDown&&!dropFlying()) {
             if(driving)leaveCar();
             else if(sailing){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
             else if(piloting)leaveAircraft();
@@ -8916,7 +9844,10 @@ public:
         // at the controls, where people meet the vehicle instead.
         // Down, his body is the ragdoll's and his feet leave the physics.
         if(feet->enabled()!=(player->enabled()&&!playerDown))feet->setEnabled(player->enabled()&&!playerDown);
-        if(driving) {
+        if(dropFlying()) {
+            flyDrop(dt,f,r);
+            moving=true;
+        } else if(driving) {
             if(smokeDriving){f=smokeBrake?-1.:1.;r=0;}
             driveCar(dt,f,r,held(GLFW_KEY_SPACE)&&!smokeDriving);
             moving=std::abs(carSpeed)>.2;
@@ -8997,7 +9928,7 @@ public:
         // Not while he lies in the ragdoll: its bodies follow his node, which
         // the rebase does not carry. He is up again in a few seconds.
         if(!playerDown&&glm::length(origin.local(ecef(lon,lat,alt)))>kRebaseDistance)rebaseOrigin();
-        if(!driving&&!sailing&&!piloting) {
+        if(!driving&&!sailing&&!piloting&&!dropFlying()) {
             if(swimming) {
                 jumpOffset=jumpVelocity=0;wasJump=false;
                 swimLean+=(double(moving)-swimLean)*(1-std::exp(-5*dt));
@@ -9049,51 +9980,66 @@ public:
             smokeRan=smokeRan||(moving&&animators.front()->currentClip()=="run");
             smokeJumped=smokeJumped||(jumpOffset>.5&&animators.front()->currentClip()=="jump");
         }
-        // At the controls of a plane the view pitches with the nose, a little.
-        const double viewPitch=std::clamp(pitch+(piloting&&!plane.helicopter()?plane.pitch*.6:0.),-80.,40.);
-        camera->transform().rotation=glm::angleAxis(float(-(yaw+lookYaw)*rad),glm::vec3(0,1,0))*glm::angleAxis(float(viewPitch*rad),glm::vec3(1,0,0));
-        // A car is longer than a man and moves twice as fast, so the camera
-        // stands further back -- far enough to see the bonnet turn.
-        // A boat's camera stands off by its own length: a container ship is
-        // two hundred metres of hull, and eight metres behind its bridge is
-        // inside it.
-        // Aiming, the camera closes in over his right shoulder.
-        aimBlend+=((aiming?1.:0.)-aimBlend)*(1-std::exp(-12*dt));
-        const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
-                              :piloting?plane.type->length*.9+10.
-                              :ridingBike()?5.2-1.8*aimBlend
-                              :driving?std::max(kDrivingFollow,vehicleSpec(*car).length*.7+5.)
-                              :kOnFootFollow+(kAimFollow-kOnFootFollow)*aimBlend;
-        const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?playerHeight*1.17
-                        :playerDown?playerHeight*.35:playerHeight*(.89+.06*aimBlend);
-        const glm::vec3 anchor=sailing&&boat.node?boat.node->transform().position
-                              :piloting&&plane.node?plane.node->transform().position
-                              :driving?car->transform().position
-                              :playerDown?downAnchor():player->transform().position;
-        const glm::vec3 target=anchor+glm::vec3(0,eye,0)
-            +camera->transform().rotation*glm::vec3(float(kAimShoulder*aimBlend),0.f,0.f);
-        const glm::vec3 backward=camera->transform().rotation*glm::vec3(0,0,1);
-        double clear=maxFollow;
-        if(auto* physics=engine.sceneTree().world().physics()) {
-            const auto hit=physics->raycast(target,backward,float(maxFollow),obstacleFilter());
-            if(hit.hit)clear=std::max(.15,double(hit.distance)-.3);
-        }
-        // Keep the camera above the geographic surface and inside loaded tiles.
-        for(double d=.25;d<=clear;d+=.25){
-            auto q=onward(lon,lat,backward.x*d,-backward.z*d);
-            if(!tile(q.x,q.y)&&piloting)continue;  // in the air, unstreamed ground ahead is no wall
-            if(!tile(q.x,q.y)||height(q.x,q.y,alt+jumpOffset)+.3>alt+jumpOffset+.06+eye+backward.y*d){clear=std::max(.15,d-.25);break;}
-        }
-        followDistance=clear<followDistance?clear:followDistance+(clear-followDistance)*(1-std::exp(-7*dt));
-        camera->transform().position=target+backward*float(followDistance);
+        // In the air the arrival flies its own camera (World::placeDropCamera).
+        if(dropFlying())placeDropCamera(dt);
+        else {
+            // At the controls of a plane the view pitches with the nose, a little.
+            const double viewPitch=std::clamp(pitch+(piloting&&!plane.helicopter()?plane.pitch*.6:0.),-80.,40.);
+            camera->transform().rotation=glm::angleAxis(float(-(yaw+lookYaw)*rad),glm::vec3(0,1,0))*glm::angleAxis(float(viewPitch*rad),glm::vec3(1,0,0));
+            // A car is longer than a man and moves twice as fast, so the camera
+            // stands further back -- far enough to see the bonnet turn.
+            // A boat's camera stands off by its own length: a container ship is
+            // two hundred metres of hull, and eight metres behind its bridge is
+            // inside it.
+            // Aiming, the camera closes in over his right shoulder.
+            aimBlend+=((aiming?1.:0.)-aimBlend)*(1-std::exp(-12*dt));
+            const double maxFollow=sailing?std::clamp(boat.length*1.1+6.,9.,230.)
+                                  :piloting?plane.type->length*.9+10.
+                                  :ridingBike()?5.2-1.8*aimBlend
+                                  :driving?std::max(kDrivingFollow,vehicleSpec(*car).length*.7+5.)
+                                  :kOnFootFollow+(kAimFollow-kOnFootFollow)*aimBlend;
+            const double eye=sailing?std::clamp(boat.length*.12+2.,2.,26.):piloting?plane.type->height*.75+1.5:driving?vehicleSpec(*car).height+.5:swimming?playerHeight*1.17
+                            :playerDown?playerHeight*.35:playerHeight*(.89+.06*aimBlend);
+            const glm::vec3 anchor=sailing&&boat.node?boat.node->transform().position
+                                  :piloting&&plane.node?plane.node->transform().position
+                                  :driving?car->transform().position
+                                  :playerDown?downAnchor():player->transform().position;
+            const glm::vec3 target=anchor+glm::vec3(0,eye,0)
+                +camera->transform().rotation*glm::vec3(float(kAimShoulder*aimBlend),0.f,0.f);
+            const glm::vec3 backward=camera->transform().rotation*glm::vec3(0,0,1);
+            double clear=maxFollow;
+            if(auto* physics=engine.sceneTree().world().physics()) {
+                const auto hit=physics->raycast(target,backward,float(maxFollow),obstacleFilter());
+                if(hit.hit)clear=std::max(.15,double(hit.distance)-.3);
+            }
+            // Keep the camera above the geographic surface and inside loaded tiles.
+            for(double d=.25;d<=clear;d+=.25){
+                auto q=onward(lon,lat,backward.x*d,-backward.z*d);
+                if(!tile(q.x,q.y)&&piloting)continue;  // in the air, unstreamed ground ahead is no wall
+                if(!tile(q.x,q.y)||height(q.x,q.y,alt+jumpOffset)+.3>alt+jumpOffset+.06+eye+backward.y*d){clear=std::max(.15,d-.25);break;}
+            }
+            followDistance=clear<followDistance?clear:followDistance+(clear-followDistance)*(1-std::exp(-7*dt));
+            camera->transform().position=target+backward*float(followDistance);
+            // Handed over from the arrival's camera, it eases into this one.
+            if(cameraFrom) {
+                cameraHandoff=std::min(1.,cameraHandoff+dt/.9);
+                const float s=float(smooth(cameraHandoff));
+                camera->transform().position=glm::mix(cameraFrom->position,camera->transform().position,s);
+                camera->transform().rotation=glm::normalize(glm::slerp(cameraFrom->rotation,camera->transform().rotation,s));
+                camera->fovDegrees=glm::mix(cameraFrom->fov,sceneFov,s);
+                if(cameraHandoff>=1)cameraFrom.reset();
+            }
 #ifdef SAIDA_ENABLE_XR
-        if(vrRig) {
-            // First person: the body would fill the view from inside.
-            player->setVisible(false);
-            vrRig->transform().position=anchor;
-            vrRig->yawDegrees=float(-(yaw+lookYaw));
-        }
+            if(vrRig) {
+                // First person: the body would fill the view from inside.
+                player->setVisible(false);
+                vrRig->transform().position=anchor;
+                vrRig->yawDegrees=float(-(yaw+lookYaw));
+            }
 #endif
+        }
+        foldCanopy(dt);
+        runSmokeDive();
         if(smoke&&!worldCapture.pngPath.empty()) {
             if(captureView.set) {
                 // The viewpoint is relative to where the player stands now, not
@@ -9599,6 +10545,7 @@ int main(int argc,char** argv) {
         r1::loadPalette(game.string());
         World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly,vr);
         world.setMenuGlobe(menuGlobe);
+        for(int i=1;i<argc;++i)if(std::string(argv[i])=="--dive")world.diveSmoke();
         for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--at") {
             const double at=std::stod(argv[i+1]);
             if(!std::isfinite(at))throw std::runtime_error("Invalid --at instant");

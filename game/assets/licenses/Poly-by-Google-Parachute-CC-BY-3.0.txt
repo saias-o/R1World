@@ -1,0 +1,11 @@
+Parachute model -- Creative Commons Attribution 3.0 Unported
+License: https://creativecommons.org/licenses/by/3.0/
+
+"Parachute" by Poly by Google.
+Original: https://poly.pizza/m/3Z7vJ96JIEB (file https://static.poly.pizza/cd4e55aa-0c83-4bc4-b2ee-a0c4a9506e31.glb)
+
+R1World modifications: removed the kite bar under the lines and brought the
+lines' lower ends onto the wearer's shoulders; replaced the painted texture
+with flat measured-albedo materials. Source SHA-256 a8e25997fa97b434fd8516ffceb3f9248318f21441ea03e29d8b656a4834a28f,
+retained in data/source-assets/poly_google_parachute_cd4e55aa.glb.
+No endorsement by the author is implied.

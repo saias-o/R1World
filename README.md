@@ -4,6 +4,9 @@ A free open-world game for exploring the entire Earth at 1:1 scale, designed
 with modest PCs in mind. Powered by SaidaEngine, it generates the world locally
 from real geographic data.
 
+The current game version is **0.1**, with its release coming soon. The version
+is also shown in Settings → Credits in the game.
+
 ## Features
 
 - Buildings placed at their real-world locations.

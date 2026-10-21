@@ -20,6 +20,10 @@ struct GlobeView {
     glm::dmat3 basis() const;
     std::optional<MapPoint> pick(double x,double y,double width,double height) const;
     std::optional<MapPixel> project(double lon,double lat,double width,double height) const;
+    // Conservative screen overlap of a geographic tile, including letterbox
+    // placement. Used to prioritize the ground the arrival will actually show.
+    bool shows(double west,double south,double east,double north,double width,double height,
+               glm::vec4 viewport={0,0,1,1}) const;
     int tileLevel(double height) const;
     // The level-z tiles covering what the viewport shows of the globe, or with
     // span<1 only its central part (prefetching the next level).
@@ -60,6 +64,14 @@ struct MenuGlobeState {
     // Imagery is lit like the globe; the map is drawn over it as a map.
     GlobeLayer imagery;
     GlobeLayer map;
+    // The arrival (native/arrival.hpp) fades the globe into the world it
+    // shows, from 1 (the menu) to 0, and lets the vignette go first: the world
+    // has none, and the picture going must be the picture coming.
+    float opacity=1;
+    float vignette=1;
+    // Written by the renderer: the imagery level asked for covers the whole
+    // view, every tile of it on the GPU. The arrival's fade waits for it.
+    bool imageryCovers=false;
 };
 
 // Register before constructing Engine. The renderer owns GPU resources; this

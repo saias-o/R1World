@@ -118,7 +118,7 @@ Scatter planProps(const std::vector<const OsmNode*>& features, const GroundAt& g
 // ── vegetation ──────────────────────────────────────────────────────────────
 
 namespace {
-constexpr int kNatureRevision = 12;
+constexpr int kNatureRevision = 13;
 const std::string kCardDir = "assets/models/external/nature_cards";
 
 const char* coniferObservation(const Tags& tags) {
@@ -602,7 +602,7 @@ Scatter planNature(const OsmData& osm, const Tile& tile, const Anchor& anchor, c
         PyRandom yawRng = seeded(c.ident, 71);
         const double yaw = yawRng.random() * kTau;
         const P3 at = ground(c.lon, c.lat);
-        const double verticalPlacement = !grass && model != "sakura" ? -0.10 : 0.0;
+        const double verticalPlacement = !grass && model != "sakura" ? -0.30 : 0.0;
         out.nodes.push_back({{"type", "Node"}, {"name", std::string("Nature ") + c.source + " " + identString(c.ident)},
                              {"enabled", true}, {"groups", {"vegetation", grass ? "grass" : "tree"}}, {"children", children},
                              {"transform", {{"position", {at.x, at.y + verticalPlacement, at.z}}, {"rotation", {0, std::sin(yaw / 2), 0, std::cos(yaw / 2)}},

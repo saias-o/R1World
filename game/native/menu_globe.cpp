@@ -18,16 +18,19 @@ namespace {
 constexpr double pi=3.14159265358979323846;
 constexpr double radians=pi/180.;
 struct Push {
-    glm::vec4 east,north,outward;
+    glm::vec4 east,north,outward; // east.w: the globe's opacity, north.w: its vignette
+    // outward.w: bit mask of the eight same-level tile neighbours bound below
     glm::vec4 viewport;
     glm::vec4 lens; // physical aspect, altitude, time, tile opacity
-    glm::vec4 tile; // zoom level, x, y, 0 base / 1 tile
+    glm::vec4 tile; // zoom, view centre minus tile corner, mode (0 base / 1 map / 2 imagery)
     glm::vec4 sun;  // Earth-fixed unit direction towards the Sun
 };
 class MenuGlobeFeature final:public saida::ScenePassFeature {
     std::shared_ptr<MenuGlobeState> state;
     saida::ResourceManager* resources=nullptr;
-    std::unique_ptr<saida::rhi::Pipeline> pipeline;
+    // The second leaves the depth alone: fading, the world behind keeps its
+    // own depth, so its fog and shading do not change when the globe goes.
+    std::unique_ptr<saida::rhi::Pipeline> pipeline,fadePipeline;
     std::unique_ptr<saida::rhi::BindGroupLayout> layout;
     std::array<saida::AssetID,4> images{};
     saida::AssetID preview=0;
@@ -52,6 +55,10 @@ class MenuGlobeFeature final:public saida::ScenePassFeature {
         double swapped=-1e9;
     };
     LayerState layerStates[2]; // imagery, map
+    // The layer's shown level covers every tile of the view, fully faded in:
+    // fading out, the base globe under it is not drawn, so the picture
+    // dissolves as one layer rather than as two stacked half-transparent ones.
+    bool covers[2]{};
     uint64_t tileFrame=0;
     std::array<saida::Texture*,4> textures{};
     bool ready=false;
@@ -60,7 +67,7 @@ public:
     void createPipelines(const saida::RenderContext& ctx) override {
         resources=&ctx.resources;
         std::vector<saida::rhi::BindGroupLayoutEntry> entries;
-        for(uint32_t i=0;i<5;++i)entries.push_back({i,saida::rhi::BindingType::CombinedImageSampler,saida::rhi::ShaderStages::Fragment});
+        for(uint32_t i=0;i<13;++i)entries.push_back({i,saida::rhi::BindingType::CombinedImageSampler,saida::rhi::ShaderStages::Fragment});
         layout=std::make_unique<saida::rhi::BindGroupLayout>(ctx.device,entries);
         saida::rhi::Pipeline::Desc desc;
         const auto shaders=std::filesystem::path(saida::executableDirectory())/"menu-shaders";
@@ -73,6 +80,8 @@ public:
         desc.cullMode=saida::rhi::CullMode::None;desc.blendMode=saida::rhi::BlendMode::Alpha;
         desc.bindGroupLayouts={layout.get()};desc.pushConstantSize=sizeof(Push);desc.viewMask=ctx.viewMask;
         pipeline=std::make_unique<saida::rhi::Pipeline>(ctx.device,desc);
+        desc.depthWrite=false;
+        fadePipeline=std::make_unique<saida::rhi::Pipeline>(ctx.device,desc);
         slots.resize(ctx.framesInFlight);
         auto* registry=resources->getRegistry();
         const std::array<const char*,4> names={"earth-day.jpg","earth-clouds.jpg","earth-night.jpg","milky-way.jpg"};
@@ -93,6 +102,7 @@ public:
     }
     void recordPrePass(const saida::PrePassContext& pc) override {
         if(!state->visible) {
+            state->imageryCovers=false;
             // Back in the world: free the prefetch and the stand-ins, but keep
             // what the globe showed resident, so Escape brings the menu back
             // exactly as it was instead of the blurry globe sharpening again.
@@ -110,11 +120,13 @@ public:
         }
         if(ready&&!dayRetained){resources->retainTexture(images[0]);dayRetained=true;}
         readyTiles.clear();
+        covers[0]=covers[1]=false;state->imageryCovers=false;
         if(!ready)return;
         ++tileFrame;
         const double now=saida::Time::unscaledElapsed();
-        gatherLayer(state->imagery,layerStates[0],2,now);
-        gatherLayer(state->map,layerStates[1],1,now);
+        covers[0]=gatherLayer(state->imagery,layerStates[0],2,now);
+        covers[1]=gatherLayer(state->map,layerStates[1],1,now);
+        state->imageryCovers=covers[0];
         if(retainedTiles.size()>kRetainedTiles) {
             std::vector<std::pair<uint64_t,saida::AssetID>> idle;
             for(const auto& [id,used]:retainedTiles)if(used<tileFrame)idle.push_back({used,id});
@@ -131,8 +143,8 @@ public:
         auto [it,fresh]=retainedTiles.try_emplace(id,tileFrame);
         if(fresh)resources->retainTexture(id);else it->second=tileFrame;
     }
-    void gatherLayer(const GlobeLayer& layer,LayerState& st,float mode,double now) {
-        if(layer.z<0){st={};return;}
+    bool gatherLayer(const GlobeLayer& layer,LayerState& st,float mode,double now) {
+        if(layer.z<0){st={};return false;}
         std::map<std::tuple<int,int,int>,saida::AssetID> cached;
         for(const auto& [tile,path]:layer.cached) {
             const auto key=path.generic_string();
@@ -175,30 +187,36 @@ public:
             if(st.previousZ>st.z){draw(st.shown,1);draw(st.previous,1-alpha);}
             else {draw(st.previous,1);draw(st.shown,alpha);}
         } else {st.previous.clear();draw(st.shown,1);}
+        return complete&&alpha>=1&&layer.z==st.z;
     }
     void record(saida::FrameContext& fc) override {
         if(!state->visible||fc.stereo)return;
         for(auto*& texture:textures)if(!texture)texture=resources->defaultWhiteTexture();
         auto& sets=slots.at(fc.frameIndex).sets;sets.clear();
-        auto bind=[&](saida::Texture* tile){
+        auto bind=[&](saida::Texture* tile,const std::array<saida::Texture*,8>& neighbours=std::array<saida::Texture*,8>{}){
             std::vector<saida::rhi::BindGroupEntry> entries;
-            for(uint32_t i=0;i<5;++i) {
-                auto* texture=i<4?textures[i]:tile;
+            for(uint32_t i=0;i<13;++i) {
+                auto* texture=i<4?textures[i]:(i==4?tile:(neighbours[i-5]?neighbours[i-5]:tile));
                 saida::rhi::BindGroupEntry entry;entry.binding=i;entry.view=texture->imageView();entry.sampler=texture->sampler();
                 entries.push_back(entry);
             }
             sets.push_back(std::make_unique<saida::rhi::BindGroup>(*layout,entries));
             fc.pass.setBindGroup(0,*sets.back());
         };
+        const float opacity=std::clamp(state->opacity,0.f,1.f);
+        if(opacity<=0)return;
+        const bool fading=opacity<1;
         const auto b=state->view.basis();
-        Push push{glm::vec4(b[0],0),glm::vec4(b[1],0),glm::vec4(b[2],0),state->viewport,
+        Push push{glm::vec4(b[0],opacity),glm::vec4(b[1],std::clamp(state->vignette,0.f,1.f)),glm::vec4(b[2],0),state->viewport,
             {float(fc.extent.width)/fc.extent.height,float(state->view.altitude()),float(saida::Time::unscaledElapsed()),
              state->map.opacity},{0,0,0,ready?0.f:-1.f},
             glm::vec4(glm::vec3(GlobeView::direction(state->subsolar.lon,state->subsolar.lat)),0)};
-        fc.pass.setPipeline(*pipeline);bind(textures[0]);
-        fc.pass.setPushConstants(&push,sizeof(push));fc.pass.draw(3);
+        fc.pass.setPipeline(fading?*fadePipeline:*pipeline);
+        if(!fading||!covers[0]){bind(textures[0]);fc.pass.setPushConstants(&push,sizeof(push));fc.pass.draw(3);}
         const auto rect=state->viewport;
         const double width=fc.extent.width*rect.z,height=fc.extent.height*rect.w;
+        std::map<std::tuple<float,int,int,int>,saida::Texture*> tileTextures;
+        for(const auto& t:readyTiles)tileTextures[{t.mode,t.tile.z,t.tile.x,t.tile.y}]=t.texture;
         for(const auto& tile:readyTiles) {
             const double n=double(1<<tile.tile.z);
             double left=width,right=0,top=height,bottom=0;
@@ -221,7 +239,21 @@ public:
             const int y1=std::clamp(int(std::ceil(bottom+2+rect.y*fc.extent.height)),0,int(fc.extent.height));
             if(x1<=x0||y1<=y0)continue;
             fc.pass.setScissor(x0,y0,x1-x0,y1-y0);
-            bind(tile.texture);
+            // Bilinear magnification straddles the tile edge by half a texel.
+            // ClampToEdge alone repeats each tile's own last pixel there;
+            // the two limits differ even for perfectly aligned source images.
+            static constexpr int offsets[8][2]={{-1,0},{1,0},{0,-1},{0,1},{-1,-1},{1,-1},{-1,1},{1,1}};
+            std::array<saida::Texture*,8> neighbours{};
+            unsigned mask=0;
+            for(unsigned i=0;i<neighbours.size();++i) {
+                const int tx=(tile.tile.x+offsets[i][0]+int(n))%int(n),ty=tile.tile.y+offsets[i][1];
+                const auto it=tileTextures.find({tile.mode,tile.tile.z,tx,ty});
+                if(it!=tileTextures.end()&&it->second->width()==tile.texture->width()&&it->second->height()==tile.texture->height()) {
+                    neighbours[i]=it->second;mask|=1u<<i;
+                }
+            }
+            push.outward.w=float(mask);
+            bind(tile.texture,neighbours);
             // View centre minus tile corner, in tiles, kept in double until
             // the difference is small (see tileCoord in the shader).
             const double cx=(state->view.lon+180.)/360.*n;

@@ -1,0 +1,22 @@
+{
+ "generatedBy": "game/tools/r1/arrival_sounds.py",
+ "license": "CC0-1.0 (project-made)",
+ "rate": 44100,
+ "sounds": {
+  "wind_freefall": {
+   "file": "assets/audio/arrival/wind_freefall.wav",
+   "seconds": 8.0,
+   "loop": true
+  },
+  "canopy_open": {
+   "file": "assets/audio/arrival/canopy_open.wav",
+   "seconds": 2.2,
+   "loop": false
+  },
+  "canopy_flutter": {
+   "file": "assets/audio/arrival/canopy_flutter.wav",
+   "seconds": 6.0,
+   "loop": true
+  }
+ }
+}

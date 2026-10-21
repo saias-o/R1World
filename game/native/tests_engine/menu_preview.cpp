@@ -41,7 +41,10 @@ int main(int argc,char** argv) {
                 }
         };
         if(level>=r1::kImageryFirstLevel)cached("s2cloudless-2016",std::min(level,r1::kImageryLastLevel),r1::kImageryFirstLevel,".jpg",globe->imagery);
-        if(globe->view.zoom>=r1::kOsmZoom){cached("osm",level,std::max(0,level-6),".png",globe->map);globe->map.opacity=1;}
+        // The arrival exposes imagery at street zoom, where the menu normally
+        // covers it with OSM. Keep that view reproducible without world loading.
+        const bool imageryOnly=argc>8&&std::string(argv[8])=="imagery";
+        if(globe->view.zoom>=r1::kOsmZoom&&!imageryOnly){cached("osm",level,std::max(0,level-6),".png",globe->map);globe->map.opacity=1;}
         std::printf("preview level %d: %zu imagery, %zu map tiles\n",level,globe->imagery.cached.size(),globe->map.cached.size());
     }
     engine.setOnFrame([&](float){

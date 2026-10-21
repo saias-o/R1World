@@ -44,6 +44,20 @@ std::optional<MapPixel> GlobeView::project(double longitude,double latitude,doub
     return MapPixel{width*.5+v.x/-v.z*height/(2.*tangent),
                     height*centreY-v.y/-v.z*height/(2.*tangent)};
 }
+bool GlobeView::shows(double west,double south,double east,double north,double width,double height,glm::vec4 viewport) const {
+    if(width<=0||height<=0||viewport.z<=0||viewport.w<=0)return true;
+    double left=1e300,right=-1e300,top=1e300,bottom=-1e300;
+    bool projected=false,hidden=false;
+    for(int y=0;y<=4;++y)for(int x=0;x<=4;++x) {
+        const auto p=project(west+(east-west)*x/4.,south+(north-south)*y/4.,width*viewport.z,height*viewport.w);
+        if(!p){hidden=true;continue;}
+        const double sx=p->x+width*viewport.x,sy=p->y+height*viewport.y;
+        left=std::min(left,sx);right=std::max(right,sx);top=std::min(top,sy);bottom=std::max(bottom,sy);projected=true;
+    }
+    // Match the renderer's conservative horizon handling and two-pixel margin.
+    if(hidden)return true;
+    return projected&&right>=-2&&left<=width+2&&bottom>=-2&&top<=height+2;
+}
 int GlobeView::tileLevel(double height) const {
     const double scale=pi*std::max(.03,std::cos(lat*radians))*height/(256.*altitude()*tangent);
     return std::clamp(int(std::lround(std::log2(std::max(1.,scale)))),0,19);

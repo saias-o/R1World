@@ -8,9 +8,22 @@ pick any point on Earth and walk there?
 `CLAUDE.md` holds the working rules. This file describes what exists today,
 how it works and what was measured.
 
+The current game version is **0.1**. Its release is being prepared; the in-game
+Settings → Credits panel displays the version. The long-term animal photography
+collection is planned in `docs/PLAN.md` and is not part of the current version.
+
 Documentation reviewed on 19 October 2026. The current generator is v56;
 the validation records below are dated observations, not a claim that every
 location or target machine is qualified.
+
+### Current verification — 20 October 2026, the arrival
+
+The generator suite passes **447/447** (`Arrival` included). The menu smoke,
+the Paris smoke and `--dive` (online at 1600 × 900, offline with the proxies
+closed) pass. The Python checks run 82 here: 72 pass, 2 skip and 8 cannot import
+numpy, which this machine's Python lacks; `test_parachute` passes. The Paris
+smoke now reaches **Reprendre** through the settings' Destination tab, where
+the globe menu put it.
 
 ### Current verification — 19 October 2026
 
@@ -61,7 +74,9 @@ black halo appear above Go/Settings at 0–2 s, 2–4.5 s and 4.5–8 s, measure
 the startup sound on the monotonic clock; they disappear after eight seconds.
 
 A map of the Earth opens. Search for a city or commune (Photon, while online),
-pick a suggestion, click the map or type coordinates, then press **Go**. The
+pick a suggestion, click the map or type coordinates, then press **Go**: the
+globe flies down to the place, fades into the world and drops the player there
+by parachute ([The arrival](#the-arrival-from-go-to-the-ground-20-october-2026)). The
 whole-Earth image is a 4096 × 2048 Natural Earth overview; zooming switches to
 OpenStreetMap tiles at their native resolution, up to level 19 (**Vue rue**).
 Map tiles are cached in `cache/map-tiles/osm/`.
@@ -75,6 +90,184 @@ second artificial click on release. Verified on 13 October 2026 with the real
 menu zoom smoke, Saida's input/UI tests and native runtime contract. Native CTest now passes 100/100, including crash-reporter build identity checks.
 The Web player and authoring WASM builds also pass, as does the authoring
 Node smoke; these build checks do not claim browser menu interaction coverage.
+
+### The arrival: from Go to the ground (20 October 2026)
+
+**Go** no longer cuts to the street. For ten seconds the globe flies down to the
+place chosen; at ten its satellite picture fades into the world it was showing,
+the player falling through it, Fortnite-style; at twenty he opens his parachute
+**fifty metres above the ground chosen** and lands it himself. He steers from
+the moment the world shows, before the canopy too. The rules are
+`native/arrival.hpp` (held by `r1test Arrival`); `native/world.cpp` draws them.
+
+- **The flight.** Van Wijk and Nuij's optimal zoom path, the one map viewers
+  fly: far places are flown to over the globe, near ones descended onto. It is
+  eased in, and eased out so that the camera arrives at the fall's own speed
+  (56 m/s) rather than stopping. The map layer is off: the globe shows the
+  Sentinel-2 imagery only, credited on screen while it shows.
+- **The hand-over.** At ten seconds the world's camera is the globe's: straight
+  down, north up, the globe's lens (45° for the 1440 × 900 interface) and its
+  off-centre framing (a 3.8° tilt). While the globe fades (2.5 s) it is moved
+  to that camera every frame, so the picture going is the picture coming. The
+  fading globe writes no depth, so the world's haze and shading do not change
+  when it goes, and under complete imagery its base layer is skipped, so it
+  dissolves as one layer. The camera then comes down behind him by fifteen
+  seconds (64°, 7 m, looking down 62° high up and 40° near the opening).
+- **The fall.** Belly to earth at 56 m/s, tracking from 17 s down to 32 m/s;
+  the canopy opens at exactly 20 s, 50 m above the ground chosen (the fall is
+  a function of time, never of the keys). Over higher ground — a hill, a tower
+  — it opens earlier, higher the faster he still falls (86 m at terminal
+  speed), so the wing always has the height it needs. He starts 250 m south of
+  the opening point and an autopilot flies him to it, arriving as the canopy
+  opens; the first key hands him over for good. WASD / ZQSD then track forward
+  at 24 m/s, back at 8 and sideways at 12, the air taking 1.2 s to turn him;
+  the mouse looks round him while the autopilot flies and turns him after.
+- **The canopy.** "Parachute" by Poly by Google (CC BY 3.0, chosen by the
+  project owner from poly.pizza), normalised by `tools/r1/parachute.py`: its
+  kite bar removed and its lines brought onto his shoulders, its painted
+  texture replaced by five flat measured albedos (red, yellow, blue and black
+  ripstop at 0.30 or less, white lines at 0.30; `tools/r1/tests/test_parachute.py`).
+  It opens out of the container as a snake of fabric in 1.6 s, never harder
+  than 4.5 g, then flies at 9 m/s and sinks at 4.5: W / Z dives it (12.5 and
+  6.5 m/s), S brakes it (4 and 3), A / D or Q / D turn it at 60°/s, the mouse
+  turns it toward where he looks at 80°/s at most. Left alone it flies him to
+  the ground chosen. Below 4 m he flares by himself: Paris, 8.5 s under the
+  canopy, landed at 1.9 m/s, within 1.2 m of the point when nobody steers. His
+  feet are the character body all the way down, so a roof is landed on and a
+  wall slid along; deep water is swum in.
+- **His body.** Engine IK on the Rocketbox rig: the box position in free fall
+  (upper arms out, forearms up beside the head, knees bent, head lifted), then
+  hanging under the wing, hands up on the toggles — the one of the side he
+  turns to pulled down, both under brakes.
+- **The sounds** are the project's own (`tools/r1/arrival_sounds.py`, seeded,
+  CC0): the roar of free fall rising as the globe comes down, the rustle and
+  crack of the opening, the fabric's flutter. The menu's music gives way to
+  the wind two seconds before the world shows.
+
+**The world behind the globe.** Choosing a point already prefetches it; Go
+requests it again. As soon as the ground under the point is cooked he is put in
+the air over it and the world comes alive behind the opaque globe: tiles,
+buildings, props, traffic, crowd, the relief to the horizon. It streams from
+the ground chosen while he falls within 450 m of it, steering or not (a row
+further would evict three of the tiles cooked for him), from him beyond. The
+fade never finds it unready: the zoom's last seconds slow smoothly to a stop
+over the drop zone and resume as smoothly once the tiles the fade shows —
+projected into the actual window, including its letterbox, and the one he lands on — are
+mounted with their ground, buildings and collisions; then, for at most 25 s
+more, their OpenStreetMap streets, trees and street furniture, textures and
+the satellite picture's finest level. The rest of the neighbourhood starts
+cooking during the fall. A
+machine short of memory cooks fewer tiles at once. Visible tiles are requested
+first (five in the Paris hand-over, rather than eight selected by the old
+650 m radius); optional props, crowd and far relief start after their ground,
+buildings and collisions are ready. If memory pauses cooking, the remaining
+optional wait ends and the neighbourhood continues streaming during the fall.
+The menu prewarms only models used by the selected tile, rather than retaining
+the entire catalogue of every biome's vegetation, boats and signs. A network
+exception while fetching map imagery remains a transient failure with its error
+message; it never writes a permanent `.none` cache marker. What it waits
+for is written under the caption and logged every five seconds
+(`[World arrival] the fade waits … for …`); the log says what the fade went
+without, if anything. While the globe covers it nothing of the world is drawn
+(the far plane is a metre and the relief rings are hidden), until it is ready
+and half a second before the fade.
+
+Loading follow-up: cached Paris, offline, 640 × 360, completes the full dive
+with five visible tiles mounted before the fade, and the other four requested
+afterwards. The world appeared 32.68 s after Go on this run: the memory wait
+no longer stalled indefinitely, but cooking the visible ground is still not
+instantaneous. Menu smoke and all 19,872 projection/coverage checks pass;
+the 1600 × 900 imagery capture still joins continuously. The offline run
+created no permanent absence markers for network exceptions.
+
+The map opened before the ground is ready calls the arrival off; after, it
+pauses it, and **Reprendre** resumes it. A headset (`--vr`) and the smoke tests
+still spawn at once; `--dive` flies the smoke through the whole arrival.
+
+Measured on 20 October 2026 on the reference machine, cached Paris, hidden
+window, with 2.9 GB of the 7.4 GB free before the game started (the world
+service paused cooking for want of memory: the zoom waited 17.8 s online and
+7.6 s offline). `--dive` passed both online at 1600 × 900, local noon, and
+offline, proxies closed, at the hidden window's 640 × 360. Frames over 33 ms
+of all frames, worst in brackets:
+
+| Phase | 1600 × 900, noon | 640 × 360, offline |
+|---|---|---|
+| Globe flight and wait | 32 / 1 635 (493 ms) | 27 / 1 043 (505 ms) |
+| Fade (2.5 s) | 66 / 70 (45 ms) | 2 / 107 (33 ms) |
+| Free fall | 174 / 178 (88 ms) | 29 / 295 (52 ms) |
+| Canopy | 113 / 261 (49 ms) | 3 / 357 (33 ms) |
+
+The fall's original GPU bottleneck was the relief to the horizon
+(`TerrainRingsFeature`): about 25 ms from the air and 12–15 ms near the ground.
+Saida now rejects whole cells covered by resident-ground holes before
+rasterization. A compute invocation per cell checks the morphed triangles,
+with a screen-space guard for MSAA; the vertex shader reads its flag and emits
+a degenerate cell. Boundary cells keep the original fragment clip, derivatives,
+PBR, water and morph blending. The engine knows only terrain holes.
+
+Before/after measurements on the same MX450, 1600 × 900, cached Paris at local
+noon, with captures at 17 s and 26 s after Go: the last three wall-clock seconds
+before each capture, excluding the final three capture/readback frames. These
+windows avoid mixing the hidden globe into the relief's cost. Times are ms;
+parentheses give p95 per call.
+
+| View | Rings before | Rings after | Total GPU before → after |
+|---|---:|---:|---:|
+| Free fall, before the 17 s picture | 30.01 (33.42) | 4.26 (6.56) | 52.50 → 20.72 |
+| Canopy, before the 26 s picture | 11.93 (15.17) | 2.20 (4.87) | 29.24 → 19.25 |
+
+The feature pre-pass, including the new culling dispatches, costs 0.23–0.24 ms
+in these after windows (0.06–0.07 ms before). Traces and PNGs are in
+`cache/terrain-rings-perf/`: `before-dive` / `after-fall` and `before-canopy` /
+`after-canopy`; `summary.json` holds the distributions. There were 8–9 resident
+tiles and cached relief levels 0–2 in these runs. The live pictures were
+inspected at the requested arrival times; loading, moving actors and the real
+frame clock make them unsuitable for byte equality.
+
+The engine's fixed-content 1.8 m eye-height benchmark also improves: rings
+21.79 → 15.25 ms, total GPU 23.01 → 16.53 ms, with a 0.28 ms pre-pass. Its
+500 m view's total GPU falls from 30.05 to 1.38 ms. Thirteen fixed-camera image
+pairs compare **every pixel exactly** against fragment-only clipping, covering
+both hole windings, morphing, relief, rain, water, grazing/subpixel cells and
+hole removal between frames. Native CTest passes 105/105 and the generator
+suite 447/447. The final offline `--smoke --dive` passes at 1600 × 900: canopy
+open at 20.003 s, 50 m over the target, landing at 1.89 m/s. These GPU gains do
+not qualify sustained 30 fps everywhere.
+
+Behind the opaque globe the old rings cost 26 ms for no picture, which is why
+they remain hidden there.
+
+Magnified satellite tiles filter across their neighbours, including diagonal
+corners and the longitude wrap. Separate clamped textures had stopped at
+their own edge texels: the adjacent pixel centres are still one source pixel
+apart (about 6 m at level 14 in Paris), so jumping between them made a visible
+step during the last seconds of the flight. The globe now interpolates those
+same four source texels on both sides of the boundary, in linear colour.
+Minification keeps the existing mipmapped, anisotropic sampler; a neighbour
+not yet resident falls back to the tile's clamped edge. The imagery-only
+preview reproduces this view without loading the world:
+
+```powershell
+cmake --build generated/world-windows/build --target r1_menu_preview
+generated/world-windows/r1_menu_preview.exe . cache/arrival-tiles.png main 48000 2.3522 48.8544 30 imagery
+```
+
+Verified on 20 October 2026: the Paris arrival at local noon, 9.9 seconds,
+1600 × 900, joins continuously across the level-14 boundary at 2.35107° E.
+The mean absolute RGB step at the former boundary fell from 7.86 to 0.72
+in 8-bit output (rows 200–779), matching the surrounding pixel gradients.
+The menu smoke and the complete `--smoke --dive --spawn 2.3522 48.8566`
+both pass offline, proxies closed, at 640 × 360; all 3,960 globe projection
+checks pass too. The dive opened at 20.02 s, slid 12.8 m east under the keys,
+and landed at 1.91 m/s.
+
+Two fixes came with it. A menu map tile not on disk is no longer looked for on
+disk again every frame — only this cache's own download puts it there — which
+was 0.3–1.4 s a frame on a synced folder while the globe swept levels of tiles
+not yet fetched. And a model the decoder's budget refuses (the budget full of
+decoded images waiting their turn, one prepared per frame) is asked for again
+each second, thirty times, instead of being dropped from the tile.
 
 | Key | On foot | In a car or motorcycle | In an aircraft |
 |---|---|---|---|
@@ -246,6 +439,8 @@ in the log whose path is printed at the end.
 | Option | Adds |
 |---|---|
 | `--spawn2 <lon> <lat>` | a second leg: walk, reopen the map, type the destination, Go again — tiles evicted, arena trimmed, origin moved |
+| `--dive` | the whole arrival instead of the instant spawn: the fade finds the nine tiles mounted and the globe on the world's camera, two seconds of the right key slide him east, the canopy opens at 20 s 50 m above the ground chosen (or earlier over higher ground), lands him unhurt; the log gives the frames per phase |
+| `R1WORLD_DIVE_SHOT=<png>`, `R1WORLD_DIVE_SHOT_AT=<seconds after Go>`, `R1WORLD_DIVE_HOUR=<local hour>` | photograph that instant of `--dive` as it is, at that local hour (held for the run, never saved as the player's option) |
 | `--sail` | board a boat and sail (e.g. Vieux-Port `5.3698 43.2951`) |
 | `--fly` | take off in a jet, stop against a building, land; then a helicopter, hover, jump out (Roissy `2.5700 49.0060`, Villacoublay `2.1900 48.7725`) |
 | `--screenshot <png>` | capture the frame after the spawn; with `--camera-pos`, `--camera-look`, `--after-frames` |
@@ -1124,6 +1319,9 @@ Benches align their long edge with the nearest road segment and face the
 carriageway, on either side and independently of the road's mapped direction.
 
 ### Trees
+
+Generator v58 places non-cherry trees 30 cm below the sampled ground to bury
+their roots. Sakura trees retain their existing ground-level placement.
 
 Generator v52 also uses the user-selected Innerscene flowering cherry
 (`nature_selected/sakura*.glb`). Observed `Prunus serrulata`, `Prunus [x/×]
@@ -2555,7 +2753,10 @@ ASCAT); canopy from Meta and WRI's High Resolution Canopy Height Maps
 Density (CC BY 4.0). The people are Microsoft Rocketbox avatars and motion
 capture (MIT, `assets/licenses/Microsoft-Rocketbox-MIT.txt`). The road vehicles
 are by Ruff and Scopia / Space Mushrooms,
-CC BY 3.0 (`assets/licenses/Road-vehicles-CC-BY-3.0.txt`). The selection map
+CC BY 3.0 (`assets/licenses/Road-vehicles-CC-BY-3.0.txt`). The parachute is
+"Parachute" by Poly by Google, CC BY 3.0
+(`assets/licenses/Poly-by-Google-Parachute-CC-BY-3.0.txt`), modified as
+`tools/r1/parachute.py` says. The selection map
 and offline coastline are Natural Earth (public domain). Asset provenance and
 checksums are in `assets/THIRD_PARTY_ASSETS.json`, and attribution is visible
 in game.

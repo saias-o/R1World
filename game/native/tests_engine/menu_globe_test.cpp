@@ -1,4 +1,5 @@
 #include "menu_globe.hpp"
+#include "gen/common.hpp"
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -36,6 +37,29 @@ int main() {
                     }
                 }
             }
+    // Arrival readiness must cover every pixel, without pinning the unseen
+    // northern row that formerly filled memory before the western ground.
+    const r1::GlobeView arrival{2.3522,48.85435,48000.};
+    size_t shown=0;
+    for(int r=27770;r<=27772;++r) {
+        const int n=r1::columns(r),c=int((arrival.lon+180.)/360.*n);
+        for(int dc=-1;dc<=1;++dc) {
+            const auto b=r1::Tile{r,c+dc}.bounds();
+            shown+=arrival.shows(b.west,b.south,b.east,b.north,1600,900);
+        }
+    }
+    assert(shown==5);
+    for(double lon:{-179.999,2.3522,179.999})for(double lat:{-89.8,0.,48.85435,89.8})
+        for(double width:{640.,1600.,2560.})for(const glm::vec4 vp:{glm::vec4(0,0,1,1),glm::vec4(.05f,.1f,.9f,.8f)}) {
+            const r1::GlobeView close{lon,lat,48000.};
+            for(int y=0;y<=12;++y)for(int x=0;x<=16;++x) {
+                const auto hit=close.pick(width*(x/16.-vp.x),900*(y/12.-vp.y),width*vp.z,900*vp.w);
+                assert(hit);
+                const auto b=r1::tileAt(hit->lon,hit->lat).bounds();
+                assert(close.shows(b.west,b.south,b.east,b.north,width,900,vp));
+                ++checks;
+            }
+        }
     const r1::GlobeView view;
     assert(!view.pick(10,10,1440,900));
     assert(!view.project(view.lon+180,-view.lat,1440,900));
