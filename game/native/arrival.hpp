@@ -26,8 +26,8 @@ constexpr double kRadians = kPi / 180.;
 // ── the timeline, in seconds after Go ───────────────────────────────────────
 
 constexpr double kZoomSeconds = 10.;    // the globe flies down to the drop zone
-constexpr double kFadeSeconds = 12.5;   // ...and has faded into the world
-constexpr double kSwoopSeconds = 15.;   // the camera has come down behind him
+constexpr double kFadeSeconds = 14.;    // ...and has faded into the world
+constexpr double kSwoopSeconds = 16.5;  // the camera has come down behind him
 constexpr double kDeploySeconds = 20.;  // the parachute opens
 constexpr double kDeployHeight = 50.;   // metres above the ground chosen
 
@@ -62,8 +62,22 @@ inline double fallHeight(double t) {
 inline double openingHeight(double speed) { return kDeployHeight + std::max(0., speed - kOpeningSpeed) * 1.5; }
 
 // While the globe fades, the world's camera is the globe's: straight down,
-// this far above him, so the picture going is the picture coming.
+// this far above him once faded, so the picture going is the picture coming.
 constexpr double kCameraAbove = 22.;
+// The globe does not slow to his fall to hand over: the camera arrives
+// faster, from higher, and closes on him while the globe fades -- the zoom
+// keeps its pace instead of braking into the world.
+constexpr double kHandoverSpeed = 360.;  // m/s down when the world shows
+// How much higher than kCameraAbove the camera is when the world shows: the
+// lift shrinks as (1-u)^3 over the fade, so it comes down at kHandoverSpeed
+// at first and at his own speed once faded.
+constexpr double kCameraLift = (kHandoverSpeed - kTerminal) * (kFadeSeconds - kZoomSeconds) / 3.;
+
+// The camera's height above him at second `t`.
+inline double cameraAbove(double t) {
+    const double u = std::clamp((t - kZoomSeconds) / (kFadeSeconds - kZoomSeconds), 0., 1.);
+    return kCameraAbove + kCameraLift * (1 - u) * (1 - u) * (1 - u);
+}
 // Where the fall begins: this far short of the opening point, so that he flies
 // to it -- and the canopy then this far on to the ground chosen.
 constexpr double kApproach = 200.;
@@ -109,9 +123,11 @@ public:
             S_ = (r1_ - r0_) / kRho;
             slope = -kRho * S_ * std::tanh(r1_);
         }
-        // The ease's end slope, so the descent rate at the end is `arrival`.
+        // The ease's end slope, so the descent rate at the end is `arrival`;
+        // beyond 3 the ease would start backwards, so a short flight arrives
+        // slower than asked.
         const double wanted = -arrival / (std::max(to.altitude, 1e-9) * radius) * kZoomSeconds;
-        endSlope_ = slope < -1e-6 ? std::clamp(wanted / slope, .02, 2.5) : .25;
+        endSlope_ = slope < -1e-6 ? std::clamp(wanted / slope, .02, 3.) : .25;
     }
     // The pose `seconds` after Go, eased in and arriving at the descent rate
     // asked for.

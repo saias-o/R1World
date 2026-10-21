@@ -12,7 +12,7 @@ constexpr double kStep = 1. / 30.;  // the reference machine's frame
 // The globe at the whole-Earth zoom (GlobeView::altitude at zoom 1).
 constexpr double kWholeEarth = 2.2;
 // The camera's altitude above the ground when the world takes over.
-const double kHandover = (fallHeight(kZoomSeconds) + kCameraAbove) / kEarth;
+const double kHandover = (fallHeight(kZoomSeconds) + cameraAbove(kZoomSeconds)) / kEarth;
 
 double metresBetween(GlobePose a, GlobePose b) {
     const double p1 = a.lat * kRadians, p2 = b.lat * kRadians, dl = (b.lon - a.lon) * kRadians;
@@ -41,7 +41,7 @@ TEST(Arrival, the_canopy_opens_fifty_metres_up_twenty_seconds_after_go) {
 
 TEST(Arrival, the_globe_flies_from_where_it_is_to_the_drop_zone) {
     const GlobePose from{2.35, 32., kWholeEarth}, to{139.77, 35.68, kHandover};
-    const GlobeFlight flight(from, to, kTerminal, kEarth);
+    const GlobeFlight flight(from, to, kHandoverSpeed, kEarth);
     const auto start = flight.at(0), end = flight.at(kZoomSeconds);
     NEAR(start.lon, from.lon, 1e-9); NEAR(start.lat, from.lat, 1e-9); NEAR(start.altitude, from.altitude, 1e-12);
     NEAR(end.lon, to.lon, 1e-9); NEAR(end.lat, to.lat, 1e-9); NEAR(end.altitude, to.altitude, 1e-15);
@@ -62,19 +62,33 @@ TEST(Arrival, the_globe_hands_over_to_a_fall_already_under_way) {
     // From the whole Earth, from a city view and from street level close by.
     const GlobePose to{2.3522, 48.8566, kHandover};
     for (const GlobePose from : {GlobePose{-40, 20, kWholeEarth}, GlobePose{2.2, 48.9, 13700. / kEarth},
-                                 GlobePose{2.3530, 48.8570, 855. / kEarth}}) {
-        const GlobeFlight flight(from, to, kTerminal, kEarth);
+                                 GlobePose{2.3530, 48.8570, 1500. / kEarth}}) {
+        const GlobeFlight flight(from, to, kHandoverSpeed, kEarth);
         const double h = 1e-3;
         const double rate = (flight.at(kZoomSeconds - h).altitude - flight.at(kZoomSeconds).altitude) * kEarth / h;
-        CHECK_MSG(rate > kTerminal * .8 && rate < kTerminal * 1.25,
+        // A flight from close by is too short to reach the handover speed;
+        // it still arrives faster than he falls.
+        const double least = from.altitude * kEarth < 2000. ? kTerminal * 1.5 : kHandoverSpeed * .8;
+        CHECK_MSG(rate > least && rate < kHandoverSpeed * 1.25,
                   "from altitude " << from.altitude * kEarth << " m the camera arrives at " << rate << " m/s");
     }
+}
+
+TEST(Arrival, the_camera_closes_on_him_from_the_globe_s_pace_to_his_own) {
+    // Its height above the ground, as the fade sees it: it comes down at the
+    // globe's handover speed, then slows smoothly to his fall, never climbing.
+    const auto camera = [](double t) { return fallHeight(t) + cameraAbove(t); };
+    const double h = 1e-3;
+    NEAR((camera(kZoomSeconds) - camera(kZoomSeconds + h)) / h, kHandoverSpeed, 1.);
+    NEAR((camera(kFadeSeconds - h) - camera(kFadeSeconds)) / h, fallSpeed(kFadeSeconds), 1.);
+    NEAR(cameraAbove(kFadeSeconds), kCameraAbove, 1e-9);
+    for (double t = kZoomSeconds; t < kFadeSeconds; t += .01) CHECK(camera(t + .01) < camera(t));
 }
 
 TEST(Arrival, a_far_place_is_flown_to_over_the_globe_not_through_it) {
     // Paris to Sydney, nearly antipodal: the path climbs out first.
     const GlobePose from{2.35, 48.86, 4000. / kEarth}, to{151.21, -33.87, kHandover};
-    const GlobeFlight flight(from, to, kTerminal, kEarth);
+    const GlobeFlight flight(from, to, kHandoverSpeed, kEarth);
     double highest = 0;
     for (double t = 0; t <= kZoomSeconds; t += kStep) highest = std::max(highest, flight.at(t).altitude);
     CHECK(highest > 1.);

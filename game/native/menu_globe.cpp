@@ -8,7 +8,6 @@
 #include <array>
 #include <cmath>
 #include <map>
-#include <unordered_set>
 #include <unordered_map>
 #include <set>
 #include <tuple>
@@ -37,29 +36,22 @@ class MenuGlobeFeature final:public saida::ScenePassFeature {
     bool dayRetained=false;
     struct Slot {std::vector<std::unique_ptr<saida::rhi::BindGroup>> sets;};
     std::vector<Slot> slots;
-    struct ReadyTile {MapTile tile;saida::Texture* texture;float mode;float alpha;}; // mode 2 lit imagery, 1 map
+    struct ReadyTile {MapTile tile;saida::Texture* texture;float mode;float alpha=1;}; // mode 2 lit imagery, 1 map
     std::vector<ReadyTile> readyTiles;
     // Tiles stay retained (resident, loaded first) while recently used: a
     // zoom out and back in finds them still on the GPU. Least recent go first.
-    static constexpr size_t kRetainedTiles=320;
-    static constexpr double kFadeSeconds=.3;
     std::unordered_map<saida::AssetID,uint64_t> retainedTiles;
     std::unordered_map<std::string,saida::AssetID> tileIds;
-    // What each layer shows. A level is shown only once every tile the view
-    // needs at it is on the GPU, then replaces the previous level in one fade:
-    // no patchwork, no blurry tile sharpening on its own.
-    struct Shown {MapTile tile;saida::AssetID id;};
-    struct LayerState {
-        int z=-1,previousZ=-1;
-        std::vector<Shown> shown,previous;
-        double swapped=-1e9;
-    };
-    LayerState layerStates[2]; // imagery, map
-    // The layer's shown level covers every tile of the view, fully faded in:
-    // fading out, the base globe under it is not drawn, so the picture
-    // dissolves as one layer rather than as two stacked half-transparent ones.
-    bool covers[2]{};
+    struct RetainedTile {MapTile tile;saida::AssetID id;float mode;};
+    std::unordered_map<saida::AssetID,RetainedTile> tileInfo;
     uint64_t tileFrame=0;
+    // Each change of satellite picture fades: a tile newly drawn comes in over
+    // kImageryFadeSeconds, and the tiles it replaces stay drawn beneath it
+    // until it has.
+    static constexpr double kImageryFadeSeconds=.5;
+    struct Shown {double since=0;uint64_t frame=0;};
+    std::unordered_map<saida::AssetID,Shown> shown;
+    std::vector<RetainedTile> drawnImagery;  // last frame's imagery, beneath first
     std::array<saida::Texture*,4> textures{};
     bool ready=false;
 public:
@@ -103,13 +95,9 @@ public:
     void recordPrePass(const saida::PrePassContext& pc) override {
         if(!state->visible) {
             state->imageryCovers=false;
-            // Back in the world: free the prefetch and the stand-ins, but keep
-            // what the globe showed resident, so Escape brings the menu back
-            // exactly as it was instead of the blurry globe sharpening again.
-            std::unordered_set<saida::AssetID> keep;
-            for(auto& st:layerStates){st.previous.clear();for(const auto& t:st.shown)keep.insert(t.id);}
-            for(auto it=retainedTiles.begin();it!=retainedTiles.end();)
-                if(keep.count(it->first))++it;else{resources->releaseTexture(it->first);it=retainedTiles.erase(it);}
+            // Keep the bounded recent-view cache through gameplay. Releasing
+            // stand-ins and the hidden map here forced Escape/M to decode and
+            // upload them again despite the permanent disk cache.
             return;
         }
         ready=true;
@@ -120,20 +108,19 @@ public:
         }
         if(ready&&!dayRetained){resources->retainTexture(images[0]);dayRetained=true;}
         readyTiles.clear();
-        covers[0]=covers[1]=false;state->imageryCovers=false;
-        if(!ready)return;
+        state->imageryCovers=false;
+        // The base globe's large textures must not gate detail prefetch.
         ++tileFrame;
-        const double now=saida::Time::unscaledElapsed();
-        covers[0]=gatherLayer(state->imagery,layerStates[0],2,now);
-        covers[1]=gatherLayer(state->map,layerStates[1],1,now);
-        state->imageryCovers=covers[0];
-        if(retainedTiles.size()>kRetainedTiles) {
+        state->imageryCovers=gatherLayer(state->imagery,2);
+        gatherLayer(state->map,1);
+        const size_t retainedLimit=globeTileBudget(state->toaster).retainedTiles;
+        if(retainedTiles.size()>retainedLimit) {
             std::vector<std::pair<uint64_t,saida::AssetID>> idle;
             for(const auto& [id,used]:retainedTiles)if(used<tileFrame)idle.push_back({used,id});
             std::sort(idle.begin(),idle.end());
             for(const auto& [used,id]:idle) {
-                if(retainedTiles.size()<=kRetainedTiles)break;
-                resources->releaseTexture(id);retainedTiles.erase(id);
+                if(retainedTiles.size()<=retainedLimit)break;
+                resources->releaseTexture(id);retainedTiles.erase(id);tileInfo.erase(id);shown.erase(id);
             }
         }
     }
@@ -143,9 +130,9 @@ public:
         auto [it,fresh]=retainedTiles.try_emplace(id,tileFrame);
         if(fresh)resources->retainTexture(id);else it->second=tileFrame;
     }
-    bool gatherLayer(const GlobeLayer& layer,LayerState& st,float mode,double now) {
-        if(layer.z<0){st={};return false;}
-        std::map<std::tuple<int,int,int>,saida::AssetID> cached;
+    bool gatherLayer(const GlobeLayer& layer,float mode) {
+        // Prefetch also uploads while this layer is still hidden. Previously
+        // the early z<0 return left downloaded arrival images sitting on disk.
         for(const auto& [tile,path]:layer.cached) {
             const auto key=path.generic_string();
             auto found=tileIds.find(key);
@@ -153,41 +140,71 @@ public:
             // one and draws a seam between neighbours.
             if(found==tileIds.end())found=tileIds.emplace(key,resources->getOrRegister(key,saida::AssetType::Texture,true,saida::rhi::AddressMode::ClampToEdge)).first;
             retain(found->second);
-            cached[{tile.z,tile.x,tile.y}]=found->second;
+            tileInfo[found->second]={tile,found->second,mode};
         }
-        for(const auto& t:st.shown)retain(t.id);
-        for(const auto& t:st.previous)retain(t.id);
-        // The level the view wants, complete on the GPU?
-        std::vector<Shown> wanted;bool complete=!layer.visible.empty();
-        for(const auto& t:layer.visible) {
-            const auto it=cached.find({t.z,t.x,t.y});
-            if(it==cached.end()||!resources->getTexture(it->second)){complete=false;continue;}
-            wanted.push_back({t,it->second});
+        if(layer.z<0)return false;
+        std::vector<MapTile> resident;
+        std::vector<RetainedTile> tiles;
+        std::vector<saida::Texture*> gpu;
+        std::set<std::tuple<int,int,int>> exact;
+        // The map fades as a transparent overlay: overlapping parent/child
+        // map tiles would apply that opacity twice. Imagery is opaque and can
+        // safely reuse its entire resident pyramid underneath missing detail.
+        for(const auto& [id,t]:tileInfo)if(t.mode==mode&&(mode!=1||t.tile.z==layer.z))
+            if(auto* texture=resources->getTexture(id)) {
+                resident.push_back(t.tile);tiles.push_back(t);gpu.push_back(texture);
+                exact.insert({t.tile.z,t.tile.x,t.tile.y});
+            }
+        // Display each available tile now; one slow edge tile must not keep
+        // the entire flight on the blurry base globe.
+        const auto covering=globeTileCoverage(layer.visible,resident);
+        if(mode==2)fadeImagery(covering,tiles,gpu);
+        else for(auto i:covering) {
+            retain(tiles[i].id);
+            readyTiles.push_back({tiles[i].tile,gpu[i],mode});
         }
-        if(complete&&layer.z!=st.z) {
-            // Fade from what is on screen; a swap during a fade keeps the
-            // older, fully drawn level underneath.
-            if(now-st.swapped>=kFadeSeconds||st.previous.empty()){st.previous=std::move(st.shown);st.previousZ=st.z;}
-            st.shown=std::move(wanted);st.z=layer.z;st.swapped=now;
-        } else if(layer.z==st.z) {
-            // Same level, the view moved: tiles of equal detail join as they
-            // arrive (nothing sharpens, the edge just fills in).
-            std::set<std::tuple<int,int,int>> have;
-            for(const auto& t:st.shown)have.insert({t.tile.z,t.tile.x,t.tile.y});
-            for(const auto& t:wanted)if(have.insert({t.tile.z,t.tile.x,t.tile.y}).second)st.shown.push_back(t);
-            if(st.shown.size()>4*layer.visible.size()+16)st.shown=std::move(wanted); // drop what panned far away
+        return !layer.visible.empty()&&std::all_of(layer.visible.begin(),layer.visible.end(),
+            [&](const auto& t){return exact.count({t.z,t.x,t.y})!=0;});
+    }
+    static bool overlaps(const MapTile& a,const MapTile& b) {
+        const MapTile& fine=a.z>=b.z?a:b;const MapTile& coarse=a.z>=b.z?b:a;
+        const int shift=fine.z-coarse.z;
+        return (fine.x>>shift)==coarse.x&&(fine.y>>shift)==coarse.y;
+    }
+    void fadeImagery(const std::vector<size_t>& covering,const std::vector<RetainedTile>& tiles,
+                     const std::vector<saida::Texture*>& gpu) {
+        const double now=saida::Time::unscaledElapsed();
+        // The arrival's fade already blends the globe into the world: a tile
+        // fading there would show the world through it.
+        const bool still=state->opacity>=1;
+        std::vector<ReadyTile> current;std::vector<RetainedTile> drawn;
+        std::set<saida::AssetID> present;
+        for(auto i:covering) {
+            retain(tiles[i].id);present.insert(tiles[i].id);
+            auto& s=shown[tiles[i].id];
+            if(!s.frame||s.frame+1<tileFrame)s.since=now;  // new, or back after a gap
+            s.frame=tileFrame;
+            const double u=std::clamp((now-s.since)/kImageryFadeSeconds,0.,1.);
+            current.push_back({tiles[i].tile,gpu[i],2.f,still?float(u*u*(3-2*u)):1.f});
+            drawn.push_back(tiles[i]);
         }
-        const float alpha=float(std::clamp((now-st.swapped)/kFadeSeconds,0.,1.));
-        auto draw=[&](const std::vector<Shown>& tiles,float a){
-            for(const auto& t:tiles)if(auto* tex=resources->getTexture(t.id))readyTiles.push_back({t.tile,tex,mode,a});
-        };
-        if(alpha<1){
-            // Under a finer level coming in, the coarser one; under a coarser
-            // one (zooming out), the finer one stays on top where it covers.
-            if(st.previousZ>st.z){draw(st.shown,1);draw(st.previous,1-alpha);}
-            else {draw(st.previous,1);draw(st.shown,alpha);}
-        } else {st.previous.clear();draw(st.shown,1);}
-        return complete&&alpha>=1&&layer.z==st.z;
+        // What was drawn and is being replaced stays beneath, opaque, while
+        // a tile fading in over it has not finished.
+        std::vector<ReadyTile> beneath;
+        for(const auto& old:drawnImagery) {
+            if(present.count(old.id))continue;
+            const bool covered=std::any_of(current.begin(),current.end(),
+                [&](const ReadyTile& t){return t.alpha<1&&overlaps(t.tile,old.tile);});
+            if(!covered)continue;
+            auto* texture=resources->getTexture(old.id);
+            if(!texture)continue;
+            retain(old.id);shown[old.id].frame=tileFrame;
+            beneath.push_back({old.tile,texture,2.f,1.f});drawn.push_back(old);
+        }
+        std::sort(beneath.begin(),beneath.end(),[](const ReadyTile& a,const ReadyTile& b){return a.tile.z<b.tile.z;});
+        readyTiles.insert(readyTiles.end(),beneath.begin(),beneath.end());
+        readyTiles.insert(readyTiles.end(),current.begin(),current.end());
+        drawnImagery=std::move(drawn);
     }
     void record(saida::FrameContext& fc) override {
         if(!state->visible||fc.stereo)return;
@@ -212,7 +229,7 @@ public:
              state->map.opacity},{0,0,0,ready?0.f:-1.f},
             glm::vec4(glm::vec3(GlobeView::direction(state->subsolar.lon,state->subsolar.lat)),0)};
         fc.pass.setPipeline(fading?*fadePipeline:*pipeline);
-        if(!fading||!covers[0]){bind(textures[0]);fc.pass.setPushConstants(&push,sizeof(push));fc.pass.draw(3);}
+        if(!fading||!state->imageryCovers){bind(textures[0]);fc.pass.setPushConstants(&push,sizeof(push));fc.pass.draw(3);}
         const auto rect=state->viewport;
         const double width=fc.extent.width*rect.z,height=fc.extent.height*rect.w;
         std::map<std::tuple<float,int,int,int>,saida::Texture*> tileTextures;

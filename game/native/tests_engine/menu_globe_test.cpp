@@ -6,6 +6,28 @@
 
 int main() {
     size_t checks=0;
+    {
+        // One delayed neighbour must not hold back the sharp tile, while the
+        // nearest cached parent covers the hole (deduplicated, coarse first).
+        std::vector<r1::MapTile> wanted={{9,256,170},{9,257,170},{9,257,171}};
+        std::vector<r1::MapTile> ready={{7,64,42},{9,256,170},{8,128,85}};
+        auto coverage=r1::globeTileCoverage(wanted,ready);
+        assert((coverage==std::vector<size_t>{2,1}));
+        // Adding the missing images makes the coarse fallback unnecessary.
+        ready.push_back(wanted[1]);ready.push_back(wanted[2]);
+        coverage=r1::globeTileCoverage(wanted,ready);
+        assert(coverage.size()==3);
+        for(auto i:coverage)assert(ready[i].z==9);
+        // Reopening/zooming out reuses children even if the parent was never
+        // downloaded. Distant tiles must never leak into the returned view.
+        ready={{9,256,170},{9,257,170},{9,256,171},{9,257,171},{9,20,20}};
+        coverage=r1::globeTileCoverage({{8,128,85}},ready);
+        assert(coverage.size()==4);
+        for(auto i:coverage)assert(i<4);
+        assert(r1::globeTileCoverage(wanted,{}).empty());
+        assert(r1::globeTileCoverage({},ready).empty());
+        checks+=10;
+    }
     for(double lon:{-179.99,-95.,2.3522,139.7671,179.99})
         for(double lat:{-89.8,-48.,0.,48.8566,89.8})
             for(double zoom:{1.,2.,16.,2048.,131072.}) {

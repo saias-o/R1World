@@ -1,8 +1,35 @@
 #include "menu_globe.hpp"
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <set>
+#include <tuple>
 
 namespace r1 {
+std::vector<size_t> globeTileCoverage(const std::vector<MapTile>& visible,
+                                    const std::vector<MapTile>& resident) {
+    std::map<std::tuple<int,int,int>,size_t> available;
+    for(size_t i=0;i<resident.size();++i) {
+        const auto& t=resident[i];available[{t.z,t.x,t.y}]=i;
+    }
+    std::set<size_t> selected;
+    for(const auto& t:visible) {
+        // Exact tile first, then the nearest resident ancestor.
+        for(int z=t.z;z>=0;--z) {
+            const auto it=available.find({z,t.x>>(t.z-z),t.y>>(t.z-z)});
+            if(it!=available.end()){selected.insert(it->second);break;}
+        }
+        if(available.count({t.z,t.x,t.y}))continue;
+        // Zooming out can reuse finer imagery without waiting for its parent.
+        for(size_t i=0;i<resident.size();++i) {
+            const auto& child=resident[i];const int shift=child.z-t.z;
+            if(shift>0&&(child.x>>shift)==t.x&&(child.y>>shift)==t.y)selected.insert(i);
+        }
+    }
+    std::vector<size_t> result(selected.begin(),selected.end());
+    std::sort(result.begin(),result.end(),[&](size_t a,size_t b){return resident[a].z<resident[b].z;});
+    return result;
+}
 namespace {
 constexpr double pi=3.14159265358979323846;
 constexpr double radians=pi/180.;

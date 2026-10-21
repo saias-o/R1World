@@ -238,6 +238,25 @@ not qualify sustained 30 fps everywhere.
 Behind the opaque globe the old rings cost 26 ms for no picture, which is why
 they remain hidden there.
 
+Detail loading, 21 October 2026: each resident satellite tile is displayed
+immediately, with cached parents/children covering missing detail. A slow edge
+tile no longer blocks an entire level. Hidden detail layers upload ahead of
+the flight; lookahead follows the next 0.75/1.5 seconds of the existing path.
+The whole-Earth view no longer queues a world-sized level-7 detail grid.
+Recent GPU tiles survive gameplay and scene trims for immediate Escape/M
+reopening; disk images remain permanent and cached menu views do not fetch
+unused neighbouring levels. Standard targets 320 retained tiles and up to 96
+lookahead tiles; toaster targets 128 and 24, with visible tiles taking priority.
+The flight, world streaming budgets and existing toaster gameplay settings
+are unchanged. `r1_menu_preview` accepts `cache-test` or `cache-test-toaster`
+in place of `imagery` to verify hidden uploads, retention across a scene trim
+and immediate reopening with the same GPU objects, using local images only.
+The 19,882 projection/coverage checks and both cache presets pass. The full
+Paris dive also passes at noon with closed HTTP/HTTPS proxies and
+`R1WORLD_SMOKE_QUALITY=toaster` (which now applies to `--dive` too): canopy at
+20.003 s, landing at 1.89 m/s. This run used an RTX 4070; it does not qualify
+MX450 frame timing. Logs are in `generated/menu-cache-validation/`.
+
 Magnified satellite tiles filter across their neighbours, including diagonal
 corners and the longitude wrap. Separate clamped textures had stopped at
 their own edge texels: the adjacent pixel centres are still one source pixel

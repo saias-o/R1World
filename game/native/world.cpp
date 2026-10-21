@@ -2807,7 +2807,10 @@ class World : public Rml::EventListener {
         const auto& view=globe->view;
         const double w=ui->width(),h=ui->height();
         layer.z=z;layer.coarsest=coarsest;
-        layer.visible=view.tiles(w,h,z);
+        // Below the first detail level, only prefetch the destination. Asking
+        // for level 7 over the whole Earth queued thousands of invisible tiles
+        // in front of the arrival's actual images.
+        layer.visible=view.tileLevel(h)>=coarsest?view.tiles(w,h,z):std::vector<r1::MapTile>{};
         layer.visible.erase(std::remove_if(layer.visible.begin(),layer.visible.end(),[&](const auto& t){return cache.missingForGood(t);}),layer.visible.end());
         const double n=double(1<<z);
         const double cx=(view.lon+180.)/360.*n;
@@ -2815,22 +2818,41 @@ class World : public Rml::EventListener {
         auto distance=[&](const r1::MapTile& t){const double dx=std::remainder(t.x+.5-cx,n),dy=t.y+.5-cy;return dx*dx+dy*dy;};
         std::sort(layer.visible.begin(),layer.visible.end(),[&](const auto& a,const auto& b){return distance(a)<distance(b);});
         std::vector<r1::MapTile> wanted=layer.visible;
-        auto add=[&](std::vector<r1::MapTile> more){wanted.insert(wanted.end(),more.begin(),more.end());};
-        if(targetZ!=z&&targetZ>=coarsest&&targetZ<=finest)add(target.tiles(w,h,targetZ));
-        // The arrival passes a level a second: prefetching around each one
-        // only fills the decoder ahead of the world it flies to.
+        std::set<std::tuple<int,int,int>> queued;
+        for(const auto& t:wanted)queued.insert({t.z,t.x,t.y});
+        const size_t limit=wanted.size()+r1::globeTileBudget(toasterMode).prefetchTiles;
+        auto add=[&](std::vector<r1::MapTile> more){
+            for(const auto& t:more)if(wanted.size()<limit&&queued.insert({t.z,t.x,t.y}).second)wanted.push_back(t);
+        };
+        // The arrival only prefetches along its path, not unused neighbours.
         const bool passing=dropGlobe();
-        if(!passing&&z+1<=finest)add(view.tiles(w,h,z+1,.5));
-        if(!passing&&z-1>=coarsest)add(view.tiles(w,h,z-1));
+        if(passing) {
+            // Prepare the next camera views, including their GPU uploads,
+            // while the current view is displayed. The landing tile alone
+            // does not cover the intermediate levels of a ten-second flight.
+            for(double ahead:{.75,1.5}) {
+                const auto pose=drop.flight.at(std::min(drop.clock.seconds+ahead,r1::arrival::kZoomSeconds));
+                r1::GlobeView next{pose.lon,pose.lat,zoomForAltitude(pose.altitude)};
+                const int nextZ=next.tileLevel(h);
+                if(nextZ>=coarsest)add(next.tiles(w,h,std::min(nextZ,finest)));
+            }
+        }
+        if(targetZ>=coarsest&&targetZ<=finest)add(target.tiles(w,h,targetZ));
+        // Adjacent menu levels are useful if already on disk, but reopening a
+        // cached view must not trigger speculative network traffic.
+        auto downloads=wanted;
+        if(!passing&&!layer.visible.empty()&&z+1<=finest)add(view.tiles(w,h,z+1,.5));
+        if(!passing&&!layer.visible.empty()&&z-1>=coarsest)add(view.tiles(w,h,z-1));
         layer.cached.clear();
         std::set<std::tuple<int,int,int>> seen;
         auto keep=[&](const r1::MapTile& t){
             if(cache.ready(t)&&seen.insert({t.z,t.x,t.y}).second)layer.cached.push_back({t,cache.path(t)});
         };
-        for(const auto& t:wanted)keep(t);
+        for(const auto& t:layer.visible)keep(t);
         for(const auto& t:layer.visible)
-            for(int up=1;z-up>=coarsest&&(!passing||up==1);++up)keep({z-up,t.x>>up,t.y>>up});
-        cache.setVisible(std::move(wanted));
+            for(int up=1;z-up>=coarsest;++up)keep({z-up,t.x>>up,t.y>>up});
+        for(const auto& t:wanted)keep(t);
+        cache.setVisible(std::move(downloads));
     }
     void renderMapTiles() {
         SAIDA_PROFILE_SCOPE("World/MapTiles");
@@ -2955,11 +2977,11 @@ class World : public Rml::EventListener {
             size_t a,b;std::string x=value("longitude"),y=value("latitude");
             double lo=std::stod(x,&a),la=std::stod(y,&b);
             if(a!=x.size()||b!=y.size()||!std::isfinite(lo)||!std::isfinite(la)||la< -90||la>90||lo< -180||lo>180)throw std::runtime_error("coordinate");
-            select(lo,la);pending=true;request(pickLon,pickLat);
+            select(lo,la);pending=true;
             goStarted=std::chrono::steady_clock::now();poll=1;
             arrivalFrames=arrivalHitches=0;arrivalWorst=0;arrivalSaid=false;
             if(cinematicArrival())startDrop();
-            else text("status",kPreparing);
+            else {request(pickLon,pickLat);text("status",kPreparing);}
             saida::Log::info("[World] destination ",lo,", ",la);
             text("destination-status",std::string());
             return true;
@@ -3003,7 +3025,7 @@ class World : public Rml::EventListener {
         double canopyWanted=0;          // the heading the canopy is turning to
         double ui=1e9;                  // seconds since the caption was written
         bool named=false;               // `place` is a name, not the coordinates
-        bool groundReady=false;         // visible ground/buildings/collisions precede props
+        bool groundReady=false;         // all visible ground/buildings/collisions are ready
         // Smoothness by phase -- the globe, the world fading in, the fall, the
         // canopy -- said when he lands: frames, frames over 33 ms, the worst.
         int frames[4]{},hitches[4]{}; double worst[4]{};
@@ -3103,11 +3125,14 @@ class World : public Rml::EventListener {
         // begins south of it, so it flies north, up the globe's picture.
         const auto start=advance(pickLon,pickLat,0,-(kGlideLead+kApproach));
         drop.plannedLon=start.x;drop.plannedLat=start.y;
-        drop.plannedAbove=fallHeight(kZoomSeconds)+playerHeight*kPelvis+kCameraAbove;
+        drop.plannedAbove=fallHeight(kZoomSeconds)+playerHeight*kPelvis+cameraAbove(kZoomSeconds);
         const GlobePose from=globe?GlobePose{globe->view.lon,globe->view.lat,globe->view.altitude()}
                                   :GlobePose{pickLon,pickLat,2.2};
-        drop.flight=GlobeFlight(from,{start.x,start.y,drop.plannedAbove/r1::kRMean},kTerminal,r1::kRMean);
-        request(drop.goalLon,drop.goalLat); // visible tiles before the rest of the neighbourhood
+        drop.flight=GlobeFlight(from,{start.x,start.y,drop.plannedAbove/r1::kRMean},kHandoverSpeed,r1::kRMean);
+        // First request of this Go, in the click handler: wake the existing
+        // cooking workers with the arrival's priorities, not a nine-tile
+        // request immediately replaced after workers have already taken it.
+        request(drop.goalLon,drop.goalLat);
         drop.place=dropLabel();drop.named=!value("city-query").empty();
         try{prototype(kParachuteModel);}
         catch(const std::exception& e){saida::Log::error("[World arrival] ",e.what(),": he will land without a canopy");}
@@ -3161,7 +3186,7 @@ class World : public Rml::EventListener {
         lon=start.x;lat=start.y;alt=drop.ground+fallHeight(drop.clock.seconds);
         // What the globe was flown to, against what is found.
         const double terrain=tile(start.x,start.y)?height(start.x,start.y):drop.ground;
-        const double above=alt+playerHeight*kPelvis+kCameraAbove-terrain;
+        const double above=alt+playerHeight*kPelvis+cameraAbove(kZoomSeconds)-terrain;
         drop.shiftLon=std::remainder(start.x-drop.plannedLon,360.);drop.shiftLat=start.y-drop.plannedLat;
         drop.shiftAltitude=std::log(std::max(1.,above)/drop.plannedAbove);
         drop.armed=true;drop.aligned=0;
@@ -3237,7 +3262,11 @@ class World : public Rml::EventListener {
             if(streets&&!status.offline&&status.error.empty())
                 return missing(std::to_string(streets)+" tiles' streets and buildings (OpenStreetMap)");
             if(objects)return missing("the trees and street furniture of "+std::to_string(objects)+" tiles");
-            if(!engine.resources().assetLoadsSettled())return missing("textures and models");
+            if(!engine.resources().assetLoadsSettled()) {
+                const auto loads=engine.resources().assetLoader().stats();
+                return missing("textures and models ("+std::to_string(loads.queued)+" queued, "
+                               +std::to_string(loads.loading)+" decoding)");
+            }
         }
         drop.waitingFor=streets||objects||later
             ?"fading after "+number(drop.held,0)+" s with "+std::to_string(later)+" tiles of the neighbourhood still cooking, "
@@ -3610,7 +3639,7 @@ class World : public Rml::EventListener {
             const glm::vec4 vp=globe?globe->viewport:glm::vec4(0,0,1,1);
             const double vh=std::max(.05,double(vp.w)),middle=(.5-double(vp.y))/vh;
             const double up=(r1::GlobeView::centreY-middle)*2*r1::GlobeView::tangent;
-            overhead.position=body+glm::vec3(0,float(kCameraAbove),0);
+            overhead.position=body+glm::vec3(0,float(cameraAbove(tau)),0);
             overhead.rotation=glm::angleAxis(float(-90*rad),glm::vec3(1,0,0))*glm::angleAxis(float(std::atan(up)),glm::vec3(1,0,0));
             overhead.fov=float(2*std::atan(r1::GlobeView::tangent/vh)/rad);
         }
@@ -5843,6 +5872,17 @@ private:
             engine.window().setSize(targetW,targetH);
         }
     }
+    // Textures and meshes resident at once. Toaster mode targets the
+    // reference MX450 and its 2 GiB of VRAM (plan §3 I4): 512 MiB leaves room
+    // for the geometry arena, render targets and other GPU allocations.
+    // Standard targets an ordinary gaming PC with 8 GiB: Paris alone keeps
+    // some 950 MiB live, and 3 GiB keeps what was just seen from being
+    // evicted and uploaded again.
+    void applyGpuBudget() {
+        const uint64_t mib=toasterMode?512:3072;
+        engine.resources().setGpuBudget(mib*1024*1024);
+        saida::Log::info("[World options] GPU budget ",mib," MiB");
+    }
     void applyToasterLods() {
         for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles){
             for(Plant& plant:t.vegetation){
@@ -5855,6 +5895,8 @@ private:
         saida::Log::info("[World options] toaster mode ",toasterMode?"enabled":"disabled");
         applyToasterResolution();
         applyToasterLods();
+        applyGpuBudget();
+        if(globe)globe->toaster=toasterMode;
         applyWeather();
         sayToasterMode();
         saveOptions();
@@ -7536,8 +7578,8 @@ private:
     std::string warmTile;
     uint64_t warmSerial=0;
     void warm() {
-        // Ground has priority once Go is pressed. The visible props continue
-        // through streamProps after the player is armed, using the same assets.
+        // During arrival, streamProps prepares each mounted tile immediately
+        // instead of warming a second copy of the selected tile's models.
         if(pending||drop.phase!=Drop::None||service->status().memoryPaused)return;
         const auto at=tileAt(pickLon,pickLat);
         const auto served=service->find(at.gen());
@@ -7992,7 +8034,8 @@ private:
         // CPU model requests yield; node instantiation retains a soft budget.
         // A replacement gets its props while hidden, so its trees and signs
         // are there the frame it is shown (World::promoteIncoming).
-        for(auto t:ring)for(auto* tiles:{&loaded,&incoming}) {
+        const auto order=drop.phase==Drop::Zoom?orderedNearby(drop.goalLon,drop.goalLat):ring;
+        for(auto t:order)for(auto* tiles:{&loaded,&incoming}) {
             auto it=tiles->find(t.key());if(it==tiles->end())continue;
             auto& l=it->second;
             try { mountLettering(l); }
@@ -8007,7 +8050,9 @@ private:
                 try {
                     auto doc=l.props[l.nextProp];
                     bool plant=doc.contains("groups")&&std::find(doc["groups"].begin(),doc["groups"].end(),"vegetation")!=doc["groups"].end();
-                    if(!modelsReady(doc))return;
+                    // This model decodes on the asset worker. Other ready
+                    // tiles can still request/instantiate their objects now.
+                    if(!modelsReady(doc))break;
                     auto n=plantNode(doc);
                     if(!n)throw std::runtime_error("Object import failed");
                     if(auto* water=dynamic_cast<saida::WaterNode*>(n.get())) {
@@ -8479,13 +8524,7 @@ public:
         buildTrafficPrototype();vehicleCollider(*car,vehicleSpec(*car));
         buildAircraftPrototypes();
         saida::Log::info("[World traffic] ready, ",paints.size()," paints");
-        // Textures resident at once. A city neighbourhood shows about fifteen
-        // photographed materials (ground, streets, walls, roofs; see
-        // assets/textures/surfaces.json), some 90 MB, on top of what 256 MB already held.
-        // The reference MX450 has 2 GiB of VRAM (plan §3 I4). This 512 MiB
-        // resource budget leaves space for the roughly 50 MiB geometry arena,
-        // render targets and other GPU allocations; total residency is profiled.
-        e.resources().setGpuBudget(512ull*1024*1024);
+        applyGpuBudget();
         r1::WorldService::Options options;
         options.gameRoot=game.string();
         // Nine visible tiles plus three forecast tiles. The former 36-tile
@@ -8508,12 +8547,18 @@ public:
     ~World(){for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
         for(const char* type:{"click","mousedown","mouseup","mousemove","mousescroll","dblclick"})e->RemoveEventListener(type,this);}}
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model) {
-        globe=std::move(model);globeTarget=globe->view;
+        globe=std::move(model);globeTarget=globe->view;globe->toaster=toasterMode;
     }
     bool failed() const {return testFailed;}
     void diveSmoke() {
         if(!smoke)throw std::runtime_error("--dive requires --smoke");
         smokeDive=true;
+        // The dive skips smokeOptions(), so apply its test preset here too.
+        if(const char* quality=std::getenv("R1WORLD_SMOKE_QUALITY")) {
+            const std::string preset=quality;
+            if(preset!="standard"&&preset!="toaster")throw std::runtime_error("R1WORLD_SMOKE_QUALITY must be standard or toaster");
+            setToasterMode(preset=="toaster");
+        }
         // R1WORLD_DIVE_HOUR: the local hour the pictures are taken at, held
         // for this run only (World::forceTime would save it as the player's).
         if(const char* hour=std::getenv("R1WORLD_DIVE_HOUR")) {
@@ -9558,16 +9603,19 @@ public:
         const auto now=std::chrono::steady_clock::now();
         const double frameSeconds=lastFrame.time_since_epoch().count()
             ?std::chrono::duration<double>(now-lastFrame).count():0.;
-        if(!arrivalSaid&&lastFrame.time_since_epoch().count()) {
+        // A slow frame says why until he lands, not only for the ten seconds
+        // counted: the world first drawn is where it would freeze.
+        const bool landing=drop.phase!=Drop::None;
+        if((!arrivalSaid||landing)&&lastFrame.time_since_epoch().count()) {
             const double frameMs=std::chrono::duration<double,std::milli>(now-lastFrame).count();
-            ++arrivalFrames;arrivalHitches+=frameMs>33.;arrivalWorst=std::max(arrivalWorst,frameMs);
+            if(!arrivalSaid){++arrivalFrames;arrivalHitches+=frameMs>33.;arrivalWorst=std::max(arrivalWorst,frameMs);}
             if(frameMs>50.) {
                 const double ours=cost.stream+cost.parts+cost.warm+cost.props+cost.distant+cost.world;
                 saida::Log::info("[World frame] ",frameMs," ms: stream ",cost.stream," parts ",cost.parts," warm ",cost.warm,
                                  " props ",cost.props," distant ",cost.distant," world ",cost.world,
                                  " engine ",frameMs-ours);
             }
-            if(std::chrono::duration<double>(now-goStarted).count()>10.) {
+            if(!arrivalSaid&&std::chrono::duration<double>(now-goStarted).count()>10.) {
                 saida::Log::info("[World streaming] arrival: ",arrivalHitches," of ",arrivalFrames,
                                  " frames over 33 ms, worst ",arrivalWorst," ms");
                 sayBodies();
@@ -9699,6 +9747,17 @@ public:
         if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)cost.stream=timed([&]{stream();});}
         cost.parts=timed([&]{uploadParts();});
         updateBuildingLods();
+        if(drop.phase==Drop::Zoom&&!menu) {
+            // Start each tile's models/textures as soon as it is mounted,
+            // even before the player is armed or the other ground tiles arrive.
+            // Keep headroom for the frame and both outstanding cooks on small
+            // PCs; GPU/node publication keeps streamProps' 2 ms soft budget.
+            const auto status=service->status();
+            const auto headroom=saida::MemoryProfiler::availableHostBytes();
+            constexpr uint64_t reserve=1024ull*1024*1024;
+            if(!status.memoryPaused&&(drop.groundReady||!headroom||*headroom>=reserve))
+                cost.props=timed([&]{streamProps();});
+        }
         if(!playing)cost.warm=timed([&]{warm();});
         updateRadio(delta);
         // A drop not yet armed: the world under the globe is still the one
@@ -9711,9 +9770,10 @@ public:
         const uint64_t moved=engine.sceneTree().world().indexedNodesTotal()-indexedAtFrame;
         indexedAtFrame=engine.sceneTree().world().indexedNodesTotal();
         churn+=double(moved);churnFrames+=1;dirtyFrames+=moved?1:0;
-        // Do not let optional models, crowd and far relief consume the memory
-        // reserved for a visible tile whose cook is still waiting to start.
-        if(drop.phase!=Drop::Zoom||drop.groundReady) {
+        // Props already stream above during the flight. Keep distant terrain
+        // and moving actors out of the arrival's asset queue: waiting for
+        // their unrelated loads used to hold the camera over a ready drop zone.
+        if(drop.phase!=Drop::Zoom) {
             cost.props=timed([&]{streamProps();});
             cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
             cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateSea(delta);bendGrass();});

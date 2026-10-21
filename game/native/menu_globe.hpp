@@ -38,13 +38,24 @@ constexpr int kImageryFirstLevel=7;
 constexpr int kImageryLastLevel=14;
 constexpr double kOsmZoom=2048.;
 
+// Bound the arrival's extra residency and lookahead on modest hardware.
+// Visible detail always takes priority over speculative tiles.
+struct GlobeTileBudget {size_t retainedTiles,prefetchTiles;};
+inline constexpr GlobeTileBudget globeTileBudget(bool toaster) {
+    return toaster?GlobeTileBudget{128,24}:GlobeTileBudget{320,96};
+}
+
 struct GlobeTile { MapTile tile; std::filesystem::path path; };
+
+// Finest resident coverage for each requested tile, deduplicated and ordered
+// coarse to fine. A missing neighbour must not hide detail already available.
+std::vector<size_t> globeTileCoverage(const std::vector<MapTile>& visible,
+                                    const std::vector<MapTile>& resident);
 
 // One tile layer as the renderer needs it. The game knows what is on disk; the
 // renderer knows what is on the GPU, so it picks what to draw: each visible
-// tile, or while it loads the best stand-in already resident -- its four
-// children (zooming out) or its nearest ancestor (zooming in) -- and fades a
-// tile in over its stand-in instead of letting the detail jump.
+// tile, or while it loads the best stand-in already resident. Previously
+// visited detail is immediately reusable, including after gameplay.
 struct GlobeLayer {
     int z=-1;                    // level shown, -1 when the layer is off
     int coarsest=0;              // lowest level a stand-in may come from
@@ -55,6 +66,7 @@ struct GlobeLayer {
 
 struct MenuGlobeState {
     bool visible=true;
+    bool toaster=false;
     GlobeView view;
     MapPoint selected{2.3522,48.8566};
     // Where the Sun is at the zenith, from the world's clock (sun_cycle.js).
