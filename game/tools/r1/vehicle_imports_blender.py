@@ -17,6 +17,9 @@ def role(name,obj):
     if 'mirror' in s or ('mirrors' in obj.lower() and s=='chrome'):return 'mirror'
     if s in ('body','carpaint','lowbody','lowbodyarch','handledoor','red-cabin','accentcolor'):return 'paint'
     if 'glass' in s and 'red' not in s:return 'glass'
+    if s=='firstcolortextured':return 'paint'
+    if s=='wheels':return 'alloy'
+    if s=='tires':return 'rubber'
     if s in ('rearlights','rearlighttop','glass_red'):return 'taillamp'
     if 'orange' in s or 'yellow' in s:return 'indicator'
     if 'lights' in s and s!='lights':return 'headlamp'
@@ -26,6 +29,7 @@ def role(name,obj):
 def wheel_object(name,category):
     s=name.lower()
     if category=='city':return s.startswith('wheel_')
+    if category in ('police','gendarmerie'):return s in ('tires','wheels')
     if category=='truck':return s.startswith('truck.003')
     if category=='bus':return s.startswith(('tires_','texturewheels_'))
     return s.startswith('wheels')
@@ -59,6 +63,18 @@ def truck_wheel_vertices(mesh):
 def bake(job,far=False):
     reset();bpy.ops.wm.obj_import(filepath=job['source'])
     category=job['name']
+    if category in ('police','gendarmerie'):
+        # These Scopia models keep the four wheels in the body object, but
+        # assign tyre/rim materials. Separate without changing source corners.
+        for obj in list(bpy.context.scene.objects):
+            if obj.type!='MESH':continue
+            bpy.ops.object.select_all(action='DESELECT');obj.select_set(True)
+            bpy.context.view_layer.objects.active=obj
+            bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.separate(type='MATERIAL');bpy.ops.object.mode_set(mode='OBJECT')
+        for obj in bpy.context.scene.objects:
+            if obj.type=='MESH' and obj.data.materials:
+                obj.name=obj.data.materials[0].name
     meshes=[o for o in bpy.context.scene.objects if o.type=='MESH']
     for o in list(meshes):
         # Hidden interiors cannot be seen through the opaque reflective glazing.

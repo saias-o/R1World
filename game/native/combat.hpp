@@ -77,6 +77,7 @@ public:
         cooldown_ = std::max(cooldown_, 0.25);
     }
     void give(int rounds) { reserve_ = std::min(kMostReserve, reserve_ + std::max(0, rounds)); }
+    void disarm() { held_=Weapon::Fists; loaded_=reserve_=0; cooldown_=reloading_=0; }
 
     // The trigger pulled now. A pistol with an empty magazine clicks once
     // and reloads on its own, as long as any round is left.
@@ -198,6 +199,7 @@ constexpr double kKnockDownBelow = 0.45;
 constexpr double kLieSeconds = 2.2;
 // Seconds a body that got up takes to stand (RagdollBehaviour::blendOut).
 constexpr double kStandSeconds = 0.9;
+constexpr double kLongestTumble = 6;
 // The player, down and still, before he gets up; dead, before he wakes.
 constexpr double kPlayerLieSeconds = 1.4, kWastedSeconds = 4.5;
 // How far a shot or a fight carries: everyone this near runs.

@@ -24,3 +24,8 @@ body { margin: 0; font-family: NextSans; font-size: 18px; color: #edf3ee; }
 #cheat-said { display: none; position: absolute; bottom: 120px; left: 468px; width: 600px; background-color: #142934; padding: 10px 14px; font-size: 16px; color: #d5f5a4; }
 
 #vehicle-radio { display: none; position: absolute; top: 126px; left: 32px; width: 580px; background-color: #142934; padding: 10px 14px; font-size: 14px; color: #d5f5a4; white-space: pre-wrap; }
+
+#wanted-label { margin-top: 8px; font-size: 15px; color: #e7a18b; }
+#wanted-track { width: 246px; height: 9px; background-color: #2a3f48; margin-top: 4px; }
+#wanted-fill { width: 0px; height: 9px; background-color: #d65c47; }
+#wanted-state { margin-top: 4px; font-size: 12px; color: #b3c8d2; }

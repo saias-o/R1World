@@ -1,7 +1,7 @@
 {
   "description": "Licensed road vehicles and CC0 online motorcycles; opaque PBR materials, independent wheel pivots, and Near/Far geometry LODs.",
   "source": "game/tools/r1/vehicle_imports.py",
-  "totalVertices": 96021,
+  "totalVertices": 103776,
   "vehicles": [
     {
       "name": "city",
@@ -220,6 +220,54 @@
         "drawTriangles": 1797
       },
       "authoredForward": "+Z"
+    },
+    {
+      "name": "police",
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/police-nationale.zip",
+      "sourceSha256": "650c1cf3bcb7ee2963a3ce3067ced4a6eb80f8d72a856883173f17d19eab7b2d",
+      "length": 4.26176010131836,
+      "width": 2.126529541015625,
+      "height": 1.962158599793911,
+      "wheelbase": 2.667507290840149,
+      "wheelRadius": 0.33844880759716034,
+      "near": {
+        "path": "assets/models/vehicles/police.glb",
+        "vertices": 2888,
+        "triangles": 3594,
+        "drawTriangles": 3594
+      },
+      "far": {
+        "path": "assets/models/vehicles/police_far.glb",
+        "vertices": 971,
+        "triangles": 656,
+        "drawTriangles": 656
+      }
+    },
+    {
+      "name": "gendarmerie",
+      "author": "Scopia Visual Interfaces Systems, s.l. / Space Mushrooms",
+      "license": "CC-BY-3.0",
+      "sourceUrl": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/gendarmerie-car.zip",
+      "sourceSha256": "c9873879c7628b281971df03df390a9a06a442f13c2376cf53ca5436c403d3fb",
+      "length": 4.26176010131836,
+      "width": 2.126529541015625,
+      "height": 1.962158599793911,
+      "wheelbase": 2.667507290840149,
+      "wheelRadius": 0.33844880759716034,
+      "near": {
+        "path": "assets/models/vehicles/gendarmerie.glb",
+        "vertices": 2918,
+        "triangles": 3594,
+        "drawTriangles": 3594
+      },
+      "far": {
+        "path": "assets/models/vehicles/gendarmerie_far.glb",
+        "vertices": 978,
+        "triangles": 656,
+        "drawTriangles": 656
+      }
     }
   ]
 }

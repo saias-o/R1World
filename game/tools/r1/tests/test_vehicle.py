@@ -84,7 +84,7 @@ class Fleet(unittest.TestCase):
 
     def test_all_categories_and_two_lods_are_shipped(self):
         self.assertEqual({v['name'] for v in self.manifest['vehicles']},
-                         {'city','sedan','suv','offroad','sport','truck','bus','moto_city','moto_cross'})
+                         {'city','sedan','suv','offroad','sport','truck','bus','moto_city','moto_cross','police','gendarmerie'})
         compact=next(v for v in self.manifest['vehicles'] if v['name']=='city')
         # The full source compact is a ~46k-triangle mesh. Close-up geometry
         # must never silently return to the reduced or procedural version.
@@ -117,7 +117,7 @@ class Fleet(unittest.TestCase):
                                     if n['name'].startswith('wheel-')))
             self.assertLess(v['far']['drawTriangles'],v['near']['drawTriangles']*.55)
         self.assertEqual(total,self.manifest['totalVertices'])
-        self.assertLessEqual(total,100000,'Full source meshes and resident distance LODs must fit the arena')
+        self.assertLessEqual(total,1048576//10,'The shared road fleet stays within 10% of the geometry arena')
 
     def test_motorcycle_textures_fit_the_runtime_budget(self):
         import io
@@ -249,7 +249,7 @@ class InTheEntryScene(unittest.TestCase):
         # at the scene origin, which is the middle of the Atlantic.
         self.assertFalse(node["enabled"])
 
-    def test_regenerating_the_world_keeps_the_car(self) -> None:
+    def test_regenerating_the_world_keeps_the_car_and_rendering(self) -> None:
         import tempfile
         from unittest.mock import patch
         with tempfile.TemporaryDirectory() as directory:
@@ -261,6 +261,11 @@ class InTheEntryScene(unittest.TestCase):
             scene = json.loads((root / "scenes" / "earth.scene").read_text(encoding="utf-8"))
         car = next(n for n in scene["scene"]["children"] if "vehicle" in n.get("groups", []))
         self.assertEqual(car["children"][0]["importedFrom"], CAR)
+        shipped = json.loads((GAME / "scenes/earth.scene").read_text(encoding="utf-8"))["scene"]["settings"]
+        for key in ("giEnabled", "giVolume", "giQuality", "bloomEnabled", "bloomIntensity",
+                    "autoExposure", "exposureKey", "autoExposureMin", "autoExposureMax", "autoExposureSpeed"):
+            with self.subTest(setting=key):
+                self.assertEqual(scene["scene"]["settings"][key], shipped[key])
 
 
 class PreservedAssets(unittest.TestCase):

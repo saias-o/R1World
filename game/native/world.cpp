@@ -79,6 +79,8 @@
 #include "density_policy.hpp"
 #include "combat.hpp"
 #include "combat_kit.hpp"
+#include "knockdown.hpp"
+#include "police.hpp"
 #include "cheats.hpp"
 #include <filesystem>
 #include <fstream>
@@ -272,10 +274,8 @@ constexpr uint32_t kPlayerBodies=2+uint32_t(kAbandonedCars);
 // tumbling is frozen where it lies -- never refused. Eleven bodies each
 // (r1::rocketboxRagdoll), and the player's own.
 constexpr size_t kLiveRagdolls=8;
-// Seconds a body may tumble before it is frozen where it lies.
-constexpr double kLongestTumble=6.;
 constexpr uint32_t kCombatBodies=uint32_t(kLiveRagdolls+1)*11;
-constexpr uint32_t kPhysicsBodies=kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies+kCombatBodies;
+constexpr uint32_t kPhysicsBodies=kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies+kCombatBodies+uint32_t(r1::police::kCars+r1::police::kOfficers);
 std::vector<Tile> polarNearby(double lon,double lat) {
     const Tile center=tileAt(lon,lat);
     std::vector<std::pair<double,Tile>> found;
@@ -516,7 +516,7 @@ PreparedTile prepareTile(const r1::CookedTile& tile) {
 // spine's stagger when he walks into them.
 struct Person {
     saida::Node* node=nullptr; saida::Animator* animator=nullptr;
-    saida::RigidBodyNode* body=nullptr;  // their capsule in the engine's physics
+    saida::CollisionObjectNode* body=nullptr;  // their capsule in the engine's physics
     saida::GazeModifier* gaze=nullptr; saida::ImpactModifier* impact=nullptr;
     const char* clip=""; float poseRate=-1.f;
     uint32_t bumps=0;            // the walker's bumps already staggered
@@ -525,10 +525,9 @@ struct Person {
     // A fight (World::knockDown, World::personAttack): the engine's ragdoll
     // that takes the body when it falls, the arms that punch, and the clock
     // of the punch thrown at the player and of the time spent lying still.
-    saida::RagdollBehaviour* ragdoll=nullptr;
+    r1::Knockdown fall;
     saida::TwoBoneIKModifier* arms[2]{nullptr,nullptr};  // left, right
     uint32_t attacks=0; double punch=-1; int punchHand=1; bool struck=false;
-    double lying=0;
 };
 
 struct BeachVisitor {
@@ -994,11 +993,15 @@ class World : public Rml::EventListener {
     // said once each (CLAUDE.md rule 3), and a failed smoke.
     size_t bodiesRefused=0;
     bool makePerson(Loaded& tile,size_t slot,Person& person) {
-        const size_t selected=tile.humanKinds[slot%tile.humanKinds.size()];
+        return makePerson(*tile.node,tile.humanKinds[slot%tile.humanKinds.size()],person);
+    }
+    bool makePerson(saida::Node& parent,size_t selected,Person& person,bool controlled=false) {
         HumanKind* kind=humanKind(selected);
         if(!kind)return false;
         person.kind=selected;
-        auto root=std::make_unique<saida::Node>("person-"+kind->name);
+        std::unique_ptr<saida::Node> root;
+        if(controlled)root=std::make_unique<saida::CharacterBodyNode>();
+        else root=std::make_unique<saida::Node>("person-"+kind->name);
         auto* animator=root->addBehaviour<saida::Animator>();
         animator->setRig(kind->rig);
         for(const auto& [name,clip]:kind->clips)animator->addClip(name,clip);
@@ -1013,7 +1016,7 @@ class World : public Rml::EventListener {
         // (RagdollBehaviour), nothing simulated until someone is knocked down.
         person.arms[0]=animator->addModifier<saida::TwoBoneIKModifier>(*kind->rig,r1::rocketboxArm(false));
         person.arms[1]=animator->addModifier<saida::TwoBoneIKModifier>(*kind->rig,r1::rocketboxArm(true));
-        person.ragdoll=root->addBehaviour<saida::RagdollBehaviour>(ragdollProfile);
+        auto* ragdoll=root->addBehaviour<saida::RagdollBehaviour>(ragdollProfile);
         for(const auto& [level,meshes]:kind->levels) {
             auto holder=std::make_unique<saida::Node>(level);
             for(const auto& m:meshes) {
@@ -1037,14 +1040,22 @@ class World : public Rml::EventListener {
         capsule->radius=float(r1::Crowd::kBodyRadius/humanScale);
         capsule->height=float(playerHeight/humanScale);
         capsule->axis=1;
-        body->addChild(std::move(capsule));
-        person.body=static_cast<saida::RigidBodyNode*>(root->addChild(std::move(body)));
+        if(controlled) {
+            capsule->offset=body->transform().position;
+            root->addChild(std::move(capsule));
+            person.body=static_cast<saida::CharacterBodyNode*>(root.get());
+        } else {
+            body->addChild(std::move(capsule));
+            person.body=static_cast<saida::RigidBodyNode*>(root->addChild(std::move(body)));
+        }
+        person.fall.bind(*ragdoll,*person.body,r1::combat::kLieSeconds);
         root->transform().scale=glm::vec3(float(humanScale));
-        person.node=tile.node->addChild(std::move(root));
+        person.node=parent.addChild(std::move(root));
         person.animator=animator;
         return true;
     }
 #include "beach_runtime.hpp"
+#include "police_runtime.hpp"
 
     void readCrowd(Loaded& tile) {
         tile.walks=r1::WalkGraph::from(tile.data.value("crowd",json()));
@@ -1226,7 +1237,6 @@ class World : public Rml::EventListener {
             const r1::Walker& w=walkers[i];
             // On the ground, the ragdoll holds the body (World::knockDown).
             if(personDown(tile,i,p,w,dt))continue;
-            if(p.body&&!p.body->enabled())p.body->setEnabled(true);
             // Off the paths -- going for the player, back to a path after a
             // fall -- they walk on the ground itself.
             double y=r1::Crowd::offGraph(w)?groundUnder(tile,w.x,w.z,w.y):w.y;
@@ -1278,7 +1288,7 @@ class World : public Rml::EventListener {
     r1::CombatEffects effects; r1::CombatSounds sounds;
     saida::RagdollProfile ragdollProfile=r1::rocketboxRagdoll();
     saida::Node* playerBody=nullptr; saida::Transform playerBodyRest;
-    saida::RagdollBehaviour* playerRagdoll=nullptr;
+    r1::Knockdown playerFall;
     saida::TwoBoneIKModifier* playerArms[2]{nullptr,nullptr};
     saida::TwoBoneIKModifier* playerBikeLegs[2]{nullptr,nullptr};  // left, right
     saida::GazeModifier* playerBikeLean=nullptr;
@@ -1355,7 +1365,8 @@ class World : public Rml::EventListener {
             saida::TwoBoneIKModifier::Settings{h?"Bip01 R Thigh":"Bip01 L Thigh",h?"Bip01 R Calf":"Bip01 L Calf",h?"Bip01 R Foot":"Bip01 L Foot",22.f});
         playerBikeHands=animator->addModifier<r1::RocketboxRidingHands>(rig);
         playerReach=r1::armLength(rig,true);
-        playerRagdoll=playerBody->addBehaviour<saida::RagdollBehaviour>(ragdollProfile);
+        playerFall.bind(*playerBody->addBehaviour<saida::RagdollBehaviour>(ragdollProfile),
+                        *feet,r1::combat::kPlayerLieSeconds);
         if(!r1::pistolGrip(rig,pistolGrip))throw std::runtime_error("Player skeleton lacks the hand and fingers a pistol is held in");
         if(auto built=r1::buildPistol(engine.resources())) {
             built->addBehaviour<saida::BoneAttachmentBehaviour>("Bip01 R Hand",pistolGrip);
@@ -1410,23 +1421,23 @@ class World : public Rml::EventListener {
     // (scene frame), turning at `spin`. Past kLiveRagdolls tumbling at once,
     // the one down longest is frozen where it lies. A world too full for the
     // bodies is said (CLAUDE.md rule 3), and the person only staggers.
+    bool beginFall(r1::Knockdown& fall,const glm::vec3& velocity,const glm::vec3& spin,const char* who) {
+        if(fall.activate(velocity,spin))return true;
+        if(ragdollRefused++==0)
+            saida::Log::error("[World combat] ",who," ragdoll refused (reserved combat bodies ",kCombatBodies,
+                              " of ",kPhysicsBodies,")");
+        text("stream-status","The fall could not be simulated.");
+        return false;
+    }
     bool knockDown(Loaded& tile,size_t slot,const glm::vec3& velocity,const glm::vec3& spin) {
         if(slot>=tile.people.size())return false;
         Person& p=tile.people[slot];
-        if(!p.node||!p.ragdoll)return false;
-        if(p.ragdoll->simulating())return true;
+        if(!p.node||!p.fall.ragdoll())return false;
+        if(p.fall.ragdoll()->simulating())return true;
         limitRagdolls();
-        if(p.body)p.body->setEnabled(false);
-        if(!p.ragdoll->activate(velocity,spin)) {
-            if(ragdollRefused++==0)
-                saida::Log::error("[World combat] a knocked-down body was refused by the physics world (kCombatBodies ",
-                                  kCombatBodies," of kPhysicsBodies ",kPhysicsBodies,"): the person only staggers");
-            if(p.body)p.body->setEnabled(true);
-            text("stream-status","Physics world full: the fall could not be simulated.");
-            return false;
-        }
+        if(!beginFall(p.fall,velocity,spin,"passer-by"))return false;
         tile.crowd.knockDown(slot);
-        p.lying=0;p.punch=-1;
+        p.punch=-1;
         for(auto* arm:p.arms)if(arm)arm->release();
         if(p.gaze)p.gaze->release();
         return true;
@@ -1436,10 +1447,13 @@ class World : public Rml::EventListener {
         for(auto tile:ring) {
             auto* t=tileByKey(tile.key());if(!t)continue;
             for(auto& p:t->people) {
-                if(!p.ragdoll||!p.ragdoll->simulating())continue;
+                if(!p.fall.ragdoll()||!p.fall.ragdoll()->simulating())continue;
                 ++live;
-                if(!oldest||p.ragdoll->simulatedSeconds()>oldest->simulatedSeconds())oldest=p.ragdoll;
+                if(!oldest||p.fall.ragdoll()->simulatedSeconds()>oldest->simulatedSeconds())oldest=p.fall.ragdoll();
             }
+        }
+        for(auto& unit:policeUnits)for(auto& officer:unit.officers)if(auto* ragdoll=officer.person.fall.ragdoll();ragdoll&&ragdoll->simulating()) {
+            ++live;if(!oldest||ragdoll->simulatedSeconds()>oldest->simulatedSeconds())oldest=ragdoll;
         }
         if(live>=kLiveRagdolls&&oldest)oldest->freeze();
         SAIDA_PROFILE_COUNTER("World/RagdollsTumbling",double(live));
@@ -1452,8 +1466,8 @@ class World : public Rml::EventListener {
             // Back on their feet and blending out: the crowd walks them again.
             return false;
         }
-        if(!p.ragdoll)return true;
-        const auto state=p.ragdoll->state();
+        if(!p.fall.ragdoll())return true;
+        const auto state=p.fall.ragdoll()->state();
         if(state==saida::RagdollBehaviour::State::Animated) {
             // Down without a body to show (a ragdoll the world refused, or
             // released by a disable): stood up where they are.
@@ -1461,14 +1475,7 @@ class World : public Rml::EventListener {
             tile.crowd.getUp(slot,at.x,at.y,at.z,p.yaw);
             return false;
         }
-        if(state==saida::RagdollBehaviour::State::Simulated) {
-            if(p.ragdoll->simulatedSeconds()>=kLongestTumble)p.ragdoll->freeze();
-            return true;
-        }
-        if(w.dead)return true;
-        if(state==saida::RagdollBehaviour::State::Frozen&&(p.lying+=dt)>=r1::combat::kLieSeconds) {
-            const glm::vec3 at=nodePosition(*p.node);
-            p.ragdoll->blendOut(float(r1::combat::kStandSeconds),sceneGround(at));
+        if(p.fall.update(dt,!w.dead,[&](const glm::vec3& at){return sceneGround(at);})) {
             const glm::vec3 local=p.node->transform().position;
             const glm::vec3 front=p.node->transform().rotation*glm::vec3(0,0,1);
             p.yaw=std::atan2(front.x,-front.z);p.shown=true;
@@ -1515,8 +1522,8 @@ class World : public Rml::EventListener {
 
     // ── the player hurt ──
 
-    void hurtPlayer(double damage,const glm::vec3& push,const char* by) {
-        if(wasted||!player->enabled()||health.invincible())return;
+    void hurtPlayer(double damage,const glm::vec3& push,const char* by,bool knockDown=true) {
+        if(wasted||!player->enabled()||health.invincible()||health.dead()||!(damage>0))return;
         const bool killed=health.take(damage);
         for(size_t i=0;i<animators.size()&&i<playerImpacts.size();++i) {
             glm::mat3 body(animators[i]->node()->worldTransform());
@@ -1525,17 +1532,20 @@ class World : public Rml::EventListener {
         }
         hurtShown=fightClock;
         saida::Log::info("[World combat] player hurt by ",by,": ",damage," (health ",health.hp,")");
-        if(killed)knockPlayerDown(push*3.f+glm::vec3(0,1.f,0),glm::cross(glm::vec3(0,1,0),push)*2.f,true);
+        if(killed||knockDown)knockPlayerDown(push*3.f+glm::vec3(0,1.f,0),
+                                           glm::cross(glm::vec3(0,1,0),push)*2.f,killed);
     }
     // Off his feet: the ragdoll takes his body, his feet leave the physics.
     void knockPlayerDown(const glm::vec3& velocity,const glm::vec3& spin,bool killed) {
-        if(playerDown){if(killed)wasted=true;return;}
+        if(playerDown) {
+            if(killed){wasted=true;downClock=0;showWasted(true);}
+            if(playerFall.activate())playerFall.ragdoll()->applyImpulse(velocity*ragdollProfile.mass,downAnchor());
+            return;
+        }
         if(aiming)setAiming(false);
         for(auto* arm:playerArms)if(arm)arm->release();
-        if(!playerRagdoll->activate(velocity,spin)) {
-            if(ragdollRefused++==0)
-                saida::Log::error("[World combat] the player's fall was refused by the physics world (kCombatBodies ",kCombatBodies,")");
-            if(killed){wasted=true;playerDown=true;downClock=0;}
+        if(!beginFall(playerFall,velocity,spin,"player")) {
+            if(killed){wasted=true;playerDown=true;downClock=0;showWasted(true);}
             return;
         }
         playerDown=true;wasted=killed;downClock=0;
@@ -1547,8 +1557,7 @@ class World : public Rml::EventListener {
         const double damage=r1::combat::fallDamage(speed);
         if(damage<=0||health.invincible())return;
         sounds.play(r1::CombatSounds::Fall,followDistance,std::min(1.,speed/12.));
-        hurtPlayer(damage,glm::vec3(0,-1,0),"the fall");
-        if(!playerDown&&damage>=35)knockPlayerDown(glm::vec3(0,-1.f,0),glm::vec3(0),false);
+        hurtPlayer(damage,glm::vec3(0,-1,0),"the fall",damage>=35);
     }
     // A car the engine says his feet touched, closing on him: thrown.
     bool hitByVehicle(const saida::CharacterBodyNode::Contact& contact) {
@@ -1570,41 +1579,29 @@ class World : public Rml::EventListener {
     }
     // Where the camera looks while he is down: his pelvis.
     glm::vec3 downAnchor() const {
-        if(playerRagdoll&&playerRagdoll->ragdoll()&&playerRagdoll->simulating())return playerRagdoll->ragdoll()->rootPosition();
+        if(playerFall.ragdoll()&&playerFall.ragdoll()->ragdoll()&&playerFall.ragdoll()->simulating())return playerFall.ragdoll()->ragdoll()->rootPosition();
         return nodePosition(*playerBody);
     }
     // Down and still, he gets up where he lies; dead, he wakes at a hospital.
     void updatePlayerDown(double dt) {
         downClock+=dt;
-        const auto state=playerRagdoll->state();
+        const bool recovering=playerFall.update(dt,!wasted,
+            [&](const glm::vec3& at){return sceneGround(at);},&playerBodyRest);
         if(wasted) {
             if(downClock>=r1::combat::kWastedSeconds)respawn();
             return;
         }
-        // A body pinned against a car or a wall may never come to rest: it is
-        // frozen where it lies after a while rather than kept on the ground.
-        if(state==saida::RagdollBehaviour::State::Simulated&&downClock>=kLongestTumble)playerRagdoll->freeze();
-        if(playerRagdoll->state()==saida::RagdollBehaviour::State::Frozen&&downClock>=r1::combat::kPlayerLieSeconds) {
-            playerRagdoll->blendOut(float(r1::combat::kStandSeconds),sceneGround(nodePosition(*playerBody)));
-            // His node is where his body now stands; his body back at rest
-            // under it, the same place on screen.
-            const glm::mat4 bodyWorld=player->transform().matrix()*playerBody->transform().matrix();
-            const glm::mat4 standing=bodyWorld*glm::inverse(playerBodyRest.matrix());
-            const glm::vec3 at(standing[3]);
-            glm::mat3 axes(standing);for(int c=0;c<3;++c)axes[c]=glm::normalize(axes[c]);
+        if(recovering) {
+            const glm::vec3 at=player->transform().position;
             const auto geo=sceneToGeo(at);
             lon=geo.x;lat=geo.y;alt=height(lon,lat,geo.z+.5);if(!std::isfinite(alt))alt=geo.z;
             jumpOffset=jumpVelocity=0;
             player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+.06)));
-            player->transform().rotation=glm::normalize(glm::quat_cast(axes));
-            playerBody->transform()=playerBodyRest;
-            // The ragdoll put the snapshot in the body node's frame where it
-            // stood; that frame is now the rest one, through the player node.
             const glm::vec3 front=player->transform().rotation*glm::vec3(0,0,1);
             yaw=wrap(std::atan2(front.x,-front.z)/rad);
             return;
         }
-        if(state==saida::RagdollBehaviour::State::Animated){playerDown=false;downClock=0;}
+        if(playerFall.ragdoll()->state()==saida::RagdollBehaviour::State::Animated){playerDown=false;downClock=0;}
     }
     // The nearest mapped hospital, clinic or doctor's (gen/interior_uses.cpp
     // names them all "clinic"), across the resident tiles: he wakes outside
@@ -1623,7 +1620,8 @@ class World : public Rml::EventListener {
                 at={geo.x,geo.y};name=room.plan.name.empty()?"the hospital":room.plan.name;
             }
         }
-        playerRagdoll->release();
+        clearPolice();
+        playerFall.release();
         playerBody->transform()=playerBodyRest;
         playerDown=wasted=false;downClock=0;
         health.restore();
@@ -1674,7 +1672,7 @@ class World : public Rml::EventListener {
             for(size_t i=0;i<t->people.size();++i) {
                 const Person& p=t->people[i];
                 if(!p.node||!p.node->enabled())continue;
-                if((node&&p.body==node)||(p.ragdoll&&p.ragdoll->ragdoll()&&p.ragdoll->ragdoll()->partOf(hit.body)>=0)) {
+                if((node&&p.body==node)||(p.fall.ragdoll()&&p.fall.ragdoll()->ragdoll()&&p.fall.ragdoll()->ragdoll()->partOf(hit.body)>=0)) {
                     outTile=t;outSlot=i;return true;
                 }
             }
@@ -1696,20 +1694,22 @@ class World : public Rml::EventListener {
         const auto& walkers=tile.crowd.walkers();
         if(slot>=walkers.size()||!walkers[slot].alive)return;
         const bool wasDown=walkers[slot].activity==r1::Activity::Down;
+        const bool wasDead=walkers[slot].dead;
         tile.crowd.damage(slot,damage);
         const r1::Walker& w=walkers[slot];
+        if(!wasDead)reportCrime(w.dead?r1::police::Crime::Killing:r1::police::Crime::Assault,point);
         effects.burst(r1::CombatEffects::Blood,point);
         if(wasDown) {
             // Already on the ground: a round moves the body again.
-            if(p.ragdoll&&p.ragdoll->state()!=saida::RagdollBehaviour::State::Simulated){limitRagdolls();p.ragdoll->activate();}
-            if(p.ragdoll)p.ragdoll->applyImpulse(direction*impulse,point);
-            p.lying=0;
+            limitRagdolls();
+            if(!beginFall(p.fall,{}, {},"passer-by"))return;
+            if(p.fall.ragdoll())p.fall.ragdoll()->applyImpulse(direction*impulse,point);
             return;
         }
         if(always||w.dead||w.health<100.*r1::combat::kKnockDownBelow) {
             const glm::vec3 spin=glm::cross(glm::vec3(0,1,0),direction)*2.5f;
             if(knockDown(tile,slot,direction*2.2f+glm::vec3(0,.6f,0),spin)) {
-                p.ragdoll->applyImpulse(direction*impulse,point);
+                p.fall.ragdoll()->applyImpulse(direction*impulse,point);
                 sounds.play(r1::CombatSounds::Fall,glm::length(camera->transform().position-point),.7f);
             }
             return;
@@ -1728,7 +1728,7 @@ class World : public Rml::EventListener {
         // The nearest person in front within reach, their head the target.
         const glm::vec3 me=player->transform().position;
         const glm::vec3 ahead(float(std::sin(yaw*rad)),0.f,float(-std::cos(yaw*rad)));
-        double best=r1::combat::kFists.range*kPeopleVehicleResize+.25;punchAimed=false;
+        double best=r1::combat::kFists.range*kPeopleVehicleResize+.25;punchAimed=false;punchPolice=-1;
         for(auto tile:ring) {
             auto* t=tileByKey(tile.key());if(!t)continue;
             const auto& walkers=t->crowd.walkers();
@@ -1742,6 +1742,12 @@ class World : public Rml::EventListener {
                 best=flat;punchTileKey=tile.key();punchSlot=i;punchAimed=true;
             }
         }
+        for(size_t u=0;u<policeUnits.size();++u)if(policeUnits[u].dismounted)for(size_t i=0;i<2;++i) {
+            auto& officer=policeUnits[u].officers[i];
+            if(!officer.person.node||officer.health<=0||officer.person.fall.ragdoll()->state()!=saida::RagdollBehaviour::State::Animated)continue;
+            auto d=nodePosition(*officer.person.node)-me;d.y=0;const float length=glm::length(d);
+            if(length>.01f&&length<best&&glm::dot(d/length,ahead)>.45f){best=length;punchPolice=int(u*2+i);punchAimed=false;}
+        }
         // Squared up to whom he hits.
         if(punchAimed)if(auto* t=tileByKey(punchTileKey)) {
             const glm::vec3 d=nodePosition(*t->people[punchSlot].node)-me;
@@ -1749,6 +1755,15 @@ class World : public Rml::EventListener {
         }
     }
     void landPunch() {
+        if(punchPolice>=0) {
+            auto& officer=policeUnits[size_t(punchPolice)/2].officers[size_t(punchPolice)%2];
+            if(!officer.person.node||!officer.person.node->enabled())return;
+            const auto at=nodePosition(*officer.person.node);const auto delta=at-policePlayerPosition();
+            if(glm::length(delta)>r1::combat::kFists.range*kPeopleVehicleResize+.4)return;
+            saida::RaycastHit hit;hit.hit=true;hit.body=officer.person.body->innerBodyId();hit.point=at+glm::vec3(0,float(playerHeight*.75),0);
+            hitPolice(hit,punch.damage(),glm::normalize(delta),false,float(r1::combat::kFists.impulse));
+            sounds.play(r1::CombatSounds::Punch,followDistance);return;
+        }
         Loaded* t=punchAimed?tileByKey(punchTileKey):nullptr;
         if(!t||punchSlot>=t->people.size()||!t->people[punchSlot].node)return;
         const Person& p=t->people[punchSlot];
@@ -1789,11 +1804,13 @@ class World : public Rml::EventListener {
         recoil=std::min(1.,recoil+.55);
         pitch=std::clamp(pitch+1.1,-65.,25.);
         alarm(ridingBike()?car->transform().position:player->transform().position,r1::combat::kGunshotHeard,10.);
+        reportCrime(r1::police::Crime::Gunshot,policePlayerPosition());
         if(!physics||length<1e-3)return;
         const glm::vec3 dir=path/length;
         const auto hit=physics->raycast(muzzle,dir,length+.05f,combatFilter());
         if(!hit.hit)return;
         const double heard=glm::length(eye-hit.point);
+        if(hitPolice(hit,r1::combat::kPistol.damage,dir))return;
         Loaded* t=nullptr;size_t slot=0;
         if(personByBody(hit,t,slot)) {
             const float feet=nodePosition(*t->people[slot].node).y;
@@ -1862,6 +1879,8 @@ class World : public Rml::EventListener {
                 const glm::vec3 head=nodePosition(*t->people[punchSlot].node)+glm::vec3(0.f,float(playerHeight*(punch.hook()?.8:.88)),0.f);
                 target=glm::vec3(toObject*glm::vec4(head,1.f));
             }
+            if(punchPolice>=0)if(auto* node=policeUnits[size_t(punchPolice)/2].officers[size_t(punchPolice)%2].person.node)
+                target=glm::vec3(toObject*glm::vec4(nodePosition(*node)+glm::vec3(0,float(playerHeight*.85),0),1));
             const float w=float(punch.extension());
             arm->clearTipRotation();arm->reach(target,w);arm->setWeightNow(w);
             arm->setPole(shoulder[h]+glm::vec3(h?-.45f:.45f,-.35f,-.25f));
@@ -1896,6 +1915,7 @@ class World : public Rml::EventListener {
                 const auto hit=r1::combat::carImpact(speed);
                 if(!hit.knockDown)continue;
                 t->crowd.damage(i,hit.damage);
+                reportCrime(walkers[i].dead?r1::police::Crime::Killing:r1::police::Crime::Assault,at);
                 // Legs taken forward, the body over the bonnet.
                 const glm::vec3 spin=glm::cross(dir,glm::vec3(0,1,0))*std::clamp(speed*.55f,2.f,9.f);
                 if(knockDown(*t,i,velocity*.85f+glm::vec3(0,1.2f+.1f*speed,0),spin)) {
@@ -2192,7 +2212,15 @@ class World : public Rml::EventListener {
     // rest, and freeze; a round fired at the ground must land. A refusal at
     // any step names itself (CLAUDE.md rule 3).
     void startSmokeFight() {
-        smokeFought=true;
+        if(!smokeFought) {
+            smokeFought=smokeFighting=true;smokeFightPhase=-1;smokeFightTime=0;
+            hurtPlayer(r1::combat::kFists.damage*.65,{0,0,1},"a passer-by (smoke)");
+            if(!playerDown||wasted||!playerFall.ragdoll()->simulating()||!feet->physicsSuspended()) {
+                saida::Log::error("[World E2E] FAIL fight: a nonlethal hit did not replace the player's capsule with physics");
+                testFailed=true;engine.sceneTree().quit();
+            }
+            return;
+        }
         // People appear out of sight (r1::Crowd::kSpawnNear and beyond): the
         // nearest anywhere in the neighbourhood will do for the physics.
         const glm::vec3 me=player->transform().position;
@@ -2223,12 +2251,21 @@ class World : public Rml::EventListener {
     }
     void runSmokeFight(double dt) {
         smokeFightTime+=dt;
+        if(smokeFightPhase==-1) {
+            if(playerDown&&smokeFightTime<12.)return;
+            if(playerDown||wasted||feet->innerBodyId().IsInvalid()||feet->physicsSuspended()) {
+                saida::Log::error("[World E2E] FAIL fight: the player did not recover his capsule after a nonlethal hit");
+                testFailed=true;engine.sceneTree().quit();return;
+            }
+            saida::Log::info("[World E2E] PASS player hit: nonlethal ragdoll, recovery and restored capsule");
+            smokeFighting=false;startSmokeFight();return;
+        }
         Loaded* t=tileByKey(smokeFightTile);
-        if(!t||smokeFightSlot>=t->people.size()||!t->people[smokeFightSlot].ragdoll) {
+        if(!t||smokeFightSlot>=t->people.size()||!t->people[smokeFightSlot].fall.ragdoll()) {
             saida::Log::error("[World E2E] FAIL fight: the knocked-down body's tile left before it came to rest");
             testFailed=true;engine.sceneTree().quit();return;
         }
-        auto* ragdoll=t->people[smokeFightSlot].ragdoll;
+        auto* ragdoll=t->people[smokeFightSlot].fall.ragdoll();
         if(smokeFightPhase==0) {
             if(ragdoll->state()==saida::RagdollBehaviour::State::Simulated&&smokeFightTime<8.)return;
             const auto state=ragdoll->state();
@@ -2427,6 +2464,8 @@ class World : public Rml::EventListener {
         tiles.reserve(loaded.size());
         for(const auto& [key,entry]:loaded)tiles.push_back(&entry.served->cooked.minimap);
         const std::string zone=localConditions()?conditions.value("timezone",std::string()):"";
+        const auto policeMarkers=policeMapRml();
+        if(written["mini:police"]!=policeMarkers&&minimapUi->setElementRml("mini-police",policeMarkers))written["mini:police"]=policeMarkers;
         miniText("mini-time",localClock());
         miniText("mini-place",r1::miniMapPlace(tiles,zoneCountries,countryNames,zone,lon,lat));
         if(minimapDrawnRevision!=minimapRevision||metresBetween(minimapLon,minimapLat,lon,lat)>8.) {
@@ -3080,6 +3119,12 @@ class World : public Rml::EventListener {
     bool dropFlying() const {return drop.phase!=Drop::None&&drop.armed;}
     bool dropGlobe() const {return drop.phase!=Drop::None&&!menu&&drop.clock.seconds<r1::arrival::kFadeSeconds;}
     bool dropSteered() const {return drop.phase==Drop::Canopy?drop.canopy.steered:drop.fall.steered;}
+    // Toaster mode's close fog and short far plane are for the ground. From
+    // the air they hid the drop zone whole: the globe hands over a kilometre
+    // up, past the 800 m far plane, into 650 m of fog. The arrival flies
+    // clear, and the instant he lands the fog is back (World::landDrop).
+    bool toasterHaze() const {return toasterMode&&drop.phase==Drop::None;}
+    bool giSettled() {const auto& s=engine.sceneTree().world().settings();return !s.giEnabled||s.giWarmupProgress>=.99f;}
     // A headset has no globe to fly; the smoke spawns at once unless --dive.
     bool cinematicArrival() const {return !vr&&(!smoke||smokeDive)&&(worldCapture.pngPath.empty()||smokeDive);}
     static double smooth(double x) {x=std::clamp(x,0.,1.);return x*x*(3-2*x);}
@@ -3539,6 +3584,7 @@ class World : public Rml::EventListener {
                          wet?" in the water":"",", ",away," m from the ground chosen, at ",sink," m/s; frames: ",drop.smoothness());
         const bool steered=dropSteered();
         drop.phase=Drop::None;drop.armed=false;
+        applyWeather();  // on his feet: toaster mode's fog is back this frame
         if(arrivalUi)arrivalUi->setEnabled(false);
         style("combat","display","block");style("controls","display","block");
         text("stream-status",wet?"In the water — swim for the shore.":"Landed. Welcome to "+drop.place+".");
@@ -3765,6 +3811,7 @@ class World : public Rml::EventListener {
             if(t==landing&&!cooked){saida::Log::error("[World E2E] FAIL the fade began without the landing tile ",t.key());testFailed=true;engine.sceneTree().quit();return;}
         }
         if(ready<std::min(kDropTiles,want.size())){saida::Log::error("[World E2E] FAIL the fade began with ",ready," tiles ready of ",kDropTiles);testFailed=true;engine.sceneTree().quit();return;}
+        if(fogToaster||camera->farZ<=800.f){saida::Log::error("[World E2E] FAIL the fade began in toaster mode's fog (far plane ",camera->farZ," m)");testFailed=true;engine.sceneTree().quit();return;}
         smokeDiveFaded=true;smokeDiveHealth=health.hp;
         saida::Log::info("[World E2E] PASS the fade found the drop zone cooked: the landing tile and ",ready," of ",want.size(),
                          " tiles of the neighbourhood with ground, buildings and collisions");
@@ -3818,6 +3865,7 @@ class World : public Rml::EventListener {
         if(!onTime&&!early)return fail("the canopy opened "+number(drop.openedAt,2)+" s after Go, "+number(drop.openedOverGoal,1)+" m above the ground chosen");
         if(tau-drop.openedAt<3.)return fail("only "+number(tau-drop.openedAt,1)+" s under the canopy");
         if(r1::combat::fallDamage(sink)>0||health.hp<smokeDiveHealth)return fail("the landing hurt: "+number(sink,1)+" m/s");
+        if(toasterMode&&!fogToaster)return fail("landed in toaster mode without its fog back");
         saida::Log::info("[World E2E] PASS dive: canopy open ",drop.openedAt," s after Go, ",drop.openedOverGoal," m above the ground chosen",
                          onTime?"":" (early, over higher ground)",", slid ",smokeDiveSlid," m east under the keys, landed at ",sink," m/s, ",away,
                          " m from the ground chosen; frames: ",drop.smoothness());
@@ -3910,6 +3958,8 @@ class World : public Rml::EventListener {
                 glm::normalize(rotation*node->transform().rotation));
         };
         rebaseVehicle(car);for(auto& entry:parked)rebaseVehicle(entry.node);
+        for(auto& unit:policeUnits)if(unit.car){rebaseVehicle(unit.car);for(auto& officer:unit.officers)rebaseVehicle(officer.person.node);}
+        rebaseVehicle(policeHelicopter);policeRoads.points.clear();policeThink=.5;
         auto turn=[&](double heading){
             const glm::dvec3 d=origin.basis[0]*std::sin(heading*rad)-origin.basis[2]*std::cos(heading*rad);
             return wrap(std::atan2(glm::dot(d,next.basis[0]),-glm::dot(d,next.basis[2]))/rad);
@@ -3927,6 +3977,7 @@ class World : public Rml::EventListener {
             const auto spin=glm::angleAxis(float(-delta*rad),glm::vec3(0,1,0));
             player->transform().rotation=spin*player->transform().rotation;
         }
+        engine.sceneTree().world().notifyOriginRebase(next.local(origin.origin),glm::normalize(glm::quat_cast(glm::transpose(next.basis)*origin.basis)));
         origin=next;placeTiles();moveSun();
     }
     // ── the tile's data, in the form the frame reads it ─────────────────────
@@ -4535,6 +4586,7 @@ class World : public Rml::EventListener {
                              tile.data.value("key",std::string()));
             return false;
         }
+        reportCrime(r1::police::Crime::Theft,nodePosition(*target.node));
         tile.flow.retire(target.agent);
         tile.cars[target.agent]=nullptr;
         abandonCurrentCar();
@@ -5512,6 +5564,7 @@ private:
         return sample;
     }
     bool fogFar=false;  // what the fog was last told about the horizon
+    bool fogToaster=false;  // ...and whether it was toaster mode's (World::toasterHaze)
     static double number(const json& j,const char* key,double fallback) {
         auto it=j.find(key);return it!=j.end()&&it->is_number()?it->get<double>():fallback;
     }
@@ -5545,9 +5598,10 @@ private:
     bool applyWeather() {
         if(!sunScript)return false;
         fogFar=farPack.node!=nullptr;
+        fogToaster=toasterHaze();
         const auto weather=effectiveWeather();
         double seen=weather.visibility>0&&(inspectAt||weather.visibility<kVisibilityCeiling)?weather.visibility:0.;
-        if(toasterMode) {
+        if(fogToaster) {
             constexpr double kToasterVisibility=650.;
             seen=seen>0.?std::min(seen,kToasterVisibility):kToasterVisibility;
         }
@@ -5877,10 +5931,12 @@ private:
         if(auto* on=ui->findElementById("toaster-on"))on->SetClass("selected",toasterMode);
         ui->notifyJsMutation();
         text("toaster-options-status",!problem.empty()?problem:
-            toasterMode?"Toaster mode on: 720p, mid/far tree LODs, closer fog."
+            toasterMode?"Toaster mode on: 720p, GI off, mid/far tree LODs, closer fog."
                        :"Standard quality: normal graphics and draw distance.");
     }
     void applyToasterResolution() {
+        engine.sceneTree().world().settings().giEnabled=!toasterMode;
+        engine.sceneTree().world().settings().giQuality=toasterMode?saida::GIQuality::Low:saida::GIQuality::Auto;
         if(toasterMode) {
             int w=0,h=0;
             engine.window().size(w,h);
@@ -6974,6 +7030,7 @@ private:
         struct Candidate {Loaded* tile;size_t index;double distance;};
         std::vector<Candidate> candidates;
         size_t reservedV=farVertices()+farPack.vertices+nextFarPack.vertices,reservedI=0;
+        size_t pendingV=0,pendingI=0;
         for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles) {
             reservedV+=residentVertices(t.data);reservedI+=residentIndices(t.data);
             const auto eye=cameraTileLocal(t);
@@ -6988,7 +7045,10 @@ private:
                 for(int level=0;level<3;++level) {
                     auto& state=b.levels[size_t(level)];const auto& parts=buildingParts(t,i,level);
                     bool ready=state.started&&state.nextPart==parts.size();
-                    for(auto* mesh:state.meshes)ready=ready&&mesh->loaded();
+                    for(size_t n=0;n<state.meshes.size();++n) {
+                        auto* mesh=state.meshes[n];ready=ready&&mesh->loaded();
+                        if(!mesh->loaded()) {pendingV+=parts[n].prepared->geometry.vertices.size();pendingI+=parts[n].prepared->geometry.indices.size();}
+                    }
                     b.lod->setLevelReady(level,ready);
                     if(state.started&&state.nextPart==parts.size()&&!ready&&!state.failed&&
                        engine.resources().assetLoadsSettled()) {
@@ -7055,7 +7115,15 @@ private:
             }
             const auto& materials=buildingMaterials(t,c.index,level);
             while(state.nextPart<parts.size()) {
-                const auto& part=parts[state.nextPart++];
+                const auto& part=parts[state.nextPart];
+                const auto used=engine.resources().geometryUsage();const auto capacity=engine.resources().geometryCapacity();
+                const size_t vertices=part.prepared->geometry.vertices.size(),indices=part.prepared->geometry.indices.size();
+                // Shared assets and impact-deformed cars occupy the same arena.
+                // Queued building uploads count too; keep the ready LOD while
+                // the required actor/streaming reserve is unavailable.
+                if(level<2&&(used.vertices+pendingV+vertices+r1::police::kGeometryVertices>capacity.vertices||
+                             used.indices+pendingI+indices+r1::police::kGeometryIndices>capacity.indices))break;
+                ++state.nextPart;pendingV+=vertices;pendingI+=indices;
                 auto* mesh=engine.resources().getMesh(engine.resources().queueMemoryMesh(part.prepared));
                 if(!mesh)throw std::runtime_error("Building visual mesh registration refused");
                 auto node=std::make_unique<saida::MeshNode>(part.name,mesh,material(materials[part.material].material));
@@ -7157,6 +7225,12 @@ private:
         }
         if(active>=kInteriorRooms||candidates.empty())return;
         auto& room=*candidates.front().room;auto& t=*candidates.front().tile;const auto& p=room.plan;
+        if(p.recipe=="police") {
+            const auto label=r1::police::identity(countryCrowd.at(t.data.value("lon",0.),t.data.value("lat",0.)).code,
+                p.name.find("Gendar")!=std::string::npos||p.name.find("gendar")!=std::string::npos).label;
+            const auto letters=r1::facadeLettering(label,2.2,.23);
+            if(letters&&!modelsReady(*letters))return;
+        }
         if(p.recipe!="home"&&p.recipe!="warehouse") {
             const auto letters=r1::facadeLettering(p.name,3.,.75);
             if(letters&&!modelsReady(*letters))return;
@@ -7261,6 +7335,14 @@ private:
                 sign->transform().rotation=glm::angleAxis(float(yaw+r1::kPi),glm::vec3(0,1,0));
                 root->addChild(std::move(sign));
             } else saida::Log::warn("[World interiors] font cannot spell building name: ",p.name);
+            if(p.recipe=="police") {
+                const auto identity=r1::police::identity(countryCrowd.at(t.data.value("lon",0.),t.data.value("lat",0.)).code,
+                    p.name.find("Gendar")!=std::string::npos||p.name.find("gendar")!=std::string::npos);
+                if(auto sign=lettering(identity.label,2.2,.23,{.65f,.65f,.62f})) {
+                    sign->transform().position={float(p.door.x-p.inward.x*.32),float(p.floor+2.8),float(p.door.y-p.inward.y*.32)};
+                    sign->transform().rotation=glm::angleAxis(float(yaw+r1::kPi),glm::vec3(0,1,0));root->addChild(std::move(sign));
+                }
+            }
             // A few ceiling lights, scoped to this streamed room.
             // A mall's supermarket is lit where it is, not only at the door:
             // over its checkouts and around its mapped position.
@@ -8412,7 +8494,7 @@ private:
             player->setEnabled(true);
             player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
             parkCar();
-            playing=true;pending=false;warming=false;showMap(false);request(lon,lat);
+            clearPolice();playing=true;pending=false;warming=false;showMap(false);request(lon,lat);
             saida::Log::info("[World] spawned ",lon,", ",lat," altitude=",alt,
                              waterSpawn?" swimming":onWater(lon,lat)?" on foot, wading in "+
                                  std::to_string(waterLevel(lon,lat)-alt)+" m of water":" on foot",
@@ -8464,8 +8546,10 @@ public:
             throw std::runtime_error("R1WORLD_PERF_SMOKE requires --smoke and walk or drive");
         if(qualitySwitchSmoke&&(!smoke||perfSmoke!="walk"))
             throw std::runtime_error("R1WORLD_QUALITY_SWITCH_SMOKE requires --smoke and R1WORLD_PERF_SMOKE=walk");
-        residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare);
-        residentIndexBudget=size_t(double(e.resources().geometryCapacity().indices)*kTileGeometryShare);
+        // Four physical patrol cars, their shared Scopia LODs, eight equipped
+        // officers and regional lettering reserve room alongside tile detail.
+        residentVertexBudget=size_t(double(e.resources().geometryCapacity().vertices)*kTileGeometryShare)-r1::police::kGeometryVertices;
+        residentIndexBudget=size_t(double(e.resources().geometryCapacity().indices)*kTileGeometryShare)-r1::police::kGeometryIndices;
         ui=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("world-ui"));
         minimapUi=dynamic_cast<saida::WebCanvasNode*>(e.sceneTree().firstInGroup("minimap-ui"));
         camera=dynamic_cast<saida::CameraNode*>(e.sceneTree().firstInGroup("camera"));
@@ -8515,7 +8599,6 @@ public:
         }
         player->setEnabled(false);
         saida::Log::info("[World player] model ready, animators=",animators.size());
-        setupCombat();
         car=e.sceneTree().firstInGroup("vehicle");
         if(!car)throw std::runtime_error("Earth scene is missing the player's car");
         car->setEnabled(false);
@@ -8539,6 +8622,7 @@ public:
             feet->addChild(std::move(capsule));
         }
         feet->setEnabled(false);
+        setupCombat();
         prototypes=e.sceneTree().world().createChild<saida::Node>("Shared prototypes");
         prototypes->setEnabled(false);
         loadPaints();
@@ -8565,7 +8649,7 @@ public:
         readFarLandmarks();
         e.window().setCursorCaptured(false);
     }
-    ~World(){for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
+    ~World(){clearPolice();for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
         for(const char* type:{"click","mousedown","mouseup","mousemove","mousescroll","dblclick"})e->RemoveEventListener(type,this);}}
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model) {
         globe=std::move(model);globeTarget=globe->view;globe->toaster=toasterMode;
@@ -8733,8 +8817,11 @@ public:
         ui->executeJS("showSettingsTab('graphics');");
         testClick("toaster-on",false);
         if(!toasterMode)return fail("Mode grille-pain did not enable toaster mode");
+        if(engine.sceneTree().world().settings().giEnabled)return fail("Toaster mode left GI enabled");
         testClick("toaster-off",false);
         if(toasterMode)return fail("Standard quality did not disable toaster mode");
+        if(!engine.sceneTree().world().settings().giEnabled||engine.sceneTree().world().settings().giQuality!=saida::GIQuality::Auto)
+            return fail("Standard quality did not restore automatic GI");
         // Go from the Destination tab refuses what is not a coordinate and
         // stays open to say so (the valid trip is the smoke's own Go below).
         {
@@ -9797,15 +9884,15 @@ public:
         if(drop.phase!=Drop::Zoom) {
             cost.props=timed([&]{streamProps();});
             cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
-            cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateSea(delta);bendGrass();});
+            cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updatePolice(delta);updateSea(delta);bendGrass();});
         }
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
-        if((farPack.node!=nullptr)!=fogFar)applyWeather();
+        if((farPack.node!=nullptr)!=fogFar||toasterHaze()!=fogToaster)applyWeather();
         // The view reaches the horizon where something is drawn out to it:
         // 4.7 km at eye height, 113 km from a thousand metres, never past
         // the far pack. Elsewhere it stops at the 5 km haze, as it always has.
-        if(toasterMode) {
+        if(toasterHaze()) {
             camera->farZ=800.f;
         } else {
             camera->farZ=farPack.node?float(std::clamp(std::sqrt(2.*r1::kRMean*std::max(2.,alt+10.))*1.2+1500.,5000.,r1::kFarPackRadius+5000.)):5000.f;
@@ -9884,6 +9971,7 @@ public:
         if(retailTest())f=r=0;
         if(performanceSmoke){f=r=0;smokeStarted=false;}
         if(trafficValidation_){f=r=0;smokeStarted=false;}
+        if(policeSmoke){f=r=0;smokeStarted=false;}
         if(smokeApproach) {
             auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
             yaw=std::atan2(to.x,-to.z)/rad;f=1;r=0;
@@ -9924,8 +10012,10 @@ public:
         // His feet are a body while he is: not at the wheel, at the helm or
         // at the controls, where people meet the vehicle instead.
         // Down, his body is the ragdoll's and his feet leave the physics.
-        if(feet->enabled()!=(player->enabled()&&!playerDown))feet->setEnabled(player->enabled()&&!playerDown);
-        if(dropFlying()) {
+        if(feet->enabled()!=player->enabled())feet->setEnabled(player->enabled());
+        if(playerDown) {
+            moving=false;
+        } else if(dropFlying()) {
             flyDrop(dt,f,r);
             moving=true;
         } else if(driving) {
@@ -10009,7 +10099,7 @@ public:
         // Not while he lies in the ragdoll: its bodies follow his node, which
         // the rebase does not carry. He is up again in a few seconds.
         if(!playerDown&&glm::length(origin.local(ecef(lon,lat,alt)))>kRebaseDistance)rebaseOrigin();
-        if(!driving&&!sailing&&!piloting&&!dropFlying()) {
+        if(!playerDown&&!driving&&!sailing&&!piloting&&!dropFlying()) {
             if(swimming) {
                 jumpOffset=jumpVelocity=0;wasJump=false;
                 swimLean+=(double(moving)-swimLean)*(1-std::exp(-5*dt));
@@ -10229,7 +10319,12 @@ public:
             const bool seaReady=(!std::getenv("R1WORLD_CAPTURE_SEA")||(!seaShips.empty()&&captureSeaWait>4.)
                 ||captureSeaWait>30.)
                 // The local weather is part of the picture: a few seconds for it.
-                &&(effectiveWeather().known||captureSeaWait>6.);
+                &&(effectiveWeather().known||captureSeaWait>6.)
+                // So is the bounce light: probes still warming photograph as a flat ambient.
+                &&(giSettled()||captureSeaWait>60.);
+            if(settled&&seaReady&&!captureQueued&&!giSettled())
+                saida::Log::error("[World capture] GI warm-up at ",int(engine.sceneTree().world().settings().giWarmupProgress*100.f),
+                                  "% after a minute; photographed as it is");
             if(settled&&seaReady&&!captureQueued){
                 if(const char* motorcycle=std::getenv("R1WORLD_CAPTURE_MOTORCYCLE")) {
                     auto fail=[&](const char* reason){saida::Log::error("[World E2E] FAIL motorcycle: ",reason);testFailed=true;engine.sceneTree().quit();};
@@ -10312,7 +10407,8 @@ public:
                 saida::Log::info("[World nature] resident plants=",plants," shared static prototypes=",naturePrototypes.size());
                 int measuredW=0,measuredH=0;engine.window().size(measuredW,measuredH);
                 saida::Log::info("[World capture quality] preset=",toasterMode?"toaster":"standard",
-                    " window=",measuredW,"x",measuredH," farZ=",camera->farZ);
+                    " window=",measuredW,"x",measuredH," farZ=",camera->farZ,
+                    " gi=",engine.sceneTree().world().settings().giEnabled);
                 std::array<size_t,3> buildingLevels{};size_t detailedBuildings=0;
                 for(const auto& [key,t]:loaded)for(const auto& b:t.buildings) {
                     const int level=b.lod->activeLevel();
@@ -10405,6 +10501,7 @@ public:
             text("stream-status",std::to_string(loaded.size())+" active tiles"+mode
                  +(physicsRefused?" · collisions incomplete: the physics world is full":""));
         }
+        if(policeSmoke){runPoliceSmoke(delta);return;}
         if(performanceSmoke){runPerformanceSmoke(delta);return;}
         if(smokeFighting){runSmokeFight(dt);return;}
         if(trafficValidation_){validateTraffic(dt);return;}
@@ -10484,7 +10581,7 @@ public:
             }
             smokeStarted=false;
             if(perfSmoke=="walk") {saida::Log::info("[World perf] PASS warm walking");engine.sceneTree().quit();return;}
-            if(perfSmoke.empty()&&!smokeFought&&crowdLive()>0){startSmokeFight();return;}
+            if(perfSmoke.empty()&&!smokeFought){startSmokeFight();return;}
             if(!smokeDroveOnce&&!onSeaIce(lon,lat)){startSmokeDrive();return;}
             if(!smokeDroveOnce)saida::Log::info("[World E2E] on the sea ice: no car to drive, the walk is the test");
             smokeFinishPhase();

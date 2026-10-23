@@ -695,6 +695,11 @@
             "path": "assets/models/signs/us_r2-1_55-urban-r1.glb",
             "type": "Mesh"
         },
+        "11461412521549637896": {
+            "hash": 6564451291392495190,
+            "path": "assets/audio/police/siren_us.wav",
+            "type": "Unknown"
+        },
         "11478873376804402379": {
             "hash": 10355329136700605666,
             "path": "assets/world/landmarks/burj_khalifa-r3.glb",
@@ -1180,6 +1185,11 @@
             "path": "assets/world/relief/60_-30.r1relief",
             "type": "Unknown"
         },
+        "12482890063952013010": {
+            "hash": 18236450063769186635,
+            "path": "assets/models/vehicles/police.glb",
+            "type": "Mesh"
+        },
         "12500749483318105122": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/20_-50.r1relief",
@@ -1208,6 +1218,11 @@
         "12573345679989505027": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-30_-10.r1relief",
+            "type": "Unknown"
+        },
+        "12622086645598587020": {
+            "hash": 1974826255570982422,
+            "path": "assets/audio/police/siren_eu.wav",
             "type": "Unknown"
         },
         "12626698960083496154": {
@@ -1554,6 +1569,11 @@
             "hash": 2329619452027575344,
             "path": "assets/models/signs/faces/fr_ab6-petite-r1.png",
             "type": "Texture"
+        },
+        "13346062260847736485": {
+            "hash": 6084421080724502395,
+            "path": "assets/models/vehicles/police_far.glb",
+            "type": "Mesh"
         },
         "13355189702603770527": {
             "hash": 6271810807875847883,
@@ -2401,7 +2421,7 @@
             "type": "Unknown"
         },
         "15336490900835210494": {
-            "hash": 1270031335195377664,
+            "hash": 17132935539486642364,
             "path": "assets/models/external/nature_selected/urban_tree_far.source.json",
             "type": "Unknown"
         },
@@ -2856,7 +2876,7 @@
             "type": "Unknown"
         },
         "16422651030829251198": {
-            "hash": 3481531013316873479,
+            "hash": 10954432584959326379,
             "path": "assets/licenses/CC0-1.0.txt",
             "type": "Unknown"
         },
@@ -4016,7 +4036,7 @@
             "type": "Texture"
         },
         "2602737661161441885": {
-            "hash": 6781230314710595671,
+            "hash": 10196444108429298636,
             "path": "assets/licenses/Road-vehicles-CC-BY-3.0.txt",
             "type": "Unknown"
         },
@@ -4086,7 +4106,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 5014788597052132413,
+            "hash": 5014523141099644138,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },
@@ -4859,6 +4879,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/0_-30.r1relief",
             "type": "Unknown"
+        },
+        "4511212367070882585": {
+            "hash": 9495786222153652492,
+            "path": "assets/models/vehicles/gendarmerie_far.glb",
+            "type": "Mesh"
         },
         "4512768183613768751": {
             "hash": 17219642972346556907,
@@ -5875,6 +5900,11 @@
             "path": "assets/models/external/understory/nettle_plant_near.glb",
             "type": "Mesh"
         },
+        "6972626176293190241": {
+            "hash": 3344204097345582159,
+            "path": "assets/audio/police/rotor.wav",
+            "type": "Unknown"
+        },
         "6997670599553788415": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-20_-20.r1relief",
@@ -5931,7 +5961,7 @@
             "type": "Unknown"
         },
         "7092704690704086645": {
-            "hash": 9118485586078917401,
+            "hash": 10751105507613868751,
             "path": "assets/models/external/nature_selected/pine_tall_far.source.json",
             "type": "Unknown"
         },
@@ -6336,7 +6366,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 5317855497758492657,
+            "hash": 16445523429181285663,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -6521,7 +6551,7 @@
             "type": "Mesh"
         },
         "8505060791082797504": {
-            "hash": 409823669061320585,
+            "hash": 1655919096764856391,
             "path": "assets/models/external/nature_selected/sakura_far.source.json",
             "type": "Unknown"
         },
@@ -6855,6 +6885,11 @@
             "path": "assets/world/relief/0_-130.r1relief",
             "type": "Unknown"
         },
+        "9234484655534256137": {
+            "hash": 4341656205465588826,
+            "path": "assets/models/vehicles/gendarmerie.glb",
+            "type": "Mesh"
+        },
         "9237278523215363150": {
             "hash": 2628226922271361861,
             "path": "assets/world/relief/-20_120.r1relief",
@@ -7006,7 +7041,7 @@
             "type": "Texture"
         },
         "9569450703380592770": {
-            "hash": 7828148219094515023,
+            "hash": 1363941381018045837,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
         },
@@ -7081,7 +7116,7 @@
             "type": "Unknown"
         },
         "9745547955817295292": {
-            "hash": 243581692675704331,
+            "hash": 13816373252690942106,
             "path": "assets/models/vehicles/fleet.json",
             "type": "Unknown"
         },

@@ -3,7 +3,7 @@
 **Explorer la Terre entière à l'échelle 1:1 et, à terme, photographier tous
 les animaux du jeu.**
 
-Mis à jour le 20 octobre 2026. Ce plan conserve la direction du jeu, ses
+Mis à jour le 23 octobre 2026. Ce plan conserve la direction du jeu, ses
 contraintes durables et les travaux restant à faire. Les fonctionnalités
 livrées, leur fonctionnement et leurs mesures sont documentés dans
 `game/README.md` ; leur historique reste dans Git.
@@ -35,8 +35,9 @@ de façon déterministe, à chaque visite. Trois conséquences :
 
 1. **Le volume s'effondre** : le cache garde les observations, jamais la
    géométrie.
-2. **Le déterminisme remplace la synchronisation** : même générateur, même
-   tuile, même ville au triangle près.
+2. **Le déterminisme remplace la synchronisation de la géométrie statique** :
+   même générateur, mêmes observations et atlas, même tuile, même ville au
+   triangle près. Les états dynamiques multijoueurs restent à synchroniser.
 3. **Le monde s'améliore sans être re-livré** : améliorer un générateur repeint
    la planète.
 
@@ -208,8 +209,9 @@ la portée de la végétation reste celle du mode graphique choisi, même en vé
    en vol, il est une longitude, une latitude et une altitude ; une seule
    autorité sur la position, dont dépendent le rebasage, le streamer et le
    soleil.
-7. **Le cache est une promesse.** Un lieu déjà visité ne touche plus le réseau
-   (`CLAUDE.md` §7).
+7. **Le cache est une promesse.** Un lieu déjà visité se recharge sans requête
+   réseau de données du monde (`CLAUDE.md` §7). Les échanges P2P de la future
+   MULTIPLAYER UPDATE sont distincts ; le lieu reste jouable hors ligne.
 
 ---
 
@@ -261,79 +263,72 @@ une cible de contenu à construire progressivement.
   un budget local de population et aucune simulation détaillée hors du rayon
   utile. Les 5 000 animaux du catalogue ne sont pas simultanément chargés.
 
-### Mode grille-pain — qualification à 40 FPS sur Paris
+### MULTIPLAYER UPDATE — pair à pair par tuile, UDP, rollback et prédiction
 
-Cible locale : **1280 × 720, moyenne ≥ 40 FPS et p95 ≤ 25 ms**, avec peu de
-perte visible, sur le Ryzen 7 5700U / MX450. Elle complète la cible globale I4.
+**Objectif : rencontrer les autres joueurs présents sur sa tuile, en P2P
+direct et sans aucun serveur central.** Cette update utilisera la brique
+network UDP générique prévue dans `engine/ROADMAP.md` (§5). Le transport et
+les sessions sont fournis par le moteur ; le découpage géographique et les
+règles de synchronisation appartiennent au jeu. Ce chantier est à réaliser,
+pas une fonctionnalité annoncée comme disponible dans la 0.1.
 
-- Qualifier les pics en marche, en conduite et pendant l'arrivée des tuiles
-  sur la version compilée ; les mesures stationnaires ne suffisent pas.
-- Comparer standard et grille-pain à positions, heure, météo et densités
-  comparables, en vérifiant les réglages réellement actifs. Mesurer temps
-  CPU, GPU, frame entière et présentation ; conserver p50/p95/p99/max et les
-  dépassements de 25/33,3/50 ms.
-- Sur trois parcours parisiens représentatifs (rue dense, Seine/pont,
-  parc/avenue arborée), faire trois répétitions : 60 s immobile, 90 s à pied,
-  120 s en véhicule. Distinguer démarrage et streaming en déplacement.
-- Selon les traces, réduire les coûts résiduels de préparation du rendu et
-  les pics de montage. Viser une publication cohérente bornée à 4 ms par
-  frame sur le thread principal, sans trous ni collisions tardives.
-- Budgets CPU de travail au p95 : transformations 6 ms, préparation du rendu
-  4 ms, LOD bâtiments 1 ms, simulation/animations 4 ms, commandes/UI 3 ms,
-  streaming 4 ms. Viser 22 ms pour l'image GPU entière. Ces budgets sont des
-  cibles de diagnostic ; le verdict reste le temps réel de frame complet.
-- N'ajuster la qualité que si les traces établissent une limite GPU : essais
-  séparés sur la portée de l'herbe et les ombres, captures à caméra/heure/météo
-  identiques et vérification en mouvement. Préserver les assets et matériaux
-  proches ; présenter tout compromis visuel sensible avec son gain mesuré.
-- Vérifier au moins 15 minutes après chauffe, RAM/VRAM comprises, sans
-  croissance mémoire continue ni évictions récurrentes de ressources visibles.
-  Rapporter séparément chaque scénario qui manque la cible.
+- À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
+  UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit
+  permettre à un autre joueur de rejoindre ensuite. Aucun serveur central
+  de présence, de matchmaking ou de simulation ne doit être nécessaire.
+- Concevoir la découverte et l'amorçage décentralisés : comment un premier
+  joueur obtient un pair joignable, comment retrouver les joueurs d'une clé
+  de tuile et comment expirer les annonces périmées. Définir aussi la
+  traversée des NAT et pare-feu et les cas de connectivité impossibles sans
+  relais ; ne pas supposer qu'UDP rend tous les pairs directement joignables.
+  Une éventuelle entraide entre pairs doit conserver l'absence de serveur central.
+- Au changement de tuile, quitter les sessions de l'ancienne et rejoindre
+  les joueurs de la nouvelle automatiquement. Préparer la découverte de la
+  destination à l'approche de la frontière, puis transférer l'état à un tick
+  défini, sans pause du jeu ni apparition en double. Définir la visibilité et
+  les interactions aux frontières, y compris pour deux joueurs de part et
+  d'autre, sans conserver indéfiniment les connexions de la tuile quittée.
+- Conserver une identité de joueur stable entre tuiles, avec identifiants de
+  session et générations de transfert pour rejeter les paquets tardifs de
+  l'ancienne tuile. Gérer arrivées simultanées, départs brusques, reconnexions,
+  changements rapides de tuile et tuiles momentanément injoignables.
+- Mettre en place un netcode moderne à pas de simulation fixe : entrées
+  horodatées par tick, prédiction immédiate des actions locales et prédiction
+  bornée des entrées distantes manquantes. À réception d'une entrée divergente,
+  restaurer un état historique puis rejouer les ticks concernés (**rollback**).
+  Lisser les corrections visuelles et interpoler les états distants sans
+  retarder les commandes locales ; borner historique et travail de rattrapage.
+- Définir l'autorité des joueurs et objets partagés, les conflits simultanés
+  et le transfert d'autorité quand un pair part ou franchit une frontière,
+  sans arbitre central permanent. Prévoir l'état initial d'un nouvel arrivant,
+  la détection des désynchronisations et une resynchronisation bornée lorsque
+  le retard dépasse la fenêtre de rollback.
+- Qualifier le déterminisme de la simulation physique à rejouer : I3 garantit
+  la génération du monde, pas le déterminisme de toute la simulation réseau.
+  Synchroniser versions du protocole, générateur, observations et atlas utiles ;
+  conserver les positions géodésiques et rendre les états restaurés compatibles
+  avec les rebasages ENU. Le rejeu ne doit pas doubler sons, effets, dégâts ni
+  écritures persistantes.
+- Définir le périmètre des états partagés : déplacements à pied et en véhicule,
+  collisions, interactions et conséquences persistantes. Séparer les messages
+  de contrôle fiables des entrées/états fréquents, et valider les messages reçus
+  avec budgets par pair. Mesurer le coût du maillage P2P quand une tuile se remplit
+  et définir ses limites de population, débit, CPU et mémoire selon I4.
+- Valider à plusieurs joueurs sur LAN puis Internet, sous latence, gigue,
+  pertes, duplication et désordre des paquets. Couvrir les frontières à pied
+  et en véhicule, le rollback pendant streaming/rebasage, les déconnexions et
+  le retour hors ligne. Mesurer fluidité, corrections, bande passante et
+  p95/p99 des frames sur la machine de référence, y compris pendant un transfert.
 
-### Fun update — compléments
+### Police — qualifications restantes
 
-- Animations de relevé enregistrées.
-- Autres armes ; conséquences policières prévues dans la POLICE UPDATE.
-- Qualification du temps de frame en combat sur la machine de référence.
+Les fonctionnalités livrées sont décrites dans `game/README.md` (§Police).
 
-### POLICE UPDATE — commissariats, gendarmeries et réactions aux agissements du joueur
-
-- Améliorer le rendu des commissariats et gendarmeries selon le pays et la
-  région : architecture, façades, matériaux, enseignes, accès et équipements
-  extérieurs cohérents avec les lieux. Conserver les emprises et attributs
-  mesurés ; identifier les détails inférés quand les données manquent.
-- Adapter les forces présentes au pays et au contexte local : police,
-  gendarmerie ou équivalent, avec uniformes, voitures, hélicoptères,
-  marquages, gyrophares et sirènes adaptés.
-- Détecter les agissements du joueur : tuer ou agresser des personnes,
-  utiliser une arme, conduire dangereusement, provoquer des collisions et
-  percuter des piétons en voiture. Distinguer un accident d'actes répétés ou
-  volontaires, et faire dépendre l'alerte de la gravité, de la récidive et
-  des faits observés par une patrouille ou signalés par des témoins.
-- Définir une IA commune d'alerte, d'intervention, de poursuite, de recherche
-  et de retour en patrouille. La réponse doit être progressive et lisible :
-  avertissement ou contrôle pour les faits mineurs, tentative d'interpellation
-  et renforts pour les faits graves, intervention adaptée au danger immédiat.
-- **En voiture :** patrouiller sur le réseau routier, poursuivre le joueur,
-  coordonner les renforts et les interceptions, contourner les obstacles et
-  limiter les collisions avec les autres usagers. Les agents doivent pouvoir
-  descendre du véhicule et poursuivre à pied si le joueur l'abandonne.
-- **En hélicoptère :** intervenir lorsque la gravité et les moyens locaux le
-  justifient, suivre le suspect depuis les airs et transmettre sa dernière
-  position connue aux unités au sol. Une perte de visibilité déclenche une
-  recherche ; l'hélicoptère ne connaît pas automatiquement la position cachée
-  du joueur.
-- **À pied :** patrouiller, rejoindre un incident, poursuivre, contourner les
-  obstacles et tenter une interpellation. Coordonner les agents avec les
-  voitures et l'appui aérien, y compris lors des changements de mode de
-  déplacement du joueur.
-- Faire évoluer la recherche selon les nouvelles infractions, le contact
-  visuel et le temps sans nouvelle observation. Afficher clairement au joueur
-  l'alerte et son évolution, et définir les conséquences d'une interpellation.
-- Borner le nombre d'unités, le routage et les fréquences de décision au
-  voisinage utile du joueur. Valider les poursuites à pied, en voiture et avec
-  hélicoptère, les pertes de contact, les changements de tuile et le rebasage,
-  dans plusieurs pays et dans le budget I4.
+- Qualifier les poursuites prolongées à pied, en voiture et avec appui aérien,
+  les pertes de contact, les frontières de tuiles et les rebasages dans
+  plusieurs pays ; vérifier les variantes locales à l'écran.
+- Mesurer CPU, GPU, RAM/VRAM et p95/p99 des frames pendant les interventions
+  et le streaming sur la machine de référence, selon I4.
 
 ### Detail update — couche de détails manuels
 
@@ -374,10 +369,6 @@ perte visible, sur le Ryzen 7 5700U / MX450. Elle complète la cible globale I4.
   restituer la terre nue et les couleurs effectivement présentes sur place.
 - Poursuivre les vérifications de la végétation basse aux points GPS des
   photos, à heure et météo comparables, en conservant la même caméra.
-
-### Plages — compléments
-
-- Ajouter les transats séparés et les assets de maillots dédiés.
 
 ### Intérieurs, la suite
 

@@ -6,10 +6,12 @@ Original: https://www.blendswap.com/blends/view/76275
 Author: https://www.blendswap.com/users/view/Ruff
 Redistributed by Sweet Home 3D, with the original license in fordFocus.zip.
 
-Estate, SUV, off-road vehicle, sports car, truck and city bus:
+Estate, SUV, off-road vehicle, sports car, truck, city bus,
+Police nationale (police.glb) and Gendarmerie (gendarmerie.glb):
 Scopia Visual Interfaces Systems, s.l. (https://www.scopia.es) and
 Space Mushrooms / Sweet Home 3D (https://www.sweethome3d.com).
-Sources: break.zip, suv2.zip, 4x4.zip, sportive.zip, truck.zip, cityBus.zip
+Sources: break.zip, suv2.zip, 4x4.zip, sportive.zip, truck.zip, cityBus.zip,
+police-nationale.zip, gendarmerie-car.zip
 from https://www.sweethome3d.com/free-3d-models/ (Scopia collection).
 Each original archive includes LICENSE.TXT.
 

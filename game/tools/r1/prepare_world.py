@@ -88,13 +88,15 @@ def main():
              scaleMode=1,mode=0,url="ui/world.html",hotReload=False,interactive=True,renderOrder=1000),
     ]
     scene["settings"] = dict(ambient=[round(c,4) for c in sun.ambient],
-                 clearColor=[round(c,4) for c in sun.horizon_color],giEnabled=False,
+                 clearColor=[round(c,4) for c in sun.horizon_color],
+                 giEnabled=True,giVolume=1,giQuality=0,
                  fogEnabled=True,fogColor=[round(c,4) for c in sun.horizon_color],
                  fogStart=160,fogDensity=FOG_DENSITY,
-                 # Ambient already comes from the solar/weather model. Keep
-                 # the HDR sky's specular term for paint, glazing and metals.
+                 # Initial lighting; sun_cycle.js updates diffuse IBL and ambient.
                  iblEnabled=True,iblDiffuseIntensity=0.,iblSpecularIntensity=1.,
-                 aoEnabled=True,bloomEnabled=False,postProcessing=True,
+                 aoEnabled=True,bloomEnabled=True,bloomIntensity=.15,postProcessing=True,
+                 autoExposure=True,exposureKey=.18,autoExposureMin=-1.,
+                 autoExposureMax=1.5,autoExposureSpeed=1.5,
                  changeRenderingAtLoad=True,
                  # The first frame's sky, from the same series and the same
                  # rules `sun_cycle.js` then applies every frame (`r1/skies.py`).

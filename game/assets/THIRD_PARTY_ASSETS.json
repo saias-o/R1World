@@ -821,7 +821,11 @@
         "assets/models/vehicles/truck.glb",
         "assets/models/vehicles/truck_far.glb",
         "assets/models/vehicles/bus.glb",
-        "assets/models/vehicles/bus_far.glb"
+        "assets/models/vehicles/bus_far.glb",
+        "assets/models/vehicles/police.glb",
+        "assets/models/vehicles/police_far.glb",
+        "assets/models/vehicles/gendarmerie.glb",
+        "assets/models/vehicles/gendarmerie_far.glb"
       ]
     },
     {
@@ -1026,6 +1030,18 @@
       "modifications": "Kite bar removed and line ends brought onto the shoulders; painted texture replaced by five flat measured-albedo materials (red, yellow, blue and black ripstop, white lines); front at +Z (the wing is symmetric fore and aft). Geometry otherwise as downloaded.",
       "files": [
         "assets/models/external/parachute/parachute.glb"
+      ]
+    },
+    {
+      "name": "Police sounds",
+      "author": "R1World",
+      "source": "game/tools/r1/police_sounds.py",
+      "license": "CC0 1.0",
+      "licenseFile": "assets/licenses/CC0-1.0.txt",
+      "files": [
+        "assets/audio/police/siren_eu.wav",
+        "assets/audio/police/siren_us.wav",
+        "assets/audio/police/rotor.wav"
       ]
     }
   ]

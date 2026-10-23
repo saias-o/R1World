@@ -33,5 +33,15 @@
     "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/cityBus.zip",
     "sha256": "d7c529dc0f5ff8898a0d29272ba4c1110259a717d08e814985acaeb3dbde8186",
     "license": "CC-BY-3.0"
+  },
+  "police-nationale": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/police-nationale.zip",
+    "sha256": "650c1cf3bcb7ee2963a3ce3067ced4a6eb80f8d72a856883173f17d19eab7b2d",
+    "license": "CC-BY-3.0"
+  },
+  "gendarmerie-car": {
+    "url": "https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/scopia/gendarmerie-car.zip",
+    "sha256": "c9873879c7628b281971df03df390a9a06a442f13c2376cf53ca5436c403d3fb",
+    "license": "CC-BY-3.0"
   }
 }

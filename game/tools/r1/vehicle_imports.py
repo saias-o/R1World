@@ -23,6 +23,8 @@ IMPORTS = {
     'sport': ('sportive', 'scopia', 'Scopia Visual Interfaces Systems, s.l. / Space Mushrooms'),
     'truck': ('truck', 'scopia', 'Scopia Visual Interfaces Systems, s.l. / Space Mushrooms'),
     'bus': ('cityBus', 'scopia', 'Scopia Visual Interfaces Systems, s.l. / Space Mushrooms'),
+    'police': ('police-nationale', 'scopia', 'Scopia Visual Interfaces Systems, s.l. / Space Mushrooms'),
+    'gendarmerie': ('gendarmerie-car', 'scopia', 'Scopia Visual Interfaces Systems, s.l. / Space Mushrooms'),
 }
 
 MOTORCYCLES = {

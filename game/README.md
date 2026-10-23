@@ -43,6 +43,13 @@ checks require the intentionally matte vegetation ground, and bundled-asset
 checks respect `--game`. Pure tree-asset checks no longer require an OpenGL bake
 dependency just to import their helpers.
 
+The Earth scene enables Saida's camera-following dynamic GI. Standard quality uses
+its automatic device tier; Toaster disables GI, and returning to Standard
+re-enables it with the automatic tier. Scrolling retains probe history, and
+floating-origin transitions notify the engine through its double-precision
+frame transform. The sky supplies diffuse IBL, with flat ambient retained as
+a night floor. The scene also enables bloom and automatic exposure.
+
 The reference PC is the user's Ryzen 7 5700U / NVIDIA MX450 2 GiB laptop,
 with about 7.4 GiB usable RAM, connected to AC. The performance target,
 set on 9 October 2026, is sustained **30 fps at 1920 × 1080 everywhere in
@@ -672,8 +679,9 @@ because the cache cannot tell it from genuinely empty countryside.
 
 Saida's `GeometryRegistry` arena is 1 048 576 vertices and 3 145 728 indices by
 default (configurable at engine startup). Tiles get 85% of
-`ResourceManager::geometryCapacity()` (`kTileGeometryShare`); the rest is for
-shared models. `kTileVertexBudget` (120 000, `native/gen/cook.hpp`) is a soft
+`ResourceManager::geometryCapacity()` (`kTileGeometryShare`), minus the police
+reserve of 45,000 vertices / 135,000 indices; the rest is for shared models and
+private runtime geometry. `kTileVertexBudget` (120 000, `native/gen/cook.hpp`) is a soft
 generation target. The [density policy](../docs/PLAN.md) keeps dense tiles
 visitable. A neighbourhood past either resident arena
 limit is **refused, not truncated**:
@@ -2195,8 +2203,8 @@ go to `generated/motorcycle-validation/`. The portable media harness remains
 
 ### The fleet
 
-`r1/vehicle_imports.py` converts seven licensed source vehicles to GLB — compact,
-estate, SUV, off-roader, sports car, lorry, bus — and preserves two sourced
+`r1/vehicle_imports.py` converts nine licensed source vehicles to GLB — compact,
+estate, SUV, off-roader, sports car, lorry, bus, police and gendarmerie — and preserves two sourced
 motorcycles in the shared fleet manifest. The city bike and motocross bike are
 CC0 models from Innerscene, stored with pinned SHA-256 hashes in
 `data/source-assets/vehicles/motorcycles/sources.json`. Both have independent
@@ -2467,7 +2475,8 @@ and pistol, **E** reloads (an empty magazine reloads by itself).
 - **Bodies**: every passer-by and the player carry Saida's `RagdollBehaviour`
   (eleven capsules, `native/combat_kit.hpp` fits it to the Rocketbox biped's
   A-pose). A knocked-down body tumbles in Jolt, freezes once still, and the
-  living get up after 2.2 s; the dead stay until out of sight (45 s). At most
+  living get up after 2.2 s (1.4 s for the player); the dead stay until out of
+  sight (45 s). At most
   eight tumble at once (`kLiveRagdolls`); the oldest is frozen, never refused.
   A refusal by a full physics world is logged and fails the smoke.
 - **The crowd** (`gen/crowd.*`): a shot sends everyone within 55 m running, a
@@ -2475,7 +2484,9 @@ and pistol, **E** reloads (an empty magazine reloads by itself).
   slot) fights back, closing in at a run and punching every second or so.
 - **Cars**: whoever stands in the path of the player's car is thrown over the
   bonnet by the solver; a car touching the player on foot knocks him down.
-- **Player**: hurt, knocked down, he gets up where he lies; dead, he wakes
+- **Player**: each nonlethal strike triggers a physical ragdoll. Player and crowd
+  share `native/knockdown.hpp` for rest and recovery; Saida suspends their animated
+  collider until recovery completes. He gets up where he lies; dead, he wakes
   outside the nearest mapped hospital, clinic or doctor's (OSM, the interiors'
   `clinic` recipe), or where he fell when none is resident.
 - **Arms and pistol**: `TwoBoneIKModifier` reaches the punch to the target's
@@ -2496,6 +2507,55 @@ the smoke at Paris (night, no crowd: fight skipped) and at Vannes
 a passer-by knocked down came to rest in 1.7 s, a pistol round fired, then the
 drive and the walk passed). Not measured yet: frame time during a fight on the
 MX450, the look of falls and of the pistol in the hand.
+
+
+## Police
+
+The game owns dispatch, offences and pursuit (`native/police.hpp` and
+`native/police_runtime.hpp`). Saida supplies the existing character controller,
+physical vehicles, ray queries, animation, attachments and ragdolls.
+
+- The HUD shows **Recherche 0–100%**, without stars. Witnessed assaults,
+  killings, gunshots, theft, collisions and repeated dangerous driving raise
+  it. Civilian witnesses and officers need line of sight to identify the player.
+- Up to four two-officer patrols follow the resident OSM lane graph, preferring
+  mapped police/gendarmerie stations. Quiet patrols also walk nearby pavements.
+  Pursuing cars brake for obstacles; officers dismount near a stopped suspect,
+  chase on foot and can return to their vehicle. Off-road destinations use the
+  nearest reachable roadside point, where officers dismount however far the
+  suspect stands from the road. A pursuit spawns the car with the shortest
+  drive to the closest reachable roadside; a refused dispatch is logged with
+  its reason and shown on the HUD. Officers on a foot patrol re-board when
+  called to a distant pursuit. Routing joins streamed graph
+  seams and keeps different bridge heights separate.
+- Minor offences lead to arrest after 2.5 seconds stopped within reach. The
+  player is released outside the nearest resident station, when one exists,
+  with ammunition confiscated. Violent offences or 40% alert authorize gunfire;
+  physical raycasts resolve hits, cover and vehicle protection. Officers use
+  the crowd/player humanoid factory and shared knockdown/recovery policy.
+- At **100%**, a helicopter approaches, circles the last known position and
+  searches with a spotlight and fires through the same cover-aware hitscan as
+  ground officers. New visual contact updates dispatch; losing sight
+  starts a search of the recorded area. After 12 seconds unseen the bar falls
+  at 0.8 points/second; aerial support withdraws below 60%.
+- France uses Scopia's textured Police nationale and Gendarmerie cars, imported
+  through the existing vehicle pipeline: four independent wheels and Near/Far
+  LODs, **7,755 shared vertices** together. Other countries use the existing
+  estate with localized markings; labels, equipment colours and siren profiles
+  are game content. Each car owns a spatial siren; rotor sound follows the
+  helicopter. Original synthesized sirens/rotor audio are CC0.
+- Population, planning frequency and geometry are bounded. The game reserves
+  45,000 vertices for response assets/equipment and private car geometry;
+  optional building LOD uploads also respect actual and pending arena use.
+  Death or completed geographic travel clears the local pursuit.
+
+`R1WORLD_POLICE_SMOKE=1` with `--smoke` runs the physical patrol, escalation,
+helicopter, dismount, shooting, officer ragdoll/recovery and arrest scenario.
+`R1WORLD_POLICE_CAPTURE=<png>` captures the armed response after its first hit.
+The pursuit test keeps the player's original position, escalates gradually,
+and requires both ground and aerial gunfire to reach him. The earlier Vannes
+fixture placed the player beside a patrol and did not prove dispatch arrival.
+Sustained frame times and country-specific pursuit qualification remain open.
 
 ## Physics
 

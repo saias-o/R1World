@@ -602,7 +602,8 @@ function refreshSun() {
     node.setProperty("intensity", light.intensity);
 
     const sky = skyLight(light.sun.elevation);
-    scene.setSetting("ambientLight", sky.ambient);
+    // HDR diffuse supplies daylight; retain flat ambient only as a night floor.
+    scene.setSetting("ambientLight", sky.ambient.map(function (c) { return c * (1.0 - sky.daylight); }));
     // The horizon band is what shows behind the sky, and the fog's colour
     // until the sky has loaded: the scene's fogSkyColor then has the engine
     // take the fog from the sky as rendered (photograph and storm clouds), so
@@ -613,9 +614,8 @@ function refreshSun() {
     scene.setSetting("fogScaleHeight", AEROSOL_SCALE_HEIGHT);
     scene.setSetting("fogRayleigh", RAYLEIGH);
     scene.setSetting("fogRayleighScaleHeight", PRESSURE_SCALE_HEIGHT);
-    // Ambient above supplies the diffuse sky light. The HDR environment
-    // supplies view-dependent PBR reflections without a second diffuse wash.
-    scene.setSetting("iblDiffuseIntensity", 0);
+    // The skies' Sun is painted out (skies.json sunRemovedDegrees).
+    scene.setSetting("iblDiffuseIntensity", sky.iblIntensity);
     scene.setSetting("iblSpecularIntensity", sky.iblIntensity);
 
     const dome = skyState(light, sky.horizonColor);
