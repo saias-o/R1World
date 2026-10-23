@@ -8,6 +8,54 @@
 
 using namespace r1;
 
+TEST(Crowd, car_occupant_runs_from_the_live_player_without_sidewalks_or_population) {
+    WalkGraph graph;
+    Crowd crowd; crowd.reset(&graph, 5, {{1, 3}});
+    const int slot = crowd.escapeVehicle({2, 4, 0}, {0, 0});
+    CHECK(slot >= 0);
+    Crowd::Scene scene; scene.playerX = scene.playerZ = 0;
+    for (int i = 0; i < 30; ++i) crowd.update(1. / 30, scene);
+    const auto& w = crowd.walkers()[size_t(slot)];
+    CHECK(w.alive && w.activity == Activity::Panic);
+    NEAR(w.x, 5, 1e-6); NEAR(w.y, 4, 1e-6);
+    CHECK(std::string(clipOf(w.activity)) == "run");
+    scene.playerX = 10;
+    crowd.update(1, scene);
+    NEAR(w.x, 2, 1e-6); // turns away when overtaken
+    crowd.scare(10, 0, 55, 10);
+    CHECK(w.alive); // another round must not require a sidewalk
+    CHECK(crowd.knockDown(size_t(slot)));
+    crowd.update(1, scene);
+    NEAR(w.x, 2, 1e-6);
+    CHECK(crowd.getUp(size_t(slot), 2, 4, 0, 0));
+    crowd.update(1, scene);
+    CHECK(w.alive && w.activity == Activity::Panic && w.x < 2);
+}
+
+TEST(Crowd, fleeing_occupants_use_engine_positions_and_bounded_reusable_slots) {
+    WalkGraph graph;
+    Crowd crowd; crowd.reset(&graph, 5, {{1, 3}});
+    for (size_t i = 0; i < Crowd::kVehicleEscapeSlots; ++i)
+        CHECK(crowd.escapeVehicle({2, 0, double(i)}, {0, 0}) >= 0);
+    CHECK(crowd.escapeVehicle({2, 0, 0}, {0, 0}) == -1);
+    Crowd::Scene scene; scene.playerX = scene.playerZ = 0;
+    size_t moves = 0;
+    scene.moveEscape = [&](size_t, P3 velocity, double dt) {
+        CHECK(velocity.x > 0 && velocity.y < 0 && dt > 0);
+        ++moves;
+        return P3{2, .25, 1}; // a wall stops the requested horizontal movement
+    };
+    crowd.update(.1, scene);
+    CHECK(moves == Crowd::kVehicleEscapeSlots);
+    const auto& w = crowd.walkers()[1];
+    NEAR(w.x, 2, 1e-6); NEAR(w.y, .25, 1e-6); NEAR(w.z, 1, 1e-6);
+    scene.eyeX = 1000;
+    crowd.update(.1, scene);
+    CHECK(crowd.live() == 0);
+    CHECK(crowd.escapeVehicle({2, 0, 0}, {0, 0}) == 1);
+    CHECK(crowd.walkers().size() == 1 + Crowd::kVehicleEscapeSlots);
+}
+
 namespace {
 OsmWay way(int64_t id, std::vector<P2> points, Tags tags) { return OsmWay{id, std::move(points), std::move(tags)}; }
 

@@ -261,7 +261,7 @@ constexpr size_t kPolarTiles=12;
 constexpr uint32_t kTileStaticBodies=1536;
 // Its moving ones: a traffic slot keeps its car's box once used, a crowd slot
 // its person's capsule, each at most the whole neighbourhood's share.
-constexpr uint32_t kTileMovingBodies=uint32_t(kTrafficCars+kCrowdPeople);
+constexpr uint32_t kTileMovingBodies=uint32_t(kTrafficCars+kCrowdPeople+r1::Crowd::kVehicleEscapeSlots);
 // The ring near a pole, plus the tile kept under the player through a teleport.
 constexpr uint32_t kResidentTiles=uint32_t(kPolarTiles)+1;
 // Two open interiors of at most 128 fixtures each (gen/interior_uses.cpp) with
@@ -509,6 +509,9 @@ PreparedTile prepareTile(const r1::CookedTile& tile) {
     }
     return prepared;
 }
+
+// Ownership follows the vehicle node through traffic handoffs and parking.
+struct VehicleOccupant : saida::Behaviour { bool escaped=false; };
 
 // One of the crowd, as drawn: a pooled node with its own animator, the
 // shared meshes of one avatar under it (World::makePerson). Over the clip,
@@ -993,7 +996,8 @@ class World : public Rml::EventListener {
     // said once each (CLAUDE.md rule 3), and a failed smoke.
     size_t bodiesRefused=0;
     bool makePerson(Loaded& tile,size_t slot,Person& person) {
-        return makePerson(*tile.node,tile.humanKinds[slot%tile.humanKinds.size()],person);
+        return makePerson(*tile.node,tile.humanKinds[slot%tile.humanKinds.size()],person,
+                          slot<tile.crowd.walkers().size()&&tile.crowd.walkers()[slot].escapedVehicle);
     }
     bool makePerson(saida::Node& parent,size_t selected,Person& person,bool controlled=false) {
         HumanKind* kind=humanKind(selected);
@@ -1096,7 +1100,7 @@ class World : public Rml::EventListener {
             auto found=loaded.find(tile.key());
             if(found==loaded.end())continue;
             Loaded& l=found->second;
-            if(l.walks.links.empty())continue;
+            if(l.walks.links.empty()&&l.crowd.live()==0)continue;
             const glm::dvec3 eye=cameraTileLocal(l);
             if(std::hypot(eye.x-l.crowdEyeX,eye.z-l.crowdEyeZ)>=8.) {
                 l.crowdEyeX=eye.x;l.crowdEyeZ=eye.z;
@@ -1107,6 +1111,15 @@ class World : public Rml::EventListener {
             remaining-=share;
             l.crowd.setPopulation(int(share));
             r1::Crowd::Scene scene;
+            scene.moveEscape=[&l](size_t slot,r1::P3 velocity,double dt) {
+                const auto& w=l.crowd.walkers()[slot];
+                if(slot>=l.people.size()||!l.people[slot].node)return r1::P3{w.x,w.y,w.z};
+                auto* body=static_cast<saida::CharacterBodyNode*>(l.people[slot].body);
+                const auto worldVelocity=glm::mat3(l.node->worldTransform())*glm::vec3(velocity.x,velocity.y,velocity.z);
+                const auto end=body->moveAndSlide(worldVelocity,float(dt));
+                const auto local=glm::inverse(l.node->worldTransform())*glm::vec4(end,1);
+                return r1::P3{local.x,local.y,local.z};
+            };
             scene.crossingAllowed=[this,&l](size_t link) {
                 const auto& crossing=l.walks.links[link];
                 const auto& start=l.walks.nodes[crossing.a];const auto& end=l.walks.nodes[crossing.b];
@@ -1239,7 +1252,7 @@ class World : public Rml::EventListener {
             if(personDown(tile,i,p,w,dt))continue;
             // Off the paths -- going for the player, back to a path after a
             // fall -- they walk on the ground itself.
-            double y=r1::Crowd::offGraph(w)?groundUnder(tile,w.x,w.z,w.y):w.y;
+            double y=r1::Crowd::offGraph(w)&&!w.escapedVehicle?groundUnder(tile,w.x,w.z,w.y):w.y;
             if(w.activity==r1::Activity::Sit)y-=crowdKinds[p.kind].seatDrop;
             p.node->transform().position=glm::vec3(float(w.x),float(y),float(w.z));
             // A body turns rather than snaps: round a corner, or round to
@@ -1777,6 +1790,97 @@ class World : public Rml::EventListener {
         strikePerson(*t,punchSlot,punch.damage(),d,point,float(r1::combat::kFists.impulse*(punch.hook()?1.6:1.)),punch.hook());
     }
 
+    bool evacuateVehicle(saida::CollisionObjectNode& hitBody) {
+        auto* root=hitBody.parent();
+        if(!root||(root==car&&driving))return false;
+        for(const auto& unit:policeUnits)if(unit.car==root)return false;
+        const auto& spec=vehicleSpec(*root);
+        if(r1::motorcycle(spec.name))return false;
+        auto* occupant=root->getBehaviour<VehicleOccupant>();
+        if(occupant&&occupant->escaped)return false;
+        size_t escaped=0;
+        for(const auto& [key,t]:loaded)for(const auto& w:t.crowd.walkers())escaped+=w.alive&&w.escapedVehicle;
+        if(escaped>=r1::Crowd::kVehicleEscapeSlots) {
+            saida::Log::warn("[World combat] vehicle exit deferred: all eight fleeing occupant slots are occupied");
+            return false;
+        }
+        auto* physics=engine.sceneTree().world().physics();if(!physics)return false;
+        r1::VehicleRuntime::synchronize(*root);
+        root->updateTransforms(root->parent()->worldTransform(),true);
+        const auto center=glm::vec3(root->worldTransform()[3]);
+        const auto rotation=glm::normalize(glm::quat_cast(glm::mat3(root->worldTransform())));
+        const auto threat=policePlayerPosition();
+        const r1::VehicleDimensions dimensions{float(spec.length),float(spec.width),float(spec.height),float(spec.wheelbase),float(spec.wheelRadius)};
+        auto side=rotation*glm::vec3(1,0,0);side.y=0;
+        if(glm::length(side)<.01f)side={1,0,0};else side=glm::normalize(side);
+        if(glm::dot(side,threat-center)>0)side=-side;
+        for(float sign:{1.f,-1.f}) {
+            auto at=center+r1::VehicleRuntime::exitOffset(dimensions,rotation,side*sign);
+            at.y=sceneGround(at)+.05f;
+            bool clear=true;
+            for(float height:{.25f,float(playerHeight*.5),float(playerHeight-.2)})
+                if(!physics->overlapSphere(at+glm::vec3(0,height,0),float(r1::Crowd::kBodyRadius)).empty())clear=false;
+            if(!clear)continue;
+            const auto point=origin.origin+origin.basis*glm::dvec3(at);
+            const auto geo=r1::ecefToGeodetic(point.x,point.y,point.z);
+            auto* t=tile(geo.x,geo.y);if(!t||t->humanKinds.empty())continue;
+            const auto local=t->frame.local(point);
+            const auto fear=t->frame.local(origin.origin+origin.basis*glm::dvec3(threat));
+            const int slot=t->crowd.escapeVehicle({local.x,local.y,local.z},{fear.x,fear.z});
+            if(slot<0)continue;
+            if(t->people.size()<t->crowd.walkers().size())t->people.resize(t->crowd.walkers().size());
+            auto& person=t->people[size_t(slot)];
+            person.fall.release();person.shown=false;person.clip="";person.punch=-1;
+            syncPeople(*t,cameraTileLocal(*t),0,nullptr);
+            if(person.node)person.node->updateTransforms(t->node->worldTransform(),true);
+            if(!occupant)occupant=root->addBehaviour<VehicleOccupant>();
+            occupant->escaped=true;
+            if(auto* drive=r1::VehicleRuntime::driver(*root))drive->parked=true;
+            for(auto& [key,source]:loaded)for(size_t i=0;i<source.cars.size();++i)
+                if(source.cars[i]==root&&trafficSlotLive(source,i))preserveTrafficCar(source,i);
+            saida::Log::info("[World combat] occupant fled from ",spec.name);
+            return true;
+        }
+        saida::Log::warn("[World combat] vehicle exit deferred: neither door has clear ground");
+        return false;
+    }
+
+    int escapeSmokePhase=0; double escapeSmokeTime=0,escapeSmokeDistance=0;
+    std::string escapeSmokeTile; size_t escapeSmokeSlot=0;
+    void runVehicleEscapeSmoke(double dt) {
+        escapeSmokeTime+=dt;
+        auto fail=[&](const char* why){saida::Log::error("[World E2E] FAIL vehicle escape: ",why);testFailed=true;engine.sceneTree().quit();};
+        if(escapeSmokePhase==0) {
+            if(!spawnSportsCar().empty()){fail("no space for the test car");return;}
+            escapeSmokePhase=1;escapeSmokeTime=0;return;
+        }
+        if(escapeSmokePhase==1) {
+            if(escapeSmokeTime<1)return;
+            auto* body=r1::VehicleRuntime::body(*parked.back().node);
+            if(!body||!evacuateVehicle(*body)){fail("hit did not release an occupant");return;}
+            if(evacuateVehicle(*body)){fail("a second hit released another occupant");return;}
+            for(const auto& [key,t]:loaded)for(size_t i=0;i<t.crowd.walkers().size();++i) {
+                const auto& w=t.crowd.walkers()[i];if(!w.alive||!w.escapedVehicle)continue;
+                const auto& p=t.people[i];
+                if(!p.node||!dynamic_cast<saida::CharacterBodyNode*>(p.body)||std::strcmp(p.clip,"run")) {
+                    fail("occupant has no running character body");return;
+                }
+                escapeSmokeTile=key;escapeSmokeSlot=i;
+                escapeSmokeDistance=glm::distance(nodePosition(*p.node),policePlayerPosition());
+            }
+            if(escapeSmokeTile.empty()){fail("no live occupant");return;}
+            escapeSmokePhase=2;escapeSmokeTime=0;return;
+        }
+        if(escapeSmokeTime<2)return;
+        auto* t=tileByKey(escapeSmokeTile);
+        if(!t||escapeSmokeSlot>=t->people.size()){fail("occupant disappeared");return;}
+        const auto& p=t->people[escapeSmokeSlot];
+        const double distance=glm::distance(nodePosition(*p.node),policePlayerPosition());
+        if(distance<escapeSmokeDistance+1){fail("occupant did not run away from the player");return;}
+        saida::Log::info("[World E2E] PASS vehicle escape: single occupant, running character, distance ",escapeSmokeDistance," -> ",distance);
+        engine.sceneTree().quit();
+    }
+
     void fire() {
         const auto result=arsenal.pull();
         if(result==r1::combat::Arsenal::Trigger::Empty){sounds.play(r1::CombatSounds::DryFire);if(arsenal.reloading())sounds.play(r1::CombatSounds::Reload,0,.8f);return;}
@@ -1822,6 +1926,7 @@ class World : public Rml::EventListener {
         }
         auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body));
         if(node&&node->name()==r1::VehicleRuntime::kBodyName) {
+            evacuateVehicle(*node);
             effects.burst(r1::CombatEffects::Sparks,hit.point);
             if(auto* dent=node->getBehaviour<saida::DeformableMeshBehaviour>()) {
                 const glm::mat4 toBody=glm::inverse(node->worldTransform());
@@ -6810,6 +6915,7 @@ private:
             tile.cars[i]->setEnabled(true);
             const auto& agent=agents[i];
             if(tile.carIdentities[i]!=agent.identity) {
+                if(auto* occupant=tile.cars[i]->getBehaviour<VehicleOccupant>())occupant->escaped=false;
                 r1::VehicleRuntime::reset(*tile.cars[i]);tile.carIdentities[i]=agent.identity;
                 const auto& dimensions=fleet[tile.carKinds[i]];
                 tile.flow.setVehicleDimensions(i,float(dimensions.length),float(dimensions.width));
@@ -9949,6 +10055,7 @@ public:
             }
             if(perfSmoke.empty()||perfReady){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
             else f=r=0;
+            if(std::getenv("R1WORLD_TEST_VEHICLE_ESCAPE"))f=r=0;
             if(qualitySwitchSmoke&&perfReady&&qualitySwitches<24) {
                 qualitySwitchWait+=delta;
                 if(qualitySwitchWait>=2.) {
@@ -10501,6 +10608,7 @@ public:
             text("stream-status",std::to_string(loaded.size())+" active tiles"+mode
                  +(physicsRefused?" · collisions incomplete: the physics world is full":""));
         }
+        if(smoke&&std::getenv("R1WORLD_TEST_VEHICLE_ESCAPE")&&smokeWalk>2){runVehicleEscapeSmoke(delta);return;}
         if(policeSmoke){runPoliceSmoke(delta);return;}
         if(performanceSmoke){runPerformanceSmoke(delta);return;}
         if(smokeFighting){runSmokeFight(dt);return;}

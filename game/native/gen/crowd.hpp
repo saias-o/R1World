@@ -96,6 +96,7 @@ struct Walker {
     uint32_t attacks = 0;
     double attackTimer = 0, fightTimer = 0, downTimer = 0;
     double fearX = 0, fearZ = 0;  // what Panic runs from
+    bool escapedVehicle = false; // reserved slot: runs off-road from the live player
 };
 
 struct CrowdPace { double walk = 1.0, run = 2.4; };  // m/s, as drawn
@@ -115,10 +116,17 @@ public:
         double playerX = 1e9, playerZ = 1e9, playerVX = 0, playerVZ = 0;
         double carX = 1e9, carZ = 1e9, carSpeed = 0;
         std::function<bool(size_t)> crossingAllowed;
+        // Optional engine character movement, in the tile frame. Headless
+        // simulation integrates the same velocity directly.
+        std::function<P3(size_t, P3, double)> moveEscape;
     };
     void update(double dt, const Scene& scene);
     const std::vector<Walker>& walkers() const { return walkers_; }
     int live() const;
+    static constexpr size_t kVehicleEscapeSlots = 8;
+    // Explicit, visible spawn beside a door, independent of ambient density
+    // and walk graphs. Returns the reserved slot, or -1 when all are occupied.
+    int escapeVehicle(P3 position, P2 threat);
 
     // The player ran into walker `slot` -- a contact the engine's physics
     // found -- along (dirX, dirZ), from him toward them, closing at `speed`

@@ -2484,6 +2484,18 @@ and pistol, **E** reloads (an empty magazine reloads by itself).
   slot) fights back, closing in at a run and punching every second or so.
 - **Cars**: whoever stands in the path of the player's car is thrown over the
   bonnet by the solver; a car touching the player on foot knocks him down.
+  A bullet hitting a civilian car releases one occupant beside a clear door.
+  The car leaves traffic and brakes to a stop; further hits do not create more
+  occupants. The existing crowd avatar runs away from the player's current
+  position, including on roads without sidewalks, using the engine's character
+  collisions. Up to eight fleeing occupants are active at once; they clear
+  beyond 150 m, or out of sight after escaping the player's vicinity. Motorcycles
+  and police retain their existing behavior. `r1test Crowd` covers the escape
+  rules; `R1WORLD_TEST_VEHICLE_ESCAPE=1` with `--smoke` checks the rendered actor,
+  repeated hits and increasing distance from the player.
+  Verified on 23 October 2026: optimized game build, 25 crowd tests and the
+  offline Paris escape smoke pass; the occupant moves from 4.94 m to 8.68 m
+  from the stationary player in two seconds, with no second occupant.
 - **Player**: each nonlethal strike triggers a physical ragdoll. Player and crowd
   share `native/knockdown.hpp` for rest and recovery; Saida suspends their animated
   collider until recovery completes. He gets up where he lies; dead, he wakes

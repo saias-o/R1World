@@ -446,6 +446,25 @@ int Crowd::live() const {
     return n;
 }
 
+int Crowd::escapeVehicle(P3 position, P2 threat) {
+    if (!graph_ || pace_.empty()) return -1;
+    const size_t first = pace_.size();
+    walkers_.resize(std::max(walkers_.size(), first + kVehicleEscapeSlots));
+    for (size_t i = first; i < first + kVehicleEscapeSlots; ++i) {
+        if (walkers_[i].alive) continue;
+        Walker w;
+        w.alive = w.escapedVehicle = true;
+        w.activity = Activity::Panic;
+        w.x = position.x; w.y = position.y; w.z = position.z;
+        w.fearX = threat.x; w.fearZ = threat.y;
+        w.heading = std::atan2(w.x - threat.x, threat.y - w.z);
+        w.timer = 12;
+        walkers_[i] = w;
+        return int(i);
+    }
+    return -1;
+}
+
 void Crowd::stand(Walker& w, double lo, double hi) {
     const double r = random();
     w.activity = r < 0.45 ? Activity::Idle : r < 0.75 ? Activity::Phone : Activity::Wait;
@@ -636,7 +655,7 @@ void Crowd::runFrom(Walker& w, double x, double z, double seconds) {
             w.forward = !w.forward;
             w.along = l.length - w.along;
         }
-    } else if (w.target < 0) {
+    } else if (w.target < 0 && !w.escapedVehicle) {
         w.target = nearestNode(w.x, w.z, 40.0);
         if (w.target < 0) { w.alive = false; return; }
     }
@@ -688,7 +707,7 @@ bool Crowd::getUp(size_t slot, double x, double y, double z, double heading) {
     w.x = x; w.y = y; w.z = z; w.heading = heading;
     w.link = -1; w.offX = w.offZ = 0; w.dodge = w.dodgeWanted = 0;
     w.target = nearestNode(x, z, 40.0);
-    if (w.target < 0) { w.alive = false; return false; }
+    if (w.target < 0 && !w.escapedVehicle) { w.alive = false; return false; }
     w.activity = Activity::Walk;
     provoke(slot);
     return true;
@@ -829,13 +848,33 @@ void Crowd::update(double dt, const Scene& scene) {
         }
         // Too far, or more people than the hour wants: gone, out of sight.
         const bool surplus = int(i) >= wanted_;
-        if (far > kDespawn || (surplus && behind && w.activity != Activity::Fight)) {
+        if (far > kDespawn || (surplus && behind && w.activity != Activity::Fight &&
+                              (!w.escapedVehicle || w.timer <= 0))) {
             if (w.seat >= 0) seatTaken_[w.seat] = -1;
             if (w.partner >= 0 && w.partner < int(walkers_.size())) walkers_[w.partner].partner = -1;
             w.alive = false;
             continue;
         }
         const CrowdPace& pace = pace_[i % pace_.size()];
+        if (w.escapedVehicle) {
+            // Keep fleeing even without a sidewalk, and turn away again if
+            // the player pursues or overtakes this person.
+            if (scene.playerX < 1e8) { w.fearX = scene.playerX; w.fearZ = scene.playerZ; }
+            else if (scene.carX < 1e8) { w.fearX = scene.carX; w.fearZ = scene.carZ; }
+            double dx = w.x - w.fearX, dz = w.z - w.fearZ;
+            const double gap = std::hypot(dx, dz);
+            if (gap > 1e-6) { dx /= gap; dz /= gap; }
+            else { dx = std::sin(w.heading); dz = -std::cos(w.heading); }
+            w.activity = Activity::Panic;
+            w.timer = gap < 35 ? 12 : std::max(0., w.timer - dt);
+            w.heading = std::atan2(dx, -dz);
+            const P3 velocity{dx * pace.run, -3, dz * pace.run};
+            if (scene.moveEscape) {
+                const auto at = scene.moveEscape(i, velocity, dt);
+                w.x = at.x; w.y = at.y; w.z = at.z;
+            } else { w.x += velocity.x * dt; w.z += velocity.z * dt; }
+            continue;
+        }
         if (w.activity == Activity::Fight) {
             fight(w, dt, pace);
             if (!w.alive) continue;
