@@ -2464,9 +2464,10 @@ and 4 Hz, held in between (`Animator::setPoseRate(hz, PoseRateMode::Hold)`).
 
 ## The fight (Fun update, 13 October 2026)
 
-Fists and a pistol, in the spirit of GTA III. **Clic** punches or fires,
-**clic droit** aims the pistol over the right shoulder, **1 / 2** switch fists
-and pistol, **E** reloads (an empty magazine reloads by itself).
+Fists, a pistol and a rocket launcher, in the spirit of GTA III. **Click**
+punches or fires, **right click** aims over the right shoulder, **1 / 2 / 3**
+select fists, pistol and rocket launcher, **E** reloads (an empty magazine
+reloads by itself).
 
 - **Rules** (`native/combat.hpp`, `r1test Combat`): 100 health; punches of
   14, the third of a combo a hook (x1.8) that knocks down; a 17-round pistol,
@@ -2521,6 +2522,62 @@ drive and the walk passed). Not measured yet: frame time during a fight on the
 MX450, the look of falls and of the pistol in the hand.
 
 
+### Rocket Update — 25 October 2026
+
+- **Launcher model:** a shared 32-sided olive tube with closed bevelled rims,
+  an interior bore, flared exhaust, metal fittings, rubber shoulder pad and
+  grips, trigger guard, optical sight and identification bands. Separate PBR
+  finishes distinguish painted tube, machined metal, rubber and glass. The
+  player holds it at the shoulder, with both palm contacts solved from the rig;
+  downward aim keeps the support hand within reach. The muzzle position is
+  shared by the model and the projectile launch code.
+- **On foot:** select **3**, aim with the mouse/right click and fire with left
+  click. A 1.5 m rocket flies at 85 m/s; one loaded rocket and twelve in reserve,
+  independent of pistol ammunition. Reloading takes 2.4 seconds. Arrest
+  confiscates both ammunition stocks. The existing `rocket` cheat still spawns
+  the motocross bike; `buzzoff` spawns a helicopter.
+- **Helicopter:** taking the controls selects the launcher. Left click fires
+  from beside the belly toward the camera crosshair; **3** selects it again and
+  **E** reloads. The rocket ignores the aircraft that launched it. Aircraft
+  hulls now use Saida kinematic collision bodies, including police air support.
+- **Impact:** continuous segment ray queries prevent fast rockets skipping thin
+  walls. A hit produces one explosion, with damage falling from 180 at its centre
+  to zero at 14 m; physical cover blocks blast damage. Direct vehicle hits and
+  exposed vehicles within 6 m are destroyed. Occupants of the player's car or
+  aircraft are ejected before ownership and collision are removed, taking 55
+  damage and a knockdown. Invincibility preserves health, but still ejects.
+- **SaidaFX:** pooled GPU particle systems layer an expanding fireball, rising
+  smoke, streaking sparks and an outward dust ring. A brief light pulse,
+  distance-scaled camera shake (disabled in VR), exhaust trail and two original
+  synthesized sounds complete the effect. These use supported SaidaFX nodes;
+  the dust ring is particles, not screen-space distortion. Twelve projectiles
+  and six explosion groups bound the effect budget. Rockets expire harmlessly
+  after six seconds; geographic travel and pursuit reset clear active rockets.
+- **Police:** below 100% alert, patrols, officers and helicopters start with
+  normal gunfire. Rockets become an option from 60% only after twelve seconds
+  of unsuccessful gunfire; their share then rises over ninety seconds, weighted
+  by the fourth power of the wanted fraction. A bullet hitting the player resets
+  that pressure; losing contact reduces it. At **100% alert, every attack uses
+  rockets**, including against a player on foot. Weapon choices persist through
+  the aiming delay and never reroll each frame. Launch requires
+  continuous sight for 1.4 s, at least 24 m separation, a clear predicted path
+  and no friendly unit inside the predicted blast. Reloads take 7 s on the ground
+  and 5.5 s in the air. Losing sight or changing target vehicle resets the lock.
+  Launches across all units are spaced by at least 3 s (1.5 s at 100%) to prevent
+  simultaneous salvos. Destroyed air support waits 20 s before replacement.
+- **Motorcycle exposure:** a police bullet hitting the compact motorcycle
+  chassis also hits its exposed rider for 12 health. A knockdown detaches the
+  rider before activating the ragdoll and carries over the motorcycle's velocity.
+  Closed cars retain their bodywork protection; the invincibility cheat still
+  protects health intentionally.
+
+Rules and ammunition checks: `r1test Rocket`, `r1test Combat`, `r1test Police`.
+`R1WORLD_ROCKET_SMOKE=1` with `--smoke` exercises a thin wall impact, player
+shots on foot and aboard a helicopter, real police aerial fire, pilot ejection,
+and car destruction with no duplicate impact. `R1WORLD_ROCKET_CAPTURE=<png>`
+captures the final car explosion. Validation results are recorded in
+`docs/ROCKET_UPDATE.md`; the 30 fps target on MX450 remains to be measured.
+
 ## Police
 
 The game owns dispatch, offences and pursuit (`native/police.hpp` and
@@ -2546,8 +2603,9 @@ physical vehicles, ray queries, animation, attachments and ragdolls.
   physical raycasts resolve hits, cover and vehicle protection. Officers use
   the crowd/player humanoid factory and shared knockdown/recovery policy.
 - At **100%**, a helicopter approaches, circles the last known position and
-  searches with a spotlight and fires through the same cover-aware hitscan as
-  ground officers. New visual contact updates dispatch; losing sight
+  searches with a spotlight and shares the progressive weapon selection of
+  ground officers: exclusively rockets at 100%, then gunfire and occasional
+  rockets as the wanted level falls. New visual contact updates dispatch; losing sight
   starts a search of the recorded area. After 12 seconds unseen the bar falls
   at 0.8 points/second; aerial support withdraws below 60%.
 - France uses Scopia's textured Police nationale and Gendarmerie cars, imported

@@ -329,11 +329,14 @@ pas une fonctionnalitÃ© annoncÃ©e comme disponible dans la 0.1.
 - IntÃ©grer les monuments au mÃªme systÃ¨me en conservant leurs modÃ¨les,
   ancrages et orientations mesurÃ©s.
 
-### ROCKET UPDATE — poursuite policière en véhicule
+### ROCKET UPDATE — qualification
 
-- Quand le joueur conduit une voiture, permettre à la police de tirer des roquettes sur son véhicule.
-- À l’impact, provoquer une explosion, éjecter le joueur de la voiture et faire disparaître (despawn) le véhicule détruit.
-- Coordonner l’impact, l’éjection, l’explosion et la suppression du véhicule pour éviter les effets en double ou un véhicule encore utilisable après sa destruction.
+Le lance-roquettes du joueur, les tirs depuis les hélicoptères et les tirs
+policiers contre les véhicules sont décrits dans `game/README.md`.
+L'explosion SaidaFX, l'éjection et le retrait du véhicule partagent le même
+traitement d'impact. Les vérifications sont consignées dans
+`docs/ROCKET_UPDATE.md`. Reste à mesurer les poursuites prolongées et le coût
+des explosions sur la machine MX450 de référence.
 ### VÃ©hicules et trafic â€” extensions et qualifications
 
 - RÃ©sistances et dÃ©gÃ¢ts mÃ©caniques par piÃ¨ce : carrosserie, chÃ¢ssis, roues,
