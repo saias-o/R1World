@@ -46,6 +46,40 @@ public:
     bool searching()const{return percent>0&&unseen>2;}
 };
 
+// Escalation belongs to the pursuit, not the number of officers firing.
+// Only time under recent, unsuccessful gunfire counts; hiding cools it down.
+struct FireEscalation {
+    double unsuccessful=0, sinceShot=10;
+    void update(double dt,bool engaged) {
+        if(!(dt>0)||!std::isfinite(dt))return;
+        sinceShot+=dt;
+        if(engaged&&sinceShot<1.6)unsuccessful=std::min(102.,unsuccessful+dt);
+        else if(!engaged)unsuccessful=std::max(0.,unsuccessful-dt*.5);
+    }
+    void gunshot(bool hitPlayer) {sinceShot=0;if(hitPlayer)unsuccessful=0;}
+    double rocketShare(double wanted)const {
+        if(wanted>=100)return 1;
+        if(wanted<60)return 0;
+        const double pressure=std::clamp((unsuccessful-12.)/90.,0.,1.);
+        const double alert=std::clamp(wanted/100.,0.,1.);
+        return pressure*alert*alert*alert*alert;
+    }
+};
+// Choose once per attack, never per frame. Fractional credit spaces out rare
+// rocket attacks; a chosen rocket stays selected throughout its aiming delay.
+struct WeaponChoice {
+    double credit=0;
+    bool selected=false, heavy=false;
+    bool choose(double share) {
+        if(share<=0){selected=true;heavy=false;credit=0;return false;}
+        if(share>=1){selected=true;heavy=true;return true;}
+        if(!selected) {credit+=share;heavy=credit>=1;if(heavy)credit-=1;selected=true;}
+        return heavy;
+    }
+    void fired(){selected=false;}
+    void cancel(){selected=false;heavy=false;}
+};
+
 struct Identity {
     std::string label;
     bool redBlue=false;
