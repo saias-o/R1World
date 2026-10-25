@@ -79,6 +79,7 @@
 #include "density_policy.hpp"
 #include "combat.hpp"
 #include "combat_kit.hpp"
+#include "rocket_kit.hpp"
 #include "knockdown.hpp"
 #include "police.hpp"
 #include "cheats.hpp"
@@ -267,9 +268,9 @@ constexpr uint32_t kResidentTiles=uint32_t(kPolarTiles)+1;
 // Two open interiors of at most 128 fixtures each (gen/interior_uses.cpp) with
 // their walls, door leaves, tills and forecourt cars.
 constexpr uint32_t kInteriorBodies=2*192;
-// The player's feet and car, and the cars left standing (boats and aircraft
-// carry no collider).
-constexpr uint32_t kPlayerBodies=2+uint32_t(kAbandonedCars);
+// Feet, car, abandoned cars, flown aircraft and police air support. Boats
+// still carry no collider; rockets use queries rather than solver bodies.
+constexpr uint32_t kPlayerBodies=4+uint32_t(kAbandonedCars+kLeftAircraft);
 // Bodies thrown down at once (World::knockDown): past this, the oldest still
 // tumbling is frozen where it lies -- never refused. Eleven bodies each
 // (r1::rocketboxRagdoll), and the player's own.
@@ -1308,10 +1309,10 @@ class World : public Rml::EventListener {
     saida::GazeModifier* playerBikeLook=nullptr;
     r1::RocketboxRidingAim* playerBikeAim=nullptr;
     r1::RocketboxRidingHands* playerBikeHands=nullptr;
-    saida::Node* pistol=nullptr; saida::Transform pistolGrip;
+    saida::Node* pistol=nullptr; saida::Transform pistolGrip,launcherSupportGrip;
     float playerReach=.55f;  // shoulder to wrist, the rig's metres
     bool aiming=false,wasFire=false,wasReloadKey=false; double aimBlend=0;
-    bool wasWeaponKey[2]{};
+    bool wasWeaponKey[3]{};
     double fightClock=0,arrivalClock=0;
     bool playerDown=false,wasted=false; double downClock=0;
     // The cheat line (World::updateCheats): open, the keys are its own.
@@ -1381,6 +1382,7 @@ class World : public Rml::EventListener {
         playerFall.bind(*playerBody->addBehaviour<saida::RagdollBehaviour>(ragdollProfile),
                         *feet,r1::combat::kPlayerLieSeconds);
         if(!r1::pistolGrip(rig,pistolGrip))throw std::runtime_error("Player skeleton lacks the hand and fingers a pistol is held in");
+        if(!r1::pistolGrip(rig,launcherSupportGrip,false))throw std::runtime_error("Player skeleton lacks the launcher support hand");
         if(auto built=r1::buildPistol(engine.resources())) {
             built->addBehaviour<saida::BoneAttachmentBehaviour>("Bip01 R Hand",pistolGrip);
             pistol=playerBody->addChild(std::move(built));
@@ -1391,6 +1393,7 @@ class World : public Rml::EventListener {
         for(const char* path:{kWindSound,kFlutterSound,kOpeningSound})
             if(!saida::AudioManager::get().preload(path))
                 saida::Log::error("[World arrival] missing sound ",path," (python -m r1.arrival_sounds): the fall will be silent");
+        buildRockets();
         saida::Log::info("[World combat] ready: ",ragdollProfile.parts.size()," bodies per ragdoll, ",kLiveRagdolls,
                          " tumbling at once; arm ",playerReach," m");
     }
@@ -1536,7 +1539,7 @@ class World : public Rml::EventListener {
     // ── the player hurt ──
 
     void hurtPlayer(double damage,const glm::vec3& push,const char* by,bool knockDown=true) {
-        if(wasted||!player->enabled()||health.invincible()||health.dead()||!(damage>0))return;
+        if(wasted||(!player->enabled()&&!ridingBike())||health.invincible()||health.dead()||!(damage>0))return;
         const bool killed=health.take(damage);
         for(size_t i=0;i<animators.size()&&i<playerImpacts.size();++i) {
             glm::mat3 body(animators[i]->node()->worldTransform());
@@ -1550,6 +1553,14 @@ class World : public Rml::EventListener {
     }
     // Off his feet: the ragdoll takes his body, his feet leave the physics.
     void knockPlayerDown(const glm::vec3& velocity,const glm::vec3& spin,bool killed) {
+        glm::vec3 ridingVelocity(0);
+        if(ridingBike()) {
+            if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())
+                ridingVelocity=body->physicsWorld()->linearVelocity(body->bodyId());
+            // Restore the avatar's normal parent and release the handlebar/leg
+            // pose before activating its ragdoll. Keep the bike's momentum.
+            leaveCar();
+        }
         if(playerDown) {
             if(killed){wasted=true;downClock=0;showWasted(true);}
             if(playerFall.activate())playerFall.ragdoll()->applyImpulse(velocity*ragdollProfile.mass,downAnchor());
@@ -1557,7 +1568,7 @@ class World : public Rml::EventListener {
         }
         if(aiming)setAiming(false);
         for(auto* arm:playerArms)if(arm)arm->release();
-        if(!beginFall(playerFall,velocity,spin,"player")) {
+        if(!beginFall(playerFall,velocity+ridingVelocity,spin,"player")) {
             if(killed){wasted=true;playerDown=true;downClock=0;showWasted(true);}
             return;
         }
@@ -1656,6 +1667,7 @@ class World : public Rml::EventListener {
 
     void showHeldPistol() {
         if(pistol)pistol->setVisible(arsenal.held()==r1::combat::Weapon::Pistol&&(!playerBikeRider||aiming));
+        if(launcher)launcher->setVisible(arsenal.held()==r1::combat::Weapon::RocketLauncher&&!playerBikeRider);
     }
     void setAiming(bool on) {
         aiming=on;
@@ -1668,7 +1680,7 @@ class World : public Rml::EventListener {
         if(arsenal.held()==wanted)return;
         arsenal.select(wanted);
         showHeldPistol();
-        if(wanted!=r1::combat::Weapon::Pistol&&aiming)setAiming(false);
+        if(wanted==r1::combat::Weapon::Fists&&aiming)setAiming(false);
     }
     // The physics filter of a shot or a punch: everything but his own feet.
     saida::QueryFilter combatFilter() const {
@@ -1945,7 +1957,7 @@ class World : public Rml::EventListener {
 
     // The arms each frame: the aim holds the pistol on the crosshair, a punch
     // reaches for its target, and both ease out when done.
-    void poseArms() {
+    void poseArms(const glm::vec3* inspectionLook=nullptr) {
         auto* animator=animators.front();
         if(!animator||!playerBody)return;
         const glm::mat4 toObject=glm::inverse(playerBody->worldTransform());
@@ -1954,8 +1966,9 @@ class World : public Rml::EventListener {
         const int shoulderBone[2]={rig.findBoneIndex("Bip01 L UpperArm"),rig.findBoneIndex("Bip01 R UpperArm")};
         if(shoulderBone[0]<0||shoulderBone[1]<0||pose.size()<rig.boneCount())return;
         const glm::vec3 shoulder[2]={glm::vec3(pose[size_t(shoulderBone[0])][3]),glm::vec3(pose[size_t(shoulderBone[1])][3])};
-        if(aiming&&arsenal.held()==r1::combat::Weapon::Pistol) {
-            const glm::vec3 look=camera->transform().rotation*glm::vec3(0,0,-1);
+        if(playerBikeHands)playerBikeHands->hold(ridingBike()||arsenal.held()==r1::combat::Weapon::RocketLauncher);
+        if((aiming||arsenal.held()==r1::combat::Weapon::RocketLauncher)&&arsenal.held()!=r1::combat::Weapon::Fists) {
+            const glm::vec3 look=inspectionLook?*inspectionLook:camera->transform().rotation*glm::vec3(0,0,-1);
             glm::vec3 aim=glm::normalize(glm::vec3(toObject*glm::vec4(look,0.f)));
             if(ridingBike()){playerBikeAim->lookAt(aim);playerBikeLook->lookAt(shoulder[1]+aim*100.f);}
             const glm::vec3 up(0,1,0);
@@ -1967,6 +1980,27 @@ class World : public Rml::EventListener {
             const glm::vec3 top=glm::cross(aim,side);
             glm::mat3 gun;gun[0]=side;gun[1]=top;gun[2]=aim;
             const glm::quat hand=glm::normalize(glm::quat_cast(gun)*glm::inverse(pistolGrip.rotation));
+            if(arsenal.held()==r1::combat::Weapon::RocketLauncher) {
+                // Shoulder-fired stance: solve palm contacts, not wrist points.
+                // Keeping both hands within reach prevents IK clamping from
+                // pulling the foregrip out of the support hand when aiming down.
+                glm::vec3 origin=shoulder[1]+aim*(playerReach*.38f)-top*.12f-side*.025f;
+                const auto supportRotation=glm::normalize(glm::quat_cast(gun)*glm::inverse(launcherSupportGrip.rotation));
+                if(!ridingBike()) {
+                    const auto left=origin+gun*r1::kLauncherSupport-supportRotation*launcherSupportGrip.position;
+                    const auto delta=left-shoulder[0];
+                    const float reach=playerReach*.94f,distance=glm::length(delta);
+                    if(distance>reach)origin-=delta*((distance-reach)/distance);
+                }
+                playerArms[1]->reach(origin-hand*pistolGrip.position);
+                playerArms[1]->setTipRotation(hand);
+                playerArms[1]->setPole(shoulder[1]-side*.35f-top*.55f);
+                if(ridingBike())return;
+                playerArms[0]->reach(origin+gun*r1::kLauncherSupport-supportRotation*launcherSupportGrip.position);
+                playerArms[0]->setTipRotation(supportRotation);
+                playerArms[0]->setPole(shoulder[0]+side*.25f-top*.6f);
+                return;
+            }
             playerArms[1]->reach(grip);playerArms[1]->setTipRotation(hand);
             playerArms[1]->setPole(shoulder[1]-side*.4f-top*.5f+aim*.12f);
             // Riders keep their left hand on the handlebar.
@@ -2043,12 +2077,14 @@ class World : public Rml::EventListener {
         recoil=std::max(0.,recoil-dt*2.2);
         arsenal.update(dt);
         effects.update(float(dt));
+        updateRockets(dt);
         runOverPeople(dt);
         if(playerDown)updatePlayerDown(dt);
         const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown&&player->enabled();
         const bool onBike=ridingBike()&&playerBikeRider&&!playerDown;
+        const bool inHelicopter=piloting&&plane.helicopter()&&!playerDown;
         // In the air his arms are the arrival's (World::poseDrop): no fight.
-        if((!onFoot&&!onBike)||menu||smoke||dropFlying()) {
+        if((!onFoot&&!onBike&&!inHelicopter)||menu||smoke||dropFlying()) {
             if(aiming)setAiming(false);
             wasFire=clicked(GLFW_MOUSE_BUTTON_LEFT);
             if(!onFoot)for(auto* arm:playerArms)if(arm&&arm->weight()>0&&!playerDown)arm->release();
@@ -2056,21 +2092,26 @@ class World : public Rml::EventListener {
             if(onBike)bikeHandlePose();
             return;
         }
-        const bool keys[2]={held(GLFW_KEY_1),held(GLFW_KEY_2)};
+        const bool keys[3]={held(GLFW_KEY_1),held(GLFW_KEY_2),held(GLFW_KEY_3)};
         if(keys[0]&&!wasWeaponKey[0])selectWeapon(r1::combat::Weapon::Fists);
         if(keys[1]&&!wasWeaponKey[1])selectWeapon(r1::combat::Weapon::Pistol);
-        wasWeaponKey[0]=keys[0];wasWeaponKey[1]=keys[1];
+        if(keys[2]&&!wasWeaponKey[2])selectWeapon(r1::combat::Weapon::RocketLauncher);
+        for(int i=0;i<3;++i)wasWeaponKey[i]=keys[i];
         const bool reloadKey=held(GLFW_KEY_E);
         if(reloadKey&&!wasReloadKey&&arsenal.reload())sounds.play(r1::CombatSounds::Reload,0,.8f);
         wasReloadKey=reloadKey;
-        const bool wantAim=arsenal.held()==r1::combat::Weapon::Pistol&&clicked(GLFW_MOUSE_BUTTON_RIGHT);
+        const bool wantAim=(inHelicopter&&arsenal.held()==r1::combat::Weapon::RocketLauncher)||
+            (arsenal.held()!=r1::combat::Weapon::Fists&&clicked(GLFW_MOUSE_BUTTON_RIGHT));
         if(wantAim!=aiming)setAiming(wantAim);
         const bool fireDown=clicked(GLFW_MOUSE_BUTTON_LEFT);
         if(fireDown&&!wasFire) {
-            if(arsenal.held()==r1::combat::Weapon::Fists){if(onFoot&&arsenal.pull()==r1::combat::Arsenal::Trigger::Fired)throwPunch();}
+            if(arsenal.held()==r1::combat::Weapon::RocketLauncher){if(onFoot||inHelicopter)fireRocket();}
+            else if(inHelicopter){} // helicopter weapons are rockets
+            else if(arsenal.held()==r1::combat::Weapon::Fists){if(onFoot&&arsenal.pull()==r1::combat::Arsenal::Trigger::Fired)throwPunch();}
             else if(onFoot||aiming)fire();
         }
         wasFire=fireDown;
+        if(inHelicopter)return;
         if(punch.update(dt))landPunch();
         if(onBike){poseArms();bikeHandlePose();return;}
         // Aiming, he faces where the camera looks.
@@ -2090,11 +2131,14 @@ class World : public Rml::EventListener {
         style("shield","display",health.invincible()?"block":"none");
         if(health.invincible())text("shield","Invincible · "+r1::cheats::clock(health.shield));
         text("health-value",std::to_string(hp));
-        const bool pistolHeld=arsenal.held()==r1::combat::Weapon::Pistol;
+        const bool pistolHeld=arsenal.held()!=r1::combat::Weapon::Fists;
         text("weapon-name",r1::combat::spec(arsenal.held()).name);
         text("weapon-ammo",pistolHeld?(arsenal.reloading()?"Reloading…":std::to_string(arsenal.loaded())+" / "+std::to_string(arsenal.reserve())):"");
         style("hurt","display",fightClock-hurtShown<.45?"block":"none");
     }
+
+#include "rocket_runtime.hpp"
+#include "rocket_smoke.hpp"
 
     // ── cheat codes ─────────────────────────────────────────────────────────
     //
@@ -4054,6 +4098,16 @@ class World : public Rml::EventListener {
     // new frame can face the other way from the old one.
     void rebaseOrigin() {
         const Frame next(lon,lat,alt);
+        const auto rocketRotation=glm::mat3(glm::transpose(next.basis)*origin.basis);
+        const auto rocketTranslation=glm::vec3(next.local(origin.origin));
+        for(auto& r:rockets)if(r.mesh) {
+            r.position=rocketRotation*r.position+rocketTranslation;r.direction=rocketRotation*r.direction;
+            r.mesh->transform().position=r.position;r.mesh->transform().rotation=glm::quat(glm::vec3(0,0,1),r.direction);
+            r.trail->transform().position=rocketRotation*r.trail->transform().position+rocketTranslation;
+            r.trail->initialVelocity=-r.direction*5.f;
+            r.flame->transform().position=r.position-r.direction*.7f;r.flame->initialVelocity=-r.direction*14.f;
+        }
+        rocketEffects.rebase(rocketRotation,rocketTranslation);
         auto rebaseVehicle=[&](saida::Node* node) {
             if(!node)return;
             r1::VehicleRuntime::synchronize(*node);
@@ -4401,6 +4455,7 @@ class World : public Rml::EventListener {
         saida::QueryFilter filter;filter.ignoreInner=feet->innerBodyId();
         if(ridingBike())if(auto* body=r1::VehicleRuntime::body(*car))filter.ignore=body->bodyId();
         if(car)if(auto* body=dynamic_cast<saida::CollisionObjectNode*>(car->findByPath("Vehicle collider")))filter.ignore=body->bodyId();
+        if(piloting&&plane.node)if(auto* hull=aircraftCollider(plane.node))filter.ignore=hull->bodyId();
         return filter;
     }
     bool solidAt(double x,double y,double level,float radius=.32f) const {
@@ -5269,6 +5324,7 @@ private:
         }
     }
     static void collectAircraftParts(Aircraft& a) {
+        if(a.node&&a.type)armAircraft(*a.node,*a.type);
         a.gear.clear();a.mainRotors.clear();a.tailRotors.clear();
         // Outermost match only, as with the car's wheels: the importer wraps a
         // named node around a mesh node that inherits its name.
@@ -5281,10 +5337,11 @@ private:
         if(a.node)walk(*a.node);
     }
     static double fuselageHalf(const r1::AircraftType& t) {return std::max(1.2,t.length*.05);}
-    double roofAt(double x,double y,double above) {
+    double roofAt(double x,double y,double above,saida::CollisionObjectNode* ignore=nullptr) {
         auto* physics=engine.sceneTree().world().physics();if(!physics)return -1e30;
         const glm::vec3 start(origin.local(ecef(x,y,above+1.)));
-        const auto hit=physics->raycast(start,{0,-1,0},500.f,obstacleFilter());
+        auto filter=obstacleFilter();if(ignore)filter.ignore=ignore->bodyId();
+        const auto hit=physics->raycast(start,{0,-1,0},500.f,filter);
         if(!hit.hit||hit.normal.y<.5f)return -1e30;
         const double surface=above+1.+double(hit.point.y-start.y);
         return surface>groundAt(x,y,above)+1.?surface:-1e30;
@@ -5372,13 +5429,14 @@ private:
         a.speed=0;a.climb=0;a.lever=0;a.thrust=0;a.airborne=false;a.pitch=0;a.roll=0;
         collectAircraftParts(a);
         plane=std::move(a);piloting=true;swimming=false;planeStopped=false;
+        if(plane.helicopter())selectWeapon(r1::combat::Weapon::RocketLauncher);
         lookYaw=0;lookIdle=0;
         lon=plane.lon;lat=plane.lat;alt=plane.alt;yaw=plane.yaw;
         player->setEnabled(false);
         for(auto* anim:animators)anim->play("idle");
         jumpOffset=jumpVelocity=0;
         text("stream-status",plane.helicopter()
-            ?"Flying. Space/Shift: climb/descend · W/S: forward/back · A/D: turn · F: get out."
+            ?"Flying. Click: rocket · 3: launcher · E: reload · Space/Shift: climb/descend · F: get out."
             :"Flying. W/S: throttle · A/D: bank · Space/Shift: pitch up/down · F: get out.");
         saida::Log::info("[World aircraft] took the controls of a ",plane.type->name," at ",lon,", ",lat,
                          plane.helicopter()?" (helicopter)":"");
@@ -5453,7 +5511,7 @@ private:
         a.climb=std::max(a.climb-kGravity*dt,-kFallTerminal);
         a.alt+=a.climb*dt;
         double under=onWater(a.lon,a.lat)?waterLevel(a.lon,a.lat):height(a.lon,a.lat);
-        under=std::max(under,roofAt(a.lon,a.lat,a.alt+1.));
+        under=std::max(under,roofAt(a.lon,a.lat,a.alt+1.,aircraftCollider(a.node)));
         a.pitch*=std::exp(-dt);a.roll*=std::exp(-dt);
         if(a.alt>under)return;
         a.alt=under;a.climb=0;a.airborne=false;a.pitch=0;a.roll=0;
@@ -10078,7 +10136,7 @@ public:
         if(retailTest())f=r=0;
         if(performanceSmoke){f=r=0;smokeStarted=false;}
         if(trafficValidation_){f=r=0;smokeStarted=false;}
-        if(policeSmoke){f=r=0;smokeStarted=false;}
+        if(policeSmoke||rocketSmoke){f=r=0;smokeStarted=false;}
         if(smokeApproach) {
             auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
             yaw=std::atan2(to.x,-to.z)/rad;f=1;r=0;
@@ -10317,6 +10375,9 @@ public:
 #endif
         }
         foldCanopy(dt);
+        if(!vr&&blastShake>0)camera->transform().rotation=glm::normalize(camera->transform().rotation*
+            glm::angleAxis(float(std::sin(fightClock*63)*blastShake*.022),glm::vec3(1,0,0))*
+            glm::angleAxis(float(std::cos(fightClock*47)*blastShake*.016),glm::vec3(0,0,1)));
         runSmokeDive();
         if(smoke&&!worldCapture.pngPath.empty()) {
             if(captureView.set) {
@@ -10364,6 +10425,26 @@ public:
                 }
             }
             if(std::getenv("R1WORLD_CAPTURE_SIGNAL"))frameTrafficSignal();
+            if(const char* view=std::getenv("R1WORLD_CAPTURE_LAUNCHER")) {
+                const std::string angle=view;
+                if(angle!="side"&&angle!="front"&&angle!="down")throw std::runtime_error("R1WORLD_CAPTURE_LAUNCHER requires side, front or down");
+                selectWeapon(r1::combat::Weapon::RocketLauncher);setAiming(true);
+                player->setVisible(true);
+                const auto turn=glm::normalize(glm::quat_cast(glm::mat3(playerBody->worldTransform())/float(humanScale)));
+                const auto aim=turn*glm::normalize(angle=="side"?glm::vec3(-.7f,0,.7f):angle=="down"?glm::vec3(0,-.8f,.6f):glm::vec3(0,0,1));
+                poseArms(&aim);for(auto* arm:playerArms)arm->setWeightNow(1);
+                const auto at=nodePosition(*player);
+                const auto offset=angle=="side"?glm::vec3(-3.0f,1.6f,1.1f):angle=="front"?glm::vec3(-.75f,1.65f,3.5f):glm::vec3(-2.4f,2.5f,2.3f);
+                camera->transform().position=at+turn*offset;
+                camera->transform().rotation=glm::quatLookAt(glm::normalize(at+glm::vec3(0,float(playerHeight*.72),0)-camera->transform().position),glm::vec3(0,1,0));
+                camera->fovDegrees=42;
+                // This close-up needs the avatar and weapon, not every distant
+                // map tile. Offline scenery must not prevent model inspection.
+                if(!captureQueued&&captureWait>8.&&engine.resources().assetLoadsSettled()) {
+                    style("hud","display","none");minimapUi->setEnabled(false);
+                    captureQueued=true;engine.captureFrameThenExit(worldCapture);
+                }
+            }
             auto want=nearby(lon,lat);
             captureWait+=dt;
             // A first visit mounts its ground before its streets: a picture of
@@ -10571,7 +10652,7 @@ public:
             std::string mode=driving
                 ?" · Driving · F: get out"
                 :piloting?std::string(plane.helicopter()
-                    ?" · Helicopter · Space/Shift: climb/descend · W/S: forward/back · A/D: turn · F: get out"
+                    ?" · Helicopter · Click: rocket · 3: launcher · E: reload · Space/Shift: climb/descend · F: get out"
                     :" · Plane · W/S: throttle · A/D: bank · Space/Shift: pitch up/down · F: get out")
                   +(tile(lon,lat)?"":" · terrain below the aircraft unknown")
                 :sailing?" · At the helm · F: disembark or step aboard"
@@ -10609,6 +10690,7 @@ public:
                  +(physicsRefused?" · collisions incomplete: the physics world is full":""));
         }
         if(smoke&&std::getenv("R1WORLD_TEST_VEHICLE_ESCAPE")&&smokeWalk>2){runVehicleEscapeSmoke(delta);return;}
+        if(rocketSmoke){runRocketSmoke(delta);return;}
         if(policeSmoke){runPoliceSmoke(delta);return;}
         if(performanceSmoke){runPerformanceSmoke(delta);return;}
         if(smokeFighting){runSmokeFight(dt);return;}

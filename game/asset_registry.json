@@ -1470,6 +1470,11 @@
             "path": "assets/models/signs/us_r2-1_15-urban-r1.glb",
             "type": "Mesh"
         },
+        "13092994909861963708": {
+            "hash": 14106721384879052981,
+            "path": "assets/audio/combat/rocket_launch.wav",
+            "type": "Unknown"
+        },
         "13095403318084821405": {
             "hash": 3081440797790685423,
             "path": "assets/models/external/nature_selected/urban_tree_far_albedo.png",
@@ -3051,7 +3056,7 @@
             "type": "Texture"
         },
         "16908187173177390841": {
-            "hash": 4194308361323383764,
+            "hash": 2994030605797757905,
             "path": "assets/audio/combat/sounds.json",
             "type": "Unknown"
         },
@@ -4823,6 +4828,11 @@
         "4403929581757737031": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-30_80.r1relief",
+            "type": "Unknown"
+        },
+        "4419640941494934663": {
+            "hash": 17809415756630291586,
+            "path": "assets/audio/combat/rocket_explosion.wav",
             "type": "Unknown"
         },
         "4437078210723966031": {
