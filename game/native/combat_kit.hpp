@@ -305,9 +305,10 @@ inline std::unique_ptr<saida::Node> buildPistol(saida::ResourceManager& resource
 // Where the pistol sits in the right hand, measured on the rig's bind pose:
 // the bore along the hand toward the middle knuckles, the slide's top on the
 // thumb side, the grip in the palm between the wrist and the knuckles.
-inline bool pistolGrip(const saida::Rig& rig, saida::Transform& offset) {
-    const int hand = rig.findBoneIndex("Bip01 R Hand"), thumb = rig.findBoneIndex("Bip01 R Finger0"),
-              middle = rig.findBoneIndex("Bip01 R Finger2");
+inline bool pistolGrip(const saida::Rig& rig, saida::Transform& offset, bool right=true) {
+    const std::string prefix=right?"Bip01 R ":"Bip01 L ";
+    const int hand = rig.findBoneIndex(prefix+"Hand"), thumb = rig.findBoneIndex(prefix+"Finger0"),
+              middle = rig.findBoneIndex(prefix+"Finger2");
     if (hand < 0 || thumb < 0 || middle < 0) return false;
     auto bind = [&](int b) { return glm::inverse(rig.bones()[size_t(b)].inverseBindMatrix); };
     const glm::mat4 h = bind(hand);
@@ -445,7 +446,7 @@ private:
 // listener does not follow this world's camera.
 class CombatSounds {
 public:
-    enum Sound { Shot, Punch, Swing, Fall, CarHit, DryFire, Reload, Impact, Count };
+    enum Sound { Shot, Punch, Swing, Fall, CarHit, DryFire, Reload, Impact, RocketLaunch, RocketExplosion, Count };
 
     void load() {
         auto& audio = saida::AudioManager::get();
@@ -469,7 +470,7 @@ public:
 private:
     static std::string path(Sound s) {
         static const char* names[Count] = {"pistol_shot", "punch_hit", "swing", "body_fall",
-                                           "car_hit", "dry_fire", "reload", "bullet_impact"};
+                                           "car_hit", "dry_fire", "reload", "bullet_impact", "rocket_launch", "rocket_explosion"};
         return std::string("assets/audio/combat/") + names[s] + ".wav";
     }
     std::array<bool, Count> ready_{};

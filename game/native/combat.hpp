@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <array>
 
 namespace r1::combat {
 
@@ -35,7 +36,7 @@ struct Health {
     double fraction() const { return std::clamp(hp / max, 0.0, 1.0); }
 };
 
-enum class Weapon : uint8_t { Fists, Pistol };
+enum class Weapon : uint8_t { Fists, Pistol, RocketLauncher };
 
 struct WeaponSpec {
     const char* name;
@@ -53,7 +54,10 @@ struct WeaponSpec {
 // spin a body already falling, far above what a round really transfers.
 constexpr WeaponSpec kFists{"Fists", 14, 1.4, 1.5, 0.38, 0, 0, 0, 55};
 constexpr WeaponSpec kPistol{"Pistol", 34, 3.2, 80, 0.2, 0.012, 1.4, 17, 40};
-inline const WeaponSpec& spec(Weapon w) { return w == Weapon::Pistol ? kPistol : kFists; }
+constexpr WeaponSpec kRocket{"Rocket launcher", 180, 1, 520, 1.1, 0, 2.4, 1, 900};
+inline const WeaponSpec& spec(Weapon w) {
+    return w == Weapon::RocketLauncher ? kRocket : w == Weapon::Pistol ? kPistol : kFists;
+}
 
 // What the player carries: the weapon in hand, the rounds, and the clock of
 // the next attack and of a reload under way.
@@ -62,11 +66,11 @@ public:
     enum class Trigger { None, Fired, Empty, Reloading };
 
     Weapon held() const { return held_; }
-    int loaded() const { return loaded_; }
-    int reserve() const { return reserve_; }
+    int loaded() const { return loaded_[ammoSlot()]; }
+    int reserve() const { return reserve_[ammoSlot()]; }
     bool reloading() const { return reloading_ > 0; }
     double reloadProgress() const {
-        return reloading_ > 0 ? 1 - reloading_ / spec(Weapon::Pistol).reloadSeconds : 1;
+        return reloading_ > 0 ? 1 - reloading_ / spec(held_).reloadSeconds : 1;
     }
 
     // Changing weapon abandons a reload, never the rounds.
@@ -76,8 +80,8 @@ public:
         reloading_ = 0;
         cooldown_ = std::max(cooldown_, 0.25);
     }
-    void give(int rounds) { reserve_ = std::min(kMostReserve, reserve_ + std::max(0, rounds)); }
-    void disarm() { held_=Weapon::Fists; loaded_=reserve_=0; cooldown_=reloading_=0; }
+    void give(int rounds) { reserve_[0] = std::min(kMostReserve, reserve_[0] + std::max(0, rounds)); }
+    void disarm() { held_=Weapon::Fists; loaded_.fill(0); reserve_.fill(0); cooldown_=reloading_=0; }
 
     // The trigger pulled now. A pistol with an empty magazine clicks once
     // and reloads on its own, as long as any round is left.
@@ -85,38 +89,40 @@ public:
         if (cooldown_ > 0 || reloading_ > 0) return reloading_ > 0 ? Trigger::Reloading : Trigger::None;
         cooldown_ = spec(held_).interval;
         if (held_ == Weapon::Fists) return Trigger::Fired;
-        if (loaded_ == 0) {
+        if (loaded() == 0) {
             startReload();
             return Trigger::Empty;
         }
-        --loaded_;
-        if (loaded_ == 0) startReload();
+        --loaded_[ammoSlot()];
+        if (loaded() == 0) startReload();
         return Trigger::Fired;
     }
     bool reload() {
-        if (held_ != Weapon::Pistol || reloading_ > 0 || loaded_ == kPistol.magazine || reserve_ == 0) return false;
+        if (held_ == Weapon::Fists || reloading_ > 0 || loaded() == spec(held_).magazine || reserve() == 0) return false;
         startReload();
         return reloading_ > 0;
     }
     void update(double dt) {
+        if (!(dt > 0) || !std::isfinite(dt)) return;
         cooldown_ = std::max(0.0, cooldown_ - dt);
         if (reloading_ <= 0) return;
         reloading_ -= dt;
         if (reloading_ > 0) return;
         reloading_ = 0;
-        const int taken = std::min(reserve_, kPistol.magazine - loaded_);
-        loaded_ += taken;
-        reserve_ -= taken;
+        const int taken = std::min(reserve(), spec(held_).magazine - loaded());
+        loaded_[ammoSlot()] += taken;
+        reserve_[ammoSlot()] -= taken;
     }
 
     static constexpr int kMostReserve = 170;
 
 private:
+    size_t ammoSlot() const { return held_ == Weapon::RocketLauncher ? 1 : 0; }
     void startReload() {
-        if (reserve_ > 0 && loaded_ < kPistol.magazine) reloading_ = kPistol.reloadSeconds;
+        if (reserve() > 0 && loaded() < spec(held_).magazine) reloading_ = spec(held_).reloadSeconds;
     }
     Weapon held_ = Weapon::Fists;
-    int loaded_ = kPistol.magazine, reserve_ = kPistol.magazine * 4;
+    std::array<int,2> loaded_{{kPistol.magazine,1}}, reserve_{{kPistol.magazine * 4,12}};
     double cooldown_ = 0, reloading_ = 0;
 };
 
