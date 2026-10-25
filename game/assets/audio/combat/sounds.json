@@ -34,6 +34,14 @@
   "bullet_impact": {
    "file": "assets/audio/combat/bullet_impact.wav",
    "seconds": 0.22
+  },
+  "rocket_launch": {
+   "file": "assets/audio/combat/rocket_launch.wav",
+   "seconds": 0.9
+  },
+  "rocket_explosion": {
+   "file": "assets/audio/combat/rocket_explosion.wav",
+   "seconds": 3.2
   }
  }
 }

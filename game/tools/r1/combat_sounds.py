@@ -183,9 +183,26 @@ def bullet_impact() -> list[float]:
                       (0.3, sweep(n, 180, 90, 0.02), envelope(n, 0.03, 0.001))), 0.75, 0.22)
 
 
+def rocket_launch() -> list[float]:
+    n = int(0.9 * RATE)
+    return finish(mix((1.0, bandpass(noise(n, 91), 90, 3400), envelope(n, .24, .008)),
+                      (.6, sweep(n, 240, 48, .16), envelope(n, .2, .002)),
+                      (.45, highpass(noise(n, 92), 1800), envelope(n, .04))), .92, .9)
+
+
+def rocket_explosion() -> list[float]:
+    n = int(3.2 * RATE)
+    return finish(mix((1.0, lowpass(noise(n, 101), 1300), envelope(n, .5, .002)),
+                      (.85, sweep(n, 105, 28, .22), envelope(n, .6, .003)),
+                      (.7, highpass(noise(n, 102), 1900), envelope(n, .09)),
+                      (.45, bandpass(noise(n, 103), 70, 600), envelope(n, .8, .06, .14)),
+                      (.22, bandpass(noise(n, 104), 120, 1800), envelope(n, .6, .04, .38))), .98, 3.2)
+
+
 SOUNDS = {
     "pistol_shot": pistol_shot, "punch_hit": punch_hit, "swing": swing, "body_fall": body_fall,
     "car_hit": car_hit, "dry_fire": dry_fire, "reload": reload, "bullet_impact": bullet_impact,
+    "rocket_launch": rocket_launch, "rocket_explosion": rocket_explosion,
 }
 
 
