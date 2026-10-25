@@ -2471,7 +2471,7 @@ class World : public Rml::EventListener {
     r1::GlobeView globeTarget,globeDragView;
     glm::dvec2 globePress{};
     bool globeDragging=false,globeMoved=false;
-    bool menu=true,playing=false,pending=false,warming=false,wasMenuKey=false;
+    bool menu=true,playing=false,pending=false,warming=false,wasMenuKey=false,wasF11Key=false;
     bool performanceDebug=false,debugTraffic=true,debugGrass=true,debugWater=true,debugTrees=true;
     saida::WebCanvasNode* performanceUi=nullptr;
     bool performanceKeys[5]{};
@@ -6038,6 +6038,13 @@ private:
                     saida::Log::info("[World options] toasterMode ",toasterMode?"enabled":"disabled");
                 } else saida::Log::error("[World options] cache/options.json: invalid toasterMode, ignored");
             }
+            if(const auto fs=options.find("fullscreen");fs!=options.end()) {
+                if(fs->is_boolean()) {
+                    const bool enabled=fs->get<bool>();
+                    if(enabled)engine.window().setFullscreen(true);
+                    saida::Log::info("[World options] fullscreen ",enabled?"enabled":"disabled");
+                } else saida::Log::error("[World options] cache/options.json: invalid fullscreen, ignored");
+            }
         } catch(const std::exception& e) {
             saida::Log::error("[World options] cache/options.json unreadable, ignored: ",e.what());
         }
@@ -6061,6 +6068,7 @@ private:
         else options.erase("forcedTime");
         options["forcedWeather"]=r1::weatherOverrideKey(forcedWeather);
         options["toasterMode"]=toasterMode;
+        options["fullscreen"]=engine.window().isFullscreen();
         std::error_code ignored;fs::create_directories(optionsFile().parent_path(),ignored);
         std::ofstream output(optionsFile());
         output<<options.dump(2)<<"\n";
@@ -6070,6 +6078,7 @@ private:
             sayForcedTime("Option applied, but it could not be saved: see game.log.");
             sayForcedWeather("Option applied, but it could not be saved: see game.log.");
             sayToasterMode("Option applied, but it could not be saved: see game.log.");
+            sayFullscreen("Option applied, but it could not be saved: see game.log.");
         }
     }
     void sayForcedTime(const std::string& problem={}) {
@@ -6096,6 +6105,25 @@ private:
         text("toaster-options-status",!problem.empty()?problem:
             toasterMode?"Toaster mode on: 720p, GI off, mid/far tree LODs, closer fog."
                        :"Standard quality: normal graphics and draw distance.");
+    }
+    void sayFullscreen(const std::string& problem={}) {
+        const bool fs=engine.window().isFullscreen();
+        if(auto* off=ui->findElementById("fullscreen-off"))off->SetClass("selected",!fs);
+        if(auto* on=ui->findElementById("fullscreen"))on->SetClass("selected",fs);
+        if(auto* on2=ui->findElementById("fullscreen-on"))on2->SetClass("selected",fs);
+        ui->notifyJsMutation();
+        text("fullscreen-options-status",!problem.empty()?problem:
+            fs?"Full screen mode on: press F11 or click Windowed to exit."
+              :"Windowed mode: press F11 or click Full screen.");
+    }
+    void setFullscreenMode(bool enabled) {
+        engine.window().setFullscreen(enabled);
+        saida::Log::info("[World options] full screen ",engine.window().isFullscreen()?"enabled":"disabled");
+        sayFullscreen();
+        saveOptions();
+    }
+    void toggleFullscreenMode() {
+        setFullscreenMode(!engine.window().isFullscreen());
     }
     void applyToasterResolution() {
         engine.sceneTree().world().settings().giEnabled=!toasterMode;
@@ -6139,6 +6167,7 @@ private:
         if(globe)globe->toaster=toasterMode;
         applyWeather();
         sayToasterMode();
+        sayFullscreen();
         saveOptions();
     }
     void forceWeather(r1::WeatherOverride mode) {
@@ -8904,6 +8933,9 @@ public:
         else if(id=="weather-storm")forceWeather(r1::WeatherOverride::Storm);
         else if(id=="toaster-off")setToasterMode(false);
         else if(id=="toaster-on")setToasterMode(true);
+        else if(id=="fullscreen-off")setFullscreenMode(false);
+        else if(id=="fullscreen-on")setFullscreenMode(true);
+        else if(id=="fullscreen")toggleFullscreenMode();
         else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
         else if(id=="destination-go") {
             // The typed coordinates, from the Destination tab: leave the
@@ -8986,6 +9018,10 @@ public:
         if(toasterMode)return fail("Standard quality did not disable toaster mode");
         if(!engine.sceneTree().world().settings().giEnabled||engine.sceneTree().world().settings().giQuality!=saida::GIQuality::Auto)
             return fail("Standard quality did not restore automatic GI");
+        testClick("fullscreen",false);
+        if(!engine.window().isFullscreen())return fail("Full screen button did not enable full screen");
+        testClick("fullscreen-off",false);
+        if(engine.window().isFullscreen())return fail("Windowed button did not disable full screen");
         // Go from the Destination tab refuses what is not a coordinate and
         // stays open to say so (the valid trip is the smoke's own Go below).
         {
@@ -9001,7 +9037,7 @@ public:
         }
         testClick("options-back",false);
         if(optionsOpen)return fail("Retour did not close the screen");
-        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, bad destination refused in place)");
+        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, full screen toggled, bad destination refused in place)");
         forceTime(savedTime);
         forceWeather(savedWeather);
         // Testing both buttons must not silently change the measured preset.
@@ -9907,6 +9943,7 @@ public:
                          "options","options-back","forced-apply","forced-clear",
                          "weather-real","weather-clear","weather-light-rain","weather-storm",
                          "toaster-off","toaster-on",
+                         "fullscreen-off","fullscreen","fullscreen-on",
                          "forced-preset-8","forced-preset-12","forced-preset-17","forced-preset-22"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
                     e->AddEventListener("mousedown",this);listeners.push_back(e);}
@@ -10015,6 +10052,9 @@ public:
         // (World::updateCheats); M is a letter typed in it.
         bool key=(!performanceDebug&&held(GLFW_KEY_M))||engine.window().keyDown(GLFW_KEY_ESCAPE);
         if(key&&!wasMenuKey&&!cheatOpen){if(optionsOpen)showOptions(false);else if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
+        const bool f11Key=engine.window().keyDown(GLFW_KEY_F11);
+        if(f11Key&&!wasF11Key){toggleFullscreenMode();}
+        wasF11Key=f11Key;
         poll+=delta;hud+=delta;
         if(poll>(pending?.016:.10)){poll=0;if(pending||playing||warming)cost.stream=timed([&]{stream();});}
         cost.parts=timed([&]{uploadParts();});

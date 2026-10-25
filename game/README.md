@@ -9,8 +9,10 @@ pick any point on Earth and walk there?
 how it works and what was measured.
 
 The current game version is **0.1**. Its release is being prepared; the in-game
-Settings → Credits panel displays the version. The long-term animal photography
-collection is planned in `docs/PLAN.md` and is not part of the current version.
+Settings → Graphics panel provides quality presets and full screen mode (also
+toggled with F11 at any time), while Settings → Credits displays the version.
+The long-term animal photography collection is planned in `docs/PLAN.md` and
+is not part of the current version.
 
 Documentation reviewed on 19 October 2026. The current generator is v56;
 the validation records below are dated observations, not a claim that every
