@@ -1,0 +1,3782 @@
+[
+  {
+    "file": "ant-lod1.glb",
+    "before": 75796,
+    "after": 72764,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 18,
+    "duplicate_accessors": 18,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "ant.glb",
+    "before": 103316,
+    "after": 100284,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 18,
+    "duplicate_accessors": 18,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "arctic_wolf-lod1.glb",
+    "before": 1142440,
+    "after": 1142328,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "arctic_wolf.glb",
+    "before": 1165128,
+    "after": 1165012,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bat-lod1.glb",
+    "before": 406160,
+    "after": 400808,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 38,
+    "duplicate_accessors": 38,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bat.glb",
+    "before": 712512,
+    "after": 707160,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 38,
+    "duplicate_accessors": 38,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bear_black-lod1.glb",
+    "before": 1215376,
+    "after": 776364,
+    "removed_nonvisual_channels": 585,
+    "duplicate_views": 255,
+    "duplicate_accessors": 255,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bear_black.glb",
+    "before": 1298572,
+    "after": 857400,
+    "removed_nonvisual_channels": 592,
+    "duplicate_views": 258,
+    "duplicate_accessors": 258,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bear_brown-lod1.glb",
+    "before": 1242516,
+    "after": 806420,
+    "removed_nonvisual_channels": 576,
+    "duplicate_views": 249,
+    "duplicate_accessors": 249,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bear_brown.glb",
+    "before": 1336428,
+    "after": 904980,
+    "removed_nonvisual_channels": 553,
+    "duplicate_views": 256,
+    "duplicate_accessors": 256,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bear_white-lod1.glb",
+    "before": 1217140,
+    "after": 780352,
+    "removed_nonvisual_channels": 585,
+    "duplicate_views": 238,
+    "duplicate_accessors": 238,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bear_white.glb",
+    "before": 1304812,
+    "after": 869924,
+    "removed_nonvisual_channels": 563,
+    "duplicate_views": 263,
+    "duplicate_accessors": 263,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "boar-lod1.glb",
+    "before": 160224,
+    "after": 153536,
+    "removed_nonvisual_channels": 17,
+    "duplicate_views": 17,
+    "duplicate_accessors": 17,
+    "duplicate_samplers": 6,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "boar.glb",
+    "before": 177436,
+    "after": 170748,
+    "removed_nonvisual_channels": 17,
+    "duplicate_views": 17,
+    "duplicate_accessors": 17,
+    "duplicate_samplers": 6,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bull-lod1.glb",
+    "before": 717336,
+    "after": 534160,
+    "removed_nonvisual_channels": 163,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bull.glb",
+    "before": 753356,
+    "after": 570180,
+    "removed_nonvisual_channels": 163,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bull_shape2-lod1.glb",
+    "before": 717340,
+    "after": 534168,
+    "removed_nonvisual_channels": 163,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "bull_shape2.glb",
+    "before": 753364,
+    "after": 570188,
+    "removed_nonvisual_channels": 163,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "butterfly-lod1.glb",
+    "before": 185144,
+    "after": 171280,
+    "removed_nonvisual_channels": 36,
+    "duplicate_views": 31,
+    "duplicate_accessors": 31,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "butterfly.glb",
+    "before": 187192,
+    "after": 175596,
+    "removed_nonvisual_channels": 28,
+    "duplicate_views": 29,
+    "duplicate_accessors": 29,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "camel-lod1.glb",
+    "before": 1590372,
+    "after": 925544,
+    "removed_nonvisual_channels": 789,
+    "duplicate_views": 117,
+    "duplicate_accessors": 117,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "camel.glb",
+    "before": 1680456,
+    "after": 1010112,
+    "removed_nonvisual_channels": 808,
+    "duplicate_views": 120,
+    "duplicate_accessors": 120,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "camel_coat2-lod1.glb",
+    "before": 1606720,
+    "after": 941848,
+    "removed_nonvisual_channels": 789,
+    "duplicate_views": 117,
+    "duplicate_accessors": 117,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "camel_coat2.glb",
+    "before": 1697332,
+    "after": 1026960,
+    "removed_nonvisual_channels": 808,
+    "duplicate_views": 120,
+    "duplicate_accessors": 120,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "camel_coat3-lod1.glb",
+    "before": 1579716,
+    "after": 914944,
+    "removed_nonvisual_channels": 789,
+    "duplicate_views": 117,
+    "duplicate_accessors": 117,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "camel_coat3.glb",
+    "before": 1665720,
+    "after": 995416,
+    "removed_nonvisual_channels": 808,
+    "duplicate_views": 120,
+    "duplicate_accessors": 120,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cat_sphynx-lod1.glb",
+    "before": 389132,
+    "after": 387104,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 13,
+    "duplicate_accessors": 13,
+    "duplicate_samplers": 6,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cat_sphynx.glb",
+    "before": 806020,
+    "after": 803988,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 13,
+    "duplicate_accessors": 13,
+    "duplicate_samplers": 6,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cat_tabby-lod1.glb",
+    "before": 414680,
+    "after": 412484,
+    "removed_nonvisual_channels": 3,
+    "duplicate_views": 7,
+    "duplicate_accessors": 7,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cat_tabby.glb",
+    "before": 950692,
+    "after": 948496,
+    "removed_nonvisual_channels": 3,
+    "duplicate_views": 7,
+    "duplicate_accessors": 7,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "chicken_kelgar-lod1.glb",
+    "before": 825524,
+    "after": 747068,
+    "removed_nonvisual_channels": 66,
+    "duplicate_views": 376,
+    "duplicate_accessors": 376,
+    "duplicate_samplers": 20,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "chicken_kelgar.glb",
+    "before": 1743644,
+    "after": 1664356,
+    "removed_nonvisual_channels": 66,
+    "duplicate_views": 376,
+    "duplicate_accessors": 376,
+    "duplicate_samplers": 20,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow-lod1.glb",
+    "before": 734736,
+    "after": 550992,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow.glb",
+    "before": 781312,
+    "after": 597564,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat2-lod1.glb",
+    "before": 732548,
+    "after": 548804,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat2.glb",
+    "before": 779612,
+    "after": 595864,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat2_shape2-lod1.glb",
+    "before": 726028,
+    "after": 542284,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat2_shape2.glb",
+    "before": 769036,
+    "after": 585288,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat3-lod1.glb",
+    "before": 736628,
+    "after": 552880,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat3.glb",
+    "before": 780592,
+    "after": 596844,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat3_shape2-lod1.glb",
+    "before": 730104,
+    "after": 546360,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_coat3_shape2.glb",
+    "before": 770016,
+    "after": 586268,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_shape2-lod1.glb",
+    "before": 728216,
+    "after": 544468,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "cow_shape2.glb",
+    "before": 770736,
+    "after": 586988,
+    "removed_nonvisual_channels": 165,
+    "duplicate_views": 153,
+    "duplicate_accessors": 153,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "crocodile-lod1.glb",
+    "before": 694860,
+    "after": 595152,
+    "removed_nonvisual_channels": 97,
+    "duplicate_views": 59,
+    "duplicate_accessors": 59,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "crocodile.glb",
+    "before": 712544,
+    "after": 617248,
+    "removed_nonvisual_channels": 76,
+    "duplicate_views": 64,
+    "duplicate_accessors": 64,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "crow-lod1.glb",
+    "before": 57564,
+    "after": 55960,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "crow.glb",
+    "before": 68596,
+    "after": 66988,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "deer-lod1.glb",
+    "before": 372204,
+    "after": 295928,
+    "removed_nonvisual_channels": 269,
+    "duplicate_views": 48,
+    "duplicate_accessors": 48,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "deer.glb",
+    "before": 377284,
+    "after": 302476,
+    "removed_nonvisual_channels": 262,
+    "duplicate_views": 50,
+    "duplicate_accessors": 50,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "deer_coat2-lod1.glb",
+    "before": 382388,
+    "after": 306116,
+    "removed_nonvisual_channels": 269,
+    "duplicate_views": 48,
+    "duplicate_accessors": 48,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "deer_coat2.glb",
+    "before": 388728,
+    "after": 313936,
+    "removed_nonvisual_channels": 262,
+    "duplicate_views": 50,
+    "duplicate_accessors": 50,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "deer_coat3-lod1.glb",
+    "before": 382432,
+    "after": 306160,
+    "removed_nonvisual_channels": 269,
+    "duplicate_views": 48,
+    "duplicate_accessors": 48,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "deer_coat3.glb",
+    "before": 391912,
+    "after": 317124,
+    "removed_nonvisual_channels": 262,
+    "duplicate_views": 50,
+    "duplicate_accessors": 50,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "doe-lod1.glb",
+    "before": 510324,
+    "after": 457608,
+    "removed_nonvisual_channels": 60,
+    "duplicate_views": 248,
+    "duplicate_accessors": 248,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "doe.glb",
+    "before": 1196776,
+    "after": 1147400,
+    "removed_nonvisual_channels": 45,
+    "duplicate_views": 253,
+    "duplicate_accessors": 253,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "dolphin-lod1.glb",
+    "before": 330728,
+    "after": 330472,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 2,
+    "duplicate_accessors": 2,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "dolphin.glb",
+    "before": 665108,
+    "after": 664852,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 2,
+    "duplicate_accessors": 2,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "donkey-lod1.glb",
+    "before": 151764,
+    "after": 136792,
+    "removed_nonvisual_channels": 62,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "donkey.glb",
+    "before": 157456,
+    "after": 142964,
+    "removed_nonvisual_channels": 60,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "eagle_bald-lod1.glb",
+    "before": 661692,
+    "after": 659236,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 13,
+    "duplicate_accessors": 13,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "eagle_bald.glb",
+    "before": 1277272,
+    "after": 1274804,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 13,
+    "duplicate_accessors": 13,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_african_baby-lod1.glb",
+    "before": 666900,
+    "after": 501036,
+    "removed_nonvisual_channels": 397,
+    "duplicate_views": 168,
+    "duplicate_accessors": 168,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_african_baby.glb",
+    "before": 695768,
+    "after": 529828,
+    "removed_nonvisual_channels": 397,
+    "duplicate_views": 168,
+    "duplicate_accessors": 168,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_african_bush-lod1.glb",
+    "before": 1006268,
+    "after": 781652,
+    "removed_nonvisual_channels": 577,
+    "duplicate_views": 182,
+    "duplicate_accessors": 182,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_african_bush.glb",
+    "before": 1070304,
+    "after": 841428,
+    "removed_nonvisual_channels": 592,
+    "duplicate_views": 186,
+    "duplicate_accessors": 186,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_african_forest-lod1.glb",
+    "before": 1062336,
+    "after": 825808,
+    "removed_nonvisual_channels": 620,
+    "duplicate_views": 176,
+    "duplicate_accessors": 176,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_african_forest.glb",
+    "before": 1122964,
+    "after": 884152,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 178,
+    "duplicate_accessors": 178,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_asian-lod1.glb",
+    "before": 1230504,
+    "after": 1056260,
+    "removed_nonvisual_channels": 458,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "elephant_asian.glb",
+    "before": 1296880,
+    "after": 1122636,
+    "removed_nonvisual_channels": 458,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fish_generic-lod1.glb",
+    "before": 60452,
+    "after": 60072,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 3,
+    "duplicate_accessors": 3,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fish_generic.glb",
+    "before": 80148,
+    "after": 79764,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 3,
+    "duplicate_accessors": 3,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fish_kelgar-lod1.glb",
+    "before": 437648,
+    "after": 433908,
+    "removed_nonvisual_channels": 3,
+    "duplicate_views": 6,
+    "duplicate_accessors": 6,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fish_kelgar.glb",
+    "before": 1273024,
+    "after": 1269276,
+    "removed_nonvisual_channels": 3,
+    "duplicate_views": 6,
+    "duplicate_accessors": 6,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fish_single-lod1.glb",
+    "before": 26852,
+    "after": 26876,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fish_single.glb",
+    "before": 33552,
+    "after": 33576,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fox_arctic-lod1.glb",
+    "before": 464912,
+    "after": 410932,
+    "removed_nonvisual_channels": 64,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fox_arctic.glb",
+    "before": 487348,
+    "after": 433376,
+    "removed_nonvisual_channels": 64,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fox_red-lod1.glb",
+    "before": 476224,
+    "after": 420552,
+    "removed_nonvisual_channels": 70,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "fox_red.glb",
+    "before": 502780,
+    "after": 447120,
+    "removed_nonvisual_channels": 70,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "frog_amazon-lod1.glb",
+    "before": 543928,
+    "after": 541532,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 17,
+    "duplicate_accessors": 17,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "frog_amazon.glb",
+    "before": 1592012,
+    "after": 1589748,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 16,
+    "duplicate_accessors": 16,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "frog_blue-lod1.glb",
+    "before": 322468,
+    "after": 321268,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 9,
+    "duplicate_accessors": 9,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "frog_blue.glb",
+    "before": 716836,
+    "after": 715636,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 9,
+    "duplicate_accessors": 9,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "frog_red_eye-lod1.glb",
+    "before": 878392,
+    "after": 876304,
+    "removed_nonvisual_channels": 1,
+    "duplicate_views": 11,
+    "duplicate_accessors": 11,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "frog_red_eye.glb",
+    "before": 2784696,
+    "after": 2780912,
+    "removed_nonvisual_channels": 1,
+    "duplicate_views": 11,
+    "duplicate_accessors": 11,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "gazelle-lod1.glb",
+    "before": 373392,
+    "after": 297308,
+    "removed_nonvisual_channels": 267,
+    "duplicate_views": 50,
+    "duplicate_accessors": 50,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "gazelle.glb",
+    "before": 379728,
+    "after": 303640,
+    "removed_nonvisual_channels": 267,
+    "duplicate_views": 50,
+    "duplicate_accessors": 50,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_adult-lod1.glb",
+    "before": 353340,
+    "after": 328520,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 119,
+    "duplicate_accessors": 119,
+    "duplicate_samplers": 42,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_adult.glb",
+    "before": 396576,
+    "after": 371756,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 119,
+    "duplicate_accessors": 119,
+    "duplicate_samplers": 42,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_adult_coat2-lod1.glb",
+    "before": 399052,
+    "after": 374232,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 119,
+    "duplicate_accessors": 119,
+    "duplicate_samplers": 42,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_adult_coat2.glb",
+    "before": 459188,
+    "after": 434364,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 119,
+    "duplicate_accessors": 119,
+    "duplicate_samplers": 42,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_baby-lod1.glb",
+    "before": 340956,
+    "after": 324804,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 68,
+    "duplicate_accessors": 68,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_baby.glb",
+    "before": 386628,
+    "after": 369668,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 75,
+    "duplicate_accessors": 75,
+    "duplicate_samplers": 6,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_baby_coat2-lod1.glb",
+    "before": 386668,
+    "after": 370516,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 68,
+    "duplicate_accessors": 68,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "giraffe_baby_coat2.glb",
+    "before": 449236,
+    "after": 432280,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 75,
+    "duplicate_accessors": 75,
+    "duplicate_samplers": 6,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat-lod1.glb",
+    "before": 399944,
+    "after": 399968,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat.glb",
+    "before": 410860,
+    "after": 410884,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat2-lod1.glb",
+    "before": 399868,
+    "after": 399892,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat2.glb",
+    "before": 412712,
+    "after": 412736,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat2_shape2-lod1.glb",
+    "before": 402728,
+    "after": 402752,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat2_shape2.glb",
+    "before": 422420,
+    "after": 422444,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat3-lod1.glb",
+    "before": 396224,
+    "after": 396248,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat3.glb",
+    "before": 407188,
+    "after": 407212,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat3_shape2-lod1.glb",
+    "before": 399084,
+    "after": 399108,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat3_shape2.glb",
+    "before": 416892,
+    "after": 416916,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat4-lod1.glb",
+    "before": 401284,
+    "after": 401308,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat4.glb",
+    "before": 412280,
+    "after": 412304,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat4_shape2-lod1.glb",
+    "before": 404144,
+    "after": 404168,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_coat4_shape2.glb",
+    "before": 421984,
+    "after": 422008,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_shape2-lod1.glb",
+    "before": 402800,
+    "after": 402824,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "goat_shape2.glb",
+    "before": 420564,
+    "after": 420588,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "gorilla-lod1.glb",
+    "before": 442996,
+    "after": 441148,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 13,
+    "duplicate_accessors": 13,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "gorilla.glb",
+    "before": 922704,
+    "after": 920860,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 13,
+    "duplicate_accessors": 13,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hawk-lod1.glb",
+    "before": 70696,
+    "after": 70536,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hawk.glb",
+    "before": 72456,
+    "after": 72296,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hawk_coat2-lod1.glb",
+    "before": 70708,
+    "after": 70548,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hawk_coat2.glb",
+    "before": 72468,
+    "after": 72308,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hippopotamus-lod1.glb",
+    "before": 1004964,
+    "after": 779260,
+    "removed_nonvisual_channels": 430,
+    "duplicate_views": 245,
+    "duplicate_accessors": 245,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hippopotamus.glb",
+    "before": 1060580,
+    "after": 839016,
+    "removed_nonvisual_channels": 407,
+    "duplicate_views": 256,
+    "duplicate_accessors": 256,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hippopotamus_coat2-lod1.glb",
+    "before": 1002104,
+    "after": 776396,
+    "removed_nonvisual_channels": 430,
+    "duplicate_views": 245,
+    "duplicate_accessors": 245,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "hippopotamus_coat2.glb",
+    "before": 1056124,
+    "after": 834560,
+    "removed_nonvisual_channels": 407,
+    "duplicate_views": 256,
+    "duplicate_accessors": 256,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse-lod1.glb",
+    "before": 1137372,
+    "after": 718016,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse.glb",
+    "before": 1143724,
+    "after": 759992,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed-lod1.glb",
+    "before": 892588,
+    "after": 523696,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed.glb",
+    "before": 939364,
+    "after": 570472,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat10-lod1.glb",
+    "before": 891348,
+    "after": 522456,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat10.glb",
+    "before": 937956,
+    "after": 569064,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat2-lod1.glb",
+    "before": 886516,
+    "after": 517624,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat2.glb",
+    "before": 930548,
+    "after": 561656,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat3-lod1.glb",
+    "before": 906500,
+    "after": 537608,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat3.glb",
+    "before": 959476,
+    "after": 590584,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat4-lod1.glb",
+    "before": 898044,
+    "after": 529152,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat4.glb",
+    "before": 945004,
+    "after": 576112,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat5-lod1.glb",
+    "before": 894312,
+    "after": 525420,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat5.glb",
+    "before": 942124,
+    "after": 573232,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat6-lod1.glb",
+    "before": 902512,
+    "after": 533620,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat6.glb",
+    "before": 951580,
+    "after": 582688,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat7-lod1.glb",
+    "before": 898948,
+    "after": 530056,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat7.glb",
+    "before": 947120,
+    "after": 578228,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat8-lod1.glb",
+    "before": 905024,
+    "after": 536132,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat8.glb",
+    "before": 956692,
+    "after": 587800,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat9-lod1.glb",
+    "before": 899164,
+    "after": 530272,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_breed_coat9.glb",
+    "before": 949500,
+    "after": 580608,
+    "removed_nonvisual_channels": 628,
+    "duplicate_views": 144,
+    "duplicate_accessors": 144,
+    "duplicate_samplers": 19,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_brown_spotted_01-lod1.glb",
+    "before": 1150920,
+    "after": 731564,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_brown_spotted_01.glb",
+    "before": 1161636,
+    "after": 777904,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_chestnut_01-lod1.glb",
+    "before": 1156612,
+    "after": 737256,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_chestnut_01.glb",
+    "before": 1171772,
+    "after": 788040,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_chestnut_02-lod1.glb",
+    "before": 1156700,
+    "after": 737344,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_chestnut_02.glb",
+    "before": 1170968,
+    "after": 787236,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat10-lod1.glb",
+    "before": 1136132,
+    "after": 716776,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat10.glb",
+    "before": 1142316,
+    "after": 758584,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat2-lod1.glb",
+    "before": 1131300,
+    "after": 711944,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat2.glb",
+    "before": 1134908,
+    "after": 751176,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat3-lod1.glb",
+    "before": 1151284,
+    "after": 731928,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat3.glb",
+    "before": 1163836,
+    "after": 780104,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat4-lod1.glb",
+    "before": 1142828,
+    "after": 723472,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat4.glb",
+    "before": 1149364,
+    "after": 765632,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat5-lod1.glb",
+    "before": 1139096,
+    "after": 719740,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat5.glb",
+    "before": 1146484,
+    "after": 762752,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat6-lod1.glb",
+    "before": 1147296,
+    "after": 727940,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat6.glb",
+    "before": 1155940,
+    "after": 772208,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat7-lod1.glb",
+    "before": 1143732,
+    "after": 724376,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat7.glb",
+    "before": 1151480,
+    "after": 767748,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat8-lod1.glb",
+    "before": 1149808,
+    "after": 730452,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat8.glb",
+    "before": 1161052,
+    "after": 777324,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat9-lod1.glb",
+    "before": 1143948,
+    "after": 724592,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_coat9.glb",
+    "before": 1153860,
+    "after": 770132,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_cream_spotted_01-lod1.glb",
+    "before": 1161472,
+    "after": 742116,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_cream_spotted_01.glb",
+    "before": 1175944,
+    "after": 792216,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_cream_spotted_02-lod1.glb",
+    "before": 1164200,
+    "after": 744844,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_cream_spotted_02.glb",
+    "before": 1177020,
+    "after": 793292,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_dark_chestnut-lod1.glb",
+    "before": 1139204,
+    "after": 719848,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_dark_chestnut.glb",
+    "before": 1146252,
+    "after": 762520,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_fading_black-lod1.glb",
+    "before": 1132104,
+    "after": 712748,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_fading_black.glb",
+    "before": 1134880,
+    "after": 751152,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano-lod1.glb",
+    "before": 1131448,
+    "after": 712092,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano.glb",
+    "before": 1134920,
+    "after": 751192,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat10-lod1.glb",
+    "before": 1140752,
+    "after": 721396,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat10.glb",
+    "before": 1147620,
+    "after": 763888,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat2-lod1.glb",
+    "before": 1137532,
+    "after": 718176,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat2.glb",
+    "before": 1143748,
+    "after": 760016,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat3-lod1.glb",
+    "before": 1151436,
+    "after": 732080,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat3.glb",
+    "before": 1163856,
+    "after": 780124,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat4-lod1.glb",
+    "before": 1142984,
+    "after": 723628,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat4.glb",
+    "before": 1149380,
+    "after": 765652,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat5-lod1.glb",
+    "before": 1139248,
+    "after": 719892,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat5.glb",
+    "before": 1146504,
+    "after": 762772,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat6-lod1.glb",
+    "before": 1147448,
+    "after": 728092,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat6.glb",
+    "before": 1155960,
+    "after": 772228,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat7-lod1.glb",
+    "before": 1143888,
+    "after": 724532,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat7.glb",
+    "before": 1151500,
+    "after": 767768,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat8-lod1.glb",
+    "before": 1149960,
+    "after": 730604,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat8.glb",
+    "before": 1161072,
+    "after": 777340,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat9-lod1.glb",
+    "before": 1145296,
+    "after": 725940,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_lusitano_coat9.glb",
+    "before": 1152372,
+    "after": 768644,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari-lod1.glb",
+    "before": 1138408,
+    "after": 719052,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari.glb",
+    "before": 1145428,
+    "after": 761696,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat2-lod1.glb",
+    "before": 1152316,
+    "after": 732960,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat2.glb",
+    "before": 1165540,
+    "after": 781812,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat3-lod1.glb",
+    "before": 1143864,
+    "after": 724508,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat3.glb",
+    "before": 1151068,
+    "after": 767336,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat4-lod1.glb",
+    "before": 1140128,
+    "after": 720772,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat4.glb",
+    "before": 1148188,
+    "after": 764460,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat5-lod1.glb",
+    "before": 1148328,
+    "after": 728972,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat5.glb",
+    "before": 1157644,
+    "after": 773916,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat6-lod1.glb",
+    "before": 1144768,
+    "after": 725412,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat6.glb",
+    "before": 1153184,
+    "after": 769452,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat7-lod1.glb",
+    "before": 1150844,
+    "after": 731488,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat7.glb",
+    "before": 1162760,
+    "after": 779028,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat8-lod1.glb",
+    "before": 1151792,
+    "after": 732436,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_marwari_coat8.glb",
+    "before": 1163312,
+    "after": 779580,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_palomino_01-lod1.glb",
+    "before": 1155728,
+    "after": 736372,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_palomino_01.glb",
+    "before": 1170080,
+    "after": 786352,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_palomino_02-lod1.glb",
+    "before": 1155816,
+    "after": 736460,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_palomino_02.glb",
+    "before": 1169276,
+    "after": 785548,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian-lod1.glb",
+    "before": 1138408,
+    "after": 719052,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian.glb",
+    "before": 1145428,
+    "after": 761696,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat10-lod1.glb",
+    "before": 1144984,
+    "after": 725628,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat10.glb",
+    "before": 1155568,
+    "after": 771836,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat11-lod1.glb",
+    "before": 1137168,
+    "after": 717812,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat11.glb",
+    "before": 1144020,
+    "after": 760288,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat3-lod1.glb",
+    "before": 1132336,
+    "after": 712980,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat3.glb",
+    "before": 1136616,
+    "after": 752884,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat5-lod1.glb",
+    "before": 1140132,
+    "after": 720776,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat5.glb",
+    "before": 1148192,
+    "after": 764460,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat6-lod1.glb",
+    "before": 1144768,
+    "after": 725412,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat6.glb",
+    "before": 1153184,
+    "after": 769456,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat7-lod1.glb",
+    "before": 1150844,
+    "after": 731488,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_persian_coat7.glb",
+    "before": 1162760,
+    "after": 779028,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_skewbald-lod1.glb",
+    "before": 1143220,
+    "after": 723864,
+    "removed_nonvisual_channels": 822,
+    "duplicate_views": 377,
+    "duplicate_accessors": 377,
+    "duplicate_samplers": 13,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_skewbald.glb",
+    "before": 1151128,
+    "after": 767396,
+    "removed_nonvisual_channels": 690,
+    "duplicate_views": 351,
+    "duplicate_accessors": 351,
+    "duplicate_samplers": 9,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian-lod1.glb",
+    "before": 1092188,
+    "after": 712524,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian.glb",
+    "before": 1157564,
+    "after": 765096,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat10-lod1.glb",
+    "before": 1098764,
+    "after": 719100,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat10.glb",
+    "before": 1167704,
+    "after": 775236,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat11-lod1.glb",
+    "before": 1090948,
+    "after": 711284,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat11.glb",
+    "before": 1156156,
+    "after": 763688,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat2-lod1.glb",
+    "before": 1092980,
+    "after": 713312,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat2.glb",
+    "before": 1158380,
+    "after": 765916,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat3-lod1.glb",
+    "before": 1086116,
+    "after": 706448,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat3.glb",
+    "before": 1148748,
+    "after": 756284,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat4-lod1.glb",
+    "before": 1085880,
+    "after": 706216,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat4.glb",
+    "before": 1147012,
+    "after": 754544,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat5-lod1.glb",
+    "before": 1093912,
+    "after": 714244,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat5.glb",
+    "before": 1160324,
+    "after": 767860,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat6-lod1.glb",
+    "before": 1098548,
+    "after": 718884,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat6.glb",
+    "before": 1165320,
+    "after": 772852,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat7-lod1.glb",
+    "before": 1104624,
+    "after": 724956,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat7.glb",
+    "before": 1174896,
+    "after": 782428,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat8-lod1.glb",
+    "before": 1110476,
+    "after": 730812,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat8.glb",
+    "before": 1183100,
+    "after": 790632,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat9-lod1.glb",
+    "before": 1110388,
+    "after": 730724,
+    "removed_nonvisual_channels": 676,
+    "duplicate_views": 347,
+    "duplicate_accessors": 347,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horse_tessalian_coat9.glb",
+    "before": 1183904,
+    "after": 791436,
+    "removed_nonvisual_channels": 716,
+    "duplicate_views": 368,
+    "duplicate_accessors": 368,
+    "duplicate_samplers": 8,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horseshoe_crab-lod1.glb",
+    "before": 609284,
+    "after": 486244,
+    "removed_nonvisual_channels": 145,
+    "duplicate_views": 385,
+    "duplicate_accessors": 385,
+    "duplicate_samplers": 10,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "horseshoe_crab.glb",
+    "before": 1010136,
+    "after": 885112,
+    "removed_nonvisual_channels": 145,
+    "duplicate_views": 399,
+    "duplicate_accessors": 399,
+    "duplicate_samplers": 11,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "lion-lod1.glb",
+    "before": 302676,
+    "after": 285168,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 69,
+    "duplicate_accessors": 69,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "lion.glb",
+    "before": 325520,
+    "after": 308012,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 69,
+    "duplicate_accessors": 69,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "lioness-lod1.glb",
+    "before": 301912,
+    "after": 284548,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 68,
+    "duplicate_accessors": 68,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "lioness.glb",
+    "before": 326192,
+    "after": 308828,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 68,
+    "duplicate_accessors": 68,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "lizard-lod1.glb",
+    "before": 86520,
+    "after": 83164,
+    "removed_nonvisual_channels": 10,
+    "duplicate_views": 7,
+    "duplicate_accessors": 7,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "lizard.glb",
+    "before": 143372,
+    "after": 139996,
+    "removed_nonvisual_channels": 10,
+    "duplicate_views": 7,
+    "duplicate_accessors": 7,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "mastiff-lod1.glb",
+    "before": 1064584,
+    "after": 970680,
+    "removed_nonvisual_channels": 69,
+    "duplicate_views": 9,
+    "duplicate_accessors": 9,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "mastiff.glb",
+    "before": 1084504,
+    "after": 990600,
+    "removed_nonvisual_channels": 69,
+    "duplicate_views": 9,
+    "duplicate_accessors": 9,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "mastiff_coat2-lod1.glb",
+    "before": 1068756,
+    "after": 974852,
+    "removed_nonvisual_channels": 69,
+    "duplicate_views": 9,
+    "duplicate_accessors": 9,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "mastiff_coat2.glb",
+    "before": 1088672,
+    "after": 994768,
+    "removed_nonvisual_channels": 69,
+    "duplicate_views": 9,
+    "duplicate_accessors": 9,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "mouse_brown-lod1.glb",
+    "before": 811412,
+    "after": 811436,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "mouse_brown.glb",
+    "before": 2571040,
+    "after": 2571064,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "owl_eagle-lod1.glb",
+    "before": 701000,
+    "after": 699144,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 10,
+    "duplicate_accessors": 10,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "owl_eagle.glb",
+    "before": 1413096,
+    "after": 1411228,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 10,
+    "duplicate_accessors": 10,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "parrot_macaw-lod1.glb",
+    "before": 681364,
+    "after": 679044,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "parrot_macaw.glb",
+    "before": 1377420,
+    "after": 1375088,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "peacock-lod1.glb",
+    "before": 542900,
+    "after": 531200,
+    "removed_nonvisual_channels": 14,
+    "duplicate_views": 52,
+    "duplicate_accessors": 52,
+    "duplicate_samplers": 23,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "peacock.glb",
+    "before": 560552,
+    "after": 548848,
+    "removed_nonvisual_channels": 14,
+    "duplicate_views": 52,
+    "duplicate_accessors": 52,
+    "duplicate_samplers": 23,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pig1-lod1.glb",
+    "before": 220552,
+    "after": 201276,
+    "removed_nonvisual_channels": 40,
+    "duplicate_views": 69,
+    "duplicate_accessors": 69,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pig1.glb",
+    "before": 230716,
+    "after": 214256,
+    "removed_nonvisual_channels": 27,
+    "duplicate_views": 71,
+    "duplicate_accessors": 71,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pig1_coat2-lod1.glb",
+    "before": 220488,
+    "after": 201212,
+    "removed_nonvisual_channels": 40,
+    "duplicate_views": 69,
+    "duplicate_accessors": 69,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pig1_coat2.glb",
+    "before": 230564,
+    "after": 214104,
+    "removed_nonvisual_channels": 27,
+    "duplicate_views": 71,
+    "duplicate_accessors": 71,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pig1_coat3-lod1.glb",
+    "before": 220236,
+    "after": 200960,
+    "removed_nonvisual_channels": 40,
+    "duplicate_views": 69,
+    "duplicate_accessors": 69,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pig1_coat3.glb",
+    "before": 230276,
+    "after": 213816,
+    "removed_nonvisual_channels": 27,
+    "duplicate_views": 71,
+    "duplicate_accessors": 71,
+    "duplicate_samplers": 4,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pigeon_rock-lod1.glb",
+    "before": 157276,
+    "after": 152872,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 28,
+    "duplicate_accessors": 28,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pigeon_rock.glb",
+    "before": 403656,
+    "after": 399252,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 28,
+    "duplicate_accessors": 28,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "piglet-lod1.glb",
+    "before": 198556,
+    "after": 151692,
+    "removed_nonvisual_channels": 33,
+    "duplicate_views": 206,
+    "duplicate_accessors": 206,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "piglet.glb",
+    "before": 210248,
+    "after": 163384,
+    "removed_nonvisual_channels": 33,
+    "duplicate_views": 206,
+    "duplicate_accessors": 206,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "piglet_coat2-lod1.glb",
+    "before": 198492,
+    "after": 151628,
+    "removed_nonvisual_channels": 33,
+    "duplicate_views": 206,
+    "duplicate_accessors": 206,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "piglet_coat2.glb",
+    "before": 210100,
+    "after": 163236,
+    "removed_nonvisual_channels": 33,
+    "duplicate_views": 206,
+    "duplicate_accessors": 206,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "piglet_coat3-lod1.glb",
+    "before": 198240,
+    "after": 151376,
+    "removed_nonvisual_channels": 33,
+    "duplicate_views": 206,
+    "duplicate_accessors": 206,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "piglet_coat3.glb",
+    "before": 209812,
+    "after": 162948,
+    "removed_nonvisual_channels": 33,
+    "duplicate_views": 206,
+    "duplicate_accessors": 206,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pike-lod1.glb",
+    "before": 1171472,
+    "after": 922828,
+    "removed_nonvisual_channels": 122,
+    "duplicate_views": 94,
+    "duplicate_accessors": 94,
+    "duplicate_samplers": 28,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pike.glb",
+    "before": 2384676,
+    "after": 2130532,
+    "removed_nonvisual_channels": 142,
+    "duplicate_views": 98,
+    "duplicate_accessors": 98,
+    "duplicate_samplers": 26,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony-lod1.glb",
+    "before": 1317972,
+    "after": 771976,
+    "removed_nonvisual_channels": 846,
+    "duplicate_views": 149,
+    "duplicate_accessors": 149,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony.glb",
+    "before": 1382860,
+    "after": 815500,
+    "removed_nonvisual_channels": 939,
+    "duplicate_views": 139,
+    "duplicate_accessors": 139,
+    "duplicate_samplers": 17,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony_coat2-lod1.glb",
+    "before": 1331880,
+    "after": 785884,
+    "removed_nonvisual_channels": 846,
+    "duplicate_views": 149,
+    "duplicate_accessors": 149,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony_coat2.glb",
+    "before": 1402976,
+    "after": 835616,
+    "removed_nonvisual_channels": 939,
+    "duplicate_views": 139,
+    "duplicate_accessors": 139,
+    "duplicate_samplers": 17,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony_coat3-lod1.glb",
+    "before": 1324544,
+    "after": 778548,
+    "removed_nonvisual_channels": 846,
+    "duplicate_views": 149,
+    "duplicate_accessors": 149,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony_coat3.glb",
+    "before": 1393000,
+    "after": 825640,
+    "removed_nonvisual_channels": 939,
+    "duplicate_views": 139,
+    "duplicate_accessors": 139,
+    "duplicate_samplers": 17,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony_coat4-lod1.glb",
+    "before": 1316728,
+    "after": 770732,
+    "removed_nonvisual_channels": 846,
+    "duplicate_views": 149,
+    "duplicate_accessors": 149,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "pony_coat4.glb",
+    "before": 1381452,
+    "after": 814092,
+    "removed_nonvisual_channels": 939,
+    "duplicate_views": 139,
+    "duplicate_accessors": 139,
+    "duplicate_samplers": 17,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rabbit-lod1.glb",
+    "before": 2022644,
+    "after": 1688644,
+    "removed_nonvisual_channels": 271,
+    "duplicate_views": 98,
+    "duplicate_accessors": 98,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rabbit.glb",
+    "before": 4275804,
+    "after": 3944540,
+    "removed_nonvisual_channels": 263,
+    "duplicate_views": 91,
+    "duplicate_accessors": 91,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rat_street-lod1.glb",
+    "before": 857312,
+    "after": 856656,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 5,
+    "duplicate_accessors": 5,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rat_street.glb",
+    "before": 3059584,
+    "after": 3058924,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 5,
+    "duplicate_accessors": 5,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rhino-lod1.glb",
+    "before": 414156,
+    "after": 400108,
+    "removed_nonvisual_channels": 48,
+    "duplicate_views": 19,
+    "duplicate_accessors": 19,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rhino.glb",
+    "before": 464968,
+    "after": 450920,
+    "removed_nonvisual_channels": 48,
+    "duplicate_views": 19,
+    "duplicate_accessors": 19,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "robin-lod1.glb",
+    "before": 698200,
+    "after": 695456,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 15,
+    "duplicate_accessors": 15,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "robin.glb",
+    "before": 1351808,
+    "after": 1349200,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 14,
+    "duplicate_accessors": 14,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rooster-lod1.glb",
+    "before": 838052,
+    "after": 728080,
+    "removed_nonvisual_channels": 56,
+    "duplicate_views": 506,
+    "duplicate_accessors": 506,
+    "duplicate_samplers": 24,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "rooster.glb",
+    "before": 1590588,
+    "after": 1493428,
+    "removed_nonvisual_channels": 56,
+    "duplicate_views": 407,
+    "duplicate_accessors": 407,
+    "duplicate_samplers": 26,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle-lod1.glb",
+    "before": 737008,
+    "after": 535508,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle.glb",
+    "before": 758068,
+    "after": 571856,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat2-lod1.glb",
+    "before": 743684,
+    "after": 542172,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat2.glb",
+    "before": 764860,
+    "after": 578648,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat2_shape2-lod1.glb",
+    "before": 743688,
+    "after": 542176,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat2_shape2.glb",
+    "before": 764868,
+    "after": 578656,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat3-lod1.glb",
+    "before": 746264,
+    "after": 544752,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat3.glb",
+    "before": 770360,
+    "after": 584144,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat3_shape2-lod1.glb",
+    "before": 746268,
+    "after": 544756,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat3_shape2.glb",
+    "before": 770368,
+    "after": 584152,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat4-lod1.glb",
+    "before": 745204,
+    "after": 543692,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat4.glb",
+    "before": 768984,
+    "after": 582772,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat4_shape2-lod1.glb",
+    "before": 745204,
+    "after": 543696,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat4_shape2.glb",
+    "before": 768992,
+    "after": 582780,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat5-lod1.glb",
+    "before": 747488,
+    "after": 545976,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat5.glb",
+    "before": 769508,
+    "after": 583292,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat5_shape2-lod1.glb",
+    "before": 747488,
+    "after": 545980,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_coat5_shape2.glb",
+    "before": 769516,
+    "after": 583300,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_shape2-lod1.glb",
+    "before": 737012,
+    "after": 535512,
+    "removed_nonvisual_channels": 233,
+    "duplicate_views": 163,
+    "duplicate_accessors": 163,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sanga_cattle_shape2.glb",
+    "before": 758076,
+    "after": 571864,
+    "removed_nonvisual_channels": 174,
+    "duplicate_views": 155,
+    "duplicate_accessors": 155,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "seagull-lod1.glb",
+    "before": 49188,
+    "after": 49212,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "seagull.glb",
+    "before": 55200,
+    "after": 55224,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "shark-lod1.glb",
+    "before": 56540,
+    "after": 48884,
+    "removed_nonvisual_channels": 18,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "shark.glb",
+    "before": 64228,
+    "after": 56564,
+    "removed_nonvisual_channels": 18,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "shark_coat2-lod1.glb",
+    "before": 55552,
+    "after": 47892,
+    "removed_nonvisual_channels": 18,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "shark_coat2.glb",
+    "before": 62932,
+    "after": 55268,
+    "removed_nonvisual_channels": 18,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sheep1-lod1.glb",
+    "before": 182600,
+    "after": 180820,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sheep1.glb",
+    "before": 185844,
+    "after": 184064,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sheep3-lod1.glb",
+    "before": 154688,
+    "after": 152908,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "sheep3.glb",
+    "before": 160500,
+    "after": 158720,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 12,
+    "duplicate_accessors": 12,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "shrike-lod1.glb",
+    "before": 866128,
+    "after": 857232,
+    "removed_nonvisual_channels": 10,
+    "duplicate_views": 44,
+    "duplicate_accessors": 44,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "shrike.glb",
+    "before": 2770440,
+    "after": 2761492,
+    "removed_nonvisual_channels": 10,
+    "duplicate_views": 44,
+    "duplicate_accessors": 44,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "spider_garden-lod1.glb",
+    "before": 203148,
+    "after": 198468,
+    "removed_nonvisual_channels": 12,
+    "duplicate_views": 2,
+    "duplicate_accessors": 2,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "spider_garden.glb",
+    "before": 517124,
+    "after": 512444,
+    "removed_nonvisual_channels": 12,
+    "duplicate_views": 2,
+    "duplicate_accessors": 2,
+    "duplicate_samplers": 2,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "stag-lod1.glb",
+    "before": 846040,
+    "after": 727364,
+    "removed_nonvisual_channels": 230,
+    "duplicate_views": 227,
+    "duplicate_accessors": 227,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "stag.glb",
+    "before": 2162856,
+    "after": 2049040,
+    "removed_nonvisual_channels": 192,
+    "duplicate_views": 226,
+    "duplicate_accessors": 226,
+    "duplicate_samplers": 12,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "tiger-lod1.glb",
+    "before": 1707572,
+    "after": 1603224,
+    "removed_nonvisual_channels": 117,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "tiger.glb",
+    "before": 1718916,
+    "after": 1614568,
+    "removed_nonvisual_channels": 117,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "tuna-lod1.glb",
+    "before": 74576,
+    "after": 74600,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "tuna.glb",
+    "before": 87460,
+    "after": 87484,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "turkey-lod1.glb",
+    "before": 692328,
+    "after": 688704,
+    "removed_nonvisual_channels": 9,
+    "duplicate_views": 10,
+    "duplicate_accessors": 10,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "turkey.glb",
+    "before": 2098812,
+    "after": 2095168,
+    "removed_nonvisual_channels": 9,
+    "duplicate_views": 10,
+    "duplicate_accessors": 10,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "turtle_pond-lod1.glb",
+    "before": 748196,
+    "after": 739060,
+    "removed_nonvisual_channels": 6,
+    "duplicate_views": 45,
+    "duplicate_accessors": 45,
+    "duplicate_samplers": 15,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "turtle_pond.glb",
+    "before": 2550036,
+    "after": 2545728,
+    "removed_nonvisual_channels": 3,
+    "duplicate_views": 25,
+    "duplicate_accessors": 25,
+    "duplicate_samplers": 3,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "turtle_sea-lod1.glb",
+    "before": 401848,
+    "after": 401184,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 5,
+    "duplicate_accessors": 5,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "turtle_sea.glb",
+    "before": 920868,
+    "after": 920204,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 5,
+    "duplicate_accessors": 5,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wasp_realistic-lod1.glb",
+    "before": 248576,
+    "after": 236336,
+    "removed_nonvisual_channels": 18,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wasp_realistic.glb",
+    "before": 579916,
+    "after": 567672,
+    "removed_nonvisual_channels": 18,
+    "duplicate_views": 0,
+    "duplicate_accessors": 0,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "whale_fin-lod1.glb",
+    "before": 135244,
+    "after": 120776,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 34,
+    "duplicate_accessors": 34,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "whale_fin.glb",
+    "before": 185992,
+    "after": 171520,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 34,
+    "duplicate_accessors": 34,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wildebeest-lod1.glb",
+    "before": 682876,
+    "after": 441736,
+    "removed_nonvisual_channels": 270,
+    "duplicate_views": 154,
+    "duplicate_accessors": 154,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wildebeest.glb",
+    "before": 721064,
+    "after": 462036,
+    "removed_nonvisual_channels": 342,
+    "duplicate_views": 158,
+    "duplicate_accessors": 158,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wolf-lod1.glb",
+    "before": 1155396,
+    "after": 1155284,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wolf.glb",
+    "before": 1183316,
+    "after": 1183204,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wolf_coat2-lod1.glb",
+    "before": 1149156,
+    "after": 1149044,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wolf_coat2.glb",
+    "before": 1172096,
+    "after": 1171980,
+    "removed_nonvisual_channels": 0,
+    "duplicate_views": 1,
+    "duplicate_accessors": 1,
+    "duplicate_samplers": 0,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wolfhound-lod1.glb",
+    "before": 1305244,
+    "after": 1175768,
+    "removed_nonvisual_channels": 108,
+    "duplicate_views": 35,
+    "duplicate_accessors": 35,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "wolfhound.glb",
+    "before": 1326820,
+    "after": 1197368,
+    "removed_nonvisual_channels": 108,
+    "duplicate_views": 35,
+    "duplicate_accessors": 35,
+    "duplicate_samplers": 7,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebra-lod1.glb",
+    "before": 263000,
+    "after": 238164,
+    "removed_nonvisual_channels": 47,
+    "duplicate_views": 17,
+    "duplicate_accessors": 17,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebra.glb",
+    "before": 287972,
+    "after": 263144,
+    "removed_nonvisual_channels": 47,
+    "duplicate_views": 17,
+    "duplicate_accessors": 17,
+    "duplicate_samplers": 5,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu-lod1.glb",
+    "before": 497824,
+    "after": 358072,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu.glb",
+    "before": 531936,
+    "after": 392188,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat2-lod1.glb",
+    "before": 504488,
+    "after": 364740,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat2.glb",
+    "before": 538732,
+    "after": 398984,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat3-lod1.glb",
+    "before": 506012,
+    "after": 366264,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat3.glb",
+    "before": 542856,
+    "after": 403108,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat4-lod1.glb",
+    "before": 507068,
+    "after": 367320,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat4.glb",
+    "before": 544232,
+    "after": 404484,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat5-lod1.glb",
+    "before": 498176,
+    "after": 358420,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  },
+  {
+    "file": "zebu_coat5.glb",
+    "before": 530052,
+    "after": 390304,
+    "removed_nonvisual_channels": 137,
+    "duplicate_views": 137,
+    "duplicate_accessors": 137,
+    "duplicate_samplers": 1,
+    "exact_visible_motion_and_geometry": true
+  }
+]

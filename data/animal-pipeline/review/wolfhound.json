@@ -1,0 +1,87 @@
+{
+  "id": "wolfhound",
+  "status": "prepared",
+  "source_actor": "actors/units/britons/wolfhound.xml",
+  "source_mesh": "skeletal/wolfhound.dae",
+  "source_texture": "skeletal/brit/wolfhound.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "repository": "https://github.com/0ad/0ad",
+  "revision": "61a3b9507d974084e6badb88a0826bd89a6d5b8b",
+  "files": [
+    "wolfhound.glb",
+    "wolfhound-lod1.glb"
+  ],
+  "bones": 47,
+  "animations": [
+    {
+      "name": "wolfhound_idle1",
+      "source": "quadraped/wolfhound_idle1.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 9.625,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000015669938,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "wolfhound_idle_laydown",
+      "source": "quadraped/wolfhound_idle_laydown.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 12.958329264322916,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000015669938,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "wolfhound_idle_long",
+      "source": "quadraped/wolfhound_idle_long.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 20.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000015669938,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "wolfhound_idle_sit",
+      "source": "quadraped/wolfhound_idle_sit.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 9.583333333333334,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000015669938,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "wolfhound_walk",
+      "source": "quadraped/wolfhound_walk.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 1.0833338419596354,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000015669938,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "wolfhound_death",
+      "source": "quadraped/wolfhound_death.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 2.0416669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000015669938,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "wolfhound_attack",
+      "source": "quadraped/wolfhound_attack.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.7916666984558105,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000015669938,
+      "collada_carrier_scale_corrected_roots": []
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.25,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 849
+}

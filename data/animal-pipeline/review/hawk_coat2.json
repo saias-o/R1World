@@ -1,0 +1,38 @@
+{
+  "id": "hawk_coat2",
+  "status": "prepared",
+  "source_actor": "actors/fauna/hawk.xml",
+  "source_mesh": "skeletal/hawk.dae",
+  "source_texture": "skeletal/animal_hawk2.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "hawk_coat2.glb",
+    "hawk_coat2-lod1.glb"
+  ],
+  "bones": 9,
+  "animations": [
+    {
+      "name": "hawk_flight",
+      "source": "other/hawk_flight.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 1.0000000635782877,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.9999999345245768
+    },
+    {
+      "name": "hawk_glide",
+      "source": "other/hawk_glide.dae",
+      "source_speed_percent": "3",
+      "duration_seconds": 1.16666685740153,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.9999999345245768
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.1,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 134
+}

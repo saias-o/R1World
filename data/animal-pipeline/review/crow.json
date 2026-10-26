@@ -1,0 +1,38 @@
+{
+  "id": "crow",
+  "status": "prepared",
+  "source_actor": "actors/fauna/crow.xml",
+  "source_mesh": "skeletal/crow.dae",
+  "source_texture": "skeletal/animal_crow.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "crow.glb",
+    "crow-lod1.glb"
+  ],
+  "bones": 9,
+  "animations": [
+    {
+      "name": "crow_flight",
+      "source": "other/crow_flight.dae",
+      "source_speed_percent": "150",
+      "duration_seconds": 3.3333330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "crow_glide",
+      "source": "other/crow_glide.dae",
+      "source_speed_percent": "30",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 0.85,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 542
+}

@@ -1,0 +1,69 @@
+{
+  "id": "turkey",
+  "status": "prepared",
+  "source_actor": "actors/fauna/turkey.xml",
+  "source_mesh": "skeletal/turkey.dae",
+  "source_texture": "skeletal/guajolote_silvestre.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "The Council of Modders, Fallen Empire Studio, Scion Development",
+  "repository": "https://github.com/0ADMods/terra_magna",
+  "revision": "3c75bc3b6bd88380265c12a0bdc0768e83d3a37e",
+  "files": [
+    "turkey.glb",
+    "turkey-lod1.glb"
+  ],
+  "bones": 31,
+  "animations": [
+    {
+      "name": "turkey_idle_1",
+      "source": "quadraped/turkey_idle_1.dae",
+      "source_speed_percent": "60",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "turkey_feeding",
+      "source": "quadraped/turkey_feeding.dae",
+      "source_speed_percent": "30",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "turkey_walk",
+      "source": "quadraped/turkey_walk.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "turkey_run",
+      "source": "quadraped/turkey_run.dae",
+      "source_speed_percent": "30",
+      "duration_seconds": 1.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "turkey_death",
+      "source": "quadraped/turkey_death.dae",
+      "source_speed_percent": "75",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.1,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 798
+}

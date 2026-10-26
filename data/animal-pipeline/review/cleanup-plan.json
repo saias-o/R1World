@@ -1,0 +1,2609 @@
+{
+  "allowed_roots": [
+    "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\source-assets\\animals",
+    "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline"
+  ],
+  "targets": [
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\source-assets\\animals",
+      "directory": true,
+      "bytes": 1069417592
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\cleanup-work",
+      "directory": true,
+      "bytes": 331712479
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\deps\\node_modules",
+      "directory": true,
+      "bytes": 383758
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\__pycache__",
+      "directory": true,
+      "bytes": 293219
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\animation-compaction.json",
+      "directory": false,
+      "bytes": 47345
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\animation-samples",
+      "directory": true,
+      "bytes": 3269623
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\ant-lod1.png",
+      "directory": false,
+      "bytes": 28783
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\ant.png",
+      "directory": false,
+      "bytes": 29636
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\arctic_wolf-lod1.png",
+      "directory": false,
+      "bytes": 113423
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\arctic_wolf.png",
+      "directory": false,
+      "bytes": 114333
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bat-lod1.png",
+      "directory": false,
+      "bytes": 21036
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bat.png",
+      "directory": false,
+      "bytes": 20920
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bear_black-lod1.png",
+      "directory": false,
+      "bytes": 115292
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bear_black.png",
+      "directory": false,
+      "bytes": 115138
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bear_brown-lod1.png",
+      "directory": false,
+      "bytes": 138257
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bear_brown.png",
+      "directory": false,
+      "bytes": 138143
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bear_white-lod1.png",
+      "directory": false,
+      "bytes": 116404
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bear_white.png",
+      "directory": false,
+      "bytes": 116511
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\boar-lod1.png",
+      "directory": false,
+      "bytes": 113466
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\boar.png",
+      "directory": false,
+      "bytes": 113681
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bull-lod1.png",
+      "directory": false,
+      "bytes": 114161
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bull.png",
+      "directory": false,
+      "bytes": 113809
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bull_shape2-lod1.png",
+      "directory": false,
+      "bytes": 114089
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\bull_shape2.png",
+      "directory": false,
+      "bytes": 113592
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\butterfly-lod1.png",
+      "directory": false,
+      "bytes": 30148
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\butterfly.png",
+      "directory": false,
+      "bytes": 30287
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\camel-lod1.png",
+      "directory": false,
+      "bytes": 123364
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\camel.png",
+      "directory": false,
+      "bytes": 123502
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\camel_coat2-lod1.png",
+      "directory": false,
+      "bytes": 128331
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\camel_coat2.png",
+      "directory": false,
+      "bytes": 128145
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\camel_coat3-lod1.png",
+      "directory": false,
+      "bytes": 125476
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\camel_coat3.png",
+      "directory": false,
+      "bytes": 125397
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\candidates",
+      "directory": true,
+      "bytes": 60542116
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken-lod1.png",
+      "directory": false,
+      "bytes": 144001
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken.json",
+      "directory": false,
+      "bytes": 2609
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken.png",
+      "directory": false,
+      "bytes": 143224
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken_coat2-lod1.png",
+      "directory": false,
+      "bytes": 144615
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken_coat2.json",
+      "directory": false,
+      "bytes": 2629
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken_coat2.png",
+      "directory": false,
+      "bytes": 143745
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken_kelgar-lod1.png",
+      "directory": false,
+      "bytes": 79398
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\chicken_kelgar.png",
+      "directory": false,
+      "bytes": 78131
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-01.jpg",
+      "directory": false,
+      "bytes": 220084
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-02.jpg",
+      "directory": false,
+      "bytes": 211187
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-03.jpg",
+      "directory": false,
+      "bytes": 232591
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-04.jpg",
+      "directory": false,
+      "bytes": 230039
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-05.jpg",
+      "directory": false,
+      "bytes": 216462
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-06.jpg",
+      "directory": false,
+      "bytes": 212245
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-07.jpg",
+      "directory": false,
+      "bytes": 123460
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\contact-08.jpg",
+      "directory": false,
+      "bytes": 12081
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\converted-collada",
+      "directory": true,
+      "bytes": 12813782
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\converted-textures",
+      "directory": true,
+      "bytes": 24031675
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow-lod1.png",
+      "directory": false,
+      "bytes": 118254
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow.png",
+      "directory": false,
+      "bytes": 118096
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat2-lod1.png",
+      "directory": false,
+      "bytes": 121477
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat2.png",
+      "directory": false,
+      "bytes": 121651
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat2_shape2-lod1.png",
+      "directory": false,
+      "bytes": 120921
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat2_shape2.png",
+      "directory": false,
+      "bytes": 121239
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat3-lod1.png",
+      "directory": false,
+      "bytes": 120737
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat3.png",
+      "directory": false,
+      "bytes": 120834
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat3_shape2-lod1.png",
+      "directory": false,
+      "bytes": 120721
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_coat3_shape2.png",
+      "directory": false,
+      "bytes": 120448
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_shape2-lod1.png",
+      "directory": false,
+      "bytes": 118048
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\cow_shape2.png",
+      "directory": false,
+      "bytes": 117703
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\crocodile-lod1.png",
+      "directory": false,
+      "bytes": 89815
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\crocodile.png",
+      "directory": false,
+      "bytes": 89869
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\crow-lod1.png",
+      "directory": false,
+      "bytes": 84716
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\crow.png",
+      "directory": false,
+      "bytes": 84749
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer-lod1.png",
+      "directory": false,
+      "bytes": 114158
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer.png",
+      "directory": false,
+      "bytes": 114936
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1.json",
+      "directory": false,
+      "bytes": 85
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_coat2.json",
+      "directory": false,
+      "bytes": 91
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_coat2_shape2.json",
+      "directory": false,
+      "bytes": 98
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_coat2_shape3.json",
+      "directory": false,
+      "bytes": 98
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_coat3.json",
+      "directory": false,
+      "bytes": 91
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_coat3_shape2.json",
+      "directory": false,
+      "bytes": 98
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_coat3_shape3.json",
+      "directory": false,
+      "bytes": 98
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_shape2.json",
+      "directory": false,
+      "bytes": 92
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer1_shape3.json",
+      "directory": false,
+      "bytes": 92
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer_coat2-lod1.png",
+      "directory": false,
+      "bytes": 115433
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer_coat2.png",
+      "directory": false,
+      "bytes": 115718
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer_coat3-lod1.png",
+      "directory": false,
+      "bytes": 114128
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\deer_coat3.png",
+      "directory": false,
+      "bytes": 114571
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\doe-lod1.png",
+      "directory": false,
+      "bytes": 57957
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\doe.png",
+      "directory": false,
+      "bytes": 57859
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\donkey-lod1.png",
+      "directory": false,
+      "bytes": 109399
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\donkey.png",
+      "directory": false,
+      "bytes": 110392
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\duck-lod1.png",
+      "directory": false,
+      "bytes": 133312
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\duck.png",
+      "directory": false,
+      "bytes": 133653
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\duckling-lod1.png",
+      "directory": false,
+      "bytes": 150271
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\duckling.png",
+      "directory": false,
+      "bytes": 150581
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_african_baby-lod1.png",
+      "directory": false,
+      "bytes": 140753
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_african_baby.png",
+      "directory": false,
+      "bytes": 141684
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_african_bush-lod1.png",
+      "directory": false,
+      "bytes": 150154
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_african_bush.png",
+      "directory": false,
+      "bytes": 150830
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_african_forest-lod1.png",
+      "directory": false,
+      "bytes": 148700
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_african_forest.png",
+      "directory": false,
+      "bytes": 149684
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_asian-lod1.png",
+      "directory": false,
+      "bytes": 146687
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\elephant_asian.png",
+      "directory": false,
+      "bytes": 147179
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\expansion",
+      "directory": true,
+      "bytes": 63559897
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\extras-sheet.jpg",
+      "directory": false,
+      "bytes": 60139
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\final-renders",
+      "directory": true,
+      "bytes": 13521077
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fish_generic-lod1.png",
+      "directory": false,
+      "bytes": 107560
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fish_generic.png",
+      "directory": false,
+      "bytes": 107470
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fish_kelgar-lod1.png",
+      "directory": false,
+      "bytes": 51810
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fish_kelgar.png",
+      "directory": false,
+      "bytes": 51955
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fish_single-lod1.png",
+      "directory": false,
+      "bytes": 94539
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fish_single.png",
+      "directory": false,
+      "bytes": 94953
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fox_arctic-lod1.png",
+      "directory": false,
+      "bytes": 85562
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fox_arctic.png",
+      "directory": false,
+      "bytes": 85448
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fox_red-lod1.png",
+      "directory": false,
+      "bytes": 108161
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\fox_red.png",
+      "directory": false,
+      "bytes": 108459
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\framing-diagnostic.png",
+      "directory": false,
+      "bytes": 75396
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\gazelle-lod1.png",
+      "directory": false,
+      "bytes": 118941
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\gazelle.png",
+      "directory": false,
+      "bytes": 119179
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_adult-lod1.png",
+      "directory": false,
+      "bytes": 116715
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_adult.png",
+      "directory": false,
+      "bytes": 117194
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_adult_coat2-lod1.png",
+      "directory": false,
+      "bytes": 117308
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_adult_coat2.png",
+      "directory": false,
+      "bytes": 117903
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_baby-lod1.png",
+      "directory": false,
+      "bytes": 116731
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_baby.png",
+      "directory": false,
+      "bytes": 117189
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_baby_coat2-lod1.png",
+      "directory": false,
+      "bytes": 117297
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\giraffe_baby_coat2.png",
+      "directory": false,
+      "bytes": 117908
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat-lod1.png",
+      "directory": false,
+      "bytes": 92150
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat.png",
+      "directory": false,
+      "bytes": 92985
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat2-lod1.png",
+      "directory": false,
+      "bytes": 116103
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat2.png",
+      "directory": false,
+      "bytes": 116884
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat2_shape2-lod1.png",
+      "directory": false,
+      "bytes": 122307
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat2_shape2.png",
+      "directory": false,
+      "bytes": 123527
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat3-lod1.png",
+      "directory": false,
+      "bytes": 94733
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat3.png",
+      "directory": false,
+      "bytes": 95838
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat3_shape2-lod1.png",
+      "directory": false,
+      "bytes": 101879
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat3_shape2.png",
+      "directory": false,
+      "bytes": 103081
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat4-lod1.png",
+      "directory": false,
+      "bytes": 91807
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat4.png",
+      "directory": false,
+      "bytes": 92481
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat4_shape2-lod1.png",
+      "directory": false,
+      "bytes": 99777
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_coat4_shape2.png",
+      "directory": false,
+      "bytes": 101154
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_shape2-lod1.png",
+      "directory": false,
+      "bytes": 99486
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\goat_shape2.png",
+      "directory": false,
+      "bytes": 101031
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hawk-lod1.png",
+      "directory": false,
+      "bytes": 87736
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hawk.png",
+      "directory": false,
+      "bytes": 88244
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hawk_coat2-lod1.png",
+      "directory": false,
+      "bytes": 87889
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hawk_coat2.png",
+      "directory": false,
+      "bytes": 88236
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hippopotamus-lod1.png",
+      "directory": false,
+      "bytes": 116992
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hippopotamus.png",
+      "directory": false,
+      "bytes": 117143
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hippopotamus_coat2-lod1.png",
+      "directory": false,
+      "bytes": 112025
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\hippopotamus_coat2.png",
+      "directory": false,
+      "bytes": 112051
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse-lod1.png",
+      "directory": false,
+      "bytes": 117302
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse.png",
+      "directory": false,
+      "bytes": 117178
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horseshoe_crab-lod1.png",
+      "directory": false,
+      "bytes": 20381
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horseshoe_crab.png",
+      "directory": false,
+      "bytes": 20118
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed-lod1.png",
+      "directory": false,
+      "bytes": 119422
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed.png",
+      "directory": false,
+      "bytes": 119096
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat10-lod1.png",
+      "directory": false,
+      "bytes": 118385
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat10.png",
+      "directory": false,
+      "bytes": 118116
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat2-lod1.png",
+      "directory": false,
+      "bytes": 110189
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat2.png",
+      "directory": false,
+      "bytes": 110327
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat3-lod1.png",
+      "directory": false,
+      "bytes": 124763
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat3.png",
+      "directory": false,
+      "bytes": 124846
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat4-lod1.png",
+      "directory": false,
+      "bytes": 125311
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat4.png",
+      "directory": false,
+      "bytes": 125337
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat5-lod1.png",
+      "directory": false,
+      "bytes": 120735
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat5.png",
+      "directory": false,
+      "bytes": 120792
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat6-lod1.png",
+      "directory": false,
+      "bytes": 112854
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat6.png",
+      "directory": false,
+      "bytes": 113134
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat7-lod1.png",
+      "directory": false,
+      "bytes": 111924
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat7.png",
+      "directory": false,
+      "bytes": 112070
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat8-lod1.png",
+      "directory": false,
+      "bytes": 122907
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat8.png",
+      "directory": false,
+      "bytes": 123089
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat9-lod1.png",
+      "directory": false,
+      "bytes": 125573
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_breed_coat9.png",
+      "directory": false,
+      "bytes": 125677
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_brown_spotted_01-lod1.png",
+      "directory": false,
+      "bytes": 117331
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_brown_spotted_01.png",
+      "directory": false,
+      "bytes": 117504
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_chestnut_01-lod1.png",
+      "directory": false,
+      "bytes": 122197
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_chestnut_01.png",
+      "directory": false,
+      "bytes": 122299
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_chestnut_02-lod1.png",
+      "directory": false,
+      "bytes": 121480
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_chestnut_02.png",
+      "directory": false,
+      "bytes": 121438
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat10-lod1.png",
+      "directory": false,
+      "bytes": 116315
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat10.png",
+      "directory": false,
+      "bytes": 116150
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat2-lod1.png",
+      "directory": false,
+      "bytes": 108372
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat2.png",
+      "directory": false,
+      "bytes": 108553
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat3-lod1.png",
+      "directory": false,
+      "bytes": 122686
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat3.png",
+      "directory": false,
+      "bytes": 122251
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat4-lod1.png",
+      "directory": false,
+      "bytes": 123205
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat4.png",
+      "directory": false,
+      "bytes": 122992
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat5-lod1.png",
+      "directory": false,
+      "bytes": 119101
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat5.png",
+      "directory": false,
+      "bytes": 118799
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat6-lod1.png",
+      "directory": false,
+      "bytes": 111409
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat6.png",
+      "directory": false,
+      "bytes": 110831
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat7-lod1.png",
+      "directory": false,
+      "bytes": 110377
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat7.png",
+      "directory": false,
+      "bytes": 110190
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat8-lod1.png",
+      "directory": false,
+      "bytes": 120956
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat8.png",
+      "directory": false,
+      "bytes": 120988
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat9-lod1.png",
+      "directory": false,
+      "bytes": 123449
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_coat9.png",
+      "directory": false,
+      "bytes": 123178
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_cream_spotted_01-lod1.png",
+      "directory": false,
+      "bytes": 119146
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_cream_spotted_01.png",
+      "directory": false,
+      "bytes": 119771
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_cream_spotted_02-lod1.png",
+      "directory": false,
+      "bytes": 118365
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_cream_spotted_02.png",
+      "directory": false,
+      "bytes": 118713
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_dark_chestnut-lod1.png",
+      "directory": false,
+      "bytes": 113521
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_dark_chestnut.png",
+      "directory": false,
+      "bytes": 113436
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_fading_black-lod1.png",
+      "directory": false,
+      "bytes": 89130
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_fading_black.png",
+      "directory": false,
+      "bytes": 89070
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano-lod1.png",
+      "directory": false,
+      "bytes": 108630
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano.png",
+      "directory": false,
+      "bytes": 108295
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat10-lod1.png",
+      "directory": false,
+      "bytes": 109512
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat10.png",
+      "directory": false,
+      "bytes": 109210
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat2-lod1.png",
+      "directory": false,
+      "bytes": 117327
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat2.png",
+      "directory": false,
+      "bytes": 117258
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat3-lod1.png",
+      "directory": false,
+      "bytes": 122832
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat3.png",
+      "directory": false,
+      "bytes": 122625
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat4-lod1.png",
+      "directory": false,
+      "bytes": 123512
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat4.png",
+      "directory": false,
+      "bytes": 123024
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat5-lod1.png",
+      "directory": false,
+      "bytes": 119129
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat5.png",
+      "directory": false,
+      "bytes": 118849
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat6-lod1.png",
+      "directory": false,
+      "bytes": 111326
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat6.png",
+      "directory": false,
+      "bytes": 111396
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat7-lod1.png",
+      "directory": false,
+      "bytes": 110398
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat7.png",
+      "directory": false,
+      "bytes": 110565
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat8-lod1.png",
+      "directory": false,
+      "bytes": 121401
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat8.png",
+      "directory": false,
+      "bytes": 121174
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat9-lod1.png",
+      "directory": false,
+      "bytes": 112044
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_lusitano_coat9.png",
+      "directory": false,
+      "bytes": 112087
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari-lod1.png",
+      "directory": false,
+      "bytes": 115018
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari.png",
+      "directory": false,
+      "bytes": 115096
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat2-lod1.png",
+      "directory": false,
+      "bytes": 120285
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat2.png",
+      "directory": false,
+      "bytes": 120353
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat3-lod1.png",
+      "directory": false,
+      "bytes": 120775
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat3.png",
+      "directory": false,
+      "bytes": 121125
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat4-lod1.png",
+      "directory": false,
+      "bytes": 116700
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat4.png",
+      "directory": false,
+      "bytes": 117107
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat5-lod1.png",
+      "directory": false,
+      "bytes": 109268
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat5.png",
+      "directory": false,
+      "bytes": 109269
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat6-lod1.png",
+      "directory": false,
+      "bytes": 108451
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat6.png",
+      "directory": false,
+      "bytes": 108605
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat7-lod1.png",
+      "directory": false,
+      "bytes": 118805
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat7.png",
+      "directory": false,
+      "bytes": 118905
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat8-lod1.png",
+      "directory": false,
+      "bytes": 115377
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_marwari_coat8.png",
+      "directory": false,
+      "bytes": 115560
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_palomino_01-lod1.png",
+      "directory": false,
+      "bytes": 124634
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_palomino_01.png",
+      "directory": false,
+      "bytes": 124462
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_palomino_02-lod1.png",
+      "directory": false,
+      "bytes": 124018
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_palomino_02.png",
+      "directory": false,
+      "bytes": 123907
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian-lod1.png",
+      "directory": false,
+      "bytes": 115216
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian.png",
+      "directory": false,
+      "bytes": 114823
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat10-lod1.png",
+      "directory": false,
+      "bytes": 121501
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat10.png",
+      "directory": false,
+      "bytes": 121480
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat11-lod1.png",
+      "directory": false,
+      "bytes": 114569
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat11.png",
+      "directory": false,
+      "bytes": 114530
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat3-lod1.png",
+      "directory": false,
+      "bytes": 106685
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat3.png",
+      "directory": false,
+      "bytes": 106746
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat5-lod1.png",
+      "directory": false,
+      "bytes": 116960
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat5.png",
+      "directory": false,
+      "bytes": 116962
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat6-lod1.png",
+      "directory": false,
+      "bytes": 108570
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat6.png",
+      "directory": false,
+      "bytes": 108635
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat7-lod1.png",
+      "directory": false,
+      "bytes": 118792
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_persian_coat7.png",
+      "directory": false,
+      "bytes": 118638
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_skewbald-lod1.png",
+      "directory": false,
+      "bytes": 114183
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_skewbald.png",
+      "directory": false,
+      "bytes": 115029
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian-lod1.png",
+      "directory": false,
+      "bytes": 116955
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian.png",
+      "directory": false,
+      "bytes": 116752
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat10-lod1.png",
+      "directory": false,
+      "bytes": 123106
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat10.png",
+      "directory": false,
+      "bytes": 123019
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat11-lod1.png",
+      "directory": false,
+      "bytes": 116250
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat11.png",
+      "directory": false,
+      "bytes": 115803
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat2-lod1.png",
+      "directory": false,
+      "bytes": 115279
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat2.png",
+      "directory": false,
+      "bytes": 115010
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat3-lod1.png",
+      "directory": false,
+      "bytes": 108299
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat3.png",
+      "directory": false,
+      "bytes": 108107
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat4-lod1.png",
+      "directory": false,
+      "bytes": 89816
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat4.png",
+      "directory": false,
+      "bytes": 89921
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat5-lod1.png",
+      "directory": false,
+      "bytes": 118705
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat5.png",
+      "directory": false,
+      "bytes": 118391
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat6-lod1.png",
+      "directory": false,
+      "bytes": 109815
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat6.png",
+      "directory": false,
+      "bytes": 109832
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat7-lod1.png",
+      "directory": false,
+      "bytes": 120424
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat7.png",
+      "directory": false,
+      "bytes": 120586
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat8-lod1.png",
+      "directory": false,
+      "bytes": 123451
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat8.png",
+      "directory": false,
+      "bytes": 123704
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat9-lod1.png",
+      "directory": false,
+      "bytes": 124077
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\horse_tessalian_coat9.png",
+      "directory": false,
+      "bytes": 124082
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\last-candidates.jpg",
+      "directory": false,
+      "bytes": 42851
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\lemur-lod1.png",
+      "directory": false,
+      "bytes": 92792
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\lemur.png",
+      "directory": false,
+      "bytes": 92972
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\lion-lod1.png",
+      "directory": false,
+      "bytes": 103286
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\lion.png",
+      "directory": false,
+      "bytes": 103722
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\lioness-lod1.png",
+      "directory": false,
+      "bytes": 101628
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\lioness.png",
+      "directory": false,
+      "bytes": 101537
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\mastiff-lod1.png",
+      "directory": false,
+      "bytes": 119941
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\mastiff.png",
+      "directory": false,
+      "bytes": 119924
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\mastiff_coat2-lod1.png",
+      "directory": false,
+      "bytes": 110805
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\mastiff_coat2.png",
+      "directory": false,
+      "bytes": 110473
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\muskox.json",
+      "directory": false,
+      "bytes": 86
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga-fixed.jpg",
+      "directory": false,
+      "bytes": 34130
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga-sheet.jpg",
+      "directory": false,
+      "bytes": 75359
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_ant.json",
+      "directory": false,
+      "bytes": 805
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_bat.json",
+      "directory": false,
+      "bytes": 1097
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_butterfly.json",
+      "directory": false,
+      "bytes": 903
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_chicken_kelgar.json",
+      "directory": false,
+      "bytes": 1663
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_doe.json",
+      "directory": false,
+      "bytes": 1471
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_duck.json",
+      "directory": false,
+      "bytes": 678
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_duckling.json",
+      "directory": false,
+      "bytes": 702
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_fish_kelgar.json",
+      "directory": false,
+      "bytes": 830
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_horseshoe_crab.json",
+      "directory": false,
+      "bytes": 1414
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_lemur.json",
+      "directory": false,
+      "bytes": 851
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_penguin.json",
+      "directory": false,
+      "bytes": 880
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_pike.json",
+      "directory": false,
+      "bytes": 934
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_rabbit.json",
+      "directory": false,
+      "bytes": 1380
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_rat.json",
+      "directory": false,
+      "bytes": 1558
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_rooster.json",
+      "directory": false,
+      "bytes": 1504
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_scorpion.json",
+      "directory": false,
+      "bytes": 1385
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_snake.json",
+      "directory": false,
+      "bytes": 782
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_spider.json",
+      "directory": false,
+      "bytes": 691
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_stag.json",
+      "directory": false,
+      "bytes": 1405
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\oga_wasp.json",
+      "directory": false,
+      "bytes": 525
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\peacock-lod1.png",
+      "directory": false,
+      "bytes": 95949
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\peacock.png",
+      "directory": false,
+      "bytes": 96405
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\penguin-lod1.png",
+      "directory": false,
+      "bytes": 136363
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\penguin.png",
+      "directory": false,
+      "bytes": 136504
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1-lod1.png",
+      "directory": false,
+      "bytes": 125945
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1.png",
+      "directory": false,
+      "bytes": 124162
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1_coat2-lod1.png",
+      "directory": false,
+      "bytes": 125624
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1_coat2.png",
+      "directory": false,
+      "bytes": 123880
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1_coat3-lod1.png",
+      "directory": false,
+      "bytes": 125054
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1_coat3.png",
+      "directory": false,
+      "bytes": 123168
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1_coat4-lod1.png",
+      "directory": false,
+      "bytes": 126304
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1_coat4.json",
+      "directory": false,
+      "bytes": 3173
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pig1_coat4.png",
+      "directory": false,
+      "bytes": 124384
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet-lod1.png",
+      "directory": false,
+      "bytes": 125005
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet.png",
+      "directory": false,
+      "bytes": 123478
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet_coat2-lod1.png",
+      "directory": false,
+      "bytes": 124719
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet_coat2.png",
+      "directory": false,
+      "bytes": 123113
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet_coat3-lod1.png",
+      "directory": false,
+      "bytes": 123989
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet_coat3.png",
+      "directory": false,
+      "bytes": 122627
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet_coat4-lod1.png",
+      "directory": false,
+      "bytes": 124958
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet_coat4.json",
+      "directory": false,
+      "bytes": 3258
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\piglet_coat4.png",
+      "directory": false,
+      "bytes": 123920
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pike-lod1.png",
+      "directory": false,
+      "bytes": 104024
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pike.png",
+      "directory": false,
+      "bytes": 104080
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony-lod1.png",
+      "directory": false,
+      "bytes": 117009
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony.png",
+      "directory": false,
+      "bytes": 117258
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony_coat2-lod1.png",
+      "directory": false,
+      "bytes": 122764
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony_coat2.png",
+      "directory": false,
+      "bytes": 122696
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony_coat3-lod1.png",
+      "directory": false,
+      "bytes": 123476
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony_coat3.png",
+      "directory": false,
+      "bytes": 123571
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony_coat4-lod1.png",
+      "directory": false,
+      "bytes": 116350
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pony_coat4.png",
+      "directory": false,
+      "bytes": 116362
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\pre-clean-size.json",
+      "directory": false,
+      "bytes": 87707
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit-crab.jpg",
+      "directory": false,
+      "bytes": 16364
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit-lod1.png",
+      "directory": false,
+      "bytes": 70013
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit.png",
+      "directory": false,
+      "bytes": 72601
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1-lod1.png",
+      "directory": false,
+      "bytes": 111671
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1.json",
+      "directory": false,
+      "bytes": 2235
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1.png",
+      "directory": false,
+      "bytes": 113495
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat2-lod1.png",
+      "directory": false,
+      "bytes": 109182
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat2.json",
+      "directory": false,
+      "bytes": 2253
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat2.png",
+      "directory": false,
+      "bytes": 111817
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat2_shape2-lod1.png",
+      "directory": false,
+      "bytes": 113365
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat2_shape2.json",
+      "directory": false,
+      "bytes": 2274
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat2_shape2.png",
+      "directory": false,
+      "bytes": 113796
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat3-lod1.png",
+      "directory": false,
+      "bytes": 109522
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat3.json",
+      "directory": false,
+      "bytes": 2253
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat3.png",
+      "directory": false,
+      "bytes": 111443
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat3_shape2-lod1.png",
+      "directory": false,
+      "bytes": 113964
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat3_shape2.json",
+      "directory": false,
+      "bytes": 2274
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat3_shape2.png",
+      "directory": false,
+      "bytes": 113223
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat4-lod1.png",
+      "directory": false,
+      "bytes": 117289
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat4.json",
+      "directory": false,
+      "bytes": 2253
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat4.png",
+      "directory": false,
+      "bytes": 119019
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat4_shape2-lod1.png",
+      "directory": false,
+      "bytes": 121197
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat4_shape2.json",
+      "directory": false,
+      "bytes": 2274
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat4_shape2.png",
+      "directory": false,
+      "bytes": 120863
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat5-lod1.png",
+      "directory": false,
+      "bytes": 119383
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat5.json",
+      "directory": false,
+      "bytes": 2253
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat5.png",
+      "directory": false,
+      "bytes": 122256
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat5_shape2-lod1.png",
+      "directory": false,
+      "bytes": 124498
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat5_shape2.json",
+      "directory": false,
+      "bytes": 2274
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_coat5_shape2.png",
+      "directory": false,
+      "bytes": 124492
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_shape2-lod1.png",
+      "directory": false,
+      "bytes": 115114
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_shape2.json",
+      "directory": false,
+      "bytes": 2256
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rabbit1_shape2.png",
+      "directory": false,
+      "bytes": 115422
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rat-lod1.png",
+      "directory": false,
+      "bytes": 18946
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rat.png",
+      "directory": false,
+      "bytes": 19167
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rejected-0ad",
+      "directory": true,
+      "bytes": 8296796
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\results_0ad.json",
+      "directory": false,
+      "bytes": 432965
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\results_oga.json",
+      "directory": false,
+      "bytes": 886
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\results_sample.json",
+      "directory": false,
+      "bytes": 73489
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rhino-lod1.png",
+      "directory": false,
+      "bytes": 117075
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rhino.png",
+      "directory": false,
+      "bytes": 115221
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rooster-lod1.png",
+      "directory": false,
+      "bytes": 57552
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\rooster.png",
+      "directory": false,
+      "bytes": 57875
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sample-sheet.jpg",
+      "directory": false,
+      "bytes": 62260
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle-lod1.png",
+      "directory": false,
+      "bytes": 114965
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle.png",
+      "directory": false,
+      "bytes": 115431
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat2-lod1.png",
+      "directory": false,
+      "bytes": 91771
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat2.png",
+      "directory": false,
+      "bytes": 91891
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat2_shape2-lod1.png",
+      "directory": false,
+      "bytes": 92390
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat2_shape2.png",
+      "directory": false,
+      "bytes": 92759
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat3-lod1.png",
+      "directory": false,
+      "bytes": 111127
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat3.png",
+      "directory": false,
+      "bytes": 111693
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat3_shape2-lod1.png",
+      "directory": false,
+      "bytes": 111629
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat3_shape2.png",
+      "directory": false,
+      "bytes": 112207
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat4-lod1.png",
+      "directory": false,
+      "bytes": 118930
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat4.png",
+      "directory": false,
+      "bytes": 119175
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat4_shape2-lod1.png",
+      "directory": false,
+      "bytes": 119824
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat4_shape2.png",
+      "directory": false,
+      "bytes": 120391
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat5-lod1.png",
+      "directory": false,
+      "bytes": 120607
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat5.png",
+      "directory": false,
+      "bytes": 120963
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat5_shape2-lod1.png",
+      "directory": false,
+      "bytes": 121452
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_coat5_shape2.png",
+      "directory": false,
+      "bytes": 121978
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_shape2-lod1.png",
+      "directory": false,
+      "bytes": 115722
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sanga_cattle_shape2.png",
+      "directory": false,
+      "bytes": 116211
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\scorpion-lod1.png",
+      "directory": false,
+      "bytes": 63163
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\scorpion.png",
+      "directory": false,
+      "bytes": 64015
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\seagull-lod1.png",
+      "directory": false,
+      "bytes": 82626
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\seagull.png",
+      "directory": false,
+      "bytes": 82415
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\shark-lod1.png",
+      "directory": false,
+      "bytes": 86679
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\shark.png",
+      "directory": false,
+      "bytes": 86903
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\shark_coat2-lod1.png",
+      "directory": false,
+      "bytes": 86149
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\shark_coat2.png",
+      "directory": false,
+      "bytes": 86096
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep1-lod1.png",
+      "directory": false,
+      "bytes": 122492
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep1.png",
+      "directory": false,
+      "bytes": 122357
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep1_coat2-lod1.png",
+      "directory": false,
+      "bytes": 129180
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep1_coat2.json",
+      "directory": false,
+      "bytes": 1854
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep1_coat2.png",
+      "directory": false,
+      "bytes": 129583
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep2.json",
+      "directory": false,
+      "bytes": 86
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep2_coat2.json",
+      "directory": false,
+      "bytes": 92
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep3-lod1.png",
+      "directory": false,
+      "bytes": 122594
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\sheep3.png",
+      "directory": false,
+      "bytes": 122418
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\snake-lod1.png",
+      "directory": false,
+      "bytes": 78100
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\snake.png",
+      "directory": false,
+      "bytes": 78080
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\spider-lod1.png",
+      "directory": false,
+      "bytes": 31728
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\spider.png",
+      "directory": false,
+      "bytes": 32224
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\stag-lod1.png",
+      "directory": false,
+      "bytes": 60539
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\stag.png",
+      "directory": false,
+      "bytes": 60715
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\tangents.json",
+      "directory": false,
+      "bytes": 791
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\texture-optimization.json",
+      "directory": false,
+      "bytes": 7301
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\tiger-lod1.png",
+      "directory": false,
+      "bytes": 124224
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\tiger.png",
+      "directory": false,
+      "bytes": 123831
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\tuna-lod1.png",
+      "directory": false,
+      "bytes": 96247
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\tuna.png",
+      "directory": false,
+      "bytes": 96453
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\turkey-lod1.png",
+      "directory": false,
+      "bytes": 111971
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\turkey.png",
+      "directory": false,
+      "bytes": 112693
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\visual-decisions.json",
+      "directory": false,
+      "bytes": 6348
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\walrus.json",
+      "directory": false,
+      "bytes": 86
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wasp-lod1.png",
+      "directory": false,
+      "bytes": 35732
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wasp.png",
+      "directory": false,
+      "bytes": 35604
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\whale.json",
+      "directory": false,
+      "bytes": 85
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\whale_fin-lod1.png",
+      "directory": false,
+      "bytes": 86478
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\whale_fin.png",
+      "directory": false,
+      "bytes": 86636
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wildebeest-lod1.png",
+      "directory": false,
+      "bytes": 121038
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wildebeest.png",
+      "directory": false,
+      "bytes": 121045
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wolf-lod1.png",
+      "directory": false,
+      "bytes": 132327
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wolf.png",
+      "directory": false,
+      "bytes": 133316
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wolfhound-lod1.png",
+      "directory": false,
+      "bytes": 115384
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wolfhound.png",
+      "directory": false,
+      "bytes": 114747
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wolf_coat2-lod1.png",
+      "directory": false,
+      "bytes": 117869
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\wolf_coat2.png",
+      "directory": false,
+      "bytes": 118577
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebra-lod1.png",
+      "directory": false,
+      "bytes": 125898
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebra.png",
+      "directory": false,
+      "bytes": 126578
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebra_2-lod1.png",
+      "directory": false,
+      "bytes": 127161
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebra_2.json",
+      "directory": false,
+      "bytes": 2770
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebra_2.png",
+      "directory": false,
+      "bytes": 127001
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu-lod1.png",
+      "directory": false,
+      "bytes": 114832
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu.png",
+      "directory": false,
+      "bytes": 115270
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat2-lod1.png",
+      "directory": false,
+      "bytes": 91324
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat2.png",
+      "directory": false,
+      "bytes": 91752
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat3-lod1.png",
+      "directory": false,
+      "bytes": 118368
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat3.png",
+      "directory": false,
+      "bytes": 118900
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat4-lod1.png",
+      "directory": false,
+      "bytes": 110743
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat4.png",
+      "directory": false,
+      "bytes": 110993
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat5-lod1.png",
+      "directory": false,
+      "bytes": 108232
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review\\zebu_coat5.png",
+      "directory": false,
+      "bytes": 108452
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\additional.log",
+      "directory": false,
+      "bytes": 57446
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\animation-samples.log",
+      "directory": false,
+      "bytes": 146390
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\candidate-smoke.log",
+      "directory": false,
+      "bytes": 1807
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\chicken-fix.log",
+      "directory": false,
+      "bytes": 12915
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\collada-fix.log",
+      "directory": false,
+      "bytes": 930596
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\compact-storage.log",
+      "directory": false,
+      "bytes": 104
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\compress-textures-lossless.log",
+      "directory": false,
+      "bytes": 58
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\download-expansion.log",
+      "directory": false,
+      "bytes": 453
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\download-objaverse-selection.log",
+      "directory": false,
+      "bytes": 416
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\final-smoke.log",
+      "directory": false,
+      "bytes": 39
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\final-validator.log",
+      "directory": false,
+      "bytes": 75
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\goat-fix.log",
+      "directory": false,
+      "bytes": 168555
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\inspect-expansion-extra.log",
+      "directory": false,
+      "bytes": 61615
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\inspect-expansion.log",
+      "directory": false,
+      "bytes": 105866
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\inspect-objaverse.log",
+      "directory": false,
+      "bytes": 58793
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\inspect-oga.log",
+      "directory": false,
+      "bytes": 4819
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\materials-expansion.log",
+      "directory": false,
+      "bytes": 10937
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\materials.log",
+      "directory": false,
+      "bytes": 2105
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\objaverse-candidates.log",
+      "directory": false,
+      "bytes": 19707
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\objaverse-licenses.log",
+      "directory": false,
+      "bytes": 637
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\pike-fix.log",
+      "directory": false,
+      "bytes": 22460
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\prepare-0ad.log",
+      "directory": false,
+      "bytes": 8265439
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\prepare-oga-final.log",
+      "directory": false,
+      "bytes": 95057
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\prepare-oga-fix.log",
+      "directory": false,
+      "bytes": 68152
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\prepare-oga-more.log",
+      "directory": false,
+      "bytes": 71704
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\prepare-oga.log",
+      "directory": false,
+      "bytes": 138292
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\rabbit-crab-fix.log",
+      "directory": false,
+      "bytes": 31205
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\reimport-expansion.log",
+      "directory": false,
+      "bytes": 419826
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\reimport-turtle.log",
+      "directory": false,
+      "bytes": 40234
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\render-coherence.log",
+      "directory": false,
+      "bytes": 47919
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\render-final.log",
+      "directory": false,
+      "bytes": 416602
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\research-objaverse.log",
+      "directory": false,
+      "bytes": 7830
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\review-delivered-expansion.log",
+      "directory": false,
+      "bytes": 435274
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\rig-expansion-all.log",
+      "directory": false,
+      "bytes": 195015
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\rig-expansion-noweld.log",
+      "directory": false,
+      "bytes": 194967
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\rig-expansion-sample.log",
+      "directory": false,
+      "bytes": 47665
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\rig-materials-birds.log",
+      "directory": false,
+      "bytes": 82232
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\rig-objaverse.log",
+      "directory": false,
+      "bytes": 51020
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\rig-turtle-eyes.log",
+      "directory": false,
+      "bytes": 19879
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\sample.log",
+      "directory": false,
+      "bytes": 249796
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\smoke-pass2.log",
+      "directory": false,
+      "bytes": 39
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\smoke-pass3.log",
+      "directory": false,
+      "bytes": 173
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\storage-visual.log",
+      "directory": false,
+      "bytes": 89465
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\test-expansion-budget.log",
+      "directory": false,
+      "bytes": 35430
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\turtle-smoke.log",
+      "directory": false,
+      "bytes": 4266
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\test_expansion_budget.py",
+      "directory": false,
+      "bytes": 359
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\oga-inspection.json",
+      "directory": false,
+      "bytes": 56704
+    },
+    {
+      "path": "C:\\Users\\MotionUp\\Documents\\Projets Dev\\R1World\\data\\animal-pipeline\\oga-materials.json",
+      "directory": false,
+      "bytes": 16467
+    }
+  ],
+  "planned_freed_bytes": 1645829778
+}

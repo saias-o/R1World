@@ -1,0 +1,78 @@
+{
+  "id": "crocodile",
+  "status": "prepared",
+  "source_actor": "actors/fauna/crocodile.xml",
+  "source_mesh": "skeletal/Croc.dae",
+  "source_texture": "skeletal/animal_crocodile.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "crocodile.glb",
+    "crocodile-lod1.glb"
+  ],
+  "bones": 27,
+  "animations": [
+    {
+      "name": "Croc_idle1",
+      "source": "quadraped/Croc_idle1.dae",
+      "source_speed_percent": "11",
+      "duration_seconds": 5.039999838670095,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "Croc_idle2",
+      "source": "quadraped/Croc_idle2.dae",
+      "source_speed_percent": "11",
+      "duration_seconds": 5.039999838670095,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "Croc_idle3",
+      "source": "quadraped/Croc_idle3.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 1.7999999403953553,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "Croc_walk",
+      "source": "quadraped/Croc_walk.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 2.222222344080607,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "Croc_run",
+      "source": "quadraped/Croc_run.dae",
+      "source_speed_percent": "15",
+      "duration_seconds": 1.6000000675519308,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "Croc_attack",
+      "source": "quadraped/Croc_attack.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 1.3200000166893004,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "Croc_death",
+      "source": "quadraped/Croc_death.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 1.6000000675519308,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 4.2,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 700
+}

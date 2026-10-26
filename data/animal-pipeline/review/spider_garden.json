@@ -1,0 +1,30 @@
+{
+  "id": "spider_garden",
+  "status": "prepared",
+  "files": [
+    "spider_garden.glb",
+    "spider_garden-lod1.glb"
+  ],
+  "source_file": "data\\source-assets\\animals\\expansion\\bk_spider_rigged_animated_fur\\source.blend",
+  "source_url": "https://www.blenderkit.com/asset-gallery-detail/72f27245-d3fc-447b-b556-76b762a7e858/",
+  "author": "Nik Kottmann",
+  "license": "CC0-1.0",
+  "bones": 52,
+  "source_triangles": 1744,
+  "rig_origin": "original_author",
+  "rig_template": null,
+  "animation_status": "author_actions_preserved; some may be pose-library actions",
+  "animations": [
+    {
+      "name": "SpiderArmatureAction"
+    }
+  ],
+  "scale": {
+    "max_dimension_metres": 0.035,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "limitations": [
+    "Portable PBR uses original albedo; particle fur and Cycles-only micro-bump are omitted."
+  ],
+  "visual_review": "Accepted after comparison with current fox, rabbit, wolf, chicken, crow, hawk, crocodile, pike and ant under identical headless lighting. Natural proportions; no cartoon/figurine styling. Reimported LOD0/LOD1 and sampled exported poses reviewed."
+}

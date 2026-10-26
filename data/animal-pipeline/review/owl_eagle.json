@@ -1,0 +1,34 @@
+{
+  "id": "owl_eagle",
+  "status": "prepared",
+  "files": [
+    "owl_eagle.glb",
+    "owl_eagle-lod1.glb"
+  ],
+  "source_file": "data\\source-assets\\animals\\expansion\\grab_owl\\owl-light.glb",
+  "source_url": "https://grab3d.com/models/animals/owl/",
+  "author": "Grab3D",
+  "license": "CC0-1.0",
+  "bones": 13,
+  "source_triangles": 399999,
+  "rig_origin": "created_for_R1World",
+  "rig_template": "bird",
+  "animation_status": "rig_validation_only; no authored locomotion",
+  "animations": [
+    {
+      "name": "Rig_Check_Head"
+    },
+    {
+      "name": "Rig_Check_Limbs"
+    }
+  ],
+  "scale": {
+    "max_dimension_metres": 0.6,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "limitations": [
+    "Folded wings: flight unfolding is not authored.",
+    "Basic deformation rig with topology-derived weights; no authored locomotion. Animation-specific refinement may be required."
+  ],
+  "visual_review": "Accepted after comparison with current fox, rabbit, wolf, chicken, crow, hawk, crocodile, pike and ant under identical headless lighting. Natural proportions; no cartoon/figurine styling. Reimported LOD0/LOD1 and sampled exported poses reviewed."
+}

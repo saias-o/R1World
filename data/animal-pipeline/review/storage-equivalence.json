@@ -1,0 +1,3404 @@
+[
+  {
+    "file": "ant-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "ant.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "arctic_wolf-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "arctic_wolf.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bat-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bat.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bear_black-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bear_black.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bear_brown-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bear_brown.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bear_white-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bear_white.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "boar-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "boar.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bull-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bull.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bull_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "bull_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "butterfly-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "butterfly.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "camel-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "camel.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "camel_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "camel_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "camel_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "camel_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cat_sphynx-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cat_sphynx.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cat_tabby-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cat_tabby.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "chicken_kelgar-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "chicken_kelgar.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat2_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat2_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat3_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_coat3_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "cow_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "crocodile-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "crocodile.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "crow-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "crow.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "deer-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "deer.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "deer_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "deer_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "deer_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "deer_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "doe-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "doe.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "dolphin-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "dolphin.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "donkey-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "donkey.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "eagle_bald-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "eagle_bald.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "elephant_african_baby-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "elephant_african_baby.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "elephant_african_bush-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "elephant_african_bush.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "elephant_african_forest-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "elephant_african_forest.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "elephant_asian-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "elephant_asian.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "fish_generic-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fish_generic.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fish_kelgar-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fish_kelgar.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fish_single-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fish_single.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fox_arctic-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fox_arctic.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fox_red-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "fox_red.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "frog_amazon-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "frog_amazon.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "frog_blue-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "frog_blue.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "frog_red_eye-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "frog_red_eye.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "gazelle-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "gazelle.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_adult-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_adult.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_adult_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_adult_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_baby-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_baby.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_baby_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "giraffe_baby_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat2_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat2_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat3_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat3_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat4_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_coat4_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "goat_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "gorilla-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "gorilla.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hawk-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hawk.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hawk_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hawk_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hippopotamus-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hippopotamus.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hippopotamus_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "hippopotamus_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "horse-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat10-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat10.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat6-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat6.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat7-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat7.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat8-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat8.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat9-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_breed_coat9.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_brown_spotted_01-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_brown_spotted_01.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_chestnut_01-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_chestnut_01.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_chestnut_02-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_chestnut_02.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat10-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat10.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat6-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat6.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat7-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat7.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat8-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat8.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat9-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_coat9.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_cream_spotted_01-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_cream_spotted_01.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_cream_spotted_02-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_cream_spotted_02.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_dark_chestnut-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_dark_chestnut.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_fading_black-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_fading_black.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat10-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat10.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat6-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat6.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat7-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat7.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat8-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat8.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat9-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_lusitano_coat9.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat6-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat6.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat7-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat7.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat8-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_marwari_coat8.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_palomino_01-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_palomino_01.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_palomino_02-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_palomino_02.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat10-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat10.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat11-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat11.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat6-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat6.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat7-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_persian_coat7.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_skewbald-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_skewbald.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat10-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat10.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat11-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat11.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat6-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat6.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat7-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat7.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat8-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat8.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat9-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horse_tessalian_coat9.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "horseshoe_crab-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "horseshoe_crab.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "lion-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "lion.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "lioness-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "lioness.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "lizard-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "lizard.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "mastiff-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "mastiff.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "mastiff_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "mastiff_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "mouse_brown-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "mouse_brown.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "owl_eagle-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "owl_eagle.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "parrot_macaw-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "parrot_macaw.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "peacock-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "peacock.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pig1-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pig1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pig1_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pig1_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pig1_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pig1_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pigeon_rock-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pigeon_rock.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "piglet-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "piglet.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "piglet_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "piglet_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "piglet_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "piglet_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pike-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "pike.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "pony_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "rabbit-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "rabbit.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "rat_street-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "rat_street.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "rhino-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "rhino.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "robin-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "robin.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "rooster-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "rooster.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat2_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat2_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat3_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat3_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat4_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat4_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat5_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_coat5_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_shape2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sanga_cattle_shape2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "seagull-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "seagull.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "shark-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "shark.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "shark_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "shark_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sheep1-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sheep1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sheep3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "sheep3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "shrike-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "shrike.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 2
+  },
+  {
+    "file": "spider_garden-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "spider_garden.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "stag-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "stag.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "tiger-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "tiger.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "tuna-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "tuna.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "turkey-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "turkey.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 1
+  },
+  {
+    "file": "turtle_pond-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 3
+  },
+  {
+    "file": "turtle_pond.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 3
+  },
+  {
+    "file": "turtle_sea-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "turtle_sea.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wasp_realistic-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wasp_realistic.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "whale_fin-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "whale_fin.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wildebeest-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wildebeest.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wolf-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wolf.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wolf_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wolf_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wolfhound-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "wolfhound.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebra-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebra.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat2-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat2.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat3-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat3.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat4-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat4.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat5-lod1.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  },
+  {
+    "file": "zebu_coat5.glb",
+    "geometry_weights_UVs_normals_identical": true,
+    "visible_animation_keys_identical": true,
+    "clip_names_and_durations_identical": true,
+    "skeleton_identical": true,
+    "texture_dimensions_and_used_pixels_identical": true,
+    "repacked_images": 0
+  }
+]

@@ -1,0 +1,62 @@
+{
+  "id": "fox_arctic",
+  "status": "prepared",
+  "source_actor": "actors/fauna/fox_arctic.xml",
+  "source_mesh": "skeletal/fox.dae",
+  "source_texture": "skeletal/animal_fox_arctic.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "fox_arctic.glb",
+    "fox_arctic-lod1.glb"
+  ],
+  "bones": 44,
+  "animations": [
+    {
+      "name": "fox_idle",
+      "source": "quadraped/fox_idle.dae",
+      "source_speed_percent": "70",
+      "duration_seconds": 4.166666158040365,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "fox_walk",
+      "source": "quadraped/fox_walk.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 0.8333333333333334,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "fox_run",
+      "source": "quadraped/fox_run.dae",
+      "source_speed_percent": "8",
+      "duration_seconds": 0.8333333333333334,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "fox_feeding",
+      "source": "quadraped/fox_feeding.dae",
+      "source_speed_percent": "70",
+      "duration_seconds": 8.333332824707032,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "fox_death",
+      "source": "quadraped/fox_death.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 1.75,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 0.85,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 640
+}

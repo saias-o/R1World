@@ -1,0 +1,42 @@
+[
+  {
+    "id": "horse",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  },
+  {
+    "id": "camel",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  },
+  {
+    "id": "wolf",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  },
+  {
+    "id": "rabbit",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  },
+  {
+    "id": "shrike",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  },
+  {
+    "id": "rat_street",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  },
+  {
+    "id": "turkey",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  },
+  {
+    "id": "frog_red_eye",
+    "mean_pixel_difference_8bit": 0.0,
+    "max_pixel_difference_8bit": 0.0
+  }
+]

@@ -1,0 +1,102 @@
+{
+  "id": "gazelle",
+  "status": "prepared",
+  "source_actor": "actors/fauna/gazelle.xml",
+  "source_mesh": "skeletal/deer_mesh.dae",
+  "source_texture": "skeletal/animal_gazelle_02.dds",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "gazelle.glb",
+    "gazelle-lod1.glb"
+  ],
+  "bones": 37,
+  "animations": [
+    {
+      "name": "deer_idle_01",
+      "source": "quadraped/deer_idle_01.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 0.6666669845581055,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_idle_02",
+      "source": "quadraped/deer_idle_02.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 0.6666669845581055,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_idle_03",
+      "source": "quadraped/deer_idle_03.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 0.6666669845581055,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_walk_01",
+      "source": "quadraped/deer_walk_01.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 1.033329963684082,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_run_01",
+      "source": "quadraped/deer_run_01.dae",
+      "source_speed_percent": "15",
+      "duration_seconds": 1.4666699727376302,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_attack_01",
+      "source": "quadraped/deer_attack_01.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 0.8666669845581054,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_death_01",
+      "source": "quadraped/deer_death_01.dae",
+      "source_speed_percent": "40",
+      "duration_seconds": 0.4333330154418945,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_death_02",
+      "source": "quadraped/deer_death_02.dae",
+      "source_speed_percent": "40",
+      "duration_seconds": 0.4333330154418945,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_idle_04",
+      "source": "quadraped/deer_idle_04.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 0.6666669845581055,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    },
+    {
+      "name": "deer_walk_02",
+      "source": "quadraped/deer_walk_02.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 1.033329963684082,
+      "bone_coverage": 0.9,
+      "translation_rebase_scale": 0.026579581160081356
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.4,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 306
+}

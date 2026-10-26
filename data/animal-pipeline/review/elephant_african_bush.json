@@ -1,0 +1,102 @@
+{
+  "id": "elephant_african_bush",
+  "status": "prepared",
+  "source_actor": "actors/fauna/elephant_african_bush.xml",
+  "source_mesh": "skeletal/elephant_african_bush.dae",
+  "source_texture": "skeletal/animal-elephant-base.dds",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "elephant_african_bush.glb",
+    "elephant_african_bush-lod1.glb"
+  ],
+  "bones": 78,
+  "animations": [
+    {
+      "name": "elephant_african_bush_idle_01",
+      "source": "quadraped/elephant_african_bush_idle_01.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_african_bush_idle_02",
+      "source": "quadraped/elephant_african_bush_idle_02.dae",
+      "source_speed_percent": "85",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_african_bush_idle_03",
+      "source": "quadraped/elephant_african_bush_idle_03.dae",
+      "source_speed_percent": "50",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_african_bush_walk",
+      "source": "quadraped/elephant_african_bush_walk.dae",
+      "source_speed_percent": "30",
+      "duration_seconds": 1.6666661580403646,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_asian_run",
+      "source": "quadraped/elephant_asian_run.dae",
+      "source_speed_percent": "8",
+      "duration_seconds": 0.8333333333333334,
+      "bone_coverage": 0.9873417721518988,
+      "translation_rebase_scale": 1.2557800676064064
+    },
+    {
+      "name": "elephant_african_bush_attack_melee_01",
+      "source": "quadraped/elephant_african_bush_attack_melee_01.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.25,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_african_bush_attack_melee_02",
+      "source": "quadraped/elephant_african_bush_attack_melee_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.25,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_african_bush_attack_melee_03",
+      "source": "quadraped/elephant_african_bush_attack_melee_03.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.25,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_african_bush_attack_melee_04",
+      "source": "quadraped/elephant_african_bush_attack_melee_04.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.25,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_african_bush_death",
+      "source": "quadraped/elephant_african_bush_death.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 6.5,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 1602
+}

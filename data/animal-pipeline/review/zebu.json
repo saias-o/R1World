@@ -1,0 +1,86 @@
+{
+  "id": "zebu",
+  "status": "prepared",
+  "source_actor": "actors/fauna/zebu.xml",
+  "source_mesh": "skeletal/zebu.dae",
+  "source_texture": "skeletal/animal_zebu.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "zebu.glb",
+    "zebu-lod1.glb"
+  ],
+  "bones": 41,
+  "animations": [
+    {
+      "name": "bovidae_idle_a",
+      "source": "quadraped/bovidae_idle_a.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.6666669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bovidae_idle_b",
+      "source": "quadraped/bovidae_idle_b.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.6666669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bovidae_idle_c",
+      "source": "quadraped/bovidae_idle_c.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.6666669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bovidae_idle_d",
+      "source": "quadraped/bovidae_idle_d.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.6666669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bovidae_walk",
+      "source": "quadraped/bovidae_walk.dae",
+      "source_speed_percent": "15",
+      "duration_seconds": 1.5666669209798176,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bovidae_run",
+      "source": "quadraped/bovidae_run.dae",
+      "source_speed_percent": "8",
+      "duration_seconds": 0.8333333333333334,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bovidae_death_a",
+      "source": "quadraped/bovidae_death_a.dae",
+      "source_speed_percent": "90",
+      "duration_seconds": 1.4666669209798178,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bovidae_death_b",
+      "source": "quadraped/bovidae_death_b.dae",
+      "source_speed_percent": "90",
+      "duration_seconds": 1.4666669209798178,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 2.5,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 768
+}

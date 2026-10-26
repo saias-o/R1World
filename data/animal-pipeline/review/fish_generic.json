@@ -1,0 +1,46 @@
+{
+  "id": "fish_generic",
+  "status": "prepared",
+  "source_actor": "actors/fauna/fish_generic.xml",
+  "source_mesh": "skeletal/fish_generic.dae",
+  "source_texture": "skeletal/animal_fish_generic.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "fish_generic.glb",
+    "fish_generic-lod1.glb"
+  ],
+  "bones": 7,
+  "animations": [
+    {
+      "name": "fish_generic_idle_a",
+      "source": "other/fish_generic_idle_a.dae",
+      "source_speed_percent": "40",
+      "duration_seconds": 1.2083333810170491,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "fish_generic_idle_b",
+      "source": "other/fish_generic_idle_b.dae",
+      "source_speed_percent": "50",
+      "duration_seconds": 1.2083333810170491,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "fish_generic_idle_c",
+      "source": "other/fish_generic_idle_c.dae",
+      "source_speed_percent": "35",
+      "duration_seconds": 1.2083333810170491,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 0.4,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 728
+}

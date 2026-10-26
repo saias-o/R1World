@@ -1,0 +1,70 @@
+{
+  "id": "boar",
+  "status": "prepared",
+  "source_actor": "actors/fauna/boar.xml",
+  "source_mesh": "skeletal/animal_boar.dae",
+  "source_texture": "skeletal/animal_boar_01.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "boar.glb",
+    "boar-lod1.glb"
+  ],
+  "bones": 28,
+  "animations": [
+    {
+      "name": "animal_boar_idle_02",
+      "source": "quadraped/animal_boar_idle_02.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.6666666666666666,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "animal_boar_attack_01",
+      "source": "quadraped/animal_boar_attack_01.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 0.6666666666666666,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "animal_boar_walk_01",
+      "source": "quadraped/animal_boar_walk_01.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.3750000317891439,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "animal_boar_run_01",
+      "source": "quadraped/animal_boar_run_01.dae",
+      "source_speed_percent": "8",
+      "duration_seconds": 0.5416666666666666,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "animal_boar_death_01",
+      "source": "quadraped/animal_boar_death_01.dae",
+      "source_speed_percent": "50",
+      "duration_seconds": 0.6666666666666666,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "animal_boar_idle_01",
+      "source": "quadraped/animal_boar_idle_01.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.6666666666666666,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.5,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 362
+}

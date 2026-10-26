@@ -1,0 +1,34 @@
+{
+  "id": "lizard",
+  "status": "prepared",
+  "files": [
+    "lizard.glb",
+    "lizard-lod1.glb"
+  ],
+  "source_file": "data\\source-assets\\animals\\expansion\\bk_lizard_template\\source.blend",
+  "source_url": "https://www.blenderkit.com/asset-gallery-detail/303d820a-8d9c-4520-a534-e9acd8b98284/",
+  "author": "Joachim Bornemann",
+  "license": "CC0-1.0",
+  "bones": 19,
+  "source_triangles": 71300,
+  "rig_origin": "created_for_R1World",
+  "rig_template": "lizard",
+  "animation_status": "rig_validation_only; no authored locomotion",
+  "animations": [
+    {
+      "name": "Rig_Check_Head"
+    },
+    {
+      "name": "Rig_Check_Limbs"
+    }
+  ],
+  "scale": {
+    "max_dimension_metres": 0.25,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "limitations": [
+    "Basic deformation rig with topology-derived weights; no authored locomotion. Animation-specific refinement may be required.",
+    "Source has a simple brown material, without a detailed albedo texture."
+  ],
+  "visual_review": "Accepted after comparison with current fox, rabbit, wolf, chicken, crow, hawk, crocodile, pike and ant under identical headless lighting. Natural proportions; no cartoon/figurine styling. Reimported LOD0/LOD1 and sampled exported poses reviewed."
+}

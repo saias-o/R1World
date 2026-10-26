@@ -1,0 +1,96 @@
+{
+  "id": "piglet",
+  "status": "prepared",
+  "source_actor": "actors/fauna/piglet.xml",
+  "source_mesh": "skeletal/animal_piglet.dae",
+  "source_texture": "skeletal/animal_pig_01.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "repository": "https://github.com/0ad/0ad",
+  "revision": "61a3b9507d974084e6badb88a0826bd89a6d5b8b",
+  "files": [
+    "piglet.glb",
+    "piglet-lod1.glb"
+  ],
+  "bones": 28,
+  "animations": [
+    {
+      "name": "animal_piglet_idle_01",
+      "source": "quadraped/animal_piglet_idle_01.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "animal_piglet_idle_02",
+      "source": "quadraped/animal_piglet_idle_02.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.3750000317891439,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "animal_piglet_idle_03",
+      "source": "quadraped/animal_piglet_idle_03.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.6250001271565755,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "animal_piglet_attack_01",
+      "source": "quadraped/animal_piglet_attack_01.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 0.33333330154418944,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "animal_piglet_walk_01",
+      "source": "quadraped/animal_piglet_walk_01.dae",
+      "source_speed_percent": "60",
+      "duration_seconds": 0.33333330154418944,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "animal_piglet_run_01",
+      "source": "quadraped/animal_piglet_run_01.dae",
+      "source_speed_percent": "8",
+      "duration_seconds": 0.33333330154418944,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "animal_piglet_feeding_01",
+      "source": "quadraped/animal_piglet_feeding_01.dae",
+      "source_speed_percent": "60",
+      "duration_seconds": 2.375,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "animal_piglet_death_01",
+      "source": "quadraped/animal_piglet_death_01.dae",
+      "source_speed_percent": "50",
+      "duration_seconds": 0.33333330154418944,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 0.65,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 303
+}

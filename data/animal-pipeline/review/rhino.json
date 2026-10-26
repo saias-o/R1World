@@ -1,0 +1,70 @@
+{
+  "id": "rhino",
+  "status": "prepared",
+  "source_actor": "actors/fauna/rhino.xml",
+  "source_mesh": "skeletal/rhino.dae",
+  "source_texture": "skeletal/animal_rhino.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "rhino.glb",
+    "rhino-lod1.glb"
+  ],
+  "bones": 32,
+  "animations": [
+    {
+      "name": "rhino_idle",
+      "source": "quadraped/rhino_idle.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 10.83333028157552,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "rhino_idle2",
+      "source": "quadraped/rhino_idle2.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 2.9166669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "rhino_walk",
+      "source": "quadraped/rhino_walk.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 1.2916669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "rhino_run",
+      "source": "quadraped/rhino_run.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.6666666666666666,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "rhino_death",
+      "source": "quadraped/rhino_death.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 2.7083330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "rhino_attack",
+      "source": "quadraped/rhino_attack.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 2.0833330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 3.8,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 792
+}

@@ -1,0 +1,94 @@
+{
+  "id": "wolf_coat2",
+  "status": "prepared",
+  "source_actor": "actors/fauna/wolf.xml",
+  "source_mesh": "skeletal/wolf.dae",
+  "source_texture": "skeletal/animal_wolf_grey.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "wolf_coat2.glb",
+    "wolf_coat2-lod1.glb"
+  ],
+  "bones": 32,
+  "animations": [
+    {
+      "name": "wolf_walk",
+      "source": "quadraped/wolf_walk.dae",
+      "source_speed_percent": "75",
+      "duration_seconds": 1.9666669209798178,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_run",
+      "source": "quadraped/wolf_run.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.8,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_attack_01",
+      "source": "quadraped/wolf_attack_01.dae",
+      "source_speed_percent": "165",
+      "duration_seconds": 2.1666669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_attack_02",
+      "source": "quadraped/wolf_attack_02.dae",
+      "source_speed_percent": "165",
+      "duration_seconds": 2.2,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_idle_01",
+      "source": "quadraped/wolf_idle_01.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 11.26666971842448,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_idle_02",
+      "source": "quadraped/wolf_idle_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 5.966667175292969,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_idle_03",
+      "source": "quadraped/wolf_idle_03.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 9.233333333333333,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_death_01",
+      "source": "quadraped/wolf_death_01.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 0.9333333333333333,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    },
+    {
+      "name": "wolf_death_02",
+      "source": "quadraped/wolf_death_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 0.7,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.6000000142089157
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.7,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 696
+}

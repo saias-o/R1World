@@ -1,0 +1,30 @@
+{
+  "id": "tuna",
+  "status": "prepared",
+  "source_actor": "actors/fauna/tuna.xml",
+  "source_mesh": "skeletal/animal_tuna.dae",
+  "source_texture": "skeletal/animal_tuna.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "tuna.glb",
+    "tuna-lod1.glb"
+  ],
+  "bones": 15,
+  "animations": [
+    {
+      "name": "tuna_idle_01",
+      "source": "others/tuna_idle_01.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 3.9999995390574137,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.7,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 310
+}

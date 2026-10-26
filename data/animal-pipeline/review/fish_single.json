@@ -1,0 +1,30 @@
+{
+  "id": "fish_single",
+  "status": "prepared",
+  "source_actor": "actors/fauna/fish_single.xml",
+  "source_mesh": "skeletal/fish_single.dae",
+  "source_texture": "skeletal/animal_fish_generic.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "fish_single.glb",
+    "fish_single-lod1.glb"
+  ],
+  "bones": 8,
+  "animations": [
+    {
+      "name": "fish_move",
+      "source": "others/fish_move.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 0.8333333333333334,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 0.4,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 56
+}

@@ -1,0 +1,102 @@
+{
+  "id": "hippopotamus_coat2",
+  "status": "prepared",
+  "source_actor": "actors/fauna/hippopotamus.xml",
+  "source_mesh": "skeletal/fauna_hippopotamus.dae",
+  "source_texture": "skeletal/fauna_hippopotamus_02.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "hippopotamus_coat2.glb",
+    "hippopotamus_coat2-lod1.glb"
+  ],
+  "bones": 65,
+  "animations": [
+    {
+      "name": "hippopotamus_attack",
+      "source": "quadraped/hippopotamus_attack.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 1.3333330790201823,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_idle_01",
+      "source": "quadraped/hippopotamus_idle_01.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_idle_02",
+      "source": "quadraped/hippopotamus_idle_02.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 4.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_idle_03",
+      "source": "quadraped/hippopotamus_idle_03.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 4.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_idle_04",
+      "source": "quadraped/hippopotamus_idle_04.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 4.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_idle_05",
+      "source": "quadraped/hippopotamus_idle_05.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 4.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_idle_06",
+      "source": "quadraped/hippopotamus_idle_06.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 3.333329264322917,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_walk",
+      "source": "quadraped/hippopotamus_walk.dae",
+      "source_speed_percent": "40",
+      "duration_seconds": 1.3333330790201823,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_trot",
+      "source": "quadraped/hippopotamus_trot.dae",
+      "source_speed_percent": "30",
+      "duration_seconds": 0.6666666666666666,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "hippopotamus_death",
+      "source": "quadraped/hippopotamus_death.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 3.6,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 1422
+}

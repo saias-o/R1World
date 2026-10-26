@@ -1,0 +1,70 @@
+{
+  "id": "giraffe_adult_coat2",
+  "status": "prepared",
+  "source_actor": "actors/fauna/giraffe_adult.xml",
+  "source_mesh": "skeletal/giraffe_adult.dae",
+  "source_texture": "skeletal/animal_giraffeb.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "giraffe_adult_coat2.glb",
+    "giraffe_adult_coat2-lod1.glb"
+  ],
+  "bones": 31,
+  "animations": [
+    {
+      "name": "giraffe_adult_walk",
+      "source": "quadraped/giraffe_adult_walk.dae",
+      "source_speed_percent": "50",
+      "duration_seconds": 3.33333002726237,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "giraffe_adult_idle_01",
+      "source": "quadraped/giraffe_adult_idle_01.dae",
+      "source_speed_percent": "75",
+      "duration_seconds": 6.666669718424479,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "giraffe_adult_idle_02",
+      "source": "quadraped/giraffe_adult_idle_02.dae",
+      "source_speed_percent": "75",
+      "duration_seconds": 6.666669718424479,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "giraffe_adult_idle_03",
+      "source": "quadraped/giraffe_adult_idle_03.dae",
+      "source_speed_percent": "75",
+      "duration_seconds": 6.666669718424479,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "giraffe_adult_run",
+      "source": "quadraped/giraffe_adult_run.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "giraffe_adult_death",
+      "source": "quadraped/giraffe_adult_death.dae",
+      "source_speed_percent": "130",
+      "duration_seconds": 3.33333002726237,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 5.2,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 690
+}

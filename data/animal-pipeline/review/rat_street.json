@@ -1,0 +1,33 @@
+{
+  "id": "rat_street",
+  "status": "prepared",
+  "files": [
+    "rat_street.glb",
+    "rat_street-lod1.glb"
+  ],
+  "source_file": "data\\source-assets\\animals\\expansion\\polyhaven_street_rat\\street_rat_1k.gltf",
+  "source_url": "https://polyhaven.com/a/street_rat",
+  "author": "Sean Buckley / Poly Haven",
+  "license": "CC0-1.0",
+  "bones": 19,
+  "source_triangles": 57216,
+  "rig_origin": "created_for_R1World",
+  "rig_template": "rat",
+  "animation_status": "rig_validation_only; no authored locomotion",
+  "animations": [
+    {
+      "name": "Rig_Check_Head"
+    },
+    {
+      "name": "Rig_Check_Limbs"
+    }
+  ],
+  "scale": {
+    "max_dimension_metres": 0.35,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "limitations": [
+    "Basic deformation rig with topology-derived weights; no authored locomotion. Animation-specific refinement may be required."
+  ],
+  "visual_review": "Accepted after comparison with current fox, rabbit, wolf, chicken, crow, hawk, crocodile, pike and ant under identical headless lighting. Natural proportions; no cartoon/figurine styling. Reimported LOD0/LOD1 and sampled exported poses reviewed."
+}

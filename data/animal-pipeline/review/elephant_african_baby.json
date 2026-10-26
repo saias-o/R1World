@@ -1,0 +1,70 @@
+{
+  "id": "elephant_african_baby",
+  "status": "prepared",
+  "source_actor": "actors/fauna/elephant_african_baby.xml",
+  "source_mesh": "skeletal/elephant_african_baby.dae",
+  "source_texture": "skeletal/animal-elephant-base-baby.dds",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "elephant_african_baby.glb",
+    "elephant_african_baby-lod1.glb"
+  ],
+  "bones": 78,
+  "animations": [
+    {
+      "name": "elephant_infant_idle_01",
+      "source": "quadraped/elephant_infant_idle_01.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_infant_idle_02",
+      "source": "quadraped/elephant_infant_idle_02.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_infant_idle_03",
+      "source": "quadraped/elephant_infant_idle_03.dae",
+      "source_speed_percent": "75",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_infant_walk",
+      "source": "quadraped/elephant_infant_walk.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 1.6666661580403646,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_infant_run",
+      "source": "quadraped/elephant_infant_run.dae",
+      "source_speed_percent": "16",
+      "duration_seconds": 1.25,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "elephant_infant_death",
+      "source": "quadraped/elephant_infant_death.dae",
+      "source_speed_percent": "145",
+      "duration_seconds": 2.0833330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 2.1,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 1666
+}

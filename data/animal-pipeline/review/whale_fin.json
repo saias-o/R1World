@@ -1,0 +1,54 @@
+{
+  "id": "whale_fin",
+  "status": "prepared",
+  "source_actor": "actors/fauna/whale_fin.xml",
+  "source_mesh": "skeletal/whale_fin.dae",
+  "source_texture": "skeletal/animal_whale_fin.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "whale_fin.glb",
+    "whale_fin-lod1.glb"
+  ],
+  "bones": 8,
+  "animations": [
+    {
+      "name": "whale_fin_idle_a",
+      "source": "other/whale_fin_idle_a.dae",
+      "source_speed_percent": "2",
+      "duration_seconds": 1.2083333810170491,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "whale_fin_idle_b",
+      "source": "other/whale_fin_idle_b.dae",
+      "source_speed_percent": "2",
+      "duration_seconds": 1.5000003019968668,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "whale_fin_idle_c",
+      "source": "other/whale_fin_idle_c.dae",
+      "source_speed_percent": "2",
+      "duration_seconds": 1.2083333810170491,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "whale_fin_idle_d",
+      "source": "other/whale_fin_idle_d.dae",
+      "source_speed_percent": "3",
+      "duration_seconds": 1.2083333810170491,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 20.0,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 872
+}

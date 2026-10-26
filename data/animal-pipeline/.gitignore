@@ -1,0 +1,15 @@
+*.log
+__pycache__/
+deps/node_modules/
+review/*.png
+review/animation-samples/*.png
+review/final-renders/*.png
+review/converted-textures/
+review/converted-collada/
+review/rejected-0ad/
+review/candidates/
+
+review/expansion/*.png
+review/expansion/final-renders/*.png
+review/expansion/references/*.png
+review/expansion/candidates/

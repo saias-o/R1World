@@ -1,0 +1,38 @@
+{
+  "id": "seagull",
+  "status": "prepared",
+  "source_actor": "actors/fauna/seagull.xml",
+  "source_mesh": "skeletal/seagull.dae",
+  "source_texture": "skeletal/animal_seagull.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "seagull.glb",
+    "seagull-lod1.glb"
+  ],
+  "bones": 9,
+  "animations": [
+    {
+      "name": "seagull_flight_01",
+      "source": "other/seagull_flight_01.dae",
+      "source_speed_percent": "150",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "seagull_flight_02",
+      "source": "other/seagull_flight_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.3,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 420
+}

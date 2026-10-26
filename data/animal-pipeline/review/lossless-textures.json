@@ -1,0 +1,3351 @@
+[
+  {
+    "file": "crocodile-lod1.glb",
+    "before": 595152,
+    "after": 580332,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 126025,
+        "after": 111199,
+        "dimensions": [
+          256,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          1
+        ],
+        "before": 163282,
+        "after": 163258,
+        "dimensions": [
+          256,
+          256
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "crocodile.glb",
+    "before": 617248,
+    "after": 602424,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 126025,
+        "after": 111199,
+        "dimensions": [
+          256,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          1
+        ],
+        "before": 163282,
+        "after": 163258,
+        "dimensions": [
+          256,
+          256
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "elephant_asian-lod1.glb",
+    "before": 1056260,
+    "after": 1010816,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 411569,
+        "after": 366100,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "elephant_asian.glb",
+    "before": 1122636,
+    "after": 1077192,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 411569,
+        "after": 366100,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "frog_amazon-lod1.glb",
+    "before": 541532,
+    "after": 518236,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 241323,
+        "after": 217993,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "frog_amazon.glb",
+    "before": 1589748,
+    "after": 1528992,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 708639,
+        "after": 647856,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "frog_red_eye-lod1.glb",
+    "before": 876304,
+    "after": 824316,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 139663,
+        "after": 133623,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          3
+        ],
+        "before": 413844,
+        "after": 367868,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "frog_red_eye.glb",
+    "before": 2780912,
+    "after": 2598992,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 529318,
+        "after": 503596,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          3
+        ],
+        "before": 1429111,
+        "after": 1272888,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse-lod1.glb",
+    "before": 718016,
+    "after": 706632,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse.glb",
+    "before": 759992,
+    "after": 748608,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed-lod1.glb",
+    "before": 523696,
+    "after": 512312,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed.glb",
+    "before": 570472,
+    "after": 559088,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat10-lod1.glb",
+    "before": 522456,
+    "after": 511072,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat10.glb",
+    "before": 569064,
+    "after": 557680,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat2-lod1.glb",
+    "before": 517624,
+    "after": 506240,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat2.glb",
+    "before": 561656,
+    "after": 550272,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat3-lod1.glb",
+    "before": 537608,
+    "after": 526224,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat3.glb",
+    "before": 590584,
+    "after": 579200,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat4-lod1.glb",
+    "before": 529152,
+    "after": 517768,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat4.glb",
+    "before": 576112,
+    "after": 564728,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat5-lod1.glb",
+    "before": 525420,
+    "after": 514036,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat5.glb",
+    "before": 573232,
+    "after": 561848,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat6-lod1.glb",
+    "before": 533620,
+    "after": 522236,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat6.glb",
+    "before": 582688,
+    "after": 571304,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat7-lod1.glb",
+    "before": 530056,
+    "after": 518676,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat7.glb",
+    "before": 578228,
+    "after": 566844,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat8-lod1.glb",
+    "before": 536132,
+    "after": 524748,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat8.glb",
+    "before": 587800,
+    "after": 576420,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat9-lod1.glb",
+    "before": 530272,
+    "after": 518888,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_breed_coat9.glb",
+    "before": 580608,
+    "after": 569228,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_brown_spotted_01-lod1.glb",
+    "before": 731564,
+    "after": 720184,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_brown_spotted_01.glb",
+    "before": 777904,
+    "after": 766524,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_chestnut_01-lod1.glb",
+    "before": 737256,
+    "after": 725872,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_chestnut_01.glb",
+    "before": 788040,
+    "after": 776656,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_chestnut_02-lod1.glb",
+    "before": 737344,
+    "after": 725960,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_chestnut_02.glb",
+    "before": 787236,
+    "after": 775852,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat10-lod1.glb",
+    "before": 716776,
+    "after": 705392,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat10.glb",
+    "before": 758584,
+    "after": 747200,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat2-lod1.glb",
+    "before": 711944,
+    "after": 700560,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat2.glb",
+    "before": 751176,
+    "after": 739796,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat3-lod1.glb",
+    "before": 731928,
+    "after": 720544,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat3.glb",
+    "before": 780104,
+    "after": 768724,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat4-lod1.glb",
+    "before": 723472,
+    "after": 712088,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat4.glb",
+    "before": 765632,
+    "after": 754248,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat5-lod1.glb",
+    "before": 719740,
+    "after": 708356,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat5.glb",
+    "before": 762752,
+    "after": 751372,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat6-lod1.glb",
+    "before": 727940,
+    "after": 716556,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat6.glb",
+    "before": 772208,
+    "after": 760828,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat7-lod1.glb",
+    "before": 724376,
+    "after": 712996,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat7.glb",
+    "before": 767748,
+    "after": 756364,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat8-lod1.glb",
+    "before": 730452,
+    "after": 719068,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat8.glb",
+    "before": 777324,
+    "after": 765940,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat9-lod1.glb",
+    "before": 724592,
+    "after": 713208,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_coat9.glb",
+    "before": 770132,
+    "after": 758748,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_cream_spotted_01-lod1.glb",
+    "before": 742116,
+    "after": 730736,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_cream_spotted_01.glb",
+    "before": 792216,
+    "after": 780832,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_cream_spotted_02-lod1.glb",
+    "before": 744844,
+    "after": 733464,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_cream_spotted_02.glb",
+    "before": 793292,
+    "after": 781908,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_dark_chestnut-lod1.glb",
+    "before": 719848,
+    "after": 708464,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_dark_chestnut.glb",
+    "before": 762520,
+    "after": 751140,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_fading_black-lod1.glb",
+    "before": 712748,
+    "after": 701368,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_fading_black.glb",
+    "before": 751152,
+    "after": 739768,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano-lod1.glb",
+    "before": 712092,
+    "after": 700708,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano.glb",
+    "before": 751192,
+    "after": 739808,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat10-lod1.glb",
+    "before": 721396,
+    "after": 710012,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat10.glb",
+    "before": 763888,
+    "after": 752504,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat2-lod1.glb",
+    "before": 718176,
+    "after": 706792,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat2.glb",
+    "before": 760016,
+    "after": 748632,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat3-lod1.glb",
+    "before": 732080,
+    "after": 720696,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat3.glb",
+    "before": 780124,
+    "after": 768740,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat4-lod1.glb",
+    "before": 723628,
+    "after": 712244,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat4.glb",
+    "before": 765652,
+    "after": 754268,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat5-lod1.glb",
+    "before": 719892,
+    "after": 708508,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat5.glb",
+    "before": 762772,
+    "after": 751388,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat6-lod1.glb",
+    "before": 728092,
+    "after": 716708,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat6.glb",
+    "before": 772228,
+    "after": 760844,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat7-lod1.glb",
+    "before": 724532,
+    "after": 713148,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat7.glb",
+    "before": 767768,
+    "after": 756384,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat8-lod1.glb",
+    "before": 730604,
+    "after": 719224,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat8.glb",
+    "before": 777340,
+    "after": 765960,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat9-lod1.glb",
+    "before": 725940,
+    "after": 714556,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_lusitano_coat9.glb",
+    "before": 768644,
+    "after": 757260,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari-lod1.glb",
+    "before": 719052,
+    "after": 707668,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari.glb",
+    "before": 761696,
+    "after": 750312,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat2-lod1.glb",
+    "before": 732960,
+    "after": 721580,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat2.glb",
+    "before": 781812,
+    "after": 770428,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat3-lod1.glb",
+    "before": 724508,
+    "after": 713124,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat3.glb",
+    "before": 767336,
+    "after": 755952,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat4-lod1.glb",
+    "before": 720772,
+    "after": 709392,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat4.glb",
+    "before": 764460,
+    "after": 753076,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat5-lod1.glb",
+    "before": 728972,
+    "after": 717592,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat5.glb",
+    "before": 773916,
+    "after": 762532,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat6-lod1.glb",
+    "before": 725412,
+    "after": 714028,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat6.glb",
+    "before": 769452,
+    "after": 758072,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat7-lod1.glb",
+    "before": 731488,
+    "after": 720104,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat7.glb",
+    "before": 779028,
+    "after": 767644,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat8-lod1.glb",
+    "before": 732436,
+    "after": 721052,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_marwari_coat8.glb",
+    "before": 779580,
+    "after": 768200,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_palomino_01-lod1.glb",
+    "before": 736372,
+    "after": 724988,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_palomino_01.glb",
+    "before": 786352,
+    "after": 774968,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_palomino_02-lod1.glb",
+    "before": 736460,
+    "after": 725076,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_palomino_02.glb",
+    "before": 785548,
+    "after": 774164,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian-lod1.glb",
+    "before": 719052,
+    "after": 707668,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian.glb",
+    "before": 761696,
+    "after": 750316,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat10-lod1.glb",
+    "before": 725628,
+    "after": 714244,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat10.glb",
+    "before": 771836,
+    "after": 760456,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat11-lod1.glb",
+    "before": 717812,
+    "after": 706428,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat11.glb",
+    "before": 760288,
+    "after": 748908,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat3-lod1.glb",
+    "before": 712980,
+    "after": 701596,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat3.glb",
+    "before": 752884,
+    "after": 741500,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat5-lod1.glb",
+    "before": 720776,
+    "after": 709392,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat5.glb",
+    "before": 764460,
+    "after": 753076,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat6-lod1.glb",
+    "before": 725412,
+    "after": 714032,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat6.glb",
+    "before": 769456,
+    "after": 758072,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat7-lod1.glb",
+    "before": 731488,
+    "after": 720104,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_persian_coat7.glb",
+    "before": 779028,
+    "after": 767644,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_skewbald-lod1.glb",
+    "before": 723864,
+    "after": 712484,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_skewbald.glb",
+    "before": 767396,
+    "after": 756012,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian-lod1.glb",
+    "before": 712524,
+    "after": 701140,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian.glb",
+    "before": 765096,
+    "after": 753712,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat10-lod1.glb",
+    "before": 719100,
+    "after": 707716,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat10.glb",
+    "before": 775236,
+    "after": 763852,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat11-lod1.glb",
+    "before": 711284,
+    "after": 699900,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat11.glb",
+    "before": 763688,
+    "after": 752304,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat2-lod1.glb",
+    "before": 713312,
+    "after": 701928,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat2.glb",
+    "before": 765916,
+    "after": 754532,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat3-lod1.glb",
+    "before": 706448,
+    "after": 695064,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat3.glb",
+    "before": 756284,
+    "after": 744900,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat4-lod1.glb",
+    "before": 706216,
+    "after": 694832,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat4.glb",
+    "before": 754544,
+    "after": 743164,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat5-lod1.glb",
+    "before": 714244,
+    "after": 702860,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat5.glb",
+    "before": 767860,
+    "after": 756476,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat6-lod1.glb",
+    "before": 718884,
+    "after": 707500,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat6.glb",
+    "before": 772852,
+    "after": 761472,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat7-lod1.glb",
+    "before": 724956,
+    "after": 713576,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat7.glb",
+    "before": 782428,
+    "after": 771044,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat8-lod1.glb",
+    "before": 730812,
+    "after": 719428,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat8.glb",
+    "before": 790632,
+    "after": 779248,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat9-lod1.glb",
+    "before": 730724,
+    "after": 719340,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "horse_tessalian_coat9.glb",
+    "before": 791436,
+    "after": 780052,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "mouse_brown-lod1.glb",
+    "before": 811436,
+    "after": 763764,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 397887,
+        "after": 354785,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          1
+        ],
+        "before": 129217,
+        "after": 124617,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "mouse_brown.glb",
+    "before": 2571064,
+    "after": 2382252,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 1596425,
+        "after": 1423287,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          1
+        ],
+        "before": 364450,
+        "after": 348749,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pike.glb",
+    "before": 2130532,
+    "after": 2130272,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 1623677,
+        "after": 1623389,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony-lod1.glb",
+    "before": 771976,
+    "after": 760592,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony.glb",
+    "before": 815500,
+    "after": 804120,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony_coat2-lod1.glb",
+    "before": 785884,
+    "after": 774500,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony_coat2.glb",
+    "before": 835616,
+    "after": 824232,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony_coat3-lod1.glb",
+    "before": 778548,
+    "after": 767168,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony_coat3.glb",
+    "before": 825640,
+    "after": 814256,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony_coat4-lod1.glb",
+    "before": 770732,
+    "after": 759352,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "pony_coat4.glb",
+    "before": 814092,
+    "after": 802708,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 141515,
+        "after": 130104,
+        "dimensions": [
+          512,
+          256
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "rabbit.glb",
+    "before": 3944540,
+    "after": 3943968,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 1639783,
+        "after": 1639483,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          1
+        ],
+        "before": 1668847,
+        "after": 1668547,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "rat_street-lod1.glb",
+    "before": 856656,
+    "after": 790956,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 460831,
+        "after": 395102,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "rat_street.glb",
+    "before": 3058924,
+    "after": 2830820,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 1829623,
+        "after": 1601489,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "shrike-lod1.glb",
+    "before": 857232,
+    "after": 756160,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 419949,
+        "after": 318911,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          1
+        ],
+        "before": 349046,
+        "after": 348986,
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "shrike.glb",
+    "before": 2761492,
+    "after": 2426212,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 1431945,
+        "after": 1096854,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          1
+        ],
+        "before": 1211753,
+        "after": 1211537,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "turkey.glb",
+    "before": 2095168,
+    "after": 2094864,
+    "images": [
+      {
+        "images": [
+          0
+        ],
+        "before": 1899916,
+        "after": 1899580,
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "mode": "RGBA",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "turtle_pond-lod1.glb",
+    "before": 739060,
+    "after": 718296,
+    "images": [
+      {
+        "images": [
+          1
+        ],
+        "before": 25300,
+        "after": 21527,
+        "dimensions": [
+          128,
+          91
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          2
+        ],
+        "before": 114917,
+        "after": 101765,
+        "dimensions": [
+          256,
+          182
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          3
+        ],
+        "before": 26825,
+        "after": 22958,
+        "dimensions": [
+          128,
+          91
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  },
+  {
+    "file": "turtle_pond.glb",
+    "before": 2545728,
+    "after": 2471196,
+    "images": [
+      {
+        "images": [
+          1
+        ],
+        "before": 106283,
+        "after": 91977,
+        "dimensions": [
+          256,
+          181
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          2
+        ],
+        "before": 434511,
+        "after": 389311,
+        "dimensions": [
+          512,
+          363
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      },
+      {
+        "images": [
+          3
+        ],
+        "before": 113971,
+        "after": 98922,
+        "dimensions": [
+          256,
+          181
+        ],
+        "mode": "RGB",
+        "used_pixels_identical": true
+      }
+    ]
+  }
+]

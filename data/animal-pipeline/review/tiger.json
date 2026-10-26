@@ -1,0 +1,94 @@
+{
+  "id": "tiger",
+  "status": "prepared",
+  "source_actor": "actors/fauna/tiger.xml",
+  "source_mesh": "skeletal/tiger.dae",
+  "source_texture": "skeletal/animal_tiger.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "tiger.glb",
+    "tiger-lod1.glb"
+  ],
+  "bones": 41,
+  "animations": [
+    {
+      "name": "feline_idle_01",
+      "source": "quadraped/feline_idle_01.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 6.625001017252604,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    },
+    {
+      "name": "feline_idle_02",
+      "source": "quadraped/feline_idle_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 6.416669718424479,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    },
+    {
+      "name": "feline_idle_03",
+      "source": "quadraped/feline_idle_03.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 4.166669718424479,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252211831677163
+    },
+    {
+      "name": "feline_idle_04",
+      "source": "quadraped/feline_idle_04.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 3.5833333333333335,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    },
+    {
+      "name": "feline_attack",
+      "source": "quadraped/feline_attack.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.8750005086263022,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    },
+    {
+      "name": "feline_attack_02",
+      "source": "quadraped/feline_attack_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 3.2083333333333335,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    },
+    {
+      "name": "feline_walk",
+      "source": "quadraped/feline_walk.dae",
+      "source_speed_percent": "40",
+      "duration_seconds": 2.041667175292969,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    },
+    {
+      "name": "feline_run",
+      "source": "quadraped/feline_run.dae",
+      "source_speed_percent": "20",
+      "duration_seconds": 2.0416585286458333,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    },
+    {
+      "name": "feline_death",
+      "source": "quadraped/feline_death.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.2083328247070313,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 0.8252210443908655
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 2.9,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 686
+}

@@ -1,0 +1,62 @@
+{
+  "id": "zebra",
+  "status": "prepared",
+  "source_actor": "actors/fauna/zebra.xml",
+  "source_mesh": "skeletal/zebra.dae",
+  "source_texture": "skeletal/animal_zebra.dds",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "zebra.glb",
+    "zebra-lod1.glb"
+  ],
+  "bones": 44,
+  "animations": [
+    {
+      "name": "zebra_idle",
+      "source": "quadraped/zebra_idle.dae",
+      "source_speed_percent": "30",
+      "duration_seconds": 1.1010999043782552,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "zebra_walk",
+      "source": "quadraped/zebra_walk.dae",
+      "source_speed_percent": "30",
+      "duration_seconds": 1.0666669209798176,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "zebra_run",
+      "source": "quadraped/zebra_run.dae",
+      "source_speed_percent": "12",
+      "duration_seconds": 0.8508501052856445,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "zebra_attack",
+      "source": "quadraped/zebra_attack.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 0.8399999618530274,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "zebra_death",
+      "source": "quadraped/zebra_death.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 0.7333333969116211,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 2.5,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 636
+}

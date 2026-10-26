@@ -1,0 +1,33 @@
+{
+  "id": "cat_tabby",
+  "status": "prepared",
+  "files": [
+    "cat_tabby.glb",
+    "cat_tabby-lod1.glb"
+  ],
+  "source_file": "data\\source-assets\\animals\\expansion\\grab_cat\\cat-light.glb",
+  "source_url": "https://grab3d.com/models/animals/cat/",
+  "author": "Grab3D",
+  "license": "CC0-1.0",
+  "bones": 19,
+  "source_triangles": 382505,
+  "rig_origin": "created_for_R1World",
+  "rig_template": "cat",
+  "animation_status": "rig_validation_only; no authored locomotion",
+  "animations": [
+    {
+      "name": "Rig_Check_Head"
+    },
+    {
+      "name": "Rig_Check_Limbs"
+    }
+  ],
+  "scale": {
+    "max_dimension_metres": 0.75,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "limitations": [
+    "Basic deformation rig with topology-derived weights; no authored locomotion. Animation-specific refinement may be required."
+  ],
+  "visual_review": "Accepted after comparison with current fox, rabbit, wolf, chicken, crow, hawk, crocodile, pike and ant under identical headless lighting. Natural proportions; no cartoon/figurine styling. Reimported LOD0/LOD1 and sampled exported poses reviewed."
+}

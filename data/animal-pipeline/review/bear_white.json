@@ -1,0 +1,102 @@
+{
+  "id": "bear_white",
+  "status": "prepared",
+  "source_actor": "actors/fauna/bear_white.xml",
+  "source_mesh": "skeletal/bear_polar.dae",
+  "source_texture": "skeletal/animal_bear_white.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "bear_white.glb",
+    "bear_white-lod1.glb"
+  ],
+  "bones": 75,
+  "animations": [
+    {
+      "name": "bear_idle_01",
+      "source": "quadraped/bear_idle_01.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_idle_02",
+      "source": "quadraped/bear_idle_02.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.6666661580403646,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_idle_03",
+      "source": "quadraped/bear_idle_03.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 8.666663106282552,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_idle_04",
+      "source": "quadraped/bear_idle_04.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.666670735677083,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_attack_01",
+      "source": "quadraped/bear_attack_01.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_attack_02",
+      "source": "quadraped/bear_attack_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_attack_03",
+      "source": "quadraped/bear_attack_03.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_death_01",
+      "source": "quadraped/bear_death_01.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 0.8837209302325582,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_walk",
+      "source": "quadraped/bear_walk.dae",
+      "source_speed_percent": "35",
+      "duration_seconds": 1.3333330790201823,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "bear_run",
+      "source": "quadraped/bear_run.dae",
+      "source_speed_percent": "5",
+      "duration_seconds": 1.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 2.5,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 2528
+}

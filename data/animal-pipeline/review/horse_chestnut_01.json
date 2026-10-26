@@ -1,0 +1,94 @@
+{
+  "id": "horse_chestnut_01",
+  "status": "prepared",
+  "source_actor": "actors/fauna/horse_chestnut_01.xml",
+  "source_mesh": "skeletal/horse_persian.dae",
+  "source_texture": "skeletal/horse_palomino_01.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "horse_chestnut_01.glb",
+    "horse_chestnut_01-lod1.glb"
+  ],
+  "bones": 86,
+  "animations": [
+    {
+      "name": "horse_gallop",
+      "source": "quadraped/horse_gallop.dae",
+      "source_speed_percent": "6",
+      "duration_seconds": 0.33333330154418944,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_idle_01",
+      "source": "quadraped/horse_idle_01.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_idle_02",
+      "source": "quadraped/horse_idle_02.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_idle_03",
+      "source": "quadraped/horse_idle_03.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_idle_04",
+      "source": "quadraped/horse_idle_04.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 4.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_idle_05",
+      "source": "quadraped/horse_idle_05.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 4.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_walk",
+      "source": "quadraped/horse_walk.dae",
+      "source_speed_percent": "25",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_death_01",
+      "source": "quadraped/horse_death_01.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 2.3333330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_death_02",
+      "source": "quadraped/horse_death_02.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 2.3333330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 2.7,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 1714
+}

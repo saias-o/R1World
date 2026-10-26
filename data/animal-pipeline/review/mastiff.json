@@ -1,0 +1,78 @@
+{
+  "id": "mastiff",
+  "status": "prepared",
+  "source_actor": "actors/fauna/mastiff.xml",
+  "source_mesh": "skeletal/mastiff_no_spikes.dae",
+  "source_texture": "skeletal/brit/mastiff_b_01.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "mastiff.glb",
+    "mastiff-lod1.glb"
+  ],
+  "bones": 48,
+  "animations": [
+    {
+      "name": "mastiff_idle_shake",
+      "source": "quadraped/mastiff_idle_shake.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 13.333329264322916,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.000000000321138
+    },
+    {
+      "name": "mastiff_idle",
+      "source": "quadraped/mastiff_idle.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 10.375001017252604,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "mastiff_idle2",
+      "source": "quadraped/mastiff_idle2.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 6.541666158040365,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "mastiff_run",
+      "source": "quadraped/mastiff_run.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.9999997456868489,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "mastiff_death",
+      "source": "quadraped/mastiff_death.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 2.4583330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "mastiff_death2",
+      "source": "quadraped/mastiff_death2.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 2.2916669209798175,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "mastiff_attack",
+      "source": "quadraped/mastiff_attack.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.6666666666666667,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.1,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 856
+}

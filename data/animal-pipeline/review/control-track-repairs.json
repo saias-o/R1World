@@ -1,0 +1,588 @@
+[
+  {
+    "file": "rhino.glb",
+    "repairs": [
+      {
+        "clip": "rhino_idle",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      }
+    ]
+  },
+  {
+    "file": "rhino-lod1.glb",
+    "repairs": [
+      {
+        "clip": "rhino_idle",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_idle2",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_walk",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_run",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_death",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_front_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_back_IK_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_front_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_back_L",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_front_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "foot_back_IK_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_front_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      },
+      {
+        "clip": "rhino_attack",
+        "node": "knee_back_R",
+        "path": "translation",
+        "reason": "nonfinite Collada IK helper, no vertex influence and no weighted descendant; restored rest transform"
+      }
+    ]
+  }
+]

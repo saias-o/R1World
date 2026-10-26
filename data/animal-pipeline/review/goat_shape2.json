@@ -1,0 +1,66 @@
+{
+  "id": "goat_shape2",
+  "status": "prepared",
+  "source_actor": "actors/fauna/goat.xml",
+  "source_mesh": "skeletal/goat_male.dae",
+  "source_texture": "skeletal/animal_goat_grey.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "goat_shape2.glb",
+    "goat_shape2-lod1.glb"
+  ],
+  "bones": 25,
+  "animations": [
+    {
+      "name": "goat_walk",
+      "source": "quadraped/goat_walk.dae",
+      "source_speed_percent": "75",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": [
+        "Base"
+      ]
+    },
+    {
+      "name": "goat_idle_01",
+      "source": "quadraped/goat_idle_01.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 5.833332824707031,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": [
+        "Base"
+      ]
+    },
+    {
+      "name": "goat_idle_02",
+      "source": "quadraped/goat_idle_02.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 5.0,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.00000000410222,
+      "collada_carrier_scale_corrected_roots": [
+        "Base"
+      ]
+    },
+    {
+      "name": "goat_death",
+      "source": "quadraped/goat_death.dae",
+      "source_speed_percent": "100",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": [
+        "Base"
+      ]
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 1.2,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 508
+}

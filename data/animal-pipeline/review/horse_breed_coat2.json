@@ -1,0 +1,78 @@
+{
+  "id": "horse_breed_coat2",
+  "status": "prepared",
+  "source_actor": "actors/fauna/horse_breed.xml",
+  "source_mesh": "skeletal/horse_breed.dae",
+  "source_texture": "skeletal/horse_black.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "horse_breed_coat2.glb",
+    "horse_breed_coat2-lod1.glb"
+  ],
+  "bones": 95,
+  "animations": [
+    {
+      "name": "horse_breed_death",
+      "source": "quadraped/horse_breed_death.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 1.25,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_breed_gallop",
+      "source": "quadraped/horse_breed_gallop.dae",
+      "source_speed_percent": "11",
+      "duration_seconds": 1.0416669845581055,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_breed_walk",
+      "source": "quadraped/horse_breed_walk.dae",
+      "source_speed_percent": "95",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_breed_idle_01",
+      "source": "quadraped/horse_breed_idle_01.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_breed_idle_02",
+      "source": "quadraped/horse_breed_idle_02.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_breed_idle_03",
+      "source": "quadraped/horse_breed_idle_03.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "horse_breed_idle_04",
+      "source": "quadraped/horse_breed_idle_04.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 2.7,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 1666
+}

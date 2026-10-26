@@ -1,0 +1,46 @@
+{
+  "id": "shark",
+  "status": "prepared",
+  "source_actor": "actors/fauna/shark.xml",
+  "source_mesh": "skeletal/shark.dae",
+  "source_texture": "skeletal/animal_shark.dds",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "files": [
+    "shark.glb",
+    "shark-lod1.glb"
+  ],
+  "bones": 11,
+  "animations": [
+    {
+      "name": "shark_idle",
+      "source": "other/shark_idle.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.8333334445953369,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "shark_walk",
+      "source": "other/shark_walk.dae",
+      "source_speed_percent": "10",
+      "duration_seconds": 0.8750000476837159,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    },
+    {
+      "name": "shark_run",
+      "source": "other/shark_run.dae",
+      "source_speed_percent": "12",
+      "duration_seconds": 0.8333334445953369,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0
+    }
+  ],
+  "animation_warnings": [],
+  "scale": {
+    "max_dimension_metres": 3.5,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 292
+}

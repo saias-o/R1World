@@ -1,0 +1,161 @@
+{
+  "id": "pony",
+  "status": "prepared",
+  "source_actor": "actors/fauna/pony.xml",
+  "source_mesh": "skeletal/pony.dae",
+  "source_texture": "skeletal/horse_brown.png",
+  "license": "CC-BY-SA-3.0",
+  "author": "Wildfire Games",
+  "repository": "https://github.com/0ad/0ad",
+  "revision": "61a3b9507d974084e6badb88a0826bd89a6d5b8b",
+  "files": [
+    "pony.glb",
+    "pony-lod1.glb"
+  ],
+  "bones": 95,
+  "animations": [
+    {
+      "name": "pony_idle_a",
+      "source": "quadraped/pony_idle_a.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "pony_idle_c",
+      "source": "quadraped/pony_idle_c.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "pony_idle_d",
+      "source": "quadraped/pony_idle_d.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "pony_death_a",
+      "source": "quadraped/pony_death_a.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 3.3333330790201825,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "pony_gallop",
+      "source": "quadraped/pony_gallop.dae",
+      "source_speed_percent": "11",
+      "duration_seconds": 1.0416669845581055,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "pony_walk",
+      "source": "quadraped/pony_walk.dae",
+      "source_speed_percent": "95",
+      "duration_seconds": 1.6666669209798177,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "pony_idle_b",
+      "source": "quadraped/pony_idle_b.dae",
+      "source_speed_percent": "80",
+      "duration_seconds": 2.5,
+      "bone_coverage": 1.0,
+      "translation_rebase_scale": 1.0,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "horse_death_01",
+      "source": "quadraped/horse_death_01.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 2.3333330790201825,
+      "bone_coverage": 0.9883720930232558,
+      "translation_rebase_scale": 0.7920000390643375,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "horse_death_02",
+      "source": "quadraped/horse_death_02.dae",
+      "source_speed_percent": "120",
+      "duration_seconds": 2.3333330790201825,
+      "bone_coverage": 0.9883720930232558,
+      "translation_rebase_scale": 0.7920000390643375,
+      "collada_carrier_scale_corrected_roots": []
+    },
+    {
+      "name": "horse_gallop",
+      "source": "quadraped/horse_gallop.dae",
+      "source_speed_percent": "3",
+      "duration_seconds": 0.33333330154418944,
+      "bone_coverage": 0.9883720930232558,
+      "translation_rebase_scale": 0.7920000390643375,
+      "collada_carrier_scale_corrected_roots": []
+    }
+  ],
+  "animation_warnings": [
+    {
+      "file": "quadraped/pony_death.dae",
+      "reason": "incompatible bone names",
+      "coverage": 0.11363636363636363,
+      "missing": [
+        "Horse01_Pelvis",
+        "Horse01_Spine",
+        "Horse01_Spine1",
+        "Horse01_Neck",
+        "Horse01_Neck1",
+        "Horse01_Head",
+        "Horse01_R_Clavicle",
+        "Horse01_R_UpperArm",
+        "Horse01_R_Forearm",
+        "Horse01_R_Hand",
+        "Horse01_R_Wrist",
+        "Horse01_R_Finger0",
+        "Horse01_L_Clavicle",
+        "Horse01_L_UpperArm",
+        "Horse01_L_Forearm",
+        "Horse01_L_Hand",
+        "Horse01_L_Wrist",
+        "Horse01_L_Finger0",
+        "Horse01_L_Thigh",
+        "Horse01_L_Foot",
+        "Horse01_L_Ankle",
+        "Horse01_L_Toe0",
+        "Horse01_R_Thigh",
+        "Horse01_R_Foot",
+        "Horse01_R_Ankle",
+        "Horse01_R_Toe0",
+        "Horse01_Tail",
+        "Horse01_Tail1",
+        "Horse01_Tail2",
+        "rl_quarter",
+        "rr_quarter",
+        "fr_quarter",
+        "fl_quarter",
+        "Horse01_TailNub",
+        "Horse01_HeadNub",
+        "Horse01_L_Finger0Nub",
+        "Horse01_R_Finger0Nub",
+        "Horse01_R_Toe0Nub",
+        "Horse01_L_Toe0Nub"
+      ]
+    }
+  ],
+  "scale": {
+    "max_dimension_metres": 1.8,
+    "basis": "approximate species size; source proportions preserved"
+  },
+  "source_triangles": 1682
+}
