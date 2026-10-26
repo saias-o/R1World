@@ -12,7 +12,8 @@ saida_add_game(R1World CUSTOM_MAIN PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     SOURCES native/world.cpp native/minimap.cpp native/menu_globe.cpp native/menu_globe_view.cpp ${generator} ${clipper})
 target_include_directories(R1World PRIVATE native
     native/third_party/clipper2/include native/third_party/earcut
-    "${SaidaEngine_SOURCE_DIR}/plugins/traffic/include")
+    "${SaidaEngine_SOURCE_DIR}/plugins/traffic/include"
+    "${SaidaEngine_SOURCE_DIR}/plugins/wildlife/include")
 target_link_libraries(R1World PRIVATE winhttp Saida::XRGesture)
 find_program(R1_GLSLC glslc REQUIRED)
 set(menu_shader_dir "${CMAKE_CURRENT_SOURCE_DIR}/generated/world-windows/menu-shaders")

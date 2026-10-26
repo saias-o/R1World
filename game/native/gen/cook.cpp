@@ -4,6 +4,7 @@
 #include "bridges.hpp"
 #include "buildings.hpp"
 #include "crowd.hpp"
+#include "fauna.hpp"
 #include "harbours.hpp"
 #include "landmarks.hpp"
 #include "peaks.hpp"
@@ -772,6 +773,23 @@ CookedTile cookTile(const Observations& in) {
     for(const auto& l:totemLettering)lettering.push_back(l);
     out.manifest["lettering"]=lettering;
     out.manifest["busShelters"]=busShelters;
+    // The land animals living here: drawn from the ground as it is drawn,
+    // the buildings, the country and the climate (gen/fauna.hpp).
+    {
+        FaunaInput faunaIn;
+        faunaIn.tile = tile;
+        faunaIn.bounds = bounds;
+        faunaIn.anchor = &anchor;
+        faunaIn.classify = classify;
+        faunaIn.family = [&](const std::string& cls) { return groundFamily(cls, profile.ground.name, climate); };
+        faunaIn.footprints = &footprints;
+        faunaIn.landcover = &osm.landcover;
+        faunaIn.country = fuelCountry;
+        faunaIn.climate = climate;
+        faunaIn.ocean = ocean;
+        faunaIn.seaIce = bool(pack);
+        out.manifest["fauna"] = planFauna(faunaIn);
+    }
     out.cookMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
     return out;
 }

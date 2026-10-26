@@ -362,11 +362,39 @@
         "triangle_ratio": 0.5488505747126436
       },
       "sha256": {
-        "arctic_wolf.glb": "70fe41bb880879227203bc144ec48a3897c75a3dd1f67c64bf31c104da46abc7",
-        "arctic_wolf-lod1.glb": "ea03ec94c8e09b8d5036a89a98655f01aaec128e0a88927895dc636ee70ad2ce"
+        "arctic_wolf.glb": "9589a112e8d16dd72879ff330ad08f3cc2fe46a1185816f1c1dc8b7597b3595a",
+        "arctic_wolf-lod1.glb": "d9ce90e2af32e8202106845bacc03740eb85a43d8ce73e2824ae034661127a21"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/arctic_wolf.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "wolf_idle_01": [
+          0.512,
+          0.221,
+          "re-anchored root"
+        ],
+        "wolf_idle_02": [
+          0.511,
+          0.096,
+          "re-anchored root"
+        ],
+        "wolf_idle_03": [
+          0.885,
+          0.401,
+          "re-anchored root"
+        ],
+        "wolf_run": [
+          0.455,
+          0.148,
+          "re-anchored root"
+        ],
+        "wolf_walk": [
+          0.494,
+          0.108,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "bat",
@@ -2398,11 +2426,19 @@
         "triangle_ratio": 0.5492589363557105
       },
       "sha256": {
-        "camel.glb": "da3c5348a375f870a66545c18363cc87dbb6c6e4811df6cda3797c0105525d25",
-        "camel-lod1.glb": "1593fb6e8ca9a3f7ccc3760c8872ee08477ede1d3dc8eb19a9e70aaf706a5dae"
+        "camel.glb": "b6d229a47edc61789a85ee9191f40d6c372c9e3cf10a5a2f7dd1504b2d3e92a4",
+        "camel-lod1.glb": "ad51be5bbd3eb62bce43364bd7362ded3632aee4c81f3722f3285e52fb79d83c"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/camel.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "camel_idle_04": [
+          0.244,
+          0.212,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "camel_coat2",
@@ -2664,11 +2700,19 @@
         "triangle_ratio": 0.5492589363557105
       },
       "sha256": {
-        "camel_coat2.glb": "fb1d684ada6c0feea3cc619d91a0926ceff9c84ab83748ca6bab8e93276fd721",
-        "camel_coat2-lod1.glb": "f737689ec344b3e6bace83f5c69c192bd23d68ae3c6a97a3c64ba5bebfab5b06"
+        "camel_coat2.glb": "8ae8ccaf18bfad1e9cecb0800059277bda99d1f2c8d99e7aae327349355672e4",
+        "camel_coat2-lod1.glb": "b17a337b0fabac5aa3dfd95eafd03dfde11194d12b033679c3943c2ffad7ab29"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/camel.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "camel_idle_04": [
+          0.244,
+          0.212,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "camel_coat3",
@@ -2930,11 +2974,19 @@
         "triangle_ratio": 0.5492589363557105
       },
       "sha256": {
-        "camel_coat3.glb": "f048c6d56a814369f57d64488606a65f9961826450e8c4528dbf72a8a2ffebd5",
-        "camel_coat3-lod1.glb": "58c2455582dd564c82b39ee19dd50f6052b4c6c135dd29cee0d7891c8c4d6b7a"
+        "camel_coat3.glb": "bffc089201e520f6fc25fdae5a2a69742356f87a97551b4b885078c9f2796964",
+        "camel_coat3-lod1.glb": "588711ac84302d8b5b6de506a7488ada9ebca69694039431a84d2215f9b70fde"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/camel.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "camel_idle_04": [
+          0.244,
+          0.212,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "cat_sphynx",
@@ -6815,11 +6867,39 @@
         "triangle_ratio": 0.5498199279711885
       },
       "sha256": {
-        "elephant_african_baby.glb": "f931f70945511d688a8665b64ccb99280979fa8015ae119ddf99c2676113ab74",
-        "elephant_african_baby-lod1.glb": "65a6a87e085ca3bd9d912dcc101aa5f042a99bfbd534857ce3ec67429af757a3"
+        "elephant_african_baby.glb": "77900a3beb03834b878e488a0022d822ec202e571b9acc357641fdbae03ff4a4",
+        "elephant_african_baby-lod1.glb": "fa790d96bb7550916919f34ad8130e8099155bde2d622d1a4a22c04cf4cabe1d"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_baby.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "elephant_infant_idle_01": [
+          1.09,
+          0.014,
+          "re-anchored root"
+        ],
+        "elephant_infant_idle_02": [
+          4.152,
+          0.121,
+          "re-anchored root"
+        ],
+        "elephant_infant_idle_03": [
+          1.094,
+          0.034,
+          "re-anchored root"
+        ],
+        "elephant_infant_run": [
+          1.14,
+          0.151,
+          "re-anchored root"
+        ],
+        "elephant_infant_walk": [
+          1.14,
+          0.067,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "elephant_african_bush",
@@ -7347,11 +7427,34 @@
         "triangle_ratio": 0.5498199279711885
       },
       "sha256": {
-        "elephant_african_forest.glb": "92ed927bd4d452f7f43941d4be7dd0b41291575110c2a30e22e14d7dcf4b5fc7",
-        "elephant_african_forest-lod1.glb": "bbfdf87bf6fc1c5f7dc12b7a89c95382cc0e9c5f1d4421e1eb3c03f978ac9335"
+        "elephant_african_forest.glb": "4d1dc1c57136f51855b5210c29f6d7cbe0ae5d996e4bc0685f43031d35b19f88",
+        "elephant_african_forest-lod1.glb": "703dcfb9435db34c4296cc00a6b294bd48639c2f2c110c7b57063b86916ed13c"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_forest.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "elephant_african_forest_idle_02": [
+          0.46,
+          0.109,
+          "re-anchored root"
+        ],
+        "elephant_african_forest_idle_03": [
+          0.181,
+          0.036,
+          "re-anchored root"
+        ],
+        "elephant_african_forest_run": [
+          0.219,
+          0.144,
+          "re-anchored root"
+        ],
+        "elephant_african_forest_walk": [
+          0.203,
+          0.049,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "elephant_asian",
@@ -8267,11 +8370,34 @@
         "triangle_ratio": 0.55
       },
       "sha256": {
-        "fox_arctic.glb": "d7317a2123fd1e4d84ff61869080b927938de39696d19729be03112c46a0c928",
-        "fox_arctic-lod1.glb": "fe940796095bf0d36cffe945494f9fe0a12de59eb21347384e5613b12b719697"
+        "fox_arctic.glb": "fcb9a3c0f26f4399df86d18b898b45b6962f39c4978a84161d84167d051a84c9",
+        "fox_arctic-lod1.glb": "2fffb8d1f670770b95c68faf8ff40c8e38e74f81fc573062dda4100665801eab"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/fox_arctic.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "fox_feeding": [
+          0.935,
+          0.256,
+          "rotations only"
+        ],
+        "fox_idle": [
+          0.925,
+          0.083,
+          "rotations only"
+        ],
+        "fox_run": [
+          0.885,
+          0.183,
+          "rotations only"
+        ],
+        "fox_walk": [
+          0.915,
+          0.072,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "fox_red",
@@ -8433,11 +8559,34 @@
         "triangle_ratio": 0.55
       },
       "sha256": {
-        "fox_red.glb": "51d4e2cdc27aa0c34c036a5993196f7aeb6c7c4de2d84251a4f61cd459292724",
-        "fox_red-lod1.glb": "369a94f38ecf7f750e043717a8489456190b9cea721d0016cb77455c58b1a64c"
+        "fox_red.glb": "f64a1fecc5dd4ac9b96795b3b85836eeee1d5521f13f679a3455c2bc4fb972f6",
+        "fox_red-lod1.glb": "8066fda28c17d8d95d01114580780ce24c8a935611686e79aa2564356038ba75"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/fox_red.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "fox_feeding": [
+          0.935,
+          0.256,
+          "rotations only"
+        ],
+        "fox_idle": [
+          0.925,
+          0.083,
+          "rotations only"
+        ],
+        "fox_run": [
+          0.885,
+          0.183,
+          "rotations only"
+        ],
+        "fox_walk": [
+          0.915,
+          0.072,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "frog_amazon",
@@ -8990,11 +9139,29 @@
         "triangle_ratio": 0.6993464052287581
       },
       "sha256": {
-        "gazelle.glb": "aa7e228e16b5d180a62e0b28edbeead27feb63c3e59deb2cf51b80a39be7d435",
-        "gazelle-lod1.glb": "8676caf0d34d959f716b182b56e85ffb29de60eafb87a3fbfb57aad536fc39d0"
+        "gazelle.glb": "10e1f9e98f05dd14f19184db83179bf2a321df04a1023f04a6a3c719789cfdf9",
+        "gazelle-lod1.glb": "753f9c75c76be34d8791d0298752e2ec72ff9d7822f30684111527b98455bbaf"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/gazelle.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "deer_idle_01": [
+          1.054,
+          0.048,
+          "re-anchored root"
+        ],
+        "deer_idle_02": [
+          1.055,
+          0.052,
+          "re-anchored root"
+        ],
+        "deer_idle_03": [
+          1.057,
+          0.045,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "giraffe_adult",
@@ -9548,11 +9715,24 @@
         "triangle_ratio": 0.5492753623188406
       },
       "sha256": {
-        "giraffe_baby.glb": "84105c3faee39dcd2579f0d5ef073a5cfcbb1e89946215be574ce688d9602489",
-        "giraffe_baby-lod1.glb": "11784e998e36c7370bf33e134ab81d722a0eaad0ef3e6a98597f67540c34e4f5"
+        "giraffe_baby.glb": "2244fdf12a6653dba0b5d781148df2906af9de0a827f88735ff45195dca8f6e6",
+        "giraffe_baby-lod1.glb": "16bb5222dc3111e2c7d5e147eaae57168dcbf6bd61629774e2288b3b678b1d3b"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/giraffe_baby.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "giraffe_infant_run": [
+          0.513,
+          0.137,
+          "re-anchored root"
+        ],
+        "giraffe_infant_walk": [
+          0.521,
+          0.066,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "giraffe_baby_coat2",
@@ -9734,11 +9914,24 @@
         "triangle_ratio": 0.5492753623188406
       },
       "sha256": {
-        "giraffe_baby_coat2.glb": "04ca45104077d729d8c2165fd2b4fdeafa1837809814247ab5bbe222fcf26d23",
-        "giraffe_baby_coat2-lod1.glb": "b801c4c4a24c1287669bcf7d3eb27247ceba627efa66abf3c0216860c22c5fae"
+        "giraffe_baby_coat2.glb": "f85220ee0e93b03e5753409fc987bb2be5ce747a601a6379250f3cfb92c6c56c",
+        "giraffe_baby_coat2-lod1.glb": "f9736b6dc3c354200cefed725efa5a0a700eb88e97fdf32ed8d563d39f8e7b11"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/giraffe_baby.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "giraffe_infant_run": [
+          0.513,
+          0.137,
+          "re-anchored root"
+        ],
+        "giraffe_infant_walk": [
+          0.521,
+          0.066,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "goat",
@@ -11573,11 +11766,54 @@
         "triangle_ratio": 0.549929676511955
       },
       "sha256": {
-        "hippopotamus.glb": "a010748023de72feecadec703de0018025595d650a80609e04f6984446a5fc36",
-        "hippopotamus-lod1.glb": "0b5ae0493d0d558817cf5b34055882b4b6d290dc7fe2d1863ad72606614253f0"
+        "hippopotamus.glb": "aa2dbeaa12c4df87b62ed1f0c5ac1fa0f5e50044e38a73a4a48a065cbbc03dae",
+        "hippopotamus-lod1.glb": "8f97387b7b4937c85772635255f775d2336ff52cffdf1b63c0aae55c31f87cbb"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/hippopotamus.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "hippopotamus_idle_01": [
+          0.443,
+          0.029,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_02": [
+          0.464,
+          0.067,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_03": [
+          0.464,
+          0.065,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_04": [
+          0.444,
+          0.163,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_05": [
+          0.443,
+          0.153,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_06": [
+          0.443,
+          0.029,
+          "re-anchored root"
+        ],
+        "hippopotamus_trot": [
+          0.43,
+          0.057,
+          "re-anchored root"
+        ],
+        "hippopotamus_walk": [
+          0.427,
+          0.07,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "hippopotamus_coat2",
@@ -11839,11 +12075,54 @@
         "triangle_ratio": 0.549929676511955
       },
       "sha256": {
-        "hippopotamus_coat2.glb": "6bd353f07272292d27a116b25436c5c0013db61e687f862960bb0d598e893060",
-        "hippopotamus_coat2-lod1.glb": "5615d2e4e3362fe166e7bd2f2af89ee703e471774945addf3b1c67a12f347766"
+        "hippopotamus_coat2.glb": "5f2c20f6ed8d1f057b5bcd4d7117b27a1ff5a9dab278697b934e3693dec0610f",
+        "hippopotamus_coat2-lod1.glb": "2297f3df0534701b67898534fa63ff3510b04f44db8e9b2797301c8aa67cb79b"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/hippopotamus.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "hippopotamus_idle_01": [
+          0.443,
+          0.029,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_02": [
+          0.464,
+          0.067,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_03": [
+          0.464,
+          0.065,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_04": [
+          0.444,
+          0.163,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_05": [
+          0.443,
+          0.153,
+          "re-anchored root"
+        ],
+        "hippopotamus_idle_06": [
+          0.443,
+          0.029,
+          "re-anchored root"
+        ],
+        "hippopotamus_trot": [
+          0.43,
+          0.057,
+          "re-anchored root"
+        ],
+        "hippopotamus_walk": [
+          0.427,
+          0.07,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "horse",
@@ -30297,11 +30576,44 @@
         "triangle_ratio": 0.6996699669966997
       },
       "sha256": {
-        "piglet.glb": "0bbb9a7bda1efbb621d02cfc613579dae44f2b5e47a413aad63321403da1fd23",
-        "piglet-lod1.glb": "5278b8d03f9645d9f347985df7cf0c95cdcd8f084b203a29a16417411582a203"
+        "piglet.glb": "469a05e1dca605d874d0e93707d6271781429804bdf698bb57f53277e6eb9e7b",
+        "piglet-lod1.glb": "b6c6f1776a8c6488e5486d1c5eea7687f04b1af2ea855860cf2cd5c6cd511fdb"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/piglet.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "animal_piglet_feeding_01": [
+          0.97,
+          0.027,
+          "rotations only"
+        ],
+        "animal_piglet_idle_01": [
+          0.942,
+          0.06,
+          "rotations only"
+        ],
+        "animal_piglet_idle_02": [
+          0.933,
+          0.011,
+          "rotations only"
+        ],
+        "animal_piglet_idle_03": [
+          0.962,
+          0.09,
+          "rotations only"
+        ],
+        "animal_piglet_run_01": [
+          0.95,
+          0.044,
+          "rotations only"
+        ],
+        "animal_piglet_walk_01": [
+          0.95,
+          0.044,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "piglet_coat2",
@@ -30533,11 +30845,44 @@
         "triangle_ratio": 0.6996699669966997
       },
       "sha256": {
-        "piglet_coat2.glb": "add8a7939c88ada2a244286bd144d56e771dc5f85b6e3b95d5e0a5ee4164f0d6",
-        "piglet_coat2-lod1.glb": "041cc76b7535a40d7f059c2b5b1c1f6bdf209c720027a26706cf3f2cbf9b516f"
+        "piglet_coat2.glb": "4c1db35e2cbb8f373c51df9315b34ab90ca9d5127baa4d1b4bcd5b03f4199e23",
+        "piglet_coat2-lod1.glb": "02505e5dd426dccf19ec230940b88594da43df2d69425ecdeea6bb4a14c43a99"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/piglet.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "animal_piglet_feeding_01": [
+          0.97,
+          0.027,
+          "rotations only"
+        ],
+        "animal_piglet_idle_01": [
+          0.942,
+          0.06,
+          "rotations only"
+        ],
+        "animal_piglet_idle_02": [
+          0.933,
+          0.011,
+          "rotations only"
+        ],
+        "animal_piglet_idle_03": [
+          0.962,
+          0.09,
+          "rotations only"
+        ],
+        "animal_piglet_run_01": [
+          0.95,
+          0.044,
+          "rotations only"
+        ],
+        "animal_piglet_walk_01": [
+          0.95,
+          0.044,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "piglet_coat3",
@@ -30769,11 +31114,44 @@
         "triangle_ratio": 0.6996699669966997
       },
       "sha256": {
-        "piglet_coat3.glb": "adc14e5455d16401bd8c45aa61c7d1bb7be5295791e5655113817076cc401f0f",
-        "piglet_coat3-lod1.glb": "8dd5eb3f6d1dd2a10fc1a6ecf9ea97cad2764235dbd6aab54ea6e2b53881b3fe"
+        "piglet_coat3.glb": "4e8e88ebb958a07f4711c2aebc858fddffa472107083c1e84e367a676725659c",
+        "piglet_coat3-lod1.glb": "1033272045bdbd3f3c107738d5c54f1e0ea04adc3dd50cb87135da08e6084cb3"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/piglet.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "animal_piglet_feeding_01": [
+          0.97,
+          0.027,
+          "rotations only"
+        ],
+        "animal_piglet_idle_01": [
+          0.942,
+          0.06,
+          "rotations only"
+        ],
+        "animal_piglet_idle_02": [
+          0.933,
+          0.011,
+          "rotations only"
+        ],
+        "animal_piglet_idle_03": [
+          0.962,
+          0.09,
+          "rotations only"
+        ],
+        "animal_piglet_run_01": [
+          0.95,
+          0.044,
+          "rotations only"
+        ],
+        "animal_piglet_walk_01": [
+          0.95,
+          0.044,
+          "rotations only"
+        ]
+      }
     },
     {
       "id": "pike",
@@ -36207,11 +36585,34 @@
         "triangle_ratio": 0.6929133858267716
       },
       "sha256": {
-        "sheep1.glb": "2938f51278773a4a515b5c7d0dfe08e9be781a9eca3e188b4b7baa2b7de9286a",
-        "sheep1-lod1.glb": "12f3e6e9337e396426f787f4e6d4b2f5c31f873cb7540e1be4abb22f22140961"
+        "sheep1.glb": "60fb6818022a911d1ebe62715cd460020a8fff90f9216608a5172eaefc854ec0",
+        "sheep1-lod1.glb": "a5e672caf812a78eed9a590e0cf680edf8abb777b2e2349d06bedcd0772548e5"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sheep1.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "sheep_idle_01": [
+          0.053,
+          0.006,
+          "re-anchored root"
+        ],
+        "sheep_idle_02": [
+          0.214,
+          0.033,
+          "re-anchored root"
+        ],
+        "sheep_run": [
+          1.186,
+          0.168,
+          "re-anchored root"
+        ],
+        "sheep_walk": [
+          0.695,
+          0.05,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "sheep3",
@@ -36373,11 +36774,34 @@
         "triangle_ratio": 0.6929133858267716
       },
       "sha256": {
-        "sheep3.glb": "e80f719a993ba8eb779d7b58632c14febd67efa7474166db027e98df18b1b77a",
-        "sheep3-lod1.glb": "0f6053ccad2a5938b77e038c341bdc34ddc7f5718869acfab6842330188947a2"
+        "sheep3.glb": "57c7561b603b32e7937213008143c40d45368e82de3547212a6c0dae199a919d",
+        "sheep3-lod1.glb": "8100c9d970c45d261c4490c1a08c3bfb5bf6f253915b9577869da32fe6c1df1a"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sheep3.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "sheep_idle_01": [
+          0.053,
+          0.006,
+          "re-anchored root"
+        ],
+        "sheep_idle_02": [
+          0.214,
+          0.033,
+          "re-anchored root"
+        ],
+        "sheep_run": [
+          1.186,
+          0.168,
+          "re-anchored root"
+        ],
+        "sheep_walk": [
+          0.695,
+          0.05,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "shrike",
@@ -37005,11 +37429,29 @@
         "triangle_ratio": 0.5481049562682215
       },
       "sha256": {
-        "tiger.glb": "aa31a84bfbc708da7fc97bbeb14ea8205d5c6f14881be126e7157c94862b0920",
-        "tiger-lod1.glb": "824200deda8a07b42475feab2ed942bcd5988d43b4deb4e3a605db821df7aac0"
+        "tiger.glb": "58fc9b01baebb7712bda886ce08403276575549d4684d59892fdaf6d70e1a501",
+        "tiger-lod1.glb": "ada6395a48b091861ef0adc12688b602cf45dd50ce955c67591f53dc53df6ff9"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/tiger.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "feline_idle_01": [
+          0.198,
+          0.025,
+          "re-anchored root"
+        ],
+        "feline_idle_04": [
+          0.201,
+          0.125,
+          "re-anchored root"
+        ],
+        "feline_walk": [
+          0.23,
+          0.114,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "tuna",
@@ -38213,11 +38655,39 @@
         "triangle_ratio": 0.5488505747126436
       },
       "sha256": {
-        "wolf.glb": "6c7a60e8651584f09ecd651b2bf4dc7fa17e5e168568237dc349f50c9dd04cdf",
-        "wolf-lod1.glb": "688d776b477061b5ebaeb0574960104ff0e87f4714a8975129f63086d2c2077c"
+        "wolf.glb": "1b4bf8435d3d218dc2a15fa0401e4b17c6f8b11a832c7cd3476c3d23f5b28487",
+        "wolf-lod1.glb": "6cbe4fd6fcda514b2eb0bda5430bd890e8844183b6c111a71f086890647ab2a2"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/wolf.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "wolf_idle_01": [
+          0.512,
+          0.221,
+          "re-anchored root"
+        ],
+        "wolf_idle_02": [
+          0.511,
+          0.096,
+          "re-anchored root"
+        ],
+        "wolf_idle_03": [
+          0.885,
+          0.401,
+          "re-anchored root"
+        ],
+        "wolf_run": [
+          0.455,
+          0.148,
+          "re-anchored root"
+        ],
+        "wolf_walk": [
+          0.494,
+          0.108,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "wolf_coat2",
@@ -38459,11 +38929,39 @@
         "triangle_ratio": 0.5488505747126436
       },
       "sha256": {
-        "wolf_coat2.glb": "b7eddf4ee58a735de9e8ae46f12735e153847883b70668ce0ff4b6bd6b922964",
-        "wolf_coat2-lod1.glb": "fe7d1d27238f0d3405773fd1e9ff47e3f4b1780f006aae257132bf88bbded472"
+        "wolf_coat2.glb": "3b2c6b63d39debf7dd48577f15c170accb0460e0d8d9d92e8f490fbcf3aa705f",
+        "wolf_coat2-lod1.glb": "e32dde3fa426b25803c07b17e6c3e7303421dfc6dac92ed59c463788d17e4d50"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/wolf.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "wolf_idle_01": [
+          0.512,
+          0.221,
+          "re-anchored root"
+        ],
+        "wolf_idle_02": [
+          0.511,
+          0.096,
+          "re-anchored root"
+        ],
+        "wolf_idle_03": [
+          0.885,
+          0.401,
+          "re-anchored root"
+        ],
+        "wolf_run": [
+          0.455,
+          0.148,
+          "re-anchored root"
+        ],
+        "wolf_walk": [
+          0.494,
+          0.108,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "wolfhound",

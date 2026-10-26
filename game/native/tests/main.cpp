@@ -1,5 +1,6 @@
 #include "check.hpp"
 
+#include "gen/fauna.hpp"
 #include "gen/palette.hpp"
 
 #include <chrono>
@@ -20,6 +21,7 @@ int main(int argc, char** argv) {
     }
     try {
         r1::loadPalette(r1test::gameRoot());
+        r1::loadFauna(r1test::gameRoot());
     } catch (const std::exception& e) {
         std::cerr << "cannot load the game's data: " << e.what() << "\n";
         return 2;

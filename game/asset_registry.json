@@ -136,7 +136,7 @@
             "type": "Mesh"
         },
         "10230490769664911803": {
-            "hash": 9827666874181669037,
+            "hash": 5746862028240307914,
             "path": "assets/animals/tiger.glb",
             "type": "Mesh"
         },
@@ -236,7 +236,7 @@
             "type": "Mesh"
         },
         "10379845442472482376": {
-            "hash": 13822747223851575887,
+            "hash": 16530058456102559581,
             "path": "assets/animals/licenses/terra-magna-art.txt",
             "type": "Unknown"
         },
@@ -391,7 +391,7 @@
             "type": "Unknown"
         },
         "10606523130082442995": {
-            "hash": 8777364418575283791,
+            "hash": 11519706803195268865,
             "path": "assets/animals/sheep3-lod1.glb",
             "type": "Mesh"
         },
@@ -475,6 +475,11 @@
             "path": "assets/animals/horse_coat4-lod1.glb",
             "type": "Mesh"
         },
+        "10803077335475686356": {
+            "hash": 15205226933305909898,
+            "path": "assets/animals/fauna.json",
+            "type": "Unknown"
+        },
         "10822896862868825913": {
             "hash": 15057777588054011981,
             "path": "assets/world/landmarks/notre_dame_de_paris-r3-lod1.glb",
@@ -486,7 +491,7 @@
             "type": "Unknown"
         },
         "10840833266773056240": {
-            "hash": 14605558842280588051,
+            "hash": 1140191703551514929,
             "path": "assets/animals/giraffe_baby.glb",
             "type": "Mesh"
         },
@@ -941,7 +946,7 @@
             "type": "Mesh"
         },
         "11588404227089191951": {
-            "hash": 8116739044625040967,
+            "hash": 11436723440650764240,
             "path": "assets/animals/camel_coat3.glb",
             "type": "Mesh"
         },
@@ -1031,7 +1036,7 @@
             "type": "Unknown"
         },
         "11738215093200141648": {
-            "hash": 11294577891971334007,
+            "hash": 7721109324645365837,
             "path": "assets/animals/fox_red.glb",
             "type": "Mesh"
         },
@@ -1216,7 +1221,7 @@
             "type": "Mesh"
         },
         "12025483533569041763": {
-            "hash": 7886610375530248237,
+            "hash": 6129189345268559310,
             "path": "assets/animals/elephant_african_baby-lod1.glb",
             "type": "Mesh"
         },
@@ -1776,7 +1781,7 @@
             "type": "Unknown"
         },
         "12981265641707580342": {
-            "hash": 10388091214812598551,
+            "hash": 699244549571140278,
             "path": "assets/animals/elephant_african_forest-lod1.glb",
             "type": "Mesh"
         },
@@ -1876,7 +1881,7 @@
             "type": "Unknown"
         },
         "13128023220683313528": {
-            "hash": 15525066971030355302,
+            "hash": 16442671321766558594,
             "path": "assets/animals/wolf.glb",
             "type": "Mesh"
         },
@@ -1916,7 +1921,7 @@
             "type": "Texture"
         },
         "13213195103167624438": {
-            "hash": 6724218124031883016,
+            "hash": 13879983347092983300,
             "path": "assets/animals/elephant_african_forest.glb",
             "type": "Mesh"
         },
@@ -2191,7 +2196,7 @@
             "type": "Mesh"
         },
         "13696393007777384446": {
-            "hash": 6552098422192756734,
+            "hash": 14497055456497702621,
             "path": "assets/animals/fox_arctic.glb",
             "type": "Mesh"
         },
@@ -2336,7 +2341,7 @@
             "type": "Mesh"
         },
         "13984953754975741627": {
-            "hash": 16962262766971532495,
+            "hash": 12115575352868221299,
             "path": "assets/animals/hippopotamus.glb",
             "type": "Mesh"
         },
@@ -2356,7 +2361,7 @@
             "type": "Unknown"
         },
         "14022405698126297636": {
-            "hash": 6194783352530404020,
+            "hash": 14831504049381204021,
             "path": "assets/animals/giraffe_baby_coat2.glb",
             "type": "Mesh"
         },
@@ -2871,7 +2876,7 @@
             "type": "Unknown"
         },
         "15018877118331042251": {
-            "hash": 1344908908963377892,
+            "hash": 1781453782989437123,
             "path": "assets/animals/piglet_coat2.glb",
             "type": "Mesh"
         },
@@ -2891,7 +2896,7 @@
             "type": "Mesh"
         },
         "15053531973567117333": {
-            "hash": 15560460793176380791,
+            "hash": 2881830962126542075,
             "path": "assets/animals/piglet.glb",
             "type": "Mesh"
         },
@@ -3066,7 +3071,7 @@
             "type": "Mesh"
         },
         "15316528786671695123": {
-            "hash": 1268512324958363309,
+            "hash": 6809872727669144618,
             "path": "assets/animals/camel_coat2.glb",
             "type": "Mesh"
         },
@@ -3081,7 +3086,7 @@
             "type": "Unknown"
         },
         "15336490900835210494": {
-            "hash": 1270031335195377664,
+            "hash": 17132935539486642364,
             "path": "assets/models/external/nature_selected/urban_tree_far.source.json",
             "type": "Unknown"
         },
@@ -3131,7 +3136,7 @@
             "type": "Unknown"
         },
         "15402328772790740695": {
-            "hash": 18087178116966699201,
+            "hash": 17693127620587452576,
             "path": "assets/animals/giraffe_baby-lod1.glb",
             "type": "Mesh"
         },
@@ -3216,7 +3221,7 @@
             "type": "Mesh"
         },
         "15521837955474907608": {
-            "hash": 17559944501201688367,
+            "hash": 9953720797148736324,
             "path": "assets/animals/giraffe_baby_coat2-lod1.glb",
             "type": "Mesh"
         },
@@ -3271,7 +3276,7 @@
             "type": "Mesh"
         },
         "15601195659739678360": {
-            "hash": 7848992589592937878,
+            "hash": 9490186157756649100,
             "path": "assets/animals/camel.glb",
             "type": "Mesh"
         },
@@ -3416,7 +3421,7 @@
             "type": "Texture"
         },
         "15885905182089659458": {
-            "hash": 15730938932563983051,
+            "hash": 13512495599085960631,
             "path": "assets/animals/sheep3.glb",
             "type": "Mesh"
         },
@@ -3426,7 +3431,7 @@
             "type": "Unknown"
         },
         "15892145161941061340": {
-            "hash": 13417929052779770922,
+            "hash": 658551897005872806,
             "path": "assets/animals/gazelle.glb",
             "type": "Mesh"
         },
@@ -3441,7 +3446,7 @@
             "type": "Unknown"
         },
         "15923201480035292476": {
-            "hash": 17685192765987230702,
+            "hash": 16859698716297307904,
             "path": "assets/animals/wolf_coat2.glb",
             "type": "Mesh"
         },
@@ -3661,7 +3666,7 @@
             "type": "Unknown"
         },
         "16422651030829251198": {
-            "hash": 3481531013316873479,
+            "hash": 10954432584959326379,
             "path": "assets/licenses/CC0-1.0.txt",
             "type": "Unknown"
         },
@@ -3781,7 +3786,7 @@
             "type": "Mesh"
         },
         "1668666643808606823": {
-            "hash": 15032122731542901429,
+            "hash": 15247693393940837650,
             "path": "assets/animals/fox_red-lod1.glb",
             "type": "Mesh"
         },
@@ -4496,7 +4501,7 @@
             "type": "Mesh"
         },
         "181385611285393960": {
-            "hash": 12065244681112857316,
+            "hash": 5303255265836290605,
             "path": "assets/animals/licenses/CC0-1.0.txt",
             "type": "Unknown"
         },
@@ -4531,7 +4536,7 @@
             "type": "Mesh"
         },
         "18206718416901664267": {
-            "hash": 2510423877699084023,
+            "hash": 4034893750958624136,
             "path": "assets/animals/gazelle-lod1.glb",
             "type": "Mesh"
         },
@@ -4886,7 +4891,7 @@
             "type": "Unknown"
         },
         "2217642101322487931": {
-            "hash": 705346909695896338,
+            "hash": 2248386638225993469,
             "path": "assets/animals/manifest.json",
             "type": "Unknown"
         },
@@ -4961,7 +4966,7 @@
             "type": "Mesh"
         },
         "2331397499158974022": {
-            "hash": 1546568350236208648,
+            "hash": 5477721055035981399,
             "path": "assets/animals/piglet_coat3.glb",
             "type": "Mesh"
         },
@@ -4986,7 +4991,7 @@
             "type": "Unknown"
         },
         "2382117580764269107": {
-            "hash": 11486750441786652892,
+            "hash": 15650613128334763087,
             "path": "assets/animals/camel-lod1.glb",
             "type": "Mesh"
         },
@@ -5216,7 +5221,7 @@
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 10679610371720196889,
+            "hash": 5014523141099644138,
             "path": "scenes/earth.scene",
             "type": "Scene"
         },
@@ -5836,7 +5841,7 @@
             "type": "Mesh"
         },
         "3918043318152320385": {
-            "hash": 2389345702911906993,
+            "hash": 4938759849189624713,
             "path": "assets/animals/arctic_wolf.glb",
             "type": "Mesh"
         },
@@ -6266,7 +6271,7 @@
             "type": "Mesh"
         },
         "4725469749894051576": {
-            "hash": 6093337974952598595,
+            "hash": 2526238245927351616,
             "path": "assets/animals/sheep1.glb",
             "type": "Mesh"
         },
@@ -6441,7 +6446,7 @@
             "type": "Mesh"
         },
         "5002038654397317182": {
-            "hash": 13603295022478957554,
+            "hash": 7435312239826876261,
             "path": "assets/animals/piglet-lod1.glb",
             "type": "Mesh"
         },
@@ -6591,7 +6596,7 @@
             "type": "Mesh"
         },
         "5282841336110129464": {
-            "hash": 14084078364970259316,
+            "hash": 18130020775894644964,
             "path": "assets/animals/elephant_african_baby.glb",
             "type": "Mesh"
         },
@@ -6691,7 +6696,7 @@
             "type": "Mesh"
         },
         "544228377700163185": {
-            "hash": 12620238542226075641,
+            "hash": 17596289810907323698,
             "path": "assets/animals/licenses/CC-BY-4.0.txt",
             "type": "Unknown"
         },
@@ -6736,7 +6741,7 @@
             "type": "Texture"
         },
         "553489452387131607": {
-            "hash": 6187512624141979613,
+            "hash": 12063509634613881602,
             "path": "assets/animals/piglet_coat2-lod1.glb",
             "type": "Mesh"
         },
@@ -6986,7 +6991,7 @@
             "type": "Mesh"
         },
         "6046868340100980149": {
-            "hash": 9051177642046388436,
+            "hash": 1216511531482500006,
             "path": "assets/animals/sheep1-lod1.glb",
             "type": "Mesh"
         },
@@ -7276,7 +7281,7 @@
             "type": "Unknown"
         },
         "6627016232711082748": {
-            "hash": 11769044019586036719,
+            "hash": 1095147343330659608,
             "path": "assets/animals/hippopotamus_coat2.glb",
             "type": "Mesh"
         },
@@ -7421,7 +7426,7 @@
             "type": "Mesh"
         },
         "6858928393828071474": {
-            "hash": 11104481369216663348,
+            "hash": 9360214334038816008,
             "path": "assets/animals/wolf-lod1.glb",
             "type": "Mesh"
         },
@@ -7561,7 +7566,7 @@
             "type": "Unknown"
         },
         "7092704690704086645": {
-            "hash": 9118485586078917401,
+            "hash": 10751105507613868751,
             "path": "assets/models/external/nature_selected/pine_tall_far.source.json",
             "type": "Unknown"
         },
@@ -7696,7 +7701,7 @@
             "type": "Mesh"
         },
         "7355633734594832648": {
-            "hash": 16027142742440118036,
+            "hash": 16174304817039661868,
             "path": "assets/animals/fox_arctic-lod1.glb",
             "type": "Mesh"
         },
@@ -7951,7 +7956,7 @@
             "type": "Mesh"
         },
         "7807570537728839024": {
-            "hash": 6458171082714325349,
+            "hash": 12590505226253996944,
             "path": "assets/animals/camel_coat3-lod1.glb",
             "type": "Mesh"
         },
@@ -8021,12 +8026,12 @@
             "type": "Mesh"
         },
         "7927597130732213358": {
-            "hash": 16823397111934798541,
+            "hash": 1902486935671564319,
             "path": "assets/animals/camel_coat2-lod1.glb",
             "type": "Mesh"
         },
         "7928402886448244339": {
-            "hash": 3256742984628330737,
+            "hash": 2105926191291165194,
             "path": "assets/animals/hippopotamus-lod1.glb",
             "type": "Mesh"
         },
@@ -8081,7 +8086,7 @@
             "type": "Unknown"
         },
         "8048464438721485733": {
-            "hash": 16445523429181285663,
+            "hash": 14265270418598483028,
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
@@ -8326,7 +8331,7 @@
             "type": "Mesh"
         },
         "8505060791082797504": {
-            "hash": 409823669061320585,
+            "hash": 1655919096764856391,
             "path": "assets/models/external/nature_selected/sakura_far.source.json",
             "type": "Unknown"
         },
@@ -8391,7 +8396,7 @@
             "type": "Mesh"
         },
         "8657587481011574505": {
-            "hash": 486300533466232321,
+            "hash": 17178636092509138042,
             "path": "assets/animals/piglet_coat3-lod1.glb",
             "type": "Mesh"
         },
@@ -8456,7 +8461,7 @@
             "type": "Mesh"
         },
         "8726359230359306420": {
-            "hash": 1868417954228656414,
+            "hash": 7762392029676571100,
             "path": "assets/animals/arctic_wolf-lod1.glb",
             "type": "Mesh"
         },
@@ -8656,7 +8661,7 @@
             "type": "Texture"
         },
         "9058179223081719538": {
-            "hash": 14390261170323964545,
+            "hash": 15894313356137751005,
             "path": "assets/animals/wolf_coat2-lod1.glb",
             "type": "Mesh"
         },
@@ -8706,7 +8711,7 @@
             "type": "Unknown"
         },
         "911908104234085306": {
-            "hash": 5798667099350024340,
+            "hash": 4061993637493158325,
             "path": "assets/animals/tiger-lod1.glb",
             "type": "Mesh"
         },
@@ -8941,7 +8946,7 @@
             "type": "Mesh"
         },
         "9474396657861248312": {
-            "hash": 15523606002065845472,
+            "hash": 4442735209432208430,
             "path": "assets/animals/licenses/0ad-art.txt",
             "type": "Unknown"
         },
@@ -8976,7 +8981,7 @@
             "type": "Texture"
         },
         "9569450703380592770": {
-            "hash": 7828148219094515023,
+            "hash": 1363941381018045837,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
         },
@@ -9056,7 +9061,7 @@
             "type": "Mesh"
         },
         "9699311067410030107": {
-            "hash": 914100152262033674,
+            "hash": 15264160914463253089,
             "path": "assets/animals/licenses/CC-BY-SA-3.0.txt",
             "type": "Unknown"
         },
@@ -9091,7 +9096,7 @@
             "type": "Mesh"
         },
         "9764748789278086365": {
-            "hash": 3200633824929817858,
+            "hash": 13627332593029578838,
             "path": "assets/animals/hippopotamus_coat2-lod1.glb",
             "type": "Mesh"
         },
@@ -9194,6 +9199,11 @@
             "hash": 12624263596066852736,
             "path": "assets/animals/horse_coat8-lod1.glb",
             "type": "Mesh"
+        },
+        "999142361442587933": {
+            "hash": 13589822289433963937,
+            "path": "assets/animals/animals.json",
+            "type": "Unknown"
         }
     },
     "schema": 2,

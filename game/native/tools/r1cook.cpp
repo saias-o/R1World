@@ -9,6 +9,7 @@
 // reported as not cached. `--glb` writes each tile's geometry for inspection. The
 // output is one JSON line per tile: what came out, and how long it took.
 #include "gen/cook.hpp"
+#include "gen/fauna.hpp"
 #include "gen/palette.hpp"
 #include "gen/relief.hpp"
 #include "gen/sources.hpp"
@@ -37,6 +38,7 @@ int main(int argc, char** argv) {
     }
     try {
         r1::loadPalette(game);
+        r1::loadFauna(game);
         if(!glb.empty())std::filesystem::create_directories(glb);
     } catch (const std::exception& e) {
         std::cerr << "PALETTE-FAILED " << e.what() << "\n";

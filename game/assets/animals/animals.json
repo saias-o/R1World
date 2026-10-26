@@ -1,0 +1,6816 @@
+{
+ "generatedBy": "game/tools/r1/animals.py",
+ "note": "Measured from the GLBs: ground offset and height of the standing clip, head yaw in the model frame (0 = +Z, atan2(x, z)), gait speeds from the stance feet. Do not edit.",
+ "models": {
+  "ant": {
+   "lod0": "assets/animals/ant.glb",
+   "lod1": "assets/animals/ant-lod1.glb",
+   "ground": -0.0,
+   "height": 0.0067,
+   "length": 0.0149,
+   "width": 0.0138,
+   "forward": -0.5328,
+   "forwardSource": "stance feet",
+   "headYaw": null,
+   "roles": {
+    "walk": [
+     "walk"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "walk",
+     "seconds": 0.375,
+     "rootTravel": 0.0,
+     "speed": 0.0951,
+     "speedSource": "inferred: Froude 0.25 on a 0.00 m leg (measured 0.000 m/s)"
+    }
+   },
+   "clips": {
+    "bite": 0.1667,
+    "walk": 0.375
+   },
+   "sameRig": true,
+   "joints": 38,
+   "vertices": {
+    "lod0": 1253,
+    "lod1": 780
+   }
+  },
+  "arctic_wolf": {
+   "lod0": "assets/animals/arctic_wolf.glb",
+   "lod1": "assets/animals/arctic_wolf-lod1.glb",
+   "ground": 0.1093,
+   "height": 0.7142,
+   "length": 1.7,
+   "width": 0.399,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "wolf_idle_01",
+     "wolf_idle_02",
+     "wolf_idle_03"
+    ],
+    "walk": [
+     "wolf_walk"
+    ],
+    "run": [
+     "wolf_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "wolf_walk",
+     "seconds": 1.9667,
+     "rootTravel": 0.0,
+     "speed": 0.706,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "wolf_run",
+     "seconds": 0.8,
+     "rootTravel": 0.0,
+     "speed": 3.2193,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "wolf_attack_01": 2.1667,
+    "wolf_attack_02": 2.2,
+    "wolf_death_01": 0.9333,
+    "wolf_death_02": 0.7,
+    "wolf_idle_01": 11.2667,
+    "wolf_idle_02": 5.9667,
+    "wolf_idle_03": 9.2333,
+    "wolf_run": 0.8,
+    "wolf_walk": 1.9667
+   },
+   "sameRig": true,
+   "joints": 32,
+   "vertices": {
+    "lod0": 564,
+    "lod1": 362
+   },
+   "retargeted": {
+    "wolf_idle_01": [
+     0.512,
+     0.221,
+     "re-anchored root"
+    ],
+    "wolf_idle_02": [
+     0.511,
+     0.096,
+     "re-anchored root"
+    ],
+    "wolf_idle_03": [
+     0.885,
+     0.401,
+     "re-anchored root"
+    ],
+    "wolf_run": [
+     0.455,
+     0.148,
+     "re-anchored root"
+    ],
+    "wolf_walk": [
+     0.494,
+     0.108,
+     "re-anchored root"
+    ]
+   }
+  },
+  "bear_black": {
+   "lod0": "assets/animals/bear_black.glb",
+   "lod1": "assets/animals/bear_black-lod1.glb",
+   "ground": -0.0022,
+   "height": 1.0578,
+   "length": 1.8,
+   "width": 0.8211,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "bear_idle_01",
+     "bear_idle_02",
+     "bear_idle_03",
+     "bear_idle_04"
+    ],
+    "walk": [
+     "bear_walk"
+    ],
+    "run": [
+     "bear_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bear_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.0882,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bear_run",
+     "seconds": 1.0,
+     "rootTravel": 0.0,
+     "speed": 1.534,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bear_attack_01": 1.0,
+    "bear_attack_02": 2.0,
+    "bear_attack_03": 1.0,
+    "bear_death_01": 1.6667,
+    "bear_idle_01": 2.0,
+    "bear_idle_02": 2.6333,
+    "bear_idle_03": 8.6333,
+    "bear_idle_04": 2.6667,
+    "bear_run": 1.0,
+    "bear_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 75,
+   "vertices": {
+    "lod0": 1674,
+    "lod1": 1011
+   }
+  },
+  "bear_brown": {
+   "lod0": "assets/animals/bear_brown.glb",
+   "lod1": "assets/animals/bear_brown-lod1.glb",
+   "ground": -0.0028,
+   "height": 1.3517,
+   "length": 2.3,
+   "width": 1.0492,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "bear_idle_01",
+     "bear_idle_02",
+     "bear_idle_03",
+     "bear_idle_04"
+    ],
+    "walk": [
+     "bear_walk"
+    ],
+    "run": [
+     "bear_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bear_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.3905,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bear_run",
+     "seconds": 1.0,
+     "rootTravel": 0.0,
+     "speed": 1.9601,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bear_attack_01": 1.0,
+    "bear_attack_02": 2.0,
+    "bear_attack_03": 1.0,
+    "bear_death_01": 1.6667,
+    "bear_idle_01": 2.0,
+    "bear_idle_02": 2.6333,
+    "bear_idle_03": 8.6333,
+    "bear_idle_04": 2.6667,
+    "bear_run": 1.0,
+    "bear_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 75,
+   "vertices": {
+    "lod0": 1674,
+    "lod1": 1011
+   }
+  },
+  "bear_white": {
+   "lod0": "assets/animals/bear_white.glb",
+   "lod1": "assets/animals/bear_white-lod1.glb",
+   "ground": -0.003,
+   "height": 1.464,
+   "length": 2.5,
+   "width": 1.0801,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "bear_idle_01",
+     "bear_idle_02",
+     "bear_idle_03",
+     "bear_idle_04"
+    ],
+    "walk": [
+     "bear_walk"
+    ],
+    "run": [
+     "bear_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bear_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.5061,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bear_run",
+     "seconds": 1.0,
+     "rootTravel": 0.0,
+     "speed": 2.123,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bear_attack_01": 1.0,
+    "bear_attack_02": 2.0,
+    "bear_attack_03": 1.0,
+    "bear_death_01": 1.6667,
+    "bear_idle_01": 2.0,
+    "bear_idle_02": 2.6333,
+    "bear_idle_03": 8.6333,
+    "bear_idle_04": 2.6667,
+    "bear_run": 1.0,
+    "bear_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 75,
+   "vertices": {
+    "lod0": 1675,
+    "lod1": 1021
+   }
+  },
+  "boar": {
+   "lod0": "assets/animals/boar.glb",
+   "lod1": "assets/animals/boar-lod1.glb",
+   "ground": -0.0,
+   "height": 0.8189,
+   "length": 1.5,
+   "width": 0.4842,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "animal_boar_idle_02",
+     "animal_boar_idle_01"
+    ],
+    "walk": [
+     "animal_boar_walk_01"
+    ],
+    "run": [
+     "animal_boar_run_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "animal_boar_walk_01",
+     "seconds": 0.3667,
+     "rootTravel": 0.0,
+     "speed": 2.0501,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "animal_boar_run_01",
+     "seconds": 0.5333,
+     "rootTravel": 0.0,
+     "speed": 2.4197,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "animal_boar_attack_01": 0.6667,
+    "animal_boar_death_01": 0.6667,
+    "animal_boar_idle_01": 0.6667,
+    "animal_boar_idle_02": 0.6667,
+    "animal_boar_run_01": 0.5333,
+    "animal_boar_walk_01": 0.3667
+   },
+   "sameRig": true,
+   "joints": 28,
+   "vertices": {
+    "lod0": 333,
+    "lod1": 218
+   }
+  },
+  "bull": {
+   "lod0": "assets/animals/bull.glb",
+   "lod1": "assets/animals/bull-lod1.glb",
+   "ground": -0.0,
+   "height": 1.615,
+   "length": 2.6,
+   "width": 0.8084,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5127,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.1023,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 589,
+    "lod1": 358
+   }
+  },
+  "bull_shape2": {
+   "lod0": "assets/animals/bull_shape2.glb",
+   "lod1": "assets/animals/bull_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.615,
+   "length": 2.6,
+   "width": 0.8084,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5127,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.1023,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 589,
+    "lod1": 358
+   }
+  },
+  "butterfly": {
+   "lod0": "assets/animals/butterfly.glb",
+   "lod1": "assets/animals/butterfly-lod1.glb",
+   "ground": 0.0,
+   "height": 0.0126,
+   "length": 0.0521,
+   "width": 0.1,
+   "forward": 0.0,
+   "forwardSource": "none: assumed +Z",
+   "headYaw": null,
+   "roles": {
+    "idle": [
+     "Sitting1",
+     "Sitting2"
+    ],
+    "fly": [
+     "Flying"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Flying": 0.4167,
+    "Sitting1": 0.0417,
+    "Sitting2": 0.0417
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 208,
+    "lod1": 156
+   }
+  },
+  "camel": {
+   "lod0": "assets/animals/camel.glb",
+   "lod1": "assets/animals/camel-lod1.glb",
+   "ground": -0.0026,
+   "height": 2.762,
+   "length": 3.2,
+   "width": 0.7791,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "camel_idle_01",
+     "camel_idle_02",
+     "camel_idle_03",
+     "camel_idle_04"
+    ],
+    "walk": [
+     "camel_walk"
+    ],
+    "run": [
+     "camel_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "camel_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.7066,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "camel_run",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 5.6516,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "camel_attack_melee_01": 1.3,
+    "camel_attack_melee_02": 1.3333,
+    "camel_death": 2.6667,
+    "camel_idle_01": 2.0,
+    "camel_idle_02": 4.6333,
+    "camel_idle_03": 4.6333,
+    "camel_idle_04": 13.3,
+    "camel_run": 0.6667,
+    "camel_trot": 1.3,
+    "camel_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 93,
+   "vertices": {
+    "lod0": 1367,
+    "lod1": 805
+   },
+   "retargeted": {
+    "camel_idle_04": [
+     0.244,
+     0.212,
+     "rotations only"
+    ]
+   }
+  },
+  "camel_coat2": {
+   "lod0": "assets/animals/camel_coat2.glb",
+   "lod1": "assets/animals/camel_coat2-lod1.glb",
+   "ground": -0.0026,
+   "height": 2.762,
+   "length": 3.2,
+   "width": 0.7791,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "camel_idle_01",
+     "camel_idle_02",
+     "camel_idle_03",
+     "camel_idle_04"
+    ],
+    "walk": [
+     "camel_walk"
+    ],
+    "run": [
+     "camel_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "camel_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.7066,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "camel_run",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 5.6516,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "camel_attack_melee_01": 1.3,
+    "camel_attack_melee_02": 1.3333,
+    "camel_death": 2.6667,
+    "camel_idle_01": 2.0,
+    "camel_idle_02": 4.6333,
+    "camel_idle_03": 4.6333,
+    "camel_idle_04": 13.3,
+    "camel_run": 0.6667,
+    "camel_trot": 1.3,
+    "camel_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 93,
+   "vertices": {
+    "lod0": 1367,
+    "lod1": 805
+   },
+   "retargeted": {
+    "camel_idle_04": [
+     0.244,
+     0.212,
+     "rotations only"
+    ]
+   }
+  },
+  "camel_coat3": {
+   "lod0": "assets/animals/camel_coat3.glb",
+   "lod1": "assets/animals/camel_coat3-lod1.glb",
+   "ground": -0.0026,
+   "height": 2.762,
+   "length": 3.2,
+   "width": 0.7791,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "camel_idle_01",
+     "camel_idle_02",
+     "camel_idle_03",
+     "camel_idle_04"
+    ],
+    "walk": [
+     "camel_walk"
+    ],
+    "run": [
+     "camel_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "camel_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.7066,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "camel_run",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 5.6516,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "camel_attack_melee_01": 1.3,
+    "camel_attack_melee_02": 1.3333,
+    "camel_death": 2.6667,
+    "camel_idle_01": 2.0,
+    "camel_idle_02": 4.6333,
+    "camel_idle_03": 4.6333,
+    "camel_idle_04": 13.3,
+    "camel_run": 0.6667,
+    "camel_trot": 1.3,
+    "camel_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 93,
+   "vertices": {
+    "lod0": 1367,
+    "lod1": 805
+   },
+   "retargeted": {
+    "camel_idle_04": [
+     0.244,
+     0.212,
+     "rotations only"
+    ]
+   }
+  },
+  "cat_sphynx": {
+   "lod0": "assets/animals/cat_sphynx.glb",
+   "lod1": "assets/animals/cat_sphynx-lod1.glb",
+   "ground": 0.0,
+   "height": 0.4396,
+   "length": 0.6,
+   "width": 0.1758,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 19,
+   "vertices": {
+    "lod0": 7838,
+    "lod1": 4764
+   }
+  },
+  "cat_tabby": {
+   "lod0": "assets/animals/cat_tabby.glb",
+   "lod1": "assets/animals/cat_tabby-lod1.glb",
+   "ground": 0.0,
+   "height": 0.75,
+   "length": 0.6213,
+   "width": 0.559,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 19,
+   "vertices": {
+    "lod0": 7898,
+    "lod1": 4719
+   }
+  },
+  "cow": {
+   "lod0": "assets/animals/cow.glb",
+   "lod1": "assets/animals/cow-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4882,
+   "length": 2.5,
+   "width": 0.7673,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.4867,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9954,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 780,
+    "lod1": 459
+   }
+  },
+  "cow_coat2": {
+   "lod0": "assets/animals/cow_coat2.glb",
+   "lod1": "assets/animals/cow_coat2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4882,
+   "length": 2.5,
+   "width": 0.7673,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.4867,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9954,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 780,
+    "lod1": 459
+   }
+  },
+  "cow_coat2_shape2": {
+   "lod0": "assets/animals/cow_coat2_shape2.glb",
+   "lod1": "assets/animals/cow_coat2_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4882,
+   "length": 2.5,
+   "width": 0.7673,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.4867,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9954,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 619,
+    "lod1": 359
+   }
+  },
+  "cow_coat3": {
+   "lod0": "assets/animals/cow_coat3.glb",
+   "lod1": "assets/animals/cow_coat3-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4882,
+   "length": 2.5,
+   "width": 0.7673,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.4867,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9954,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 780,
+    "lod1": 459
+   }
+  },
+  "cow_coat3_shape2": {
+   "lod0": "assets/animals/cow_coat3_shape2.glb",
+   "lod1": "assets/animals/cow_coat3_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4882,
+   "length": 2.5,
+   "width": 0.7673,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.4867,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9954,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 619,
+    "lod1": 359
+   }
+  },
+  "cow_shape2": {
+   "lod0": "assets/animals/cow_shape2.glb",
+   "lod1": "assets/animals/cow_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4882,
+   "length": 2.5,
+   "width": 0.7673,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.4867,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9954,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 619,
+    "lod1": 359
+   }
+  },
+  "crocodile": {
+   "lod0": "assets/animals/crocodile.glb",
+   "lod1": "assets/animals/crocodile-lod1.glb",
+   "ground": -0.0687,
+   "height": 0.5244,
+   "length": 4.2,
+   "width": 0.8931,
+   "forward": 0.0,
+   "forwardSource": "stance feet",
+   "headYaw": null,
+   "roles": {
+    "idle": [
+     "Croc_idle1",
+     "Croc_idle2",
+     "Croc_idle3"
+    ],
+    "walk": [
+     "Croc_walk"
+    ],
+    "run": [
+     "Croc_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "Croc_walk",
+     "seconds": 2.2,
+     "rootTravel": 0.0,
+     "speed": 0.7239,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "Croc_run",
+     "seconds": 1.6,
+     "rootTravel": 0.0,
+     "speed": 1.888,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "Croc_attack": 1.3,
+    "Croc_death": 1.6,
+    "Croc_idle1": 5.0333,
+    "Croc_idle2": 5.0333,
+    "Croc_idle3": 1.8,
+    "Croc_run": 1.6,
+    "Croc_walk": 2.2
+   },
+   "sameRig": true,
+   "joints": 27,
+   "vertices": {
+    "lod0": 557,
+    "lod1": 369
+   }
+  },
+  "doe": {
+   "lod0": "assets/animals/doe.glb",
+   "lod1": "assets/animals/doe-lod1.glb",
+   "ground": -0.0026,
+   "height": 1.657,
+   "length": 1.8,
+   "width": 0.4473,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0012,
+   "roles": {
+    "idle": [
+     "Idle.000",
+     "Idle.001",
+     "LookAround.000",
+     "LookAround.001"
+    ],
+    "eat": [
+     "Eat.001"
+    ],
+    "run": [
+     "Run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "run": {
+     "clip": "Run",
+     "seconds": 0.5417,
+     "rootTravel": 0.0,
+     "speed": 2.4591,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "Die.000": 0.6667,
+    "Die.001": 0.6667,
+    "Die.002": 0.6667,
+    "Eat.001": 4.9167,
+    "Idle.000": 6.6667,
+    "Idle.001": 6.6667,
+    "LookAround.000": 6.25,
+    "LookAround.001": 5.8333,
+    "Run": 0.5417,
+    "Stand": 0.0417
+   },
+   "sameRig": true,
+   "joints": 31,
+   "vertices": {
+    "lod0": 3218,
+    "lod1": 1954
+   }
+  },
+  "donkey": {
+   "lod0": "assets/animals/donkey.glb",
+   "lod1": "assets/animals/donkey-lod1.glb",
+   "ground": -0.0443,
+   "height": 1.4562,
+   "length": 2.0,
+   "width": 0.4261,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "donkey_idle_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "donkey_death_01": 0.6667,
+    "donkey_idle_01": 0.5,
+    "donkey_walk_01": 1.3667
+   },
+   "sameRig": true,
+   "joints": 40,
+   "vertices": {
+    "lod0": 202,
+    "lod1": 148
+   }
+  },
+  "elephant_african_baby": {
+   "lod0": "assets/animals/elephant_african_baby.glb",
+   "lod1": "assets/animals/elephant_african_baby-lod1.glb",
+   "ground": -0.0053,
+   "height": 1.7229,
+   "length": 2.1,
+   "width": 1.3198,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "elephant_infant_idle_01",
+     "elephant_infant_idle_02",
+     "elephant_infant_idle_03"
+    ],
+    "walk": [
+     "elephant_infant_walk"
+    ],
+    "run": [
+     "elephant_infant_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "elephant_infant_walk",
+     "seconds": 1.6333,
+     "rootTravel": 0.0,
+     "speed": 0.6499,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "elephant_infant_run",
+     "seconds": 1.2333,
+     "rootTravel": 0.0,
+     "speed": 1.6971,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "elephant_infant_death": 2.0667,
+    "elephant_infant_idle_01": 1.6667,
+    "elephant_infant_idle_02": 1.6667,
+    "elephant_infant_idle_03": 1.6667,
+    "elephant_infant_run": 1.2333,
+    "elephant_infant_walk": 1.6333
+   },
+   "sameRig": true,
+   "joints": 78,
+   "vertices": {
+    "lod0": 1037,
+    "lod1": 614
+   },
+   "retargeted": {
+    "elephant_infant_idle_01": [
+     1.09,
+     0.014,
+     "re-anchored root"
+    ],
+    "elephant_infant_idle_02": [
+     4.152,
+     0.121,
+     "re-anchored root"
+    ],
+    "elephant_infant_idle_03": [
+     1.094,
+     0.034,
+     "re-anchored root"
+    ],
+    "elephant_infant_run": [
+     1.14,
+     0.151,
+     "re-anchored root"
+    ],
+    "elephant_infant_walk": [
+     1.14,
+     0.067,
+     "re-anchored root"
+    ]
+   }
+  },
+  "elephant_african_bush": {
+   "lod0": "assets/animals/elephant_african_bush.glb",
+   "lod1": "assets/animals/elephant_african_bush-lod1.glb",
+   "ground": -0.0139,
+   "height": 5.2016,
+   "length": 6.5,
+   "width": 3.5689,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "elephant_african_bush_idle_01",
+     "elephant_african_bush_idle_02",
+     "elephant_african_bush_idle_03"
+    ],
+    "walk": [
+     "elephant_african_bush_walk"
+    ],
+    "run": [
+     "elephant_asian_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "elephant_african_bush_walk",
+     "seconds": 1.6333,
+     "rootTravel": 0.0,
+     "speed": 1.6521,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "elephant_asian_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 5.1475,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "elephant_african_bush_attack_melee_01": 1.2333,
+    "elephant_african_bush_attack_melee_02": 1.2333,
+    "elephant_african_bush_attack_melee_03": 1.2333,
+    "elephant_african_bush_attack_melee_04": 1.2333,
+    "elephant_african_bush_death": 1.6667,
+    "elephant_african_bush_idle_01": 1.6667,
+    "elephant_african_bush_idle_02": 1.6667,
+    "elephant_african_bush_idle_03": 1.6667,
+    "elephant_african_bush_walk": 1.6333,
+    "elephant_asian_run": 0.8333
+   },
+   "sameRig": true,
+   "joints": 78,
+   "vertices": {
+    "lod0": 1017,
+    "lod1": 595
+   }
+  },
+  "elephant_african_forest": {
+   "lod0": "assets/animals/elephant_african_forest.glb",
+   "lod1": "assets/animals/elephant_african_forest-lod1.glb",
+   "ground": -0.0364,
+   "height": 5.0259,
+   "length": 5.3,
+   "width": 3.2236,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "elephant_african_forest_idle_01",
+     "elephant_african_forest_idle_02",
+     "elephant_african_forest_idle_03"
+    ],
+    "walk": [
+     "elephant_african_forest_walk"
+    ],
+    "run": [
+     "elephant_african_forest_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "elephant_african_forest_walk",
+     "seconds": 1.6333,
+     "rootTravel": 0.0,
+     "speed": 1.4729,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "elephant_african_forest_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 3.7134,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "elephant_african_forest_attack_melee_01": 1.2333,
+    "elephant_african_forest_attack_melee_02": 1.2333,
+    "elephant_african_forest_attack_melee_03": 1.2333,
+    "elephant_african_forest_attack_melee_04": 1.2333,
+    "elephant_african_forest_death": 1.6667,
+    "elephant_african_forest_idle_01": 1.6667,
+    "elephant_african_forest_idle_02": 1.6667,
+    "elephant_african_forest_idle_03": 1.6667,
+    "elephant_african_forest_run": 0.8333,
+    "elephant_african_forest_walk": 1.6333
+   },
+   "sameRig": true,
+   "joints": 78,
+   "vertices": {
+    "lod0": 1037,
+    "lod1": 613
+   },
+   "retargeted": {
+    "elephant_african_forest_idle_02": [
+     0.46,
+     0.109,
+     "re-anchored root"
+    ],
+    "elephant_african_forest_idle_03": [
+     0.181,
+     0.036,
+     "re-anchored root"
+    ],
+    "elephant_african_forest_run": [
+     0.219,
+     0.144,
+     "re-anchored root"
+    ],
+    "elephant_african_forest_walk": [
+     0.203,
+     0.049,
+     "re-anchored root"
+    ]
+   }
+  },
+  "elephant_asian": {
+   "lod0": "assets/animals/elephant_asian.glb",
+   "lod1": "assets/animals/elephant_asian-lod1.glb",
+   "ground": -0.0218,
+   "height": 3.8962,
+   "length": 5.5,
+   "width": 2.3053,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "walk": [
+     "elephant_asian_walk"
+    ],
+    "run": [
+     "elephant_asian_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "elephant_asian_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 1.8126,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "elephant_asian_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 4.3,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "elephant_asian_attack_melee_01": 1.2333,
+    "elephant_asian_attack_melee_02": 1.2333,
+    "elephant_asian_attack_melee_03": 1.2333,
+    "elephant_asian_attack_melee_04": 1.2333,
+    "elephant_asian_death": 1.6667,
+    "elephant_asian_run": 0.8333,
+    "elephant_asian_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 79,
+   "vertices": {
+    "lod0": 981,
+    "lod1": 569
+   }
+  },
+  "fox_arctic": {
+   "lod0": "assets/animals/fox_arctic.glb",
+   "lod1": "assets/animals/fox_arctic-lod1.glb",
+   "ground": 0.0003,
+   "height": 0.4895,
+   "length": 0.85,
+   "width": 0.1532,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0003,
+   "roles": {
+    "idle": [
+     "fox_idle"
+    ],
+    "eat": [
+     "fox_feeding"
+    ],
+    "walk": [
+     "fox_walk"
+    ],
+    "run": [
+     "fox_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "fox_walk",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 0.9227,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "fox_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.5679,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "fox_death": 1.7333,
+    "fox_feeding": 8.3,
+    "fox_idle": 4.1333,
+    "fox_run": 0.8333,
+    "fox_walk": 0.8333
+   },
+   "sameRig": true,
+   "joints": 44,
+   "vertices": {
+    "lod0": 490,
+    "lod1": 317
+   },
+   "retargeted": {
+    "fox_feeding": [
+     0.935,
+     0.256,
+     "rotations only"
+    ],
+    "fox_idle": [
+     0.925,
+     0.083,
+     "rotations only"
+    ],
+    "fox_run": [
+     0.885,
+     0.183,
+     "rotations only"
+    ],
+    "fox_walk": [
+     0.915,
+     0.072,
+     "rotations only"
+    ]
+   }
+  },
+  "fox_red": {
+   "lod0": "assets/animals/fox_red.glb",
+   "lod1": "assets/animals/fox_red-lod1.glb",
+   "ground": 0.0004,
+   "height": 0.5759,
+   "length": 1.0,
+   "width": 0.1803,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0003,
+   "roles": {
+    "idle": [
+     "fox_idle"
+    ],
+    "eat": [
+     "fox_feeding"
+    ],
+    "walk": [
+     "fox_walk"
+    ],
+    "run": [
+     "fox_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "fox_walk",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.0855,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "fox_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.8446,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "fox_death": 1.7333,
+    "fox_feeding": 8.3,
+    "fox_idle": 4.1333,
+    "fox_run": 0.8333,
+    "fox_walk": 0.8333
+   },
+   "sameRig": true,
+   "joints": 44,
+   "vertices": {
+    "lod0": 490,
+    "lod1": 317
+   },
+   "retargeted": {
+    "fox_feeding": [
+     0.935,
+     0.256,
+     "rotations only"
+    ],
+    "fox_idle": [
+     0.925,
+     0.083,
+     "rotations only"
+    ],
+    "fox_run": [
+     0.885,
+     0.183,
+     "rotations only"
+    ],
+    "fox_walk": [
+     0.915,
+     0.072,
+     "rotations only"
+    ]
+   }
+  },
+  "frog_amazon": {
+   "lod0": "assets/animals/frog_amazon.glb",
+   "lod1": "assets/animals/frog_amazon-lod1.glb",
+   "ground": 0.0,
+   "height": 0.0393,
+   "length": 0.045,
+   "width": 0.0404,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0003,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 16,
+   "vertices": {
+    "lod0": 3762,
+    "lod1": 2238
+   }
+  },
+  "frog_blue": {
+   "lod0": "assets/animals/frog_blue.glb",
+   "lod1": "assets/animals/frog_blue-lod1.glb",
+   "ground": -0.0001,
+   "height": 0.0304,
+   "length": 0.0448,
+   "width": 0.05,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0502,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 16,
+   "vertices": {
+    "lod0": 5069,
+    "lod1": 3177
+   }
+  },
+  "frog_red_eye": {
+   "lod0": "assets/animals/frog_red_eye.glb",
+   "lod1": "assets/animals/frog_red_eye-lod1.glb",
+   "ground": 0.0,
+   "height": 0.0171,
+   "length": 0.07,
+   "width": 0.0348,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0914,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 16,
+   "vertices": {
+    "lod0": 3802,
+    "lod1": 2281
+   }
+  },
+  "gazelle": {
+   "lod0": "assets/animals/gazelle.glb",
+   "lod1": "assets/animals/gazelle-lod1.glb",
+   "ground": 0.0009,
+   "height": 1.1697,
+   "length": 1.4,
+   "width": 0.2646,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "deer_idle_01",
+     "deer_idle_02",
+     "deer_idle_03"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "deer_attack_01": 0.8667,
+    "deer_death_01": 0.4,
+    "deer_death_02": 0.4,
+    "deer_idle_01": 0.6667,
+    "deer_idle_02": 0.6667,
+    "deer_idle_03": 0.6667,
+    "deer_idle_04": 0.6667,
+    "deer_run_01": 1.4667,
+    "deer_walk_01": 1.0,
+    "deer_walk_02": 1.0
+   },
+   "sameRig": true,
+   "joints": 38,
+   "vertices": {
+    "lod0": 205,
+    "lod1": 158
+   },
+   "retargeted": {
+    "deer_idle_01": [
+     1.054,
+     0.048,
+     "re-anchored root"
+    ],
+    "deer_idle_02": [
+     1.055,
+     0.052,
+     "re-anchored root"
+    ],
+    "deer_idle_03": [
+     1.057,
+     0.045,
+     "re-anchored root"
+    ]
+   }
+  },
+  "giraffe_adult": {
+   "lod0": "assets/animals/giraffe_adult.glb",
+   "lod1": "assets/animals/giraffe_adult-lod1.glb",
+   "ground": 0.0,
+   "height": 5.0364,
+   "length": 3.5197,
+   "width": 1.0085,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0001,
+   "roles": {
+    "idle": [
+     "giraffe_adult_idle_01",
+     "giraffe_adult_idle_02",
+     "giraffe_adult_idle_03"
+    ],
+    "walk": [
+     "giraffe_adult_walk"
+    ],
+    "run": [
+     "giraffe_adult_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "giraffe_adult_walk",
+     "seconds": 3.3,
+     "rootTravel": 0.0,
+     "speed": 0.7346,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "giraffe_adult_run",
+     "seconds": 2.0,
+     "rootTravel": 0.0,
+     "speed": 1.7839,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "giraffe_adult_death": 3.3,
+    "giraffe_adult_idle_01": 6.6667,
+    "giraffe_adult_idle_02": 6.6667,
+    "giraffe_adult_idle_03": 6.6667,
+    "giraffe_adult_run": 2.0,
+    "giraffe_adult_walk": 3.3
+   },
+   "sameRig": true,
+   "joints": 31,
+   "vertices": {
+    "lod0": 454,
+    "lod1": 272
+   }
+  },
+  "giraffe_adult_coat2": {
+   "lod0": "assets/animals/giraffe_adult_coat2.glb",
+   "lod1": "assets/animals/giraffe_adult_coat2-lod1.glb",
+   "ground": 0.0,
+   "height": 5.0364,
+   "length": 3.5197,
+   "width": 1.0085,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0001,
+   "roles": {
+    "idle": [
+     "giraffe_adult_idle_01",
+     "giraffe_adult_idle_02",
+     "giraffe_adult_idle_03"
+    ],
+    "walk": [
+     "giraffe_adult_walk"
+    ],
+    "run": [
+     "giraffe_adult_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "giraffe_adult_walk",
+     "seconds": 3.3,
+     "rootTravel": 0.0,
+     "speed": 0.7346,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "giraffe_adult_run",
+     "seconds": 2.0,
+     "rootTravel": 0.0,
+     "speed": 1.7839,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "giraffe_adult_death": 3.3,
+    "giraffe_adult_idle_01": 6.6667,
+    "giraffe_adult_idle_02": 6.6667,
+    "giraffe_adult_idle_03": 6.6667,
+    "giraffe_adult_run": 2.0,
+    "giraffe_adult_walk": 3.3
+   },
+   "sameRig": true,
+   "joints": 31,
+   "vertices": {
+    "lod0": 454,
+    "lod1": 272
+   }
+  },
+  "giraffe_baby": {
+   "lod0": "assets/animals/giraffe_baby.glb",
+   "lod1": "assets/animals/giraffe_baby-lod1.glb",
+   "ground": 0.0,
+   "height": 2.1308,
+   "length": 1.4891,
+   "width": 0.4267,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0001,
+   "roles": {
+    "idle": [
+     "giraffe_infant_idle_01",
+     "giraffe_infant_idle_02",
+     "giraffe_infant_idle_03"
+    ],
+    "walk": [
+     "giraffe_infant_walk"
+    ],
+    "run": [
+     "giraffe_infant_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "giraffe_infant_walk",
+     "seconds": 3.3,
+     "rootTravel": 0.0,
+     "speed": 0.3112,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "giraffe_infant_run",
+     "seconds": 2.0,
+     "rootTravel": 0.0,
+     "speed": 3.3907,
+     "speedSource": "inferred: Froude 1.0 on a 1.17 m leg (measured 0.755 m/s)"
+    }
+   },
+   "clips": {
+    "giraffe_infant_death": 3.3,
+    "giraffe_infant_idle_01": 6.6667,
+    "giraffe_infant_idle_02": 6.6667,
+    "giraffe_infant_idle_03": 6.6667,
+    "giraffe_infant_run": 2.0,
+    "giraffe_infant_walk": 3.3
+   },
+   "sameRig": true,
+   "joints": 31,
+   "vertices": {
+    "lod0": 454,
+    "lod1": 272
+   },
+   "retargeted": {
+    "giraffe_infant_run": [
+     0.513,
+     0.137,
+     "re-anchored root"
+    ],
+    "giraffe_infant_walk": [
+     0.521,
+     0.066,
+     "re-anchored root"
+    ]
+   }
+  },
+  "giraffe_baby_coat2": {
+   "lod0": "assets/animals/giraffe_baby_coat2.glb",
+   "lod1": "assets/animals/giraffe_baby_coat2-lod1.glb",
+   "ground": 0.0,
+   "height": 2.1308,
+   "length": 1.4891,
+   "width": 0.4267,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0001,
+   "roles": {
+    "idle": [
+     "giraffe_infant_idle_01",
+     "giraffe_infant_idle_02",
+     "giraffe_infant_idle_03"
+    ],
+    "walk": [
+     "giraffe_infant_walk"
+    ],
+    "run": [
+     "giraffe_infant_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "giraffe_infant_walk",
+     "seconds": 3.3,
+     "rootTravel": 0.0,
+     "speed": 0.3112,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "giraffe_infant_run",
+     "seconds": 2.0,
+     "rootTravel": 0.0,
+     "speed": 3.3907,
+     "speedSource": "inferred: Froude 1.0 on a 1.17 m leg (measured 0.755 m/s)"
+    }
+   },
+   "clips": {
+    "giraffe_infant_death": 3.3,
+    "giraffe_infant_idle_01": 6.6667,
+    "giraffe_infant_idle_02": 6.6667,
+    "giraffe_infant_idle_03": 6.6667,
+    "giraffe_infant_run": 2.0,
+    "giraffe_infant_walk": 3.3
+   },
+   "sameRig": true,
+   "joints": 31,
+   "vertices": {
+    "lod0": 454,
+    "lod1": 272
+   },
+   "retargeted": {
+    "giraffe_infant_run": [
+     0.513,
+     0.137,
+     "re-anchored root"
+    ],
+    "giraffe_infant_walk": [
+     0.521,
+     0.066,
+     "re-anchored root"
+    ]
+   }
+  },
+  "goat": {
+   "lod0": "assets/animals/goat.glb",
+   "lod1": "assets/animals/goat-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.7766,
+   "length": 1.2,
+   "width": 0.2965,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 293,
+    "lod1": 222
+   }
+  },
+  "goat_coat2": {
+   "lod0": "assets/animals/goat_coat2.glb",
+   "lod1": "assets/animals/goat_coat2-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.7766,
+   "length": 1.2,
+   "width": 0.2965,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 293,
+    "lod1": 222
+   }
+  },
+  "goat_coat2_shape2": {
+   "lod0": "assets/animals/goat_coat2_shape2.glb",
+   "lod1": "assets/animals/goat_coat2_shape2-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.8274,
+   "length": 1.2,
+   "width": 0.4152,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 423,
+    "lod1": 262
+   }
+  },
+  "goat_coat3": {
+   "lod0": "assets/animals/goat_coat3.glb",
+   "lod1": "assets/animals/goat_coat3-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.7766,
+   "length": 1.2,
+   "width": 0.2965,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 293,
+    "lod1": 222
+   }
+  },
+  "goat_coat3_shape2": {
+   "lod0": "assets/animals/goat_coat3_shape2.glb",
+   "lod1": "assets/animals/goat_coat3_shape2-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.8274,
+   "length": 1.2,
+   "width": 0.4152,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 423,
+    "lod1": 262
+   }
+  },
+  "goat_coat4": {
+   "lod0": "assets/animals/goat_coat4.glb",
+   "lod1": "assets/animals/goat_coat4-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.7766,
+   "length": 1.2,
+   "width": 0.2965,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 293,
+    "lod1": 222
+   }
+  },
+  "goat_coat4_shape2": {
+   "lod0": "assets/animals/goat_coat4_shape2.glb",
+   "lod1": "assets/animals/goat_coat4_shape2-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.8274,
+   "length": 1.2,
+   "width": 0.4152,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 423,
+    "lod1": 262
+   }
+  },
+  "goat_shape2": {
+   "lod0": "assets/animals/goat_shape2.glb",
+   "lod1": "assets/animals/goat_shape2-lod1.glb",
+   "ground": -0.1163,
+   "height": 0.8274,
+   "length": 1.2,
+   "width": 0.4152,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "goat_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "goat_idle_01": "4.1 m off its place",
+    "goat_walk": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "goat_death": 1.6667,
+    "goat_idle_01": 5.8,
+    "goat_idle_02": 5.0,
+    "goat_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 423,
+    "lod1": 262
+   }
+  },
+  "gorilla": {
+   "lod0": "assets/animals/gorilla.glb",
+   "lod1": "assets/animals/gorilla-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4839,
+   "length": 1.7,
+   "width": 1.0876,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0576,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 16,
+   "vertices": {
+    "lod0": 9755,
+    "lod1": 5842
+   }
+  },
+  "hippopotamus": {
+   "lod0": "assets/animals/hippopotamus.glb",
+   "lod1": "assets/animals/hippopotamus-lod1.glb",
+   "ground": 0.0137,
+   "height": 1.7739,
+   "length": 3.6,
+   "width": 1.3379,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0003,
+   "roles": {
+    "idle": [
+     "hippopotamus_idle_01",
+     "hippopotamus_idle_02",
+     "hippopotamus_idle_03",
+     "hippopotamus_idle_04",
+     "hippopotamus_idle_05",
+     "hippopotamus_idle_06"
+    ],
+    "walk": [
+     "hippopotamus_walk"
+    ],
+    "run": [
+     "hippopotamus_trot"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "hippopotamus_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.5469,
+     "speedSource": "inferred: Froude 0.25 on a 0.98 m leg (measured -0.000 m/s)"
+    },
+    "run": {
+     "clip": "hippopotamus_trot",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 1.5663,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "hippopotamus_attack": 1.3,
+    "hippopotamus_death": 2.0,
+    "hippopotamus_idle_01": 2.0,
+    "hippopotamus_idle_02": 4.0,
+    "hippopotamus_idle_03": 4.0,
+    "hippopotamus_idle_04": 4.0,
+    "hippopotamus_idle_05": 4.0,
+    "hippopotamus_idle_06": 3.3,
+    "hippopotamus_trot": 0.6667,
+    "hippopotamus_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 65,
+   "vertices": {
+    "lod0": 1072,
+    "lod1": 679
+   },
+   "retargeted": {
+    "hippopotamus_idle_01": [
+     0.443,
+     0.029,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_02": [
+     0.464,
+     0.067,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_03": [
+     0.464,
+     0.065,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_04": [
+     0.444,
+     0.163,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_05": [
+     0.443,
+     0.153,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_06": [
+     0.443,
+     0.029,
+     "re-anchored root"
+    ],
+    "hippopotamus_trot": [
+     0.43,
+     0.057,
+     "re-anchored root"
+    ],
+    "hippopotamus_walk": [
+     0.427,
+     0.07,
+     "re-anchored root"
+    ]
+   }
+  },
+  "hippopotamus_coat2": {
+   "lod0": "assets/animals/hippopotamus_coat2.glb",
+   "lod1": "assets/animals/hippopotamus_coat2-lod1.glb",
+   "ground": 0.0137,
+   "height": 1.7739,
+   "length": 3.6,
+   "width": 1.3379,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0003,
+   "roles": {
+    "idle": [
+     "hippopotamus_idle_01",
+     "hippopotamus_idle_02",
+     "hippopotamus_idle_03",
+     "hippopotamus_idle_04",
+     "hippopotamus_idle_05",
+     "hippopotamus_idle_06"
+    ],
+    "walk": [
+     "hippopotamus_walk"
+    ],
+    "run": [
+     "hippopotamus_trot"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "hippopotamus_walk",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.5469,
+     "speedSource": "inferred: Froude 0.25 on a 0.98 m leg (measured -0.000 m/s)"
+    },
+    "run": {
+     "clip": "hippopotamus_trot",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 1.5663,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "hippopotamus_attack": 1.3,
+    "hippopotamus_death": 2.0,
+    "hippopotamus_idle_01": 2.0,
+    "hippopotamus_idle_02": 4.0,
+    "hippopotamus_idle_03": 4.0,
+    "hippopotamus_idle_04": 4.0,
+    "hippopotamus_idle_05": 4.0,
+    "hippopotamus_idle_06": 3.3,
+    "hippopotamus_trot": 0.6667,
+    "hippopotamus_walk": 1.3
+   },
+   "sameRig": true,
+   "joints": 65,
+   "vertices": {
+    "lod0": 1072,
+    "lod1": 679
+   },
+   "retargeted": {
+    "hippopotamus_idle_01": [
+     0.443,
+     0.029,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_02": [
+     0.464,
+     0.067,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_03": [
+     0.464,
+     0.065,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_04": [
+     0.444,
+     0.163,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_05": [
+     0.443,
+     0.153,
+     "re-anchored root"
+    ],
+    "hippopotamus_idle_06": [
+     0.443,
+     0.029,
+     "re-anchored root"
+    ],
+    "hippopotamus_trot": [
+     0.43,
+     0.057,
+     "re-anchored root"
+    ],
+    "hippopotamus_walk": [
+     0.427,
+     0.07,
+     "re-anchored root"
+    ]
+   }
+  },
+  "horse": {
+   "lod0": "assets/animals/horse.glb",
+   "lod1": "assets/animals/horse-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_brown_spotted_01": {
+   "lod0": "assets/animals/horse_brown_spotted_01.glb",
+   "lod1": "assets/animals/horse_brown_spotted_01-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8052,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "horse_chestnut_01": {
+   "lod0": "assets/animals/horse_chestnut_01.glb",
+   "lod1": "assets/animals/horse_chestnut_01-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7961,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_chestnut_02": {
+   "lod0": "assets/animals/horse_chestnut_02.glb",
+   "lod1": "assets/animals/horse_chestnut_02-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7961,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_coat10": {
+   "lod0": "assets/animals/horse_coat10.glb",
+   "lod1": "assets/animals/horse_coat10-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat2": {
+   "lod0": "assets/animals/horse_coat2.glb",
+   "lod1": "assets/animals/horse_coat2-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat3": {
+   "lod0": "assets/animals/horse_coat3.glb",
+   "lod1": "assets/animals/horse_coat3-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat4": {
+   "lod0": "assets/animals/horse_coat4.glb",
+   "lod1": "assets/animals/horse_coat4-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat5": {
+   "lod0": "assets/animals/horse_coat5.glb",
+   "lod1": "assets/animals/horse_coat5-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat6": {
+   "lod0": "assets/animals/horse_coat6.glb",
+   "lod1": "assets/animals/horse_coat6-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat7": {
+   "lod0": "assets/animals/horse_coat7.glb",
+   "lod1": "assets/animals/horse_coat7-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat8": {
+   "lod0": "assets/animals/horse_coat8.glb",
+   "lod1": "assets/animals/horse_coat8-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_coat9": {
+   "lod0": "assets/animals/horse_coat9.glb",
+   "lod1": "assets/animals/horse_coat9-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_cream_spotted_01": {
+   "lod0": "assets/animals/horse_cream_spotted_01.glb",
+   "lod1": "assets/animals/horse_cream_spotted_01-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7961,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_dark_chestnut": {
+   "lod0": "assets/animals/horse_dark_chestnut.glb",
+   "lod1": "assets/animals/horse_dark_chestnut-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7961,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_fading_black": {
+   "lod0": "assets/animals/horse_fading_black.glb",
+   "lod1": "assets/animals/horse_fading_black-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7961,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_lusitano": {
+   "lod0": "assets/animals/horse_lusitano.glb",
+   "lod1": "assets/animals/horse_lusitano-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8052,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "horse_lusitano_coat10": {
+   "lod0": "assets/animals/horse_lusitano_coat10.glb",
+   "lod1": "assets/animals/horse_lusitano_coat10-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8052,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "horse_lusitano_coat7": {
+   "lod0": "assets/animals/horse_lusitano_coat7.glb",
+   "lod1": "assets/animals/horse_lusitano_coat7-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8052,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "horse_lusitano_coat9": {
+   "lod0": "assets/animals/horse_lusitano_coat9.glb",
+   "lod1": "assets/animals/horse_lusitano_coat9-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8052,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "horse_marwari": {
+   "lod0": "assets/animals/horse_marwari.glb",
+   "lod1": "assets/animals/horse_marwari-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1357,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8026,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_marwari_coat2": {
+   "lod0": "assets/animals/horse_marwari_coat2.glb",
+   "lod1": "assets/animals/horse_marwari_coat2-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1357,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8026,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_palomino_01": {
+   "lod0": "assets/animals/horse_palomino_01.glb",
+   "lod1": "assets/animals/horse_palomino_01-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8052,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "horse_persian": {
+   "lod0": "assets/animals/horse_persian.glb",
+   "lod1": "assets/animals/horse_persian-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7961,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_persian_coat6": {
+   "lod0": "assets/animals/horse_persian_coat6.glb",
+   "lod1": "assets/animals/horse_persian_coat6-lod1.glb",
+   "ground": -0.0064,
+   "height": 2.1104,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8444,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7961,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1035,
+    "lod1": 609
+   }
+  },
+  "horse_skewbald": {
+   "lod0": "assets/animals/horse_skewbald.glb",
+   "lod1": "assets/animals/horse_skewbald-lod1.glb",
+   "ground": -0.0047,
+   "height": 2.0997,
+   "length": 2.7,
+   "width": 0.7417,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8053,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.8046,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 595
+   }
+  },
+  "horse_tessalian": {
+   "lod0": "assets/animals/horse_tessalian.glb",
+   "lod1": "assets/animals/horse_tessalian-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1001,
+   "length": 2.7,
+   "width": 0.738,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8014,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7524,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "horse_tessalian_coat2": {
+   "lod0": "assets/animals/horse_tessalian_coat2.glb",
+   "lod1": "assets/animals/horse_tessalian_coat2-lod1.glb",
+   "ground": -0.0063,
+   "height": 2.1001,
+   "length": 2.7,
+   "width": 0.738,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "horse_idle_01",
+     "horse_idle_02",
+     "horse_idle_03",
+     "horse_idle_04",
+     "horse_idle_05"
+    ],
+    "walk": [
+     "horse_walk"
+    ],
+    "run": [
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "horse_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.8014,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "horse_gallop",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 10.7524,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "horse_idle_01": 2.0,
+    "horse_idle_02": 2.0,
+    "horse_idle_03": 2.0,
+    "horse_idle_04": 4.0,
+    "horse_idle_05": 4.0,
+    "horse_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 86,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "lion": {
+   "lod0": "assets/animals/lion.glb",
+   "lod1": "assets/animals/lion-lod1.glb",
+   "ground": -0.0012,
+   "height": 1.3091,
+   "length": 2.8,
+   "width": 0.5386,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "lion_idle_01",
+     "lion_idle_02",
+     "lion_idle_03"
+    ],
+    "walk": [
+     "lion_walk"
+    ],
+    "run": [
+     "lion_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "lion_walk",
+     "seconds": 3.3,
+     "rootTravel": 0.0,
+     "speed": 0.287,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "lion_run",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 2.3073,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "lion_death": 1.3,
+    "lion_idle_01": 3.3,
+    "lion_idle_02": 3.3,
+    "lion_idle_03": 3.3,
+    "lion_run": 1.3,
+    "lion_walk": 3.3
+   },
+   "sameRig": true,
+   "joints": 27,
+   "vertices": {
+    "lod0": 533,
+    "lod1": 328
+   }
+  },
+  "lioness": {
+   "lod0": "assets/animals/lioness.glb",
+   "lod1": "assets/animals/lioness-lod1.glb",
+   "ground": -0.0019,
+   "height": 1.0643,
+   "length": 2.4,
+   "width": 0.515,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "lion_idle_01",
+     "lion_idle_02",
+     "lion_idle_03"
+    ],
+    "walk": [
+     "lion_walk"
+    ],
+    "run": [
+     "lion_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "lion_walk",
+     "seconds": 3.3,
+     "rootTravel": 0.0,
+     "speed": 0.2363,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "lion_run",
+     "seconds": 1.3,
+     "rootTravel": 0.0,
+     "speed": 1.9597,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "lion_death": 1.3,
+    "lion_idle_01": 3.3,
+    "lion_idle_02": 3.3,
+    "lion_idle_03": 3.3,
+    "lion_run": 1.3,
+    "lion_walk": 3.3
+   },
+   "sameRig": true,
+   "joints": 27,
+   "vertices": {
+    "lod0": 656,
+    "lod1": 401
+   }
+  },
+  "lizard": {
+   "lod0": "assets/animals/lizard.glb",
+   "lod1": "assets/animals/lizard-lod1.glb",
+   "ground": -0.0073,
+   "height": 0.0201,
+   "length": 0.25,
+   "width": 0.036,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 19,
+   "vertices": {
+    "lod0": 2256,
+    "lod1": 1241
+   }
+  },
+  "mouse_brown": {
+   "lod0": "assets/animals/mouse_brown.glb",
+   "lod1": "assets/animals/mouse_brown-lod1.glb",
+   "ground": 0.0164,
+   "height": 0.0569,
+   "length": 0.2,
+   "width": 0.0572,
+   "forward": 0.0,
+   "forwardSource": "none: assumed +Z",
+   "headYaw": null,
+   "roles": {
+    "idle": [
+     "Take 001_Object_4"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Take 001_Object_4": 5.9583
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 2399,
+    "lod1": 1569
+   }
+  },
+  "pig1": {
+   "lod0": "assets/animals/pig1.glb",
+   "lod1": "assets/animals/pig1-lod1.glb",
+   "ground": -0.0008,
+   "height": 0.9167,
+   "length": 1.5,
+   "width": 0.5401,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "animal_pig_idle_01",
+     "animal_pig_idle_02",
+     "animal_pig_idle_03"
+    ],
+    "eat": [
+     "animal_pig_feeding_01"
+    ],
+    "walk": [
+     "animal_pig_walk_01"
+    ],
+    "run": [
+     "animal_pig_run_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "animal_pig_walk_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 2.576,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "animal_pig_run_01",
+     "seconds": 0.5,
+     "rootTravel": 0.0,
+     "speed": 1.86,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "animal_pig_attack_01": 1.2333,
+    "animal_pig_death_01": 0.3,
+    "animal_pig_feeding_01": 1.8,
+    "animal_pig_idle_01": 0.5,
+    "animal_pig_idle_02": 0.3667,
+    "animal_pig_idle_03": 1.6,
+    "animal_pig_run_01": 0.5,
+    "animal_pig_walk_01": 0.3
+   },
+   "sameRig": true,
+   "joints": 28,
+   "vertices": {
+    "lod0": 242,
+    "lod1": 180
+   }
+  },
+  "pig1_coat2": {
+   "lod0": "assets/animals/pig1_coat2.glb",
+   "lod1": "assets/animals/pig1_coat2-lod1.glb",
+   "ground": -0.0008,
+   "height": 0.9167,
+   "length": 1.5,
+   "width": 0.5401,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "animal_pig_idle_01",
+     "animal_pig_idle_02",
+     "animal_pig_idle_03"
+    ],
+    "eat": [
+     "animal_pig_feeding_01"
+    ],
+    "walk": [
+     "animal_pig_walk_01"
+    ],
+    "run": [
+     "animal_pig_run_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "animal_pig_walk_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 2.576,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "animal_pig_run_01",
+     "seconds": 0.5,
+     "rootTravel": 0.0,
+     "speed": 1.86,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "animal_pig_attack_01": 1.2333,
+    "animal_pig_death_01": 0.3,
+    "animal_pig_feeding_01": 1.8,
+    "animal_pig_idle_01": 0.5,
+    "animal_pig_idle_02": 0.3667,
+    "animal_pig_idle_03": 1.6,
+    "animal_pig_run_01": 0.5,
+    "animal_pig_walk_01": 0.3
+   },
+   "sameRig": true,
+   "joints": 28,
+   "vertices": {
+    "lod0": 242,
+    "lod1": 180
+   }
+  },
+  "pig1_coat3": {
+   "lod0": "assets/animals/pig1_coat3.glb",
+   "lod1": "assets/animals/pig1_coat3-lod1.glb",
+   "ground": -0.0008,
+   "height": 0.9167,
+   "length": 1.5,
+   "width": 0.5401,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "animal_pig_idle_01",
+     "animal_pig_idle_02",
+     "animal_pig_idle_03"
+    ],
+    "eat": [
+     "animal_pig_feeding_01"
+    ],
+    "walk": [
+     "animal_pig_walk_01"
+    ],
+    "run": [
+     "animal_pig_run_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "animal_pig_walk_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 2.576,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "animal_pig_run_01",
+     "seconds": 0.5,
+     "rootTravel": 0.0,
+     "speed": 1.86,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "animal_pig_attack_01": 1.2333,
+    "animal_pig_death_01": 0.3,
+    "animal_pig_feeding_01": 1.8,
+    "animal_pig_idle_01": 0.5,
+    "animal_pig_idle_02": 0.3667,
+    "animal_pig_idle_03": 1.6,
+    "animal_pig_run_01": 0.5,
+    "animal_pig_walk_01": 0.3
+   },
+   "sameRig": true,
+   "joints": 28,
+   "vertices": {
+    "lod0": 242,
+    "lod1": 180
+   }
+  },
+  "piglet": {
+   "lod0": "assets/animals/piglet.glb",
+   "lod1": "assets/animals/piglet-lod1.glb",
+   "ground": 0.0,
+   "height": 0.3523,
+   "length": 0.65,
+   "width": 0.2158,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "animal_piglet_idle_01",
+     "animal_piglet_idle_02",
+     "animal_piglet_idle_03"
+    ],
+    "eat": [
+     "animal_piglet_feeding_01"
+    ],
+    "walk": [
+     "animal_piglet_walk_01"
+    ],
+    "run": [
+     "animal_piglet_run_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "animal_piglet_walk_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 1.0147,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "animal_piglet_run_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 1.0147,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "animal_piglet_attack_01": 0.3,
+    "animal_piglet_death_01": 0.3,
+    "animal_piglet_feeding_01": 2.3667,
+    "animal_piglet_idle_01": 0.5,
+    "animal_piglet_idle_02": 0.3667,
+    "animal_piglet_idle_03": 1.6,
+    "animal_piglet_run_01": 0.3,
+    "animal_piglet_walk_01": 0.3
+   },
+   "sameRig": true,
+   "joints": 28,
+   "vertices": {
+    "lod0": 241,
+    "lod1": 185
+   },
+   "retargeted": {
+    "animal_piglet_feeding_01": [
+     0.97,
+     0.027,
+     "rotations only"
+    ],
+    "animal_piglet_idle_01": [
+     0.942,
+     0.06,
+     "rotations only"
+    ],
+    "animal_piglet_idle_02": [
+     0.933,
+     0.011,
+     "rotations only"
+    ],
+    "animal_piglet_idle_03": [
+     0.962,
+     0.09,
+     "rotations only"
+    ],
+    "animal_piglet_run_01": [
+     0.95,
+     0.044,
+     "rotations only"
+    ],
+    "animal_piglet_walk_01": [
+     0.95,
+     0.044,
+     "rotations only"
+    ]
+   }
+  },
+  "piglet_coat2": {
+   "lod0": "assets/animals/piglet_coat2.glb",
+   "lod1": "assets/animals/piglet_coat2-lod1.glb",
+   "ground": 0.0,
+   "height": 0.3523,
+   "length": 0.65,
+   "width": 0.2158,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "animal_piglet_idle_01",
+     "animal_piglet_idle_02",
+     "animal_piglet_idle_03"
+    ],
+    "eat": [
+     "animal_piglet_feeding_01"
+    ],
+    "walk": [
+     "animal_piglet_walk_01"
+    ],
+    "run": [
+     "animal_piglet_run_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "animal_piglet_walk_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 1.0147,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "animal_piglet_run_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 1.0147,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "animal_piglet_attack_01": 0.3,
+    "animal_piglet_death_01": 0.3,
+    "animal_piglet_feeding_01": 2.3667,
+    "animal_piglet_idle_01": 0.5,
+    "animal_piglet_idle_02": 0.3667,
+    "animal_piglet_idle_03": 1.6,
+    "animal_piglet_run_01": 0.3,
+    "animal_piglet_walk_01": 0.3
+   },
+   "sameRig": true,
+   "joints": 28,
+   "vertices": {
+    "lod0": 241,
+    "lod1": 185
+   },
+   "retargeted": {
+    "animal_piglet_feeding_01": [
+     0.97,
+     0.027,
+     "rotations only"
+    ],
+    "animal_piglet_idle_01": [
+     0.942,
+     0.06,
+     "rotations only"
+    ],
+    "animal_piglet_idle_02": [
+     0.933,
+     0.011,
+     "rotations only"
+    ],
+    "animal_piglet_idle_03": [
+     0.962,
+     0.09,
+     "rotations only"
+    ],
+    "animal_piglet_run_01": [
+     0.95,
+     0.044,
+     "rotations only"
+    ],
+    "animal_piglet_walk_01": [
+     0.95,
+     0.044,
+     "rotations only"
+    ]
+   }
+  },
+  "piglet_coat3": {
+   "lod0": "assets/animals/piglet_coat3.glb",
+   "lod1": "assets/animals/piglet_coat3-lod1.glb",
+   "ground": 0.0,
+   "height": 0.3523,
+   "length": 0.65,
+   "width": 0.2158,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "animal_piglet_idle_01",
+     "animal_piglet_idle_02",
+     "animal_piglet_idle_03"
+    ],
+    "eat": [
+     "animal_piglet_feeding_01"
+    ],
+    "walk": [
+     "animal_piglet_walk_01"
+    ],
+    "run": [
+     "animal_piglet_run_01"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "animal_piglet_walk_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 1.0147,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "animal_piglet_run_01",
+     "seconds": 0.3,
+     "rootTravel": 0.0,
+     "speed": 1.0147,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "animal_piglet_attack_01": 0.3,
+    "animal_piglet_death_01": 0.3,
+    "animal_piglet_feeding_01": 2.3667,
+    "animal_piglet_idle_01": 0.5,
+    "animal_piglet_idle_02": 0.3667,
+    "animal_piglet_idle_03": 1.6,
+    "animal_piglet_run_01": 0.3,
+    "animal_piglet_walk_01": 0.3
+   },
+   "sameRig": true,
+   "joints": 28,
+   "vertices": {
+    "lod0": 241,
+    "lod1": 185
+   },
+   "retargeted": {
+    "animal_piglet_feeding_01": [
+     0.97,
+     0.027,
+     "rotations only"
+    ],
+    "animal_piglet_idle_01": [
+     0.942,
+     0.06,
+     "rotations only"
+    ],
+    "animal_piglet_idle_02": [
+     0.933,
+     0.011,
+     "rotations only"
+    ],
+    "animal_piglet_idle_03": [
+     0.962,
+     0.09,
+     "rotations only"
+    ],
+    "animal_piglet_run_01": [
+     0.95,
+     0.044,
+     "rotations only"
+    ],
+    "animal_piglet_walk_01": [
+     0.95,
+     0.044,
+     "rotations only"
+    ]
+   }
+  },
+  "pony": {
+   "lod0": "assets/animals/pony.glb",
+   "lod1": "assets/animals/pony-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4227,
+   "length": 1.8,
+   "width": 0.4878,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "pony_idle_a",
+     "pony_idle_c",
+     "pony_idle_d",
+     "pony_idle_b"
+    ],
+    "walk": [
+     "pony_walk"
+    ],
+    "run": [
+     "pony_gallop",
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "pony_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.633,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "pony_gallop",
+     "seconds": 1.0333,
+     "rootTravel": 0.0,
+     "speed": 2.4514,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "pony_death_a": 3.3,
+    "pony_gallop": 1.0333,
+    "pony_idle_a": 2.5,
+    "pony_idle_b": 2.5,
+    "pony_idle_c": 2.5,
+    "pony_idle_d": 2.5,
+    "pony_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 95,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "pony_coat2": {
+   "lod0": "assets/animals/pony_coat2.glb",
+   "lod1": "assets/animals/pony_coat2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4227,
+   "length": 1.8,
+   "width": 0.4878,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "pony_idle_a",
+     "pony_idle_c",
+     "pony_idle_d",
+     "pony_idle_b"
+    ],
+    "walk": [
+     "pony_walk"
+    ],
+    "run": [
+     "pony_gallop",
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "pony_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.633,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "pony_gallop",
+     "seconds": 1.0333,
+     "rootTravel": 0.0,
+     "speed": 2.4514,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "pony_death_a": 3.3,
+    "pony_gallop": 1.0333,
+    "pony_idle_a": 2.5,
+    "pony_idle_b": 2.5,
+    "pony_idle_c": 2.5,
+    "pony_idle_d": 2.5,
+    "pony_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 95,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "pony_coat3": {
+   "lod0": "assets/animals/pony_coat3.glb",
+   "lod1": "assets/animals/pony_coat3-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4227,
+   "length": 1.8,
+   "width": 0.4878,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "pony_idle_a",
+     "pony_idle_c",
+     "pony_idle_d",
+     "pony_idle_b"
+    ],
+    "walk": [
+     "pony_walk"
+    ],
+    "run": [
+     "pony_gallop",
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "pony_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.633,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "pony_gallop",
+     "seconds": 1.0333,
+     "rootTravel": 0.0,
+     "speed": 2.4514,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "pony_death_a": 3.3,
+    "pony_gallop": 1.0333,
+    "pony_idle_a": 2.5,
+    "pony_idle_b": 2.5,
+    "pony_idle_c": 2.5,
+    "pony_idle_d": 2.5,
+    "pony_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 95,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "pony_coat4": {
+   "lod0": "assets/animals/pony_coat4.glb",
+   "lod1": "assets/animals/pony_coat4-lod1.glb",
+   "ground": -0.0,
+   "height": 1.4227,
+   "length": 1.8,
+   "width": 0.4878,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "pony_idle_a",
+     "pony_idle_c",
+     "pony_idle_d",
+     "pony_idle_b"
+    ],
+    "walk": [
+     "pony_walk"
+    ],
+    "run": [
+     "pony_gallop",
+     "horse_gallop"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "pony_walk",
+     "seconds": 1.6667,
+     "rootTravel": 0.0,
+     "speed": 0.633,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "pony_gallop",
+     "seconds": 1.0333,
+     "rootTravel": 0.0,
+     "speed": 2.4514,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "horse_death_01": 2.3,
+    "horse_death_02": 2.3,
+    "horse_gallop": 0.3,
+    "pony_death_a": 3.3,
+    "pony_gallop": 1.0333,
+    "pony_idle_a": 2.5,
+    "pony_idle_b": 2.5,
+    "pony_idle_c": 2.5,
+    "pony_idle_d": 2.5,
+    "pony_walk": 1.6667
+   },
+   "sameRig": true,
+   "joints": 95,
+   "vertices": {
+    "lod0": 1013,
+    "lod1": 597
+   }
+  },
+  "rabbit": {
+   "lod0": "assets/animals/rabbit.glb",
+   "lod1": "assets/animals/rabbit-lod1.glb",
+   "ground": -0.0072,
+   "height": 0.4509,
+   "length": 0.45,
+   "width": 0.1741,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "Guarding",
+     "Sitting.000",
+     "Sitting.001"
+    ],
+    "run": [
+     "Running"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "run": {
+     "clip": "Running",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 1.0019,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "Basic": 0.0417,
+    "Dead": 0.0417,
+    "Dying.000": 0.8333,
+    "Dying.001": 0.8333,
+    "Guarding": 16.6667,
+    "Jump": 1.0,
+    "Running": 0.6667,
+    "Sitting.000": 22.9167,
+    "Sitting.001": 22.9167
+   },
+   "sameRig": true,
+   "joints": 37,
+   "vertices": {
+    "lod0": 2704,
+    "lod1": 1765
+   }
+  },
+  "rat_street": {
+   "lod0": "assets/animals/rat_street.glb",
+   "lod1": "assets/animals/rat_street-lod1.glb",
+   "ground": 0.0,
+   "height": 0.0806,
+   "length": 0.35,
+   "width": 0.0756,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 19,
+   "vertices": {
+    "lod0": 4444,
+    "lod1": 2722
+   }
+  },
+  "rhino": {
+   "lod0": "assets/animals/rhino.glb",
+   "lod1": "assets/animals/rhino-lod1.glb",
+   "ground": -0.0072,
+   "height": 1.7953,
+   "length": 3.8,
+   "width": 1.1881,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0011,
+   "roles": {
+    "idle": [
+     "rhino_idle",
+     "rhino_idle2"
+    ],
+    "walk": [
+     "rhino_walk"
+    ],
+    "run": [
+     "rhino_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "rhino_walk",
+     "seconds": 1.2667,
+     "rootTravel": 0.0,
+     "speed": 1.1605,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "rhino_run",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 5.4697,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "rhino_attack": 2.0667,
+    "rhino_death": 2.7,
+    "rhino_idle": 10.8,
+    "rhino_idle2": 2.9,
+    "rhino_run": 0.6667,
+    "rhino_walk": 1.2667
+   },
+   "sameRig": true,
+   "joints": 32,
+   "vertices": {
+    "lod0": 577,
+    "lod1": 372
+   }
+  },
+  "sanga_cattle": {
+   "lod0": "assets/animals/sanga_cattle.glb",
+   "lod1": "assets/animals/sanga_cattle-lod1.glb",
+   "ground": -0.0,
+   "height": 1.8997,
+   "length": 2.6,
+   "width": 1.2814,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5005,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0503,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat2": {
+   "lod0": "assets/animals/sanga_cattle_coat2.glb",
+   "lod1": "assets/animals/sanga_cattle_coat2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.8997,
+   "length": 2.6,
+   "width": 1.2814,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5005,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0503,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat2_shape2": {
+   "lod0": "assets/animals/sanga_cattle_coat2_shape2.glb",
+   "lod1": "assets/animals/sanga_cattle_coat2_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 2.0561,
+   "length": 2.6,
+   "width": 1.3708,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5004,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0501,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat3": {
+   "lod0": "assets/animals/sanga_cattle_coat3.glb",
+   "lod1": "assets/animals/sanga_cattle_coat3-lod1.glb",
+   "ground": -0.0,
+   "height": 1.8997,
+   "length": 2.6,
+   "width": 1.2814,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5005,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0503,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat3_shape2": {
+   "lod0": "assets/animals/sanga_cattle_coat3_shape2.glb",
+   "lod1": "assets/animals/sanga_cattle_coat3_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 2.0561,
+   "length": 2.6,
+   "width": 1.3708,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5004,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0501,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat4": {
+   "lod0": "assets/animals/sanga_cattle_coat4.glb",
+   "lod1": "assets/animals/sanga_cattle_coat4-lod1.glb",
+   "ground": -0.0,
+   "height": 1.8997,
+   "length": 2.6,
+   "width": 1.2814,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5005,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0503,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat4_shape2": {
+   "lod0": "assets/animals/sanga_cattle_coat4_shape2.glb",
+   "lod1": "assets/animals/sanga_cattle_coat4_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 2.0561,
+   "length": 2.6,
+   "width": 1.3708,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5004,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0501,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat5": {
+   "lod0": "assets/animals/sanga_cattle_coat5.glb",
+   "lod1": "assets/animals/sanga_cattle_coat5-lod1.glb",
+   "ground": -0.0,
+   "height": 1.8997,
+   "length": 2.6,
+   "width": 1.2814,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5005,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0503,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_coat5_shape2": {
+   "lod0": "assets/animals/sanga_cattle_coat5_shape2.glb",
+   "lod1": "assets/animals/sanga_cattle_coat5_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 2.0561,
+   "length": 2.6,
+   "width": 1.3708,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5004,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0501,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sanga_cattle_shape2": {
+   "lod0": "assets/animals/sanga_cattle_shape2.glb",
+   "lod1": "assets/animals/sanga_cattle_shape2-lod1.glb",
+   "ground": -0.0,
+   "height": 2.0561,
+   "length": 2.6,
+   "width": 1.3708,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.5004,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.0501,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 622,
+    "lod1": 378
+   }
+  },
+  "sheep1": {
+   "lod0": "assets/animals/sheep1.glb",
+   "lod1": "assets/animals/sheep1-lod1.glb",
+   "ground": 0.0,
+   "height": 0.9068,
+   "length": 1.3,
+   "width": 0.4628,
+   "forward": 3.1416,
+   "forwardSource": "head bone",
+   "headYaw": 3.1416,
+   "roles": {
+    "idle": [
+     "sheep_idle_01",
+     "sheep_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "sheep_walk": "its feet push forwards: it walks backwards",
+    "sheep_run": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "sheep_death": 0.8667,
+    "sheep_idle_01": 1.0,
+    "sheep_idle_02": 0.8333,
+    "sheep_run": 0.3667,
+    "sheep_walk": 0.7667
+   },
+   "sameRig": true,
+   "joints": 23,
+   "vertices": {
+    "lod0": 196,
+    "lod1": 143
+   },
+   "retargeted": {
+    "sheep_idle_01": [
+     0.053,
+     0.006,
+     "re-anchored root"
+    ],
+    "sheep_idle_02": [
+     0.214,
+     0.033,
+     "re-anchored root"
+    ],
+    "sheep_run": [
+     1.186,
+     0.168,
+     "re-anchored root"
+    ],
+    "sheep_walk": [
+     0.695,
+     0.05,
+     "re-anchored root"
+    ]
+   }
+  },
+  "sheep3": {
+   "lod0": "assets/animals/sheep3.glb",
+   "lod1": "assets/animals/sheep3-lod1.glb",
+   "ground": 0.0,
+   "height": 0.9068,
+   "length": 1.3,
+   "width": 0.4628,
+   "forward": 3.1416,
+   "forwardSource": "head bone",
+   "headYaw": 3.1416,
+   "roles": {
+    "idle": [
+     "sheep_idle_01",
+     "sheep_idle_02"
+    ]
+   },
+   "refusedClips": {
+    "sheep_walk": "its feet push forwards: it walks backwards",
+    "sheep_run": "its feet push forwards: it walks backwards"
+   },
+   "gaits": {},
+   "clips": {
+    "sheep_death": 0.8667,
+    "sheep_idle_01": 1.0,
+    "sheep_idle_02": 0.8333,
+    "sheep_run": 0.3667,
+    "sheep_walk": 0.7667
+   },
+   "sameRig": true,
+   "joints": 23,
+   "vertices": {
+    "lod0": 196,
+    "lod1": 143
+   },
+   "retargeted": {
+    "sheep_idle_01": [
+     0.053,
+     0.006,
+     "re-anchored root"
+    ],
+    "sheep_idle_02": [
+     0.214,
+     0.033,
+     "re-anchored root"
+    ],
+    "sheep_run": [
+     1.186,
+     0.168,
+     "re-anchored root"
+    ],
+    "sheep_walk": [
+     0.695,
+     0.05,
+     "re-anchored root"
+    ]
+   }
+  },
+  "spider_garden": {
+   "lod0": "assets/animals/spider_garden.glb",
+   "lod1": "assets/animals/spider_garden-lod1.glb",
+   "ground": -0.0002,
+   "height": 0.0074,
+   "length": 0.0309,
+   "width": 0.035,
+   "forward": 0.0,
+   "forwardSource": "stance feet",
+   "headYaw": null,
+   "roles": {
+    "walk": [
+     "SpiderArmatureAction"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "SpiderArmatureAction",
+     "seconds": 0.6667,
+     "rootTravel": 0.0,
+     "speed": 0.0129,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "SpiderArmatureAction": 0.6667
+   },
+   "sameRig": true,
+   "joints": 52,
+   "vertices": {
+    "lod0": 1082,
+    "lod1": 640
+   }
+  },
+  "stag": {
+   "lod0": "assets/animals/stag.glb",
+   "lod1": "assets/animals/stag-lod1.glb",
+   "ground": 0.0,
+   "height": 2.1958,
+   "length": 1.9257,
+   "width": 1.0433,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.001,
+   "roles": {
+    "idle": [
+     "Idle.000",
+     "Idle.001",
+     "LookAround.000",
+     "LookAround.001"
+    ],
+    "eat": [
+     "Eat.001"
+    ],
+    "run": [
+     "Run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "run": {
+     "clip": "Run",
+     "seconds": 0.5833,
+     "rootTravel": 0.0,
+     "speed": 2.0047,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "Die.000": 0.6667,
+    "Die.001": 0.6667,
+    "Eat.001": 4.9167,
+    "Idle.000": 6.6667,
+    "Idle.001": 6.6667,
+    "LookAround.000": 5.8333,
+    "LookAround.001": 5.8333,
+    "Run": 0.5833,
+    "Stand": 0.0417
+   },
+   "sameRig": true,
+   "joints": 31,
+   "vertices": {
+    "lod0": 3215,
+    "lod1": 1893
+   }
+  },
+  "tiger": {
+   "lod0": "assets/animals/tiger.glb",
+   "lod1": "assets/animals/tiger-lod1.glb",
+   "ground": 0.0004,
+   "height": 1.3089,
+   "length": 2.9,
+   "width": 0.5422,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "feline_idle_01",
+     "feline_idle_02",
+     "feline_idle_03",
+     "feline_idle_04"
+    ],
+    "walk": [
+     "feline_walk"
+    ],
+    "run": [
+     "feline_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "feline_walk",
+     "seconds": 2.0333,
+     "rootTravel": 0.0,
+     "speed": 0.8022,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "feline_run",
+     "seconds": 2.0333,
+     "rootTravel": 0.0,
+     "speed": 1.9932,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "feline_attack": 1.8667,
+    "feline_attack_02": 3.2,
+    "feline_death": 1.2,
+    "feline_idle_01": 6.6,
+    "feline_idle_02": 6.4,
+    "feline_idle_03": 4.1667,
+    "feline_idle_04": 3.5667,
+    "feline_run": 2.0333,
+    "feline_walk": 2.0333
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 541,
+    "lod1": 359
+   },
+   "retargeted": {
+    "feline_idle_01": [
+     0.198,
+     0.025,
+     "re-anchored root"
+    ],
+    "feline_idle_04": [
+     0.201,
+     0.125,
+     "re-anchored root"
+    ],
+    "feline_walk": [
+     0.23,
+     0.114,
+     "re-anchored root"
+    ]
+   }
+  },
+  "turtle_pond": {
+   "lod0": "assets/animals/turtle_pond.glb",
+   "lod1": "assets/animals/turtle_pond-lod1.glb",
+   "ground": -0.0,
+   "height": 0.0826,
+   "length": 0.25,
+   "width": 0.1576,
+   "forward": 0.0,
+   "forwardSource": "none: assumed +Z",
+   "headYaw": null,
+   "roles": {
+    "idle": [
+     "Rig_Check_Head"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "PoseLib": 0.0417,
+    "Rig_Check_Head": 1.0,
+    "Rig_Check_Limbs": 1.0
+   },
+   "sameRig": true,
+   "joints": 25,
+   "vertices": {
+    "lod0": 6185,
+    "lod1": 3796
+   }
+  },
+  "wasp_realistic": {
+   "lod0": "assets/animals/wasp_realistic.glb",
+   "lod1": "assets/animals/wasp_realistic-lod1.glb",
+   "ground": -0.0004,
+   "height": 0.0298,
+   "length": 0.035,
+   "width": 0.0172,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "fly": [
+     "Wasp.ArmatureAction"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {},
+   "clips": {
+    "Wasp.ArmatureAction": 2.0
+   },
+   "sameRig": true,
+   "joints": 40,
+   "vertices": {
+    "lod0": 1100,
+    "lod1": 628
+   }
+  },
+  "wildebeest": {
+   "lod0": "assets/animals/wildebeest.glb",
+   "lod1": "assets/animals/wildebeest-lod1.glb",
+   "ground": -0.0,
+   "height": 1.8647,
+   "length": 2.3,
+   "width": 0.6611,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "eat": [
+     "bovidae_feeding"
+    ],
+    "walk": [
+     "bovidae_walk_relax"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk_relax",
+     "seconds": 2.2667,
+     "rootTravel": 0.0,
+     "speed": 0.4913,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 2.3673,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_attack": 1.2333,
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_feeding": 8.0,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk_relax": 2.2667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 516,
+    "lod1": 315
+   }
+  },
+  "wolf": {
+   "lod0": "assets/animals/wolf.glb",
+   "lod1": "assets/animals/wolf-lod1.glb",
+   "ground": 0.1093,
+   "height": 0.7142,
+   "length": 1.7,
+   "width": 0.399,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "wolf_idle_01",
+     "wolf_idle_02",
+     "wolf_idle_03"
+    ],
+    "walk": [
+     "wolf_walk"
+    ],
+    "run": [
+     "wolf_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "wolf_walk",
+     "seconds": 1.9667,
+     "rootTravel": 0.0,
+     "speed": 0.706,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "wolf_run",
+     "seconds": 0.8,
+     "rootTravel": 0.0,
+     "speed": 3.2193,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "wolf_attack_01": 2.1667,
+    "wolf_attack_02": 2.2,
+    "wolf_death_01": 0.9333,
+    "wolf_death_02": 0.7,
+    "wolf_idle_01": 11.2667,
+    "wolf_idle_02": 5.9667,
+    "wolf_idle_03": 9.2333,
+    "wolf_run": 0.8,
+    "wolf_walk": 1.9667
+   },
+   "sameRig": true,
+   "joints": 32,
+   "vertices": {
+    "lod0": 564,
+    "lod1": 362
+   },
+   "retargeted": {
+    "wolf_idle_01": [
+     0.512,
+     0.221,
+     "re-anchored root"
+    ],
+    "wolf_idle_02": [
+     0.511,
+     0.096,
+     "re-anchored root"
+    ],
+    "wolf_idle_03": [
+     0.885,
+     0.401,
+     "re-anchored root"
+    ],
+    "wolf_run": [
+     0.455,
+     0.148,
+     "re-anchored root"
+    ],
+    "wolf_walk": [
+     0.494,
+     0.108,
+     "re-anchored root"
+    ]
+   }
+  },
+  "wolf_coat2": {
+   "lod0": "assets/animals/wolf_coat2.glb",
+   "lod1": "assets/animals/wolf_coat2-lod1.glb",
+   "ground": 0.1093,
+   "height": 0.7142,
+   "length": 1.7,
+   "width": 0.399,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "wolf_idle_01",
+     "wolf_idle_02",
+     "wolf_idle_03"
+    ],
+    "walk": [
+     "wolf_walk"
+    ],
+    "run": [
+     "wolf_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "wolf_walk",
+     "seconds": 1.9667,
+     "rootTravel": 0.0,
+     "speed": 0.706,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "wolf_run",
+     "seconds": 0.8,
+     "rootTravel": 0.0,
+     "speed": 3.2193,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "wolf_attack_01": 2.1667,
+    "wolf_attack_02": 2.2,
+    "wolf_death_01": 0.9333,
+    "wolf_death_02": 0.7,
+    "wolf_idle_01": 11.2667,
+    "wolf_idle_02": 5.9667,
+    "wolf_idle_03": 9.2333,
+    "wolf_run": 0.8,
+    "wolf_walk": 1.9667
+   },
+   "sameRig": true,
+   "joints": 32,
+   "vertices": {
+    "lod0": 564,
+    "lod1": 362
+   },
+   "retargeted": {
+    "wolf_idle_01": [
+     0.512,
+     0.221,
+     "re-anchored root"
+    ],
+    "wolf_idle_02": [
+     0.511,
+     0.096,
+     "re-anchored root"
+    ],
+    "wolf_idle_03": [
+     0.885,
+     0.401,
+     "re-anchored root"
+    ],
+    "wolf_run": [
+     0.455,
+     0.148,
+     "re-anchored root"
+    ],
+    "wolf_walk": [
+     0.494,
+     0.108,
+     "re-anchored root"
+    ]
+   }
+  },
+  "zebra": {
+   "lod0": "assets/animals/zebra.glb",
+   "lod1": "assets/animals/zebra-lod1.glb",
+   "ground": -0.0054,
+   "height": 1.8147,
+   "length": 2.5,
+   "width": 0.6885,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": -0.0,
+   "roles": {
+    "idle": [
+     "zebra_idle"
+    ],
+    "walk": [
+     "zebra_walk"
+    ],
+    "run": [
+     "zebra_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "zebra_walk",
+     "seconds": 1.0667,
+     "rootTravel": 0.0,
+     "speed": 1.2642,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "zebra_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 3.2236,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "zebra_attack": 0.8333,
+    "zebra_death": 0.7333,
+    "zebra_idle": 1.1,
+    "zebra_run": 0.8333,
+    "zebra_walk": 1.0667
+   },
+   "sameRig": true,
+   "joints": 44,
+   "vertices": {
+    "lod0": 578,
+    "lod1": 347
+   }
+  },
+  "zebu": {
+   "lod0": "assets/animals/zebu.glb",
+   "lod1": "assets/animals/zebu-lod1.glb",
+   "ground": -0.0,
+   "height": 1.6205,
+   "length": 2.5,
+   "width": 0.7584,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "walk": [
+     "bovidae_walk"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk",
+     "seconds": 1.5667,
+     "rootTravel": 0.0,
+     "speed": 0.7641,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9718,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk": 1.5667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 530,
+    "lod1": 323
+   }
+  },
+  "zebu_coat2": {
+   "lod0": "assets/animals/zebu_coat2.glb",
+   "lod1": "assets/animals/zebu_coat2-lod1.glb",
+   "ground": -0.0,
+   "height": 1.6205,
+   "length": 2.5,
+   "width": 0.7584,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "walk": [
+     "bovidae_walk"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk",
+     "seconds": 1.5667,
+     "rootTravel": 0.0,
+     "speed": 0.7641,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9718,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk": 1.5667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 530,
+    "lod1": 323
+   }
+  },
+  "zebu_coat3": {
+   "lod0": "assets/animals/zebu_coat3.glb",
+   "lod1": "assets/animals/zebu_coat3-lod1.glb",
+   "ground": -0.0,
+   "height": 1.6205,
+   "length": 2.5,
+   "width": 0.7584,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "walk": [
+     "bovidae_walk"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk",
+     "seconds": 1.5667,
+     "rootTravel": 0.0,
+     "speed": 0.7641,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9718,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk": 1.5667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 530,
+    "lod1": 323
+   }
+  },
+  "zebu_coat4": {
+   "lod0": "assets/animals/zebu_coat4.glb",
+   "lod1": "assets/animals/zebu_coat4-lod1.glb",
+   "ground": -0.0,
+   "height": 1.6205,
+   "length": 2.5,
+   "width": 0.7584,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "walk": [
+     "bovidae_walk"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk",
+     "seconds": 1.5667,
+     "rootTravel": 0.0,
+     "speed": 0.7641,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9718,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk": 1.5667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 530,
+    "lod1": 323
+   }
+  },
+  "zebu_coat5": {
+   "lod0": "assets/animals/zebu_coat5.glb",
+   "lod1": "assets/animals/zebu_coat5-lod1.glb",
+   "ground": -0.0,
+   "height": 1.6205,
+   "length": 2.5,
+   "width": 0.7584,
+   "forward": 0.0,
+   "forwardSource": "head bone",
+   "headYaw": 0.0,
+   "roles": {
+    "idle": [
+     "bovidae_idle_a",
+     "bovidae_idle_b",
+     "bovidae_idle_c",
+     "bovidae_idle_d"
+    ],
+    "walk": [
+     "bovidae_walk"
+    ],
+    "run": [
+     "bovidae_run"
+    ]
+   },
+   "refusedClips": {},
+   "gaits": {
+    "walk": {
+     "clip": "bovidae_walk",
+     "seconds": 1.5667,
+     "rootTravel": 0.0,
+     "speed": 0.7641,
+     "speedSource": "measured: stance feet"
+    },
+    "run": {
+     "clip": "bovidae_run",
+     "seconds": 0.8333,
+     "rootTravel": 0.0,
+     "speed": 1.9718,
+     "speedSource": "measured: stance feet"
+    }
+   },
+   "clips": {
+    "bovidae_death_a": 1.4667,
+    "bovidae_death_b": 1.4667,
+    "bovidae_idle_a": 2.6667,
+    "bovidae_idle_b": 2.6667,
+    "bovidae_idle_c": 2.6667,
+    "bovidae_idle_d": 2.6667,
+    "bovidae_run": 0.8333,
+    "bovidae_walk": 1.5667
+   },
+   "sameRig": true,
+   "joints": 41,
+   "vertices": {
+    "lod0": 530,
+    "lod1": 323
+   }
+  }
+ }
+}

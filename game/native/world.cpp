@@ -50,6 +50,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <nlohmann/json.hpp>
 #include "saida/traffic/Traffic.hpp"
+#include "saida/wildlife/Wildlife.hpp"
 #include "vehicle_runtime.hpp"
 #include "motorcycle.hpp"
 #include "vehicle_radio.hpp"
@@ -57,6 +58,7 @@
 #include "gen/traffic_format.hpp"
 #include "gen/roadside.hpp"
 #include "gen/crowd.hpp"
+#include "gen/fauna.hpp"
 #include "gen/beach.hpp"
 #include "gen/appearance.hpp"
 #include "gen/landmarks.hpp"
@@ -264,7 +266,9 @@ constexpr size_t kPolarTiles=12;
 constexpr uint32_t kTileStaticBodies=1536;
 // Its moving ones: a traffic slot keeps its car's box once used, a crowd slot
 // its person's capsule, each at most the whole neighbourhood's share.
-constexpr uint32_t kTileMovingBodies=uint32_t(kTrafficCars+kCrowdPeople+r1::Crowd::kVehicleEscapeSlots);
+// The land animals a tile pools (World::readFauna), the big ones a box each.
+constexpr size_t kFaunaSlots=24;
+constexpr uint32_t kTileMovingBodies=uint32_t(kTrafficCars+kCrowdPeople+r1::Crowd::kVehicleEscapeSlots+kFaunaSlots);
 // The ring near a pole, plus the tile kept under the player through a teleport.
 constexpr uint32_t kResidentTiles=uint32_t(kPolarTiles)+1;
 // Two open interiors of at most 128 fixtures each (gen/interior_uses.cpp) with
@@ -361,6 +365,18 @@ struct Footprint {
     double top=1e30;  // the highest point over it, in its tile's frame: what an aircraft clears
     int interior=-1;
 };
+// One animal as drawn (World::makeBeast): a pooled node with its own animator
+// over one model's shared meshes, rig and clips.
+struct Beast {
+    saida::Node* node=nullptr; saida::Animator* animator=nullptr; saida::RigidBodyNode* body=nullptr;
+    std::string model,clip; float playback=-1.f,poseRate=-1.f;
+    uint64_t identity=0; double yaw=0,y=0; bool shown=false;
+};
+// An animal indoors (gen/fauna.cpp planIndoor), in its room's node.
+struct IndoorBeast {
+    Beast beast; size_t animal=0; int member=0;
+    double clock=0,offset=0,dartClock=0; bool darting=false,gone=false;
+};
 struct LiveInterior {
     r1::InteriorPlan plan;
     r1::InteriorLayout layout;
@@ -370,6 +386,7 @@ struct LiveInterior {
     r1::P2 low{1e30,1e30},high{-1e30,-1e30};
     double opening=0,hold=0;
     bool refused=false,ready=false;
+    std::vector<r1::IndoorAnimal> animals; std::vector<IndoorBeast> beasts; bool animalsPlaced=false;
     bool contains(r1::P2 at) const {
         return at.x>=low.x&&at.x<=high.x&&at.y>=low.y&&at.y<=high.y&&r1::pointInPolygon(at,plan.ring);
     }
@@ -610,6 +627,17 @@ struct Loaded {
     std::vector<BeachVisitor> beachVisitors;
     std::vector<Person> people;           // keyed by walker slot, pooled
     std::vector<size_t> humanKinds;       // stable avatar per slot in this country
+    // Its animals (gen/fauna.hpp): the ground they live on, who lives here,
+    // and the engine's wildlife add-on living their lives. The add-on keeps
+    // a pointer to this tile for its habitat, which std::map never moves.
+    r1::HabitatGrid faunaGrid;
+    std::vector<r1::FaunaResident> residents;
+    struct FaunaKind { const r1::Species* species=nullptr; std::string model; r1::RangeAnswer range; };
+    std::vector<FaunaKind> faunaKinds;          // by the add-on's kind index
+    std::vector<const r1::Species*> groupSpecies;
+    saida::wildlife::Herds herds;
+    std::vector<Beast> beasts;            // keyed by animal slot, pooled
+    double faunaActiveAge=1e9;
     // The manifest unpacked once at mount, because a frame cannot afford to
     // read JSON. See World::unpack.
     double west=0,east=0,south=0,north=0;
@@ -1064,6 +1092,7 @@ class World : public Rml::EventListener {
     }
 #include "beach_runtime.hpp"
 #include "police_runtime.hpp"
+#include "fauna_runtime.hpp"
 
     void readCrowd(Loaded& tile) {
         tile.walks=r1::WalkGraph::from(tile.data.value("crowd",json()));
@@ -7383,11 +7412,13 @@ private:
             if(room.node&&distance>kInteriorRelease) {
                 room.node->queueFree();room.node=nullptr;room.leaves[0]=room.leaves[1]=nullptr;
                 room.layout={};room.opening=0;room.ready=false;released=true;
+                room.beasts.clear();room.animals.clear();room.animalsPlaced=false;
             }
             if(room.node)++active;
             if(!t.reducedDensity&&!room.node&&!room.refused&&distance<kInteriorLoad&&
                nearBuildingReady(t,room.plan.footprint))candidates.push_back({&t,&room,distance});
             if(room.node&&room.ready) {
+                updateRoomAnimals(room,t,dt);
                 auto p=room.plan.local(at);
                 // Sensor on both sides, with a hold time and a wide safety zone.
                 const bool sensor=!driving&&!sailing&&!piloting&&std::abs(p.x)<room.plan.width/2+1.5&&std::abs(p.y)<3.5;
@@ -7417,6 +7448,7 @@ private:
             if(farthest) {
                 farthest->node->queueFree();farthest->node=nullptr;farthest->leaves[0]=farthest->leaves[1]=nullptr;
                 farthest->layout={};farthest->opening=0;farthest->ready=false;--active;trim();
+                farthest->beasts.clear();farthest->animals.clear();farthest->animalsPlaced=false;
             }
         }
         if(active>=kInteriorRooms||candidates.empty())return;
@@ -7562,6 +7594,7 @@ private:
             }
             root->setEnabled(false);
             room.ready=false;room.node=t.node->addChild(std::move(root));
+            planRoomAnimals(room,t);
             saida::Log::info("[World interiors] queued ",p.name," recipe=",p.recipe," vertices=",vertices,
                 " furniture_instances=",room.layout.fixtures.size()," prototypes=",furnishings.size());
         } catch(const std::exception& e) {
@@ -8440,6 +8473,7 @@ private:
         unpack(tile);
         readGraph(tile);
         readCrowd(tile);
+        readFauna(tile);
         mountAircraft(tile);
         placeTiles();
         reparkIfCovered(key);
@@ -8785,6 +8819,7 @@ public:
         player->findBehavioursInChildren(animators);
         if(animators.empty())throw std::runtime_error("Player model has no Animator");
         loadHumans();
+        loadAnimals();
         // The body is drawn at the people's scale; its height is the manifest's.
         for(auto& child:player->children())child->transform().scale=glm::vec3(float(humanScale));
         unifyPlayerBody();
@@ -10102,7 +10137,7 @@ public:
         if(drop.phase!=Drop::Zoom) {
             cost.props=timed([&]{streamProps();});
             cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
-            cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updatePolice(delta);updateSea(delta);bendGrass();});
+            cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateFauna(delta);updatePolice(delta);updateSea(delta);bendGrass();});
         }
         conditionsRead+=delta;
         if(conditionsRead>.5){conditionsRead=0;readConditions();}
@@ -10986,6 +11021,7 @@ int main(int argc,char** argv) {
         // The Atlas, the ground classes and the surfaces: data the generator
         // reads before any tile is cooked, and refuses to run without.
         r1::loadPalette(game.string());
+        r1::loadFauna(game.string());
         World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly,vr);
 #ifdef SAIDA_ENABLE_XR
         if(gestureInput)world.setXrGestureInput(gestureInput->state());

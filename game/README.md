@@ -2507,6 +2507,75 @@ person who has left is disabled and leaves the physics. Near model above 3.5%
 of screen height (about 35 m). Within 12 m a pose every frame, further at 15, 8
 and 4 Hz, held in between (`Animator::setPoseRate(hz, PoseRateMode::Hold)`).
 
+## The animals (Animals update, 26 October 2026)
+
+Land animals live where they really live: 55 species (no birds, bats, fish
+or sea animals yet), from `assets/animals/fauna.json`. Each species names its
+range as countries narrowed by boxes (wolves in the French Alps and the
+Pyrenees' bears, never Paris or Brocéliande), its climates, its habitats, a
+density per km² of optimal habitat, the share of it a walker can meet, its
+group size, its hours (diurnal, nocturnal, crepuscular, cathemeral, pastoral),
+its months (the temperate calendar flipped south of the equator, ignored in
+the tropics), how it takes rain, and its home range.
+
+- **Where** (`native/gen/fauna.cpp`, generator v60): each tile samples its
+  ground on an 8 m grid -- forest, scrub, meadow, park, farmland, farmyard,
+  orchard, wetland, beach, desert, savanna, rock, ice, urban, bare, open --
+  from the ground class the terrain is drawn with, its photographed family and
+  the land cover's own tags (a park is not a pasture), with buildings, the
+  distance to water and the built share within 64 m. Wild animals leave as
+  the built share grows, livestock keeps to fields, rats and cats need houses.
+- **How many**: density × habitat × meetable share over the tile, drawn from
+  the tile key, so every player meets the same residents; at most 10 groups of
+  a species and 48 in all on a tile. The manifest's `fauna` entry is inferred
+  and says so, with the expected individuals per species.
+- **Their lives**: the engine's wildlife add-on (`engine/plugins/wildlife`).
+  A group is at one point of its home range at a time (a roe deer's 250 m, a
+  rabbit's 50 m), redrawn every 45 s while unseen, and appears when that
+  point comes into view range and its hour, season and the weather send it
+  out -- never inside its flight distance, never out of nowhere close in front.
+  It grazes, wanders, keeps together and flees from a walker (further from a
+  sprinter or a car); small animals dart off and are gone. Forty animals at
+  most around the player, nearest tiles first.
+  Since 27 October 2026, appearance ranges extend to about 250 m for roe deer
+  and 322 m for red deer (previously 100 m and 129 m). The size-based range
+  also allows at least three flight distances, within 24–450 m, so groups
+  are present before a walker reaches them instead of appearing only in a
+  narrow band just outside their flight distance.
+- **Indoors**: a furnished home sometimes shelters a spider on a wall (about
+  8 % of homes, more in autumn), a trail of ants in the kitchen (April to
+  September), a mouse at night, a wasp in summer or a cat; drawn from the
+  building and the day, never a crowd.
+- **Drawing**: `tools/r1/animals.py` measures every placed model from its
+  GLB: where its feet touch the ground, which way its head points (tail to
+  head), which clip plays what, and each gait's speed from its planted feet
+  (inferred from leg length by dynamic similarity where the feet do not tell,
+  and said so). It retargets the 0 A.D. clips that carry Collada faults --
+  a body drawn at another size than its rest (a fox at 2.5), a root turned or
+  standing off its place -- onto each model's own skeleton, leaves every
+  other clip as its author made it, and refuses clips that stay broken (a
+  goat idle with a key 4 m off, a sheep walk whose feet push forwards). One pooled node per animal with its own animator over shared
+  meshes, LOD0/LOD1, pose rate by distance, a kinematic box for the big ones.
+  The engine now draws a skinned mesh in its root bones' parent frame, as
+  glTF requires (`GLTFLoader::skinnedPrimitiveFrame`): an armature scaled to
+  size no longer doubles the animal.
+
+Every 20 s the log says what lives around the player (`[World fauna] around
+the player`): groups, out, spawned, alive, drawn and the nearest home.
+`R1WORLD_FAUNA_SHOT=<png>` with `--smoke` walks to the nearest group out and
+photographs it (`R1WORLD_FAUNA_SHOT_SPECIES` narrows the species). A
+simulated 15 minutes in a Breton forest neighbourhood meets about two groups
+walking and one and a half standing (roe deer, foxes, rabbits).
+
+Limits, from the assets: cats, rats, lizards, frogs, the gorilla and the pond
+turtle have no gait clip and stand; sheep have no usable walk; gazelles graze
+where they stand (the 0 A.D. deer clips they carry were made on another
+skeleton and fold their legs, so only the standing ones are played); the
+indoor spider is a wasp spider standing in for house spiders; roe, fallow and
+white-tailed deer and the chital are the CC0 hind at their size, without
+their own coats. 0 A.D. animals are CC BY-SA
+3.0 (Wildfire Games), credited in `assets/animals/ATTRIBUTION.md`.
+
 ## The fight (Fun update, 13 October 2026)
 
 Fists, a pistol and a rocket launcher, in the spirit of GTA III. **Click**

@@ -244,8 +244,30 @@ int main() {
     frame.focused = false;
     sample(.34, left);
     check(input.consumeTurnDegrees() == 0, "focus loss cannot leave a queued turn");
-    check(!input.active() && glm::length(input.advance(.02f)) == 0,
-          "headset focus loss cancels world walking");
+    check(input.active() && glm::length(input.advance(.02f)) == 0,
+          "headset focus loss suspends world walking without forgetting activation");
+    frame.focused = true;
+    sample(.35, 0);
+    check(input.active() && glm::length(input.advance(.02f)) == 0,
+          "focus recovery never replays motion from before suspension");
+    sample(.36, forward);
+    check(glm::length(input.advance(.02f)) > 0,
+          "fresh swipe after focus recovery moves without another activation tap");
+    frame.head.tracked = false;
+    sample(.37, forward);
+    check(input.active() && glm::length(input.advance(.02f)) == 0,
+          "head tracking loss clears pending steps and retains activation");
+    frame.head.tracked = true;
+    sample(.38, 0);
+    check(glm::length(input.advance(.02f)) == 0, "head recovery does not replay a lost swipe");
+    sample(.39, left);
+    check(input.consumeTurnDegrees() == -15, "fresh turn works after head tracking recovery");
+    frame.focused = false;
+    sample(.40, 0, false);
+    check(!input.active(), "gameplay stop still disarms while focus is lost");
+    frame.focused = true;
+    sample(.41, forward);
+    check(glm::length(input.advance(.02f)) == 0, "gameplay stop still requires a new activation tap");
     // Native completions 80 ms apart must survive the game's 60 ms cooldown.
     r1::XrGestureInput quick;
     frame = tracked();
