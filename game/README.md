@@ -320,11 +320,44 @@ powershell -File game\Play.ps1 --vr --spawn 2.3522 48.8566
 
 `--vr` opens an OpenXR session (Quest Link or another runtime must be active)
 and skips the map: the game travels straight to `--spawn` (Paris by default).
-The view is first person from where the player stands; turning the head is the
-only control. The rig (SaidaEngine's `XROrigin`) follows the player's feet and
-heading, and the player's body is hidden. Tracked hands (Quest hand tracking,
-controllers put down) are drawn as SaidaEngine's `XRHand` joints in a skin albedo. The desktop window stays hidden; close
-the session from the headset to quit.
+The view is first person from where the player stands. The rig (SaidaEngine's
+`XROrigin`) follows the player's feet and heading, and the player's body is
+hidden. Put the controllers down and enable optical hand tracking. Tracked
+hands use SaidaEngine's skinned `XRHand` models, with procedural joints as the
+missing-asset fallback. The desktop window stays hidden; close the session
+from the headset to quit.
+
+Thumb locomotion uses the optional `XRGesture` add-on. With the other fingers
+slightly curled, touch the side of the middle index segment with the thumb and
+lift to enable walking. Keep that hand as the owner, then touch, swipe and lift:
+forward/backward step 0.5 m along the headset's horizontal heading; left/right
+rotate the player and VR rig by 15 degrees without lateral translation. Turning
+clears an unfinished step. Right-hand left means toward the index fingertip;
+left-hand left means away from it. Tap again, extend the index, tilt the wrist by more than
+45 degrees, or leave the hand idle for eight seconds to stop. Focus/tracking
+loss, menus, vehicles, swimming, ragdoll and parachuting also cancel the gate.
+The game uses a more sensitive optical profile: 4 mm swipe travel (instead of
+the add-on default 8 mm), 40 ms neutral, 20 ms minimum contact and 60 ms cooldown.
+Tap travel allows up to 3 mm to keep taps separate from short swipes. These
+settings tune the optical heuristic and completion cooldown; the runtime owns
+its native classifier. Each step is fed at a bounded speed through the existing
+character collision and loaded-ground checks. Keyboard walking takes priority and clears queued
+steps; rejected/unloaded ground does not replay a stored step later.
+
+Logs beginning `[XRGesture]` report recognized gestures and whether the source
+is `meta-openxr` or `skeleton-heuristic`. The native path requires the runtime
+to expose both Meta microgestures and EXT hand interaction. If it does not,
+NativePreferred uses an independent optical-joint heuristic; it is not the
+Meta native classifier. A missing optical hand skeleton is reported explicitly.
+Actual headset accuracy, native availability over Link and walking comfort
+remain to be tested on hardware.
+
+The integration smoke test opens no window and needs no headset:
+
+```powershell
+cmake --build game/generated/world-windows/build --target r1_xr_gesture_test --parallel 2
+& game/generated/native-tests/r1_xr_gesture_test.exe
+```
 
 ### Cheat codes
 

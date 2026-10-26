@@ -5,6 +5,11 @@
             "path": "assets/world/landmarks/brandenburg_gate-r3-lod2.glb",
             "type": "Mesh"
         },
+        "10009379459139590790": {
+            "hash": 8217578515335607702,
+            "path": "assets/animals/spider_garden-lod1.glb",
+            "type": "Mesh"
+        },
         "10010063076584490247": {
             "hash": 11280773180084402889,
             "path": "assets/world/countries.geojson",
@@ -45,6 +50,11 @@
             "path": "assets/world/relief/0_0.r1relief",
             "type": "Unknown"
         },
+        "10099669293142739374": {
+            "hash": 8336565812671786624,
+            "path": "assets/animals/horse_coat6.glb",
+            "type": "Mesh"
+        },
         "10105282464712772342": {
             "hash": 562296807061072629,
             "path": "assets/world/relief/50_150.r1relief",
@@ -55,6 +65,11 @@
             "path": "assets/textures/surfaces/tropical_ground_mr.jpg",
             "type": "Texture"
         },
+        "10117291352718345762": {
+            "hash": 14815809485856723888,
+            "path": "assets/animals/robin-lod1.glb",
+            "type": "Mesh"
+        },
         "10140101866348718989": {
             "hash": 16755902854901234304,
             "path": "assets/world/relief/10_-70.r1relief",
@@ -64,6 +79,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/20_170.r1relief",
             "type": "Unknown"
+        },
+        "10162013837007351987": {
+            "hash": 18387052594286261001,
+            "path": "assets/animals/donkey.glb",
+            "type": "Mesh"
         },
         "10170943427483150826": {
             "hash": 14193058543278758170,
@@ -90,6 +110,11 @@
             "path": "assets/world/relief/40_100.r1relief",
             "type": "Unknown"
         },
+        "10204203289084521143": {
+            "hash": 8933164052958374139,
+            "path": "assets/animals/rat_street-lod1.glb",
+            "type": "Mesh"
+        },
         "1020435646066499820": {
             "hash": 12469025477553182792,
             "path": "assets/models/external/understory/shrub_01_mid.glb",
@@ -100,9 +125,19 @@
             "path": "assets/models/external/understory/fern_02_albedo.png",
             "type": "Texture"
         },
+        "10210677621972639011": {
+            "hash": 3349089782137346465,
+            "path": "assets/animals/rabbit-lod1.glb",
+            "type": "Mesh"
+        },
         "10227522817173145257": {
             "hash": 4206083514807481815,
             "path": "assets/models/signs/street/glyph_00d4-r1.glb",
+            "type": "Mesh"
+        },
+        "10230490769664911803": {
+            "hash": 9827666874181669037,
+            "path": "assets/animals/tiger.glb",
             "type": "Mesh"
         },
         "10236577072204630312": {
@@ -113,6 +148,11 @@
         "10239437444220231824": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/80_100.r1relief",
+            "type": "Unknown"
+        },
+        "10248195317734954345": {
+            "hash": 15463106682825515846,
+            "path": "assets/animals/TABLEAU_COMPLET.md",
             "type": "Unknown"
         },
         "10251819809601361931": {
@@ -140,6 +180,16 @@
             "path": "assets/textures/surfaces/step_stone_albedo.jpg",
             "type": "Texture"
         },
+        "10272725926259406688": {
+            "hash": 4493533866674564918,
+            "path": "assets/animals/EXPANSION.md",
+            "type": "Unknown"
+        },
+        "1029204627360680095": {
+            "hash": 15369154222507053676,
+            "path": "assets/animals/horse_persian-lod1.glb",
+            "type": "Mesh"
+        },
         "10295903038732875915": {
             "hash": 1489895728009659588,
             "path": "assets/world/relief/-90_10.r1relief",
@@ -149,6 +199,11 @@
             "hash": 3702258636357389117,
             "path": "assets/world/relief/-90_-110.r1relief",
             "type": "Unknown"
+        },
+        "10297032550879970250": {
+            "hash": 2884819769610324417,
+            "path": "assets/animals/frog_red_eye.glb",
+            "type": "Mesh"
         },
         "10302326959591511017": {
             "hash": 6271810807875847883,
@@ -165,9 +220,24 @@
             "path": "assets/textures/surfaces/bare_normal.jpg",
             "type": "Texture"
         },
+        "10366905770128677684": {
+            "hash": 3377905988456818281,
+            "path": "assets/animals/horse_cream_spotted_01-lod1.glb",
+            "type": "Mesh"
+        },
         "10377261249492832926": {
             "hash": 391169167495161959,
             "path": "assets/world/relief/-50_-80.r1relief",
+            "type": "Unknown"
+        },
+        "10379660384713996307": {
+            "hash": 11774943225372995528,
+            "path": "assets/animals/cow_coat2-lod1.glb",
+            "type": "Mesh"
+        },
+        "10379845442472482376": {
+            "hash": 13822747223851575887,
+            "path": "assets/animals/licenses/terra-magna-art.txt",
             "type": "Unknown"
         },
         "10382814444972018508": {
@@ -175,10 +245,20 @@
             "path": "assets/models/external/nature_selected/urban_tree_mid.glb",
             "type": "Mesh"
         },
+        "10387598513886992220": {
+            "hash": 8731574179328404806,
+            "path": "assets/animals/horse_breed-lod1.glb",
+            "type": "Mesh"
+        },
         "1039543789923029": {
             "hash": 7611281069464446547,
             "path": "assets/world/facade.png",
             "type": "Texture"
+        },
+        "10399605795950549751": {
+            "hash": 7036941568965283732,
+            "path": "assets/animals/deer_coat3.glb",
+            "type": "Mesh"
         },
         "10409071675542978695": {
             "hash": 6210877913334107864,
@@ -203,6 +283,11 @@
         "10440717539151597023": {
             "hash": 9102509151535982680,
             "path": "assets/models/signs/fr_ab6-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "10443949914001443841": {
+            "hash": 13814215617252419811,
+            "path": "assets/animals/horse-lod1.glb",
             "type": "Mesh"
         },
         "10450548850451262193": {
@@ -230,10 +315,25 @@
             "path": "assets/world/relief/-90_-90.r1relief",
             "type": "Unknown"
         },
+        "10464684632043703766": {
+            "hash": 9756981598818434464,
+            "path": "assets/animals/chicken_kelgar.glb",
+            "type": "Mesh"
+        },
         "10470253207704544924": {
             "hash": 4243196374009459415,
             "path": "assets/world/relief/70_-50.r1relief",
             "type": "Unknown"
+        },
+        "10472432768255024125": {
+            "hash": 5517376438443729346,
+            "path": "assets/animals/licenses/provenance.zip",
+            "type": "Unknown"
+        },
+        "1047647708351978703": {
+            "hash": 11179408725305519428,
+            "path": "assets/animals/lizard-lod1.glb",
+            "type": "Mesh"
         },
         "1048111181417922072": {
             "hash": 17471601970981910976,
@@ -244,6 +344,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/0_60.r1relief",
             "type": "Unknown"
+        },
+        "10511256687647352396": {
+            "hash": 14250365679259361413,
+            "path": "assets/animals/bear_black-lod1.glb",
+            "type": "Mesh"
         },
         "10512625487224729199": {
             "hash": 5041062877627536745,
@@ -265,6 +370,11 @@
             "path": "assets/textures/surfaces/soil_arid_mr.jpg",
             "type": "Texture"
         },
+        "1055632543498914118": {
+            "hash": 18039351988450646392,
+            "path": "assets/animals/rhino.glb",
+            "type": "Mesh"
+        },
         "10558600193920275766": {
             "hash": 9827810260826499427,
             "path": "assets/world/relief/0_-100.r1relief",
@@ -279,6 +389,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-60_-90.r1relief",
             "type": "Unknown"
+        },
+        "10606523130082442995": {
+            "hash": 8777364418575283791,
+            "path": "assets/animals/sheep3-lod1.glb",
+            "type": "Mesh"
         },
         "10611418419082933723": {
             "hash": 5172326991691068981,
@@ -355,6 +470,11 @@
             "path": "assets/world/landmarks/pyramid_of_khufu-r3-lod1.glb",
             "type": "Mesh"
         },
+        "10780073429062830706": {
+            "hash": 6990913394033919462,
+            "path": "assets/animals/horse_coat4-lod1.glb",
+            "type": "Mesh"
+        },
         "10822896862868825913": {
             "hash": 15057777588054011981,
             "path": "assets/world/landmarks/notre_dame_de_paris-r3-lod1.glb",
@@ -364,6 +484,11 @@
             "hash": 575769343045135955,
             "path": "assets/world/relief/30_20.r1relief",
             "type": "Unknown"
+        },
+        "10840833266773056240": {
+            "hash": 14605558842280588051,
+            "path": "assets/animals/giraffe_baby.glb",
+            "type": "Mesh"
         },
         "10842723104926896871": {
             "hash": 6271810807875847883,
@@ -395,6 +520,11 @@
             "path": "assets/models/signs/fr_b14_30-rural-r1.glb",
             "type": "Mesh"
         },
+        "1087022871060285554": {
+            "hash": 16176694158082460838,
+            "path": "assets/animals/frog_blue.glb",
+            "type": "Mesh"
+        },
         "10896851652636746368": {
             "hash": 1483249649244251454,
             "path": "assets/world/relief/-80_-170.r1relief",
@@ -410,10 +540,20 @@
             "path": "assets/models/external/kenney_props/street_lamp.glb",
             "type": "Mesh"
         },
+        "10904339423860215169": {
+            "hash": 6532977795780790315,
+            "path": "assets/animals/donkey-lod1.glb",
+            "type": "Mesh"
+        },
         "10904342543438094544": {
             "hash": 5136553767009596146,
             "path": "assets/models/external/polyhaven_trees/fir_sapling.bin",
             "type": "Unknown"
+        },
+        "1092252949088707818": {
+            "hash": 5534756474290531962,
+            "path": "assets/animals/spider_garden.glb",
+            "type": "Mesh"
         },
         "10935949093332970447": {
             "hash": 5713723365341401500,
@@ -453,6 +593,16 @@
         "10969270233397706001": {
             "hash": 9152922755204767655,
             "path": "assets/models/signs/street/glyph_004d-r1.glb",
+            "type": "Mesh"
+        },
+        "10976887631730223180": {
+            "hash": 13943623097542277554,
+            "path": "assets/animals/frog_blue-lod1.glb",
+            "type": "Mesh"
+        },
+        "10988902063661439258": {
+            "hash": 12517639592865258998,
+            "path": "assets/animals/hawk_coat2.glb",
             "type": "Mesh"
         },
         "1098926543561245672": {
@@ -505,6 +655,16 @@
             "path": "assets/models/signs/town/glyph_0027-r1.glb",
             "type": "Mesh"
         },
+        "11038279136213585618": {
+            "hash": 17109835404437029763,
+            "path": "assets/animals/horse_persian_coat3.glb",
+            "type": "Mesh"
+        },
+        "11046654171333808887": {
+            "hash": 7568304977795421858,
+            "path": "assets/animals/elephant_african_bush-lod1.glb",
+            "type": "Mesh"
+        },
         "11064658736045294221": {
             "hash": 6854034757764607977,
             "path": "assets/models/signs/faces/us_r2-1_15-us-r1.png",
@@ -529,6 +689,11 @@
             "hash": 4066768423375957583,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_branches_nor_gl_1k.jpg",
             "type": "Texture"
+        },
+        "11109205088142575448": {
+            "hash": 14900362955447068646,
+            "path": "assets/animals/cat_sphynx.glb",
+            "type": "Mesh"
         },
         "11119285102794444494": {
             "hash": 967751976377967189,
@@ -650,10 +815,20 @@
             "path": "assets/world/relief/-80_-80.r1relief",
             "type": "Unknown"
         },
+        "11365934703045084073": {
+            "hash": 1495728420184483958,
+            "path": "assets/animals/sanga_cattle_coat4_shape2.glb",
+            "type": "Mesh"
+        },
         "11381784806612477552": {
             "hash": 818268933673101980,
             "path": "assets/textures/surfaces/sand_beach_albedo.jpg",
             "type": "Texture"
+        },
+        "11398555317651522945": {
+            "hash": 961690628442393332,
+            "path": "assets/animals/wasp_realistic.glb",
+            "type": "Mesh"
         },
         "1142104804982393000": {
             "hash": 11262654665989634408,
@@ -700,6 +875,11 @@
             "path": "assets/audio/police/siren_us.wav",
             "type": "Unknown"
         },
+        "11477413481218125399": {
+            "hash": 10276693113636621229,
+            "path": "assets/animals/zebu_coat5-lod1.glb",
+            "type": "Mesh"
+        },
         "11478873376804402379": {
             "hash": 10355329136700605666,
             "path": "assets/world/landmarks/burj_khalifa-r3.glb",
@@ -725,6 +905,11 @@
             "path": "assets/world/relief/-10_20.r1relief",
             "type": "Unknown"
         },
+        "11523068383668903792": {
+            "hash": 6085414690945462490,
+            "path": "assets/animals/horse_marwari_coat6.glb",
+            "type": "Mesh"
+        },
         "1152798319783050143": {
             "hash": 6262437077229821434,
             "path": "assets/world/relief/-90_70.r1relief",
@@ -740,9 +925,24 @@
             "path": "assets/models/signs/us_r5-1-rural-r1.glb",
             "type": "Mesh"
         },
+        "11561066520046536622": {
+            "hash": 11345808320180389298,
+            "path": "assets/animals/zebu_coat5.glb",
+            "type": "Mesh"
+        },
+        "11566633976149925713": {
+            "hash": 10219173866232561930,
+            "path": "assets/animals/goat_coat4_shape2.glb",
+            "type": "Mesh"
+        },
         "11569941434593218959": {
             "hash": 866968956112857040,
             "path": "assets/world/landmarks/christ_the_redeemer-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "11588404227089191951": {
+            "hash": 8116739044625040967,
+            "path": "assets/animals/camel_coat3.glb",
             "type": "Mesh"
         },
         "11603247020258220414": {
@@ -760,6 +960,11 @@
             "path": "assets/models/aircraft/helicopter_far.glb",
             "type": "Mesh"
         },
+        "11619265892209435312": {
+            "hash": 16413727060508913076,
+            "path": "assets/animals/mouse_brown-lod1.glb",
+            "type": "Mesh"
+        },
         "11623664203009383349": {
             "hash": 2808436352767885357,
             "path": "assets/world/relief/-90_40.r1relief",
@@ -775,10 +980,20 @@
             "path": "assets/models/external/kenney_props/bus_stop_sign.glb",
             "type": "Mesh"
         },
+        "116497360564780955": {
+            "hash": 18288533760092688788,
+            "path": "assets/animals/stag-lod1.glb",
+            "type": "Mesh"
+        },
         "11655655975441262956": {
             "hash": 18323048944524322600,
             "path": "assets/world/relief/0_80.r1relief",
             "type": "Unknown"
+        },
+        "11656829580680661038": {
+            "hash": 9139795481982239810,
+            "path": "assets/animals/horse_lusitano_coat7-lod1.glb",
+            "type": "Mesh"
         },
         "11688154937932303258": {
             "hash": 2213949075591009753,
@@ -814,6 +1029,11 @@
             "hash": 8468274919767170272,
             "path": "assets/world/relief/-80_90.r1relief",
             "type": "Unknown"
+        },
+        "11738215093200141648": {
+            "hash": 11294577891971334007,
+            "path": "assets/animals/fox_red.glb",
+            "type": "Mesh"
         },
         "11745701906862458661": {
             "hash": 12867287428937152642,
@@ -855,6 +1075,11 @@
             "path": "assets/models/vehicles/sport.glb",
             "type": "Mesh"
         },
+        "11800261094355368522": {
+            "hash": 10609830729131496453,
+            "path": "assets/animals/giraffe_adult_coat2.glb",
+            "type": "Mesh"
+        },
         "11806950009897821499": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-10_80.r1relief",
@@ -865,6 +1090,16 @@
             "path": "assets/models/external/understory/fern_02.source.json",
             "type": "Unknown"
         },
+        "1182864301357955700": {
+            "hash": 1932662325294372422,
+            "path": "assets/animals/horse_marwari_coat8.glb",
+            "type": "Mesh"
+        },
+        "1183349710388471935": {
+            "hash": 14597961443214131795,
+            "path": "assets/animals/zebra.glb",
+            "type": "Mesh"
+        },
         "11847830737469193640": {
             "hash": 9614725517229731229,
             "path": "assets/models/signs/us_r2-1_70-urban-r1.glb",
@@ -874,6 +1109,11 @@
             "hash": 15208656293542988026,
             "path": "assets/world/relief/40_20.r1relief",
             "type": "Unknown"
+        },
+        "11849899029902243186": {
+            "hash": 9090432803352038794,
+            "path": "assets/animals/pony-lod1.glb",
+            "type": "Mesh"
         },
         "11854078031499762628": {
             "hash": 2742575579396065906,
@@ -889,6 +1129,11 @@
             "hash": 7628984702177855057,
             "path": "assets/world/relief/70_-90.r1relief",
             "type": "Unknown"
+        },
+        "11884192023859445541": {
+            "hash": 7891129596608155915,
+            "path": "assets/animals/goat_coat3-lod1.glb",
+            "type": "Mesh"
         },
         "11890865869232907593": {
             "hash": 7999172093682400286,
@@ -935,10 +1180,25 @@
             "path": "assets/textures/surfaces/rock_normal.jpg",
             "type": "Texture"
         },
+        "1196726445256667822": {
+            "hash": 17404896734203929508,
+            "path": "assets/animals/peacock-lod1.glb",
+            "type": "Mesh"
+        },
         "11971458242131912229": {
             "hash": 11002883388934090171,
             "path": "assets/textures/surfaces/made_ground_normal.jpg",
             "type": "Texture"
+        },
+        "11973452043631160475": {
+            "hash": 1852252026280333470,
+            "path": "assets/animals/horse_lusitano.glb",
+            "type": "Mesh"
+        },
+        "11974769862474546965": {
+            "hash": 10774339975887473588,
+            "path": "assets/animals/horse_persian_coat5-lod1.glb",
+            "type": "Mesh"
         },
         "11975260970263499753": {
             "hash": 9936386943127218773,
@@ -955,10 +1215,20 @@
             "path": "assets/models/signs/street/blade_middle-r1.glb",
             "type": "Mesh"
         },
+        "12025483533569041763": {
+            "hash": 7886610375530248237,
+            "path": "assets/animals/elephant_african_baby-lod1.glb",
+            "type": "Mesh"
+        },
         "1204495422629604972": {
             "hash": 8423293119459134659,
             "path": "assets/audio/combat/bullet_impact.wav",
             "type": "Unknown"
+        },
+        "12049078960913435395": {
+            "hash": 7645384146899303996,
+            "path": "assets/animals/horse_coat3.glb",
+            "type": "Mesh"
         },
         "12054116289124444586": {
             "hash": 16693464444382099550,
@@ -975,15 +1245,30 @@
             "path": "assets/world/relief/40_-170.r1relief",
             "type": "Unknown"
         },
+        "12090609376116116699": {
+            "hash": 14296820609337076136,
+            "path": "assets/animals/wildebeest.glb",
+            "type": "Mesh"
+        },
         "1209242228932790": {
             "hash": 8758273646195987149,
             "path": "assets/world/relief/-30_50.r1relief",
             "type": "Unknown"
         },
+        "12111090530758913692": {
+            "hash": 10815676025823938178,
+            "path": "assets/animals/horse_lusitano_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "12111723357965873931": {
             "hash": 15165581066842781921,
             "path": "assets/world/relief/-40_170.r1relief",
             "type": "Unknown"
+        },
+        "12113696711346853063": {
+            "hash": 10629459738422298502,
+            "path": "assets/animals/horse_persian_coat10-lod1.glb",
+            "type": "Mesh"
         },
         "12120231710156165246": {
             "hash": 12288720006028242934,
@@ -1008,6 +1293,11 @@
         "12145262407510918066": {
             "hash": 17871523184603896301,
             "path": "assets/models/vehicles/suv.glb",
+            "type": "Mesh"
+        },
+        "12151203047393411897": {
+            "hash": 5960421206474412911,
+            "path": "assets/animals/horse_lusitano_coat9.glb",
             "type": "Mesh"
         },
         "121688710059543883": {
@@ -1110,6 +1400,11 @@
             "path": "assets/skies/qwantani_afternoon.hdr",
             "type": "Texture"
         },
+        "12311414024573609888": {
+            "hash": 8306558349676568578,
+            "path": "assets/animals/preview.jpg",
+            "type": "Texture"
+        },
         "12313724369896645989": {
             "hash": 5893223719333860408,
             "path": "assets/models/signs/town/glyph_004c-r1.glb",
@@ -1190,19 +1485,39 @@
             "path": "assets/models/vehicles/police.glb",
             "type": "Mesh"
         },
+        "12497732186570402378": {
+            "hash": 6693046857635131025,
+            "path": "assets/animals/cow_coat2_shape2-lod1.glb",
+            "type": "Mesh"
+        },
         "12500749483318105122": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/20_-50.r1relief",
             "type": "Unknown"
+        },
+        "12504004561113757986": {
+            "hash": 16140411474056855881,
+            "path": "assets/animals/bear_white-lod1.glb",
+            "type": "Mesh"
         },
         "12527864125674739420": {
             "hash": 16680307341428626825,
             "path": "assets/textures/surfaces/sand_desert_mr.jpg",
             "type": "Texture"
         },
+        "12530588874168413558": {
+            "hash": 3171949327700392090,
+            "path": "assets/animals/horse_lusitano_coat5-lod1.glb",
+            "type": "Mesh"
+        },
         "12531387616827636466": {
             "hash": 6777784807577565656,
             "path": "assets/models/external/trees_lod/broadleaf.glb",
+            "type": "Mesh"
+        },
+        "12537442176453061817": {
+            "hash": 10844694922897857980,
+            "path": "assets/animals/horse_brown_spotted_01.glb",
             "type": "Mesh"
         },
         "12540536489643177383": {
@@ -1214,6 +1529,16 @@
             "hash": 6579282305443320408,
             "path": "assets/world/relief/20_130.r1relief",
             "type": "Unknown"
+        },
+        "1255910237328898117": {
+            "hash": 17484815843040620589,
+            "path": "assets/animals/mastiff-lod1.glb",
+            "type": "Mesh"
+        },
+        "12570000950322585231": {
+            "hash": 4876249082963366310,
+            "path": "assets/animals/shark-lod1.glb",
+            "type": "Mesh"
         },
         "12573345679989505027": {
             "hash": 6271810807875847883,
@@ -1239,6 +1564,11 @@
             "hash": 4859881655174385096,
             "path": "assets/textures/surfaces/corrugated_normal.jpg",
             "type": "Texture"
+        },
+        "1264889225517273249": {
+            "hash": 10027641600437536973,
+            "path": "assets/animals/pike.glb",
+            "type": "Mesh"
         },
         "12651935706989951633": {
             "hash": 5136553767009596146,
@@ -1273,6 +1603,11 @@
         "12693770938712301425": {
             "hash": 12437710388790149778,
             "path": "assets/models/signs/fr_b14_40-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "12716471605026611360": {
+            "hash": 1101215109025546885,
+            "path": "assets/animals/horse_marwari_coat3.glb",
             "type": "Mesh"
         },
         "12749259336586169398": {
@@ -1320,6 +1655,11 @@
             "path": "assets/models/external/kenney_boats/ship_cargo_a.glb",
             "type": "Mesh"
         },
+        "12811473089687321369": {
+            "hash": 6135167842799892210,
+            "path": "assets/animals/horse_coat3-lod1.glb",
+            "type": "Mesh"
+        },
         "12814916806912897641": {
             "hash": 14348863509178185152,
             "path": "assets/world/relief/70_-170.r1relief",
@@ -1345,6 +1685,11 @@
             "path": "assets/world/relief/40_50.r1relief",
             "type": "Unknown"
         },
+        "12845643026250814446": {
+            "hash": 4114313091437344300,
+            "path": "assets/animals/peacock.glb",
+            "type": "Mesh"
+        },
         "12848936806082929718": {
             "hash": 17055001523853548745,
             "path": "assets/models/humans/male_adult_13.glb",
@@ -1364,6 +1709,11 @@
             "hash": 2931446352510410769,
             "path": "assets/world/relief/-20_20.r1relief",
             "type": "Unknown"
+        },
+        "12885310845390751815": {
+            "hash": 8087995402161262686,
+            "path": "assets/animals/horse_marwari_coat5.glb",
+            "type": "Mesh"
         },
         "12885792651495354718": {
             "hash": 5587367974833217434,
@@ -1395,6 +1745,11 @@
             "path": "assets/models/external/nature_cards/fir_sapling.glb",
             "type": "Mesh"
         },
+        "12947498971357191755": {
+            "hash": 16349137529143469287,
+            "path": "assets/animals/horse_breed_coat6.glb",
+            "type": "Mesh"
+        },
         "12958649720157278227": {
             "hash": 9665212822611376394,
             "path": "assets/textures/interiors/wood_mr.png",
@@ -1405,15 +1760,40 @@
             "path": "assets/world/relief/-90_20.r1relief",
             "type": "Unknown"
         },
+        "1297358946293316827": {
+            "hash": 14810810307906595610,
+            "path": "assets/animals/horse_coat4.glb",
+            "type": "Mesh"
+        },
+        "12977069969806679136": {
+            "hash": 5931899883460991685,
+            "path": "assets/animals/wildebeest-lod1.glb",
+            "type": "Mesh"
+        },
         "12980129668622016963": {
             "hash": 6987956779999823245,
             "path": "assets/world/relief/70_50.r1relief",
             "type": "Unknown"
         },
+        "12981265641707580342": {
+            "hash": 10388091214812598551,
+            "path": "assets/animals/elephant_african_forest-lod1.glb",
+            "type": "Mesh"
+        },
         "13024830826929421720": {
             "hash": 10605255525048580068,
             "path": "assets/world/relief/40_170.r1relief",
             "type": "Unknown"
+        },
+        "13026993775797398057": {
+            "hash": 12174520511869244908,
+            "path": "assets/animals/zebu_coat2.glb",
+            "type": "Mesh"
+        },
+        "1302986361123070539": {
+            "hash": 3338439335378110355,
+            "path": "assets/animals/sanga_cattle_coat4.glb",
+            "type": "Mesh"
         },
         "13040375884166491341": {
             "hash": 11894461953406934184,
@@ -1485,10 +1865,20 @@
             "path": "assets/world/landmarks/sagrada_familia-r3.glb",
             "type": "Mesh"
         },
+        "13117900355103189176": {
+            "hash": 13563887068239601692,
+            "path": "assets/animals/cow_shape2.glb",
+            "type": "Mesh"
+        },
         "13125997873098451613": {
             "hash": 2690306688643609357,
             "path": "assets/world/relief/10_-110.r1relief",
             "type": "Unknown"
+        },
+        "13128023220683313528": {
+            "hash": 15525066971030355302,
+            "path": "assets/animals/wolf.glb",
+            "type": "Mesh"
         },
         "1315916933371047565": {
             "hash": 6271810807875847883,
@@ -1510,6 +1900,11 @@
             "path": "assets/world/landmarks/tokyo_tower-r3-lod2.glb",
             "type": "Mesh"
         },
+        "13174548395661913604": {
+            "hash": 490810565020963423,
+            "path": "assets/animals/horse_lusitano_coat7.glb",
+            "type": "Mesh"
+        },
         "1318268230073710464": {
             "hash": 7659376325067881324,
             "path": "assets/world/relief/-90_-80.r1relief",
@@ -1520,10 +1915,20 @@
             "path": "assets/textures/facades/earth_and_window_height.jpg",
             "type": "Texture"
         },
+        "13213195103167624438": {
+            "hash": 6724218124031883016,
+            "path": "assets/animals/elephant_african_forest.glb",
+            "type": "Mesh"
+        },
         "13218949161719059758": {
             "hash": 10499384107617078218,
             "path": "assets/world/SOURCES.json",
             "type": "Unknown"
+        },
+        "13255920443148378436": {
+            "hash": 16289499098957016886,
+            "path": "assets/animals/cow_coat3-lod1.glb",
+            "type": "Mesh"
         },
         "13257096746227659183": {
             "hash": 11756816255582919070,
@@ -1544,6 +1949,11 @@
             "hash": 14375278633693643458,
             "path": "assets/world/relief/20_40.r1relief",
             "type": "Unknown"
+        },
+        "13274315097203099082": {
+            "hash": 5728110052826788054,
+            "path": "assets/animals/cow_coat3.glb",
+            "type": "Mesh"
         },
         "13286881622526078535": {
             "hash": 352519898602349115,
@@ -1569,6 +1979,11 @@
             "hash": 14480278396880646620,
             "path": "assets/world/relief/30_-20.r1relief",
             "type": "Unknown"
+        },
+        "13325036072124977241": {
+            "hash": 17039688971384235478,
+            "path": "assets/animals/comparaison-ajouts-3.jpg",
+            "type": "Texture"
         },
         "13343186045767610075": {
             "hash": 2329619452027575344,
@@ -1605,10 +2020,20 @@
             "path": "assets/world/relief/50_-50.r1relief",
             "type": "Unknown"
         },
+        "133777951457794726": {
+            "hash": 15786784564651283336,
+            "path": "assets/animals/pony_coat4-lod1.glb",
+            "type": "Mesh"
+        },
         "13385775164522747022": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/20_-60.r1relief",
             "type": "Unknown"
+        },
+        "13399645810717813854": {
+            "hash": 5448765821546631806,
+            "path": "assets/animals/nouveaux-animaux.jpg",
+            "type": "Texture"
         },
         "13407015021061606933": {
             "hash": 9627100513160278130,
@@ -1638,6 +2063,11 @@
         "13460124904638959745": {
             "hash": 14715230605438313632,
             "path": "assets/world/relief/-50_170.r1relief",
+            "type": "Unknown"
+        },
+        "13480364717534940084": {
+            "hash": 8954117699794494088,
+            "path": "assets/animals/ATTRIBUTION.md",
             "type": "Unknown"
         },
         "13480708375407620482": {
@@ -1690,6 +2120,11 @@
             "path": "assets/models/signs/us_r2-1_45-urban-r1.glb",
             "type": "Mesh"
         },
+        "13636348225933214348": {
+            "hash": 12270238780655511244,
+            "path": "assets/animals/horse_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "13653453057773982292": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-60_-130.r1relief",
@@ -1705,6 +2140,11 @@
             "path": "assets/world/relief/-90_-120.r1relief",
             "type": "Unknown"
         },
+        "13660960106794614447": {
+            "hash": 341958317447128630,
+            "path": "assets/animals/horse_breed_coat4.glb",
+            "type": "Mesh"
+        },
         "13672937213131462899": {
             "hash": 5347993614936994189,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_diff_1k.jpg",
@@ -1713,6 +2153,16 @@
         "13673902465371095130": {
             "hash": 4644605114143427151,
             "path": "assets/models/signs/street/glyph_0030-r1.glb",
+            "type": "Mesh"
+        },
+        "13676742137738925473": {
+            "hash": 10211140114969993612,
+            "path": "assets/animals/horse_marwari_coat4-lod1.glb",
+            "type": "Mesh"
+        },
+        "13678292812306784816": {
+            "hash": 2539361122928011703,
+            "path": "assets/animals/sanga_cattle_coat2.glb",
             "type": "Mesh"
         },
         "13681029816523478345": {
@@ -1733,6 +2183,16 @@
         "13691125909844886477": {
             "hash": 742819075536445761,
             "path": "assets/models/humans/male_adult_01.glb",
+            "type": "Mesh"
+        },
+        "13693801491074631354": {
+            "hash": 7221890350278693343,
+            "path": "assets/animals/horse_tessalian_coat8.glb",
+            "type": "Mesh"
+        },
+        "13696393007777384446": {
+            "hash": 6552098422192756734,
+            "path": "assets/animals/fox_arctic.glb",
             "type": "Mesh"
         },
         "13699501530583724965": {
@@ -1845,6 +2305,16 @@
             "path": "assets/textures/surfaces/forest_tropical_albedo.jpg",
             "type": "Texture"
         },
+        "13935697472745361076": {
+            "hash": 741193798281778237,
+            "path": "assets/animals/goat_coat2_shape2-lod1.glb",
+            "type": "Mesh"
+        },
+        "13938297947581795589": {
+            "hash": 7368962303627321746,
+            "path": "assets/animals/horse_coat5.glb",
+            "type": "Mesh"
+        },
         "13958261543713184417": {
             "hash": 17473795274948687708,
             "path": "assets/models/external/kenney_boats/boat_speed_e.glb",
@@ -1865,6 +2335,11 @@
             "path": "assets/models/vehicles/sport_far.glb",
             "type": "Mesh"
         },
+        "13984953754975741627": {
+            "hash": 16962262766971532495,
+            "path": "assets/animals/hippopotamus.glb",
+            "type": "Mesh"
+        },
         "1401844441326627999": {
             "hash": 7781723704414569024,
             "path": "assets/models/signs/town/glyph_0046-r1.glb",
@@ -1879,6 +2354,11 @@
             "hash": 9863389873421924398,
             "path": "assets/world/relief/30_120.r1relief",
             "type": "Unknown"
+        },
+        "14022405698126297636": {
+            "hash": 6194783352530404020,
+            "path": "assets/animals/giraffe_baby_coat2.glb",
+            "type": "Mesh"
         },
         "14028466565491163889": {
             "hash": 4076308870203658103,
@@ -1900,6 +2380,11 @@
             "path": "assets/world/relief/30_-40.r1relief",
             "type": "Unknown"
         },
+        "14051723500127451056": {
+            "hash": 11570568042035988153,
+            "path": "assets/animals/horse_lusitano_coat4-lod1.glb",
+            "type": "Mesh"
+        },
         "14060281465054447874": {
             "hash": 15615005137362237183,
             "path": "assets/models/signs/faces/fr_b14_40-petite-r1.png",
@@ -1915,6 +2400,11 @@
             "path": "assets/textures/surfaces/mud_albedo.jpg",
             "type": "Texture"
         },
+        "14084016379780974277": {
+            "hash": 11383244068967754659,
+            "path": "assets/animals/horse_tessalian.glb",
+            "type": "Mesh"
+        },
         "14089531032495761216": {
             "hash": 12101375635117535029,
             "path": "assets/world/relief/-90_170.r1relief",
@@ -1923,6 +2413,16 @@
         "14090359524490844263": {
             "hash": 3361332562783124627,
             "path": "assets/models/signs/street/glyph_004f-r1.glb",
+            "type": "Mesh"
+        },
+        "14097804932670388044": {
+            "hash": 12910784062495280016,
+            "path": "assets/animals/horse_lusitano_coat5.glb",
+            "type": "Mesh"
+        },
+        "14105339048187499608": {
+            "hash": 786789005311499319,
+            "path": "assets/animals/boar-lod1.glb",
             "type": "Mesh"
         },
         "1412975030885046700": {
@@ -1950,15 +2450,35 @@
             "path": "assets/world/relief/50_110.r1relief",
             "type": "Unknown"
         },
+        "14247808039900708798": {
+            "hash": 16277529131648801399,
+            "path": "assets/animals/bull-lod1.glb",
+            "type": "Mesh"
+        },
         "14257571332095936797": {
             "hash": 12593345145284465351,
             "path": "assets/models/signs/street/blade_right-r1.glb",
+            "type": "Mesh"
+        },
+        "14257812054260183813": {
+            "hash": 13439576651777891697,
+            "path": "assets/animals/horse_breed_coat10.glb",
+            "type": "Mesh"
+        },
+        "14259764258496842045": {
+            "hash": 6659548795314115802,
+            "path": "assets/animals/horse_marwari_coat7.glb",
             "type": "Mesh"
         },
         "14268845057284479165": {
             "hash": 394409599933383619,
             "path": "assets/world/relief/0_90.r1relief",
             "type": "Unknown"
+        },
+        "14288963171568506483": {
+            "hash": 9339147665096138746,
+            "path": "assets/animals/horse_chestnut_02.glb",
+            "type": "Mesh"
         },
         "14289982382543389213": {
             "hash": 1155291895151475995,
@@ -2000,6 +2520,11 @@
             "path": "assets/world/relief/20_-170.r1relief",
             "type": "Unknown"
         },
+        "1440119696720559991": {
+            "hash": 12941918840573408107,
+            "path": "assets/animals/horse_tessalian_coat9-lod1.glb",
+            "type": "Mesh"
+        },
         "1440401027518449078": {
             "hash": 13622732075740966215,
             "path": "assets/world/relief/50_80.r1relief",
@@ -2015,14 +2540,29 @@
             "path": "assets/world/relief/60_120.r1relief",
             "type": "Unknown"
         },
+        "14435820183954744373": {
+            "hash": 870088776080478444,
+            "path": "assets/animals/owl_eagle.glb",
+            "type": "Mesh"
+        },
         "14442324182885284048": {
             "hash": 1279778653424857313,
             "path": "assets/world/relief/-90_-60.r1relief",
             "type": "Unknown"
         },
+        "14447143956304137413": {
+            "hash": 6871901739011706304,
+            "path": "assets/animals/horse_palomino_02.glb",
+            "type": "Mesh"
+        },
         "14450859830058501690": {
             "hash": 8618282200589786341,
             "path": "assets/models/external/understory/grass_dry_near.glb",
+            "type": "Mesh"
+        },
+        "14475210235900672633": {
+            "hash": 1648261235384510348,
+            "path": "assets/animals/rabbit.glb",
             "type": "Mesh"
         },
         "14491187732939635241": {
@@ -2030,9 +2570,19 @@
             "path": "assets/textures/facades/concrete_and_window_albedo.jpg",
             "type": "Texture"
         },
+        "14492434799602599189": {
+            "hash": 5988285301154618100,
+            "path": "assets/animals/zebu_coat3.glb",
+            "type": "Mesh"
+        },
         "14521854439017818613": {
             "hash": 2976981518464617209,
             "path": "assets/models/humans/female_adult_01.glb",
+            "type": "Mesh"
+        },
+        "14542286130966748034": {
+            "hash": 15472377275494700420,
+            "path": "assets/animals/horse_coat10-lod1.glb",
             "type": "Mesh"
         },
         "1454242505439243221": {
@@ -2120,6 +2670,11 @@
             "path": "assets/textures/surfaces/cracked_earth_normal.jpg",
             "type": "Texture"
         },
+        "14688074612769305094": {
+            "hash": 5941285930431668840,
+            "path": "assets/animals/goat_coat4_shape2-lod1.glb",
+            "type": "Mesh"
+        },
         "14689280405443276430": {
             "hash": 9280423207790352168,
             "path": "assets/world/relief/-40_-60.r1relief",
@@ -2135,10 +2690,25 @@
             "path": "assets/world/relief/-60_90.r1relief",
             "type": "Unknown"
         },
+        "14724505144738737182": {
+            "hash": 12914894464112360590,
+            "path": "assets/animals/giraffe_adult_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "14729980388479751198": {
             "hash": 9565856580366798135,
             "path": "assets/models/external/nature_cards/quiver_tree_slim.png",
             "type": "Texture"
+        },
+        "14734268223612029229": {
+            "hash": 5857910376741451609,
+            "path": "assets/animals/zebu-lod1.glb",
+            "type": "Mesh"
+        },
+        "14734878862406601852": {
+            "hash": 9205213967527524215,
+            "path": "assets/animals/lion-lod1.glb",
+            "type": "Mesh"
         },
         "14740851399168409499": {
             "hash": 10743553306427503192,
@@ -2150,6 +2720,11 @@
             "path": "assets/textures/facades/brick_dark_and_window_height.jpg",
             "type": "Texture"
         },
+        "14750039489607644903": {
+            "hash": 9262906587140070121,
+            "path": "assets/animals/horse_tessalian_coat10-lod1.glb",
+            "type": "Mesh"
+        },
         "1476205107630755768": {
             "hash": 11418214536529617692,
             "path": "assets/models/signs/us_r1-2-urban-r1.glb",
@@ -2160,10 +2735,25 @@
             "path": "assets/world/relief/40_40.r1relief",
             "type": "Unknown"
         },
+        "14787539118810141934": {
+            "hash": 5230345888448065042,
+            "path": "assets/animals/goat_coat3_shape2.glb",
+            "type": "Mesh"
+        },
+        "14802440787684299553": {
+            "hash": 4976806489282491545,
+            "path": "assets/animals/cow_shape2-lod1.glb",
+            "type": "Mesh"
+        },
         "14805093096015826339": {
             "hash": 2160842964962436990,
             "path": "assets/world/relief/40_-120.r1relief",
             "type": "Unknown"
+        },
+        "14824529641011846155": {
+            "hash": 18187547585862501825,
+            "path": "assets/animals/horse_breed_coat2.glb",
+            "type": "Mesh"
         },
         "14826515651026477814": {
             "hash": 1812385937623435611,
@@ -2173,6 +2763,11 @@
         "14829374661664298212": {
             "hash": 15932095546901038657,
             "path": "assets/world/landmarks/brandenburg_gate-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "14832478586155961472": {
+            "hash": 9472053722705656887,
+            "path": "assets/animals/wolfhound-lod1.glb",
             "type": "Mesh"
         },
         "14834222913782364802": {
@@ -2265,19 +2860,39 @@
             "path": "assets/world/relief/-10_-100.r1relief",
             "type": "Unknown"
         },
+        "15005085600262312794": {
+            "hash": 11364154721881515333,
+            "path": "assets/animals/horse_dark_chestnut.glb",
+            "type": "Mesh"
+        },
         "15014039112264628403": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-40_-100.r1relief",
             "type": "Unknown"
+        },
+        "15018877118331042251": {
+            "hash": 1344908908963377892,
+            "path": "assets/animals/piglet_coat2.glb",
+            "type": "Mesh"
         },
         "15019270674025316176": {
             "hash": 14382098499355686242,
             "path": "assets/models/humans/male_adult_05.glb",
             "type": "Mesh"
         },
+        "15046242000609598877": {
+            "hash": 4741852999408717507,
+            "path": "assets/animals/horse_marwari_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "15051883035274410978": {
             "hash": 13417212288921199733,
             "path": "assets/models/signs/fr_a2b-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "15053531973567117333": {
+            "hash": 15560460793176380791,
+            "path": "assets/animals/piglet.glb",
             "type": "Mesh"
         },
         "15068845917293142120": {
@@ -2305,10 +2920,20 @@
             "path": "assets/world/relief/80_-170.r1relief",
             "type": "Unknown"
         },
+        "15091199890790610991": {
+            "hash": 2680923588266727524,
+            "path": "assets/animals/horse_tessalian_coat6-lod1.glb",
+            "type": "Mesh"
+        },
         "15091276116193022988": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-50_100.r1relief",
             "type": "Unknown"
+        },
+        "15099535741665689579": {
+            "hash": 4839987279763204499,
+            "path": "assets/animals/rat_street.glb",
+            "type": "Mesh"
         },
         "15126908184701322189": {
             "hash": 9013606947392020511,
@@ -2375,9 +3000,29 @@
             "path": "assets/world/relief/0_-80.r1relief",
             "type": "Unknown"
         },
+        "15240946892593433057": {
+            "hash": 10949505382337432158,
+            "path": "assets/animals/rooster.glb",
+            "type": "Mesh"
+        },
         "15247092769261668782": {
             "hash": 6043226018940022389,
             "path": "assets/models/humans/business_female_01.glb",
+            "type": "Mesh"
+        },
+        "15255570565534730445": {
+            "hash": 5259946847326102821,
+            "path": "assets/animals/goat_coat3.glb",
+            "type": "Mesh"
+        },
+        "15262183505973822244": {
+            "hash": 12650039540177565212,
+            "path": "assets/animals/horse_lusitano_coat10.glb",
+            "type": "Mesh"
+        },
+        "15265106066199645022": {
+            "hash": 13654674527670367879,
+            "path": "assets/animals/bear_black.glb",
             "type": "Mesh"
         },
         "15267677689447440807": {
@@ -2415,6 +3060,16 @@
             "path": "assets/world/relief/-50_120.r1relief",
             "type": "Unknown"
         },
+        "15313261038483334592": {
+            "hash": 15268273235087738593,
+            "path": "assets/animals/horse_lusitano_coat10-lod1.glb",
+            "type": "Mesh"
+        },
+        "15316528786671695123": {
+            "hash": 1268512324958363309,
+            "path": "assets/animals/camel_coat2.glb",
+            "type": "Mesh"
+        },
         "15318806372839009494": {
             "hash": 18322863551816368959,
             "path": "assets/models/signs/street/glyph_0032-r1.glb",
@@ -2426,7 +3081,7 @@
             "type": "Unknown"
         },
         "15336490900835210494": {
-            "hash": 17132935539486642364,
+            "hash": 1270031335195377664,
             "path": "assets/models/external/nature_selected/urban_tree_far.source.json",
             "type": "Unknown"
         },
@@ -2465,10 +3120,20 @@
             "path": "assets/world/landmarks/landmarks.json",
             "type": "Unknown"
         },
+        "15381715672177367479": {
+            "hash": 13947247464942003590,
+            "path": "assets/animals/horse_tessalian_coat5.glb",
+            "type": "Mesh"
+        },
         "15389636537276212722": {
             "hash": 8093400889926101445,
             "path": "assets/world/relief/70_-160.r1relief",
             "type": "Unknown"
+        },
+        "15402328772790740695": {
+            "hash": 18087178116966699201,
+            "path": "assets/animals/giraffe_baby-lod1.glb",
+            "type": "Mesh"
         },
         "15403378481431819937": {
             "hash": 4467159018110602305,
@@ -2490,6 +3155,11 @@
             "path": "assets/world/relief/-40_-150.r1relief",
             "type": "Unknown"
         },
+        "15420539222368367525": {
+            "hash": 1063852864894847018,
+            "path": "assets/animals/horse_tessalian_coat11-lod1.glb",
+            "type": "Mesh"
+        },
         "1543162368239546887": {
             "hash": 2143852541283601873,
             "path": "assets/world/relief/60_110.r1relief",
@@ -2510,6 +3180,21 @@
             "path": "assets/textures/surfaces/sea_ice_normal.jpg",
             "type": "Texture"
         },
+        "1544027108282850363": {
+            "hash": 12064888333526644949,
+            "path": "assets/animals/pig1.glb",
+            "type": "Mesh"
+        },
+        "15445956767808763632": {
+            "hash": 13192658275408083977,
+            "path": "assets/animals/horse_marwari_coat7-lod1.glb",
+            "type": "Mesh"
+        },
+        "15487389366028029963": {
+            "hash": 5305308611142168822,
+            "path": "assets/animals/horse_cream_spotted_02.glb",
+            "type": "Mesh"
+        },
         "15491578503104452400": {
             "hash": 16814900377480840438,
             "path": "assets/world/relief/60_140.r1relief",
@@ -2525,6 +3210,16 @@
             "path": "assets/world/relief/60_50.r1relief",
             "type": "Unknown"
         },
+        "15519661052792693980": {
+            "hash": 13244433244266698977,
+            "path": "assets/animals/gorilla.glb",
+            "type": "Mesh"
+        },
+        "15521837955474907608": {
+            "hash": 17559944501201688367,
+            "path": "assets/animals/giraffe_baby_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "15531416187247797090": {
             "hash": 17386666085311909125,
             "path": "assets/world/relief/20_30.r1relief",
@@ -2535,6 +3230,11 @@
             "path": "assets/audio/combat/punch_hit.wav",
             "type": "Unknown"
         },
+        "1554629724200975967": {
+            "hash": 8757972077678460745,
+            "path": "assets/animals/rooster-lod1.glb",
+            "type": "Mesh"
+        },
         "15556823660141185662": {
             "hash": 9326661359347252162,
             "path": "assets/models/signs/faces/blade_right-r1.png",
@@ -2544,6 +3244,11 @@
             "hash": 7775269523683477814,
             "path": "assets/world/relief/-80_100.r1relief",
             "type": "Unknown"
+        },
+        "1557492794528398307": {
+            "hash": 2251773497507845494,
+            "path": "assets/animals/horse_coat9.glb",
+            "type": "Mesh"
         },
         "1557929129814296348": {
             "hash": 5023509231941440061,
@@ -2563,6 +3268,11 @@
         "15600754699772669762": {
             "hash": 14553747209151262835,
             "path": "assets/world/landmarks/arc_de_triomphe-r3-lod1.glb",
+            "type": "Mesh"
+        },
+        "15601195659739678360": {
+            "hash": 7848992589592937878,
+            "path": "assets/animals/camel.glb",
             "type": "Mesh"
         },
         "15606401792225018044": {
@@ -2585,10 +3295,20 @@
             "path": "assets/models/signs/street/glyph_00cf-r1.glb",
             "type": "Mesh"
         },
+        "15665538789400059542": {
+            "hash": 8897588649588231877,
+            "path": "assets/animals/horse_tessalian_coat5-lod1.glb",
+            "type": "Mesh"
+        },
         "15685313678389118020": {
             "hash": 10917355006684245255,
             "path": "assets/models/external/kenney_nature_kit/textures/fir_sapling_branches_diff_1k.jpg",
             "type": "Texture"
+        },
+        "15696634043019375968": {
+            "hash": 12970135136341344245,
+            "path": "assets/animals/pig1_coat2.glb",
+            "type": "Mesh"
         },
         "1570685038702122077": {
             "hash": 17797433525838920670,
@@ -2645,6 +3365,11 @@
             "path": "assets/models/humans/player.glb",
             "type": "Mesh"
         },
+        "15794734121460149417": {
+            "hash": 15854635829139965619,
+            "path": "assets/animals/horse_tessalian_coat7-lod1.glb",
+            "type": "Mesh"
+        },
         "15822022204290362615": {
             "hash": 4964235014381181392,
             "path": "assets/models/signs/faces/fr_ab4-petite-r1.png",
@@ -2675,6 +3400,11 @@
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_01_1k.gltf",
             "type": "Mesh"
         },
+        "15862226242973969454": {
+            "hash": 2063368442215678994,
+            "path": "assets/animals/elephant_asian.glb",
+            "type": "Mesh"
+        },
         "15872493553082209499": {
             "hash": 14194997668986241155,
             "path": "assets/world/relief/-80_140.r1relief",
@@ -2685,10 +3415,20 @@
             "path": "assets/textures/interiors/fascia_letters.png",
             "type": "Texture"
         },
+        "15885905182089659458": {
+            "hash": 15730938932563983051,
+            "path": "assets/animals/sheep3.glb",
+            "type": "Mesh"
+        },
         "15890668392637426056": {
             "hash": 8185652904074619921,
             "path": "assets/world/relief/-80_-150.r1relief",
             "type": "Unknown"
+        },
+        "15892145161941061340": {
+            "hash": 13417929052779770922,
+            "path": "assets/animals/gazelle.glb",
+            "type": "Mesh"
         },
         "15904582602319536590": {
             "hash": 15371111746914532538,
@@ -2699,6 +3439,11 @@
             "hash": 15325482622226185029,
             "path": "assets/world/relief/80_-80.r1relief",
             "type": "Unknown"
+        },
+        "15923201480035292476": {
+            "hash": 17685192765987230702,
+            "path": "assets/animals/wolf_coat2.glb",
+            "type": "Mesh"
         },
         "15974402442436961515": {
             "hash": 4374929012918634023,
@@ -2750,6 +3495,11 @@
             "path": "assets/skies/qwantani_morning.hdr",
             "type": "Texture"
         },
+        "16067981708787407253": {
+            "hash": 10952981532080151355,
+            "path": "assets/animals/horse_coat7.glb",
+            "type": "Mesh"
+        },
         "16072096863378621549": {
             "hash": 17461990697450425089,
             "path": "assets/world/relief/-10_-20.r1relief",
@@ -2800,6 +3550,11 @@
             "path": "assets/world/relief/10_-180.r1relief",
             "type": "Unknown"
         },
+        "16151892812946334517": {
+            "hash": 9322959373297330029,
+            "path": "assets/animals/giraffe_adult-lod1.glb",
+            "type": "Mesh"
+        },
         "16156295573794926077": {
             "hash": 7226361754764992701,
             "path": "assets/world/relief/-90_60.r1relief",
@@ -2835,6 +3590,11 @@
             "path": "assets/world/relief/-10_-110.r1relief",
             "type": "Unknown"
         },
+        "16237461721672858506": {
+            "hash": 4479716985357446415,
+            "path": "assets/animals/pony_coat3.glb",
+            "type": "Mesh"
+        },
         "16276878959858615598": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-10_-30.r1relief",
@@ -2844,6 +3604,16 @@
             "hash": 11270970455807291235,
             "path": "assets/world/relief/-60_-60.r1relief",
             "type": "Unknown"
+        },
+        "16313093302281123990": {
+            "hash": 17408573947730944264,
+            "path": "assets/animals/goat_coat2.glb",
+            "type": "Mesh"
+        },
+        "16330309038268745101": {
+            "hash": 1394578423313135037,
+            "path": "assets/animals/dolphin.glb",
+            "type": "Mesh"
         },
         "16344114580802182422": {
             "hash": 6271810807875847883,
@@ -2870,10 +3640,20 @@
             "path": "assets/world/relief/-70_-130.r1relief",
             "type": "Unknown"
         },
+        "16375225218042881433": {
+            "hash": 2318873752583910566,
+            "path": "assets/animals/goat_shape2-lod1.glb",
+            "type": "Mesh"
+        },
         "1638620057791322177": {
             "hash": 12109478806974217964,
             "path": "assets/models/signs/faces/blade_glyphs-r1.png",
             "type": "Texture"
+        },
+        "16398069353237306149": {
+            "hash": 12271817010799194339,
+            "path": "assets/animals/horse_breed_coat7.glb",
+            "type": "Mesh"
         },
         "16406322642272135953": {
             "hash": 15454339488101706640,
@@ -2881,7 +3661,7 @@
             "type": "Unknown"
         },
         "16422651030829251198": {
-            "hash": 10954432584959326379,
+            "hash": 3481531013316873479,
             "path": "assets/licenses/CC0-1.0.txt",
             "type": "Unknown"
         },
@@ -2920,10 +3700,30 @@
             "path": "assets/world/relief/-70_-180.r1relief",
             "type": "Unknown"
         },
+        "16481405526510250264": {
+            "hash": 13329960762764735902,
+            "path": "assets/animals/sanga_cattle_coat3.glb",
+            "type": "Mesh"
+        },
+        "16494091130058138322": {
+            "hash": 18171876817082345509,
+            "path": "assets/animals/crocodile-lod1.glb",
+            "type": "Mesh"
+        },
         "16511646824310241969": {
             "hash": 13172674741100611337,
             "path": "assets/world/relief/-80_80.r1relief",
             "type": "Unknown"
+        },
+        "16516343659390846534": {
+            "hash": 4888527824760609180,
+            "path": "assets/animals/tuna-lod1.glb",
+            "type": "Mesh"
+        },
+        "16518538378655332056": {
+            "hash": 18372025807628834173,
+            "path": "assets/animals/cow-lod1.glb",
+            "type": "Mesh"
         },
         "16520447066454880581": {
             "hash": 183446799793435164,
@@ -2955,6 +3755,11 @@
             "path": "assets/world/landmarks/far.json",
             "type": "Unknown"
         },
+        "16628569087202617370": {
+            "hash": 17205514637253108470,
+            "path": "assets/animals/turtle_sea.glb",
+            "type": "Mesh"
+        },
         "16629124745024814850": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-90_-140.r1relief",
@@ -2973,6 +3778,11 @@
         "16674097435083625614": {
             "hash": 654653369609063748,
             "path": "assets/models/external/kenney_nature_kit/tree_pineTallA.glb",
+            "type": "Mesh"
+        },
+        "1668666643808606823": {
+            "hash": 15032122731542901429,
+            "path": "assets/animals/fox_red-lod1.glb",
             "type": "Mesh"
         },
         "16713317384767212454": {
@@ -2999,6 +3809,11 @@
             "hash": 9948885811036466603,
             "path": "assets/world/relief/-30_-50.r1relief",
             "type": "Unknown"
+        },
+        "16746456603899635818": {
+            "hash": 11069271492865851605,
+            "path": "assets/animals/horse_persian_coat7-lod1.glb",
+            "type": "Mesh"
         },
         "16746999768878422106": {
             "hash": 10757505343219134858,
@@ -3045,6 +3860,11 @@
             "path": "assets/world/relief/10_30.r1relief",
             "type": "Unknown"
         },
+        "16893007312182807979": {
+            "hash": 2684742516272002850,
+            "path": "assets/animals/lizard.glb",
+            "type": "Mesh"
+        },
         "1690029853685214259": {
             "hash": 13028677314035306415,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_diff_1k.jpg",
@@ -3075,10 +3895,35 @@
             "path": "assets/textures/facades/earth_and_window_mr.jpg",
             "type": "Texture"
         },
+        "1696173518305115574": {
+            "hash": 6472638867488965534,
+            "path": "assets/animals/mastiff.glb",
+            "type": "Mesh"
+        },
+        "16964326552282548660": {
+            "hash": 4404761014104114685,
+            "path": "assets/animals/lioness.glb",
+            "type": "Mesh"
+        },
+        "16964858375488453732": {
+            "hash": 7012294832020582248,
+            "path": "assets/animals/giraffe_adult.glb",
+            "type": "Mesh"
+        },
         "16974271610987079637": {
             "hash": 10766979759441326232,
             "path": "assets/world/relief/0_70.r1relief",
             "type": "Unknown"
+        },
+        "17019859166606914717": {
+            "hash": 11549923546963135586,
+            "path": "assets/animals/horse_lusitano_coat4.glb",
+            "type": "Mesh"
+        },
+        "17038618714433710086": {
+            "hash": 6661628984770113969,
+            "path": "assets/animals/bear_white.glb",
+            "type": "Mesh"
         },
         "17056593193120532598": {
             "hash": 11523398484327481671,
@@ -3120,6 +3965,11 @@
             "path": "assets/world/relief/10_20.r1relief",
             "type": "Unknown"
         },
+        "17090425912558301543": {
+            "hash": 9725775894778692740,
+            "path": "assets/animals/pig1_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "17104416981848005326": {
             "hash": 6675712724759085573,
             "path": "assets/models/signs/town/plate_middle_1-r1.glb",
@@ -3129,6 +3979,11 @@
             "hash": 1423244832286821060,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_arm_1k.jpg",
             "type": "Texture"
+        },
+        "17139579851476463585": {
+            "hash": 147363454518059043,
+            "path": "assets/animals/horse_brown_spotted_01-lod1.glb",
+            "type": "Mesh"
         },
         "17144800553041866684": {
             "hash": 12945079505330682835,
@@ -3190,6 +4045,11 @@
             "path": "assets/world/relief/-50_20.r1relief",
             "type": "Unknown"
         },
+        "17240335574862857149": {
+            "hash": 13334604202986615370,
+            "path": "assets/animals/zebu_coat4.glb",
+            "type": "Mesh"
+        },
         "17248506907281249648": {
             "hash": 10932137278839319786,
             "path": "assets/licenses/pine_tall-CC0.txt",
@@ -3204,6 +4064,16 @@
             "hash": 11282967632070341689,
             "path": "assets/textures/surfaces/quay_normal.jpg",
             "type": "Texture"
+        },
+        "17256221537374027791": {
+            "hash": 16734592815205353045,
+            "path": "assets/animals/cow_coat2_shape2.glb",
+            "type": "Mesh"
+        },
+        "17259324043745521596": {
+            "hash": 13954755026306222462,
+            "path": "assets/animals/horse_fading_black.glb",
+            "type": "Mesh"
         },
         "17261841780197958680": {
             "hash": 5765808655947500619,
@@ -3220,6 +4090,11 @@
             "path": "assets/world/relief/-10_120.r1relief",
             "type": "Unknown"
         },
+        "17270452631753480467": {
+            "hash": 8288780529405094061,
+            "path": "assets/animals/horse_breed_coat8-lod1.glb",
+            "type": "Mesh"
+        },
         "17280004005013419371": {
             "hash": 13434757372385016669,
             "path": "assets/world/relief/50_0.r1relief",
@@ -3233,6 +4108,21 @@
         "17309847712458287065": {
             "hash": 16432502971749119161,
             "path": "assets/models/signs/town/glyph_0178-r1.glb",
+            "type": "Mesh"
+        },
+        "17314532437520998385": {
+            "hash": 14212876939051619700,
+            "path": "assets/animals/wolfhound.glb",
+            "type": "Mesh"
+        },
+        "17344121677264931639": {
+            "hash": 1444775526757050511,
+            "path": "assets/animals/sanga_cattle_coat5-lod1.glb",
+            "type": "Mesh"
+        },
+        "17380488133490682206": {
+            "hash": 3976889832786423886,
+            "path": "assets/animals/sanga_cattle_coat5_shape2.glb",
             "type": "Mesh"
         },
         "17383772637242777752": {
@@ -3253,6 +4143,11 @@
         "17401933841249509415": {
             "hash": 17835279069351043481,
             "path": "assets/models/vehicles/bus.glb",
+            "type": "Mesh"
+        },
+        "17406353232586539262": {
+            "hash": 5693581717149432431,
+            "path": "assets/animals/goat-lod1.glb",
             "type": "Mesh"
         },
         "1741456328813597619": {
@@ -3375,6 +4270,11 @@
             "path": "assets/world/relief/50_10.r1relief",
             "type": "Unknown"
         },
+        "17612307308626085246": {
+            "hash": 1059331530132911505,
+            "path": "assets/animals/pigeon_rock.glb",
+            "type": "Mesh"
+        },
         "17618026215103060089": {
             "hash": 2138165183204490415,
             "path": "assets/models/signs/fr_ab4-rural-r1.glb",
@@ -3394,6 +4294,11 @@
             "hash": 6534600943456148018,
             "path": "assets/models/signs/faces/town_left_1-r1.png",
             "type": "Texture"
+        },
+        "17655975926627508868": {
+            "hash": 57158321714381663,
+            "path": "assets/animals/horse_tessalian_coat4.glb",
+            "type": "Mesh"
         },
         "17657942456247716623": {
             "hash": 16391702666216588376,
@@ -3450,6 +4355,11 @@
             "path": "assets/world/relief/0_-180.r1relief",
             "type": "Unknown"
         },
+        "17754186536284523959": {
+            "hash": 15451147550945961929,
+            "path": "assets/animals/horse_marwari_coat8-lod1.glb",
+            "type": "Mesh"
+        },
         "1777072293541225068": {
             "hash": 13740595242360371613,
             "path": "assets/world/landmarks/petronas_towers-r3.glb",
@@ -3460,20 +4370,40 @@
             "path": "assets/models/signs/faces/town_right_2-r1.png",
             "type": "Texture"
         },
+        "1778328341184922151": {
+            "hash": 3594364576389571754,
+            "path": "assets/animals/zebu_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "1780687026468092736": {
             "hash": 14015673913413568428,
             "path": "assets/world/relief/80_30.r1relief",
             "type": "Unknown"
+        },
+        "17815376074823856590": {
+            "hash": 13302111813637028527,
+            "path": "assets/animals/optimisation-comparaison.jpg",
+            "type": "Texture"
         },
         "17823303393505228115": {
             "hash": 12660886986117954902,
             "path": "assets/world/relief/60_-80.r1relief",
             "type": "Unknown"
         },
+        "17839539815427399848": {
+            "hash": 16652189472281839461,
+            "path": "assets/animals/chicken_kelgar-lod1.glb",
+            "type": "Mesh"
+        },
         "17845716863592566774": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-60_-110.r1relief",
             "type": "Unknown"
+        },
+        "17874757231886646975": {
+            "hash": 18242272164603861821,
+            "path": "assets/animals/crow.glb",
+            "type": "Mesh"
         },
         "17877762055017357705": {
             "hash": 6345430126714734293,
@@ -3560,6 +4490,21 @@
             "path": "assets/world/relief/30_0.r1relief",
             "type": "Unknown"
         },
+        "18127432032295447758": {
+            "hash": 1178285244467989481,
+            "path": "assets/animals/horse_persian_coat10.glb",
+            "type": "Mesh"
+        },
+        "181385611285393960": {
+            "hash": 12065244681112857316,
+            "path": "assets/animals/licenses/CC0-1.0.txt",
+            "type": "Unknown"
+        },
+        "18150334147664459285": {
+            "hash": 8035760097441384388,
+            "path": "assets/animals/sanga_cattle_coat4_shape2-lod1.glb",
+            "type": "Mesh"
+        },
         "1815177608969987041": {
             "hash": 125655634871195264,
             "path": "assets/world/relief/-60_150.r1relief",
@@ -3585,6 +4530,11 @@
             "path": "assets/models/external/trees_lod/pine_sapling.glb",
             "type": "Mesh"
         },
+        "18206718416901664267": {
+            "hash": 2510423877699084023,
+            "path": "assets/animals/gazelle-lod1.glb",
+            "type": "Mesh"
+        },
         "18211401651805980454": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/30_160.r1relief",
@@ -3598,6 +4548,11 @@
         "18252259411093574504": {
             "hash": 5081730253735385144,
             "path": "assets/models/signs/town/plate_left_2-r1.glb",
+            "type": "Mesh"
+        },
+        "18262268573578448818": {
+            "hash": 7530232475608497549,
+            "path": "assets/animals/crocodile.glb",
             "type": "Mesh"
         },
         "18262977636455987627": {
@@ -3650,10 +4605,20 @@
             "path": "assets/world/relief/-70_-10.r1relief",
             "type": "Unknown"
         },
+        "18325748192587955731": {
+            "hash": 5912917657161233837,
+            "path": "assets/animals/horse_marwari_coat3-lod1.glb",
+            "type": "Mesh"
+        },
         "18341835463333151221": {
             "hash": 9209981017684157061,
             "path": "assets/textures/surfaces/sand_beach_normal.jpg",
             "type": "Texture"
+        },
+        "18346570859398937993": {
+            "hash": 137231678101660668,
+            "path": "assets/animals/horse_persian_coat3-lod1.glb",
+            "type": "Mesh"
         },
         "18353491664782057289": {
             "hash": 6271810807875847883,
@@ -3679,6 +4644,16 @@
             "hash": 3493117419224747185,
             "path": "assets/models/external/kenney_nature_kit/textures/pine_sapling_small_bark_nor_gl_1k.jpg",
             "type": "Texture"
+        },
+        "18409291482962684843": {
+            "hash": 11565514823922133514,
+            "path": "assets/animals/lion.glb",
+            "type": "Mesh"
+        },
+        "18414506667016771898": {
+            "hash": 3763168647555726668,
+            "path": "assets/animals/zebu_coat4-lod1.glb",
+            "type": "Mesh"
         },
         "18425978904761900287": {
             "hash": 10327015221202475883,
@@ -3730,6 +4705,11 @@
             "path": "assets/world/relief/60_-20.r1relief",
             "type": "Unknown"
         },
+        "1893925622766962782": {
+            "hash": 1126699987936850496,
+            "path": "assets/animals/horse_persian_coat7.glb",
+            "type": "Mesh"
+        },
         "1899071426680634093": {
             "hash": 3122417947645278000,
             "path": "assets/world/relief/-20_90.r1relief",
@@ -3744,6 +4724,11 @@
             "hash": 2373099783392069278,
             "path": "assets/world/relief/30_-130.r1relief",
             "type": "Unknown"
+        },
+        "1914490743611247355": {
+            "hash": 5122402623274691840,
+            "path": "assets/animals/horse_coat9-lod1.glb",
+            "type": "Mesh"
         },
         "1936268649989577218": {
             "hash": 1144875953187031150,
@@ -3760,6 +4745,16 @@
             "path": "assets/world/landmarks/arc_de_triomphe-r3.glb",
             "type": "Mesh"
         },
+        "1969527961575977326": {
+            "hash": 11210736975857614477,
+            "path": "assets/animals/horse_lusitano_coat6.glb",
+            "type": "Mesh"
+        },
+        "1971628580414079357": {
+            "hash": 6114805580146619427,
+            "path": "assets/animals/horse_breed_coat9.glb",
+            "type": "Mesh"
+        },
         "1976119933377166198": {
             "hash": 13280626421414948436,
             "path": "assets/world/relief/-50_50.r1relief",
@@ -3770,9 +4765,19 @@
             "path": "assets/models/signs/faces/fr_ab4-normale-r1.png",
             "type": "Texture"
         },
+        "1990415622180483199": {
+            "hash": 16465175337972710189,
+            "path": "assets/animals/sanga_cattle_coat3_shape2.glb",
+            "type": "Mesh"
+        },
         "201044790415930027": {
             "hash": 1878491404153222386,
             "path": "assets/models/external/understory/grass_medium_02_mid.glb",
+            "type": "Mesh"
+        },
+        "2020429154212062546": {
+            "hash": 4290204255625443324,
+            "path": "assets/animals/sanga_cattle_coat2_shape2-lod1.glb",
             "type": "Mesh"
         },
         "2029300259554516552": {
@@ -3820,10 +4825,25 @@
             "path": "assets/audio/arrival/wind_freefall.wav",
             "type": "Unknown"
         },
+        "2119202539464976870": {
+            "hash": 11759421297109608540,
+            "path": "assets/animals/horse_tessalian_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "2121697836578779773": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/70_0.r1relief",
             "type": "Unknown"
+        },
+        "2125741155062622758": {
+            "hash": 9151476839364104159,
+            "path": "assets/animals/deer_coat3-lod1.glb",
+            "type": "Mesh"
+        },
+        "2136098928305455653": {
+            "hash": 10065469065465093014,
+            "path": "assets/animals/horse_skewbald-lod1.glb",
+            "type": "Mesh"
         },
         "2136220535477230864": {
             "hash": 396472515186318662,
@@ -3834,6 +4854,11 @@
             "hash": 17407505676961943980,
             "path": "assets/textures/surfaces/cobbles_mr.jpg",
             "type": "Texture"
+        },
+        "2170831833394160614": {
+            "hash": 7710466798785609835,
+            "path": "assets/animals/horse_breed_coat3-lod1.glb",
+            "type": "Mesh"
         },
         "2196371411785405274": {
             "hash": 15704420140661162721,
@@ -3860,10 +4885,20 @@
             "path": "assets/world/relief/-10_150.r1relief",
             "type": "Unknown"
         },
+        "2217642101322487931": {
+            "hash": 705346909695896338,
+            "path": "assets/animals/manifest.json",
+            "type": "Unknown"
+        },
         "2246446535788556816": {
             "hash": 17897537739499757226,
             "path": "assets/world/relief/50_50.r1relief",
             "type": "Unknown"
+        },
+        "2250064972761349722": {
+            "hash": 8393761436327835866,
+            "path": "assets/animals/pigeon_rock-lod1.glb",
+            "type": "Mesh"
         },
         "2250354519917703610": {
             "hash": 10800701854122781251,
@@ -3880,10 +4915,20 @@
             "path": "assets/textures/surfaces/ashlar_rough_albedo.jpg",
             "type": "Texture"
         },
+        "2274933463246219367": {
+            "hash": 2119247390592611645,
+            "path": "assets/animals/horse_breed_coat4-lod1.glb",
+            "type": "Mesh"
+        },
         "2281047134823865316": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/30_170.r1relief",
             "type": "Unknown"
+        },
+        "2284010418542420344": {
+            "hash": 3295387510070043971,
+            "path": "assets/animals/pike-lod1.glb",
+            "type": "Mesh"
         },
         "2286017557580471756": {
             "hash": 10503059022076366448,
@@ -3915,6 +4960,11 @@
             "path": "assets/models/signs/fr_b14_110-urban-r1.glb",
             "type": "Mesh"
         },
+        "2331397499158974022": {
+            "hash": 1546568350236208648,
+            "path": "assets/animals/piglet_coat3.glb",
+            "type": "Mesh"
+        },
         "2335748679951839597": {
             "hash": 15152739102907154194,
             "path": "assets/textures/facades/siding_and_window_albedo.jpg",
@@ -3935,6 +4985,11 @@
             "path": "assets/world/relief/40_10.r1relief",
             "type": "Unknown"
         },
+        "2382117580764269107": {
+            "hash": 11486750441786652892,
+            "path": "assets/animals/camel-lod1.glb",
+            "type": "Mesh"
+        },
         "2382862736661121642": {
             "hash": 14600059548062775565,
             "path": "assets/world/relief/-70_100.r1relief",
@@ -3945,9 +5000,19 @@
             "path": "assets/models/signs/town/glyph_0055-r1.glb",
             "type": "Mesh"
         },
+        "2389789843506909806": {
+            "hash": 14953365805898439544,
+            "path": "assets/animals/owl_eagle-lod1.glb",
+            "type": "Mesh"
+        },
         "239446624472743780": {
             "hash": 14930807966191005901,
             "path": "assets/models/external/understory/fern_02_mid.glb",
+            "type": "Mesh"
+        },
+        "23959664751093593": {
+            "hash": 9550625685828083433,
+            "path": "assets/animals/horse_lusitano_coat2.glb",
             "type": "Mesh"
         },
         "2403310405579371887": {
@@ -4020,10 +5085,20 @@
             "path": "assets/world/relief/30_10.r1relief",
             "type": "Unknown"
         },
+        "2518956396267944314": {
+            "hash": 10953834088702148429,
+            "path": "assets/animals/pig1_coat3-lod1.glb",
+            "type": "Mesh"
+        },
         "2532414078987943455": {
             "hash": 2370604906491365521,
             "path": "assets/models/external/understory/shrub_04.source.json",
             "type": "Unknown"
+        },
+        "2540287070427704186": {
+            "hash": 17046861567944257725,
+            "path": "assets/animals/cow_coat3_shape2.glb",
+            "type": "Mesh"
         },
         "2558717325342585244": {
             "hash": 14705787503399687035,
@@ -4035,15 +5110,35 @@
             "path": "assets/world/landmarks/st_peters_basilica-r3-lod1.glb",
             "type": "Mesh"
         },
+        "2566761186809954812": {
+            "hash": 6927020501906543610,
+            "path": "assets/animals/wasp_realistic-lod1.glb",
+            "type": "Mesh"
+        },
         "2588424575745427250": {
             "hash": 5120502853837879303,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_diff_1k.jpg",
             "type": "Texture"
         },
+        "2594285160650335421": {
+            "hash": 14367643930030931551,
+            "path": "assets/animals/bull_shape2-lod1.glb",
+            "type": "Mesh"
+        },
+        "259457412452283534": {
+            "hash": 7235956107104923516,
+            "path": "assets/animals/shark_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "2602737661161441885": {
             "hash": 10196444108429298636,
             "path": "assets/licenses/Road-vehicles-CC-BY-3.0.txt",
             "type": "Unknown"
+        },
+        "2605069382689314478": {
+            "hash": 17780884016357364941,
+            "path": "assets/animals/horse_tessalian_coat11.glb",
+            "type": "Mesh"
         },
         "2606656358282053895": {
             "hash": 10350745848097048193,
@@ -4085,6 +5180,11 @@
             "path": "assets/world/relief/10_-20.r1relief",
             "type": "Unknown"
         },
+        "2736491762186004685": {
+            "hash": 5087506089810820328,
+            "path": "assets/animals/deer_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "2736814340238292004": {
             "hash": 12677403637926553871,
             "path": "assets/models/signs/street/glyph_0036-r1.glb",
@@ -4105,15 +5205,25 @@
             "path": "assets/world/relief/60_0.r1relief",
             "type": "Unknown"
         },
+        "2761559508779459959": {
+            "hash": 191945069073876147,
+            "path": "assets/animals/horse_lusitano_coat3.glb",
+            "type": "Mesh"
+        },
         "2761878184278259819": {
             "hash": 13359917934413413209,
             "path": "assets/textures/surfaces/pavement_albedo.jpg",
             "type": "Texture"
         },
         "2763471623495127685": {
-            "hash": 5014523141099644138,
+            "hash": 10679610371720196889,
             "path": "scenes/earth.scene",
             "type": "Scene"
+        },
+        "2766185237628295636": {
+            "hash": 12237913937517672341,
+            "path": "assets/animals/horse_skewbald.glb",
+            "type": "Mesh"
         },
         "2775944044559643767": {
             "hash": 4489322834505537641,
@@ -4135,6 +5245,11 @@
             "path": "assets/world/relief/60_160.r1relief",
             "type": "Unknown"
         },
+        "2807099659678643203": {
+            "hash": 9266938872404264934,
+            "path": "assets/animals/parrot_macaw-lod1.glb",
+            "type": "Mesh"
+        },
         "283357904839232564": {
             "hash": 3955565712810904781,
             "path": "assets/models/external/understory/shrub_01_normal.png",
@@ -4144,6 +5259,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-60_-120.r1relief",
             "type": "Unknown"
+        },
+        "2834819119817802135": {
+            "hash": 9872001849335212941,
+            "path": "assets/animals/pony.glb",
+            "type": "Mesh"
         },
         "2851329129661817547": {
             "hash": 1548406501316860650,
@@ -4164,6 +5284,11 @@
             "hash": 6827235436146963584,
             "path": "assets/world/relief/0_-90.r1relief",
             "type": "Unknown"
+        },
+        "2890764563934337033": {
+            "hash": 14896592384107336422,
+            "path": "assets/animals/sanga_cattle_coat2_shape2.glb",
+            "type": "Mesh"
         },
         "2894971103443224287": {
             "hash": 6271810807875847883,
@@ -4199,6 +5324,16 @@
             "hash": 10153314693563972370,
             "path": "assets/world/relief/60_-140.r1relief",
             "type": "Unknown"
+        },
+        "2954786435013760170": {
+            "hash": 11196378889363492856,
+            "path": "assets/animals/fish_kelgar.glb",
+            "type": "Mesh"
+        },
+        "2956248386334342782": {
+            "hash": 11124453201680472522,
+            "path": "assets/animals/elephant_african_bush.glb",
+            "type": "Mesh"
         },
         "2962791567303176859": {
             "hash": 13491183949331328811,
@@ -4265,6 +5400,21 @@
             "path": "assets/world/relief/-10_90.r1relief",
             "type": "Unknown"
         },
+        "3129953046625834787": {
+            "hash": 13228193787022841416,
+            "path": "assets/animals/horse_palomino_01-lod1.glb",
+            "type": "Mesh"
+        },
+        "3148352657432897204": {
+            "hash": 6975323515353169387,
+            "path": "assets/animals/pony_coat2-lod1.glb",
+            "type": "Mesh"
+        },
+        "3154644104654527341": {
+            "hash": 4268346033530163057,
+            "path": "assets/animals/elephant_asian-lod1.glb",
+            "type": "Mesh"
+        },
         "3163245086542667188": {
             "hash": 14422538673024725545,
             "path": "assets/world/relief/-30_30.r1relief",
@@ -4273,6 +5423,11 @@
         "316919187590699364": {
             "hash": 872125291051203550,
             "path": "assets/models/signs/town/glyph_002e-r1.glb",
+            "type": "Mesh"
+        },
+        "3173905128233650292": {
+            "hash": 3608952088078785033,
+            "path": "assets/animals/eagle_bald.glb",
             "type": "Mesh"
         },
         "319219843216007288": {
@@ -4290,6 +5445,11 @@
             "path": "assets/models/external/nature_cards/quiver_tree_slim.glb",
             "type": "Mesh"
         },
+        "3219077246129067525": {
+            "hash": 1076773595408206189,
+            "path": "assets/animals/horse_coat5-lod1.glb",
+            "type": "Mesh"
+        },
         "3223051624999020831": {
             "hash": 9539896068358422103,
             "path": "assets/models/signs/faces/fr_b14_30-petite-r1.png",
@@ -4299,6 +5459,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-60_130.r1relief",
             "type": "Unknown"
+        },
+        "3240267911299758376": {
+            "hash": 154342139783313084,
+            "path": "assets/animals/tuna.glb",
+            "type": "Mesh"
         },
         "3244673031967574466": {
             "hash": 12267009106614660438,
@@ -4334,6 +5499,21 @@
             "hash": 7025206355911740457,
             "path": "assets/textures/facades/render_and_window_height.jpg",
             "type": "Texture"
+        },
+        "3313486781371824130": {
+            "hash": 6925228403924842646,
+            "path": "assets/animals/turtle_pond-lod1.glb",
+            "type": "Mesh"
+        },
+        "3354410957099971557": {
+            "hash": 8748433865863026821,
+            "path": "assets/animals/dolphin-lod1.glb",
+            "type": "Mesh"
+        },
+        "3372299876213876227": {
+            "hash": 11712932286322917707,
+            "path": "assets/animals/deer-lod1.glb",
+            "type": "Mesh"
         },
         "3376173103220870612": {
             "hash": 13958972529778434561,
@@ -4384,6 +5564,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-40_-140.r1relief",
             "type": "Unknown"
+        },
+        "3449507290687957111": {
+            "hash": 7383002386699122248,
+            "path": "assets/animals/horse_marwari_coat6-lod1.glb",
+            "type": "Mesh"
         },
         "3459007977231208420": {
             "hash": 16910708569790582966,
@@ -4443,6 +5628,11 @@
         "3516927098415312302": {
             "hash": 6776648561178229993,
             "path": "assets/models/signs/town/glyph_004f-r1.glb",
+            "type": "Mesh"
+        },
+        "3519467540906831750": {
+            "hash": 3165457667115900473,
+            "path": "assets/animals/horse_tessalian_coat2.glb",
             "type": "Mesh"
         },
         "3529604648429366441": {
@@ -4510,6 +5700,11 @@
             "path": "assets/world/relief/-70_-160.r1relief",
             "type": "Unknown"
         },
+        "3632597458806800388": {
+            "hash": 9898909755858969918,
+            "path": "assets/animals/horse_persian.glb",
+            "type": "Mesh"
+        },
         "3643062368830655237": {
             "hash": 14410102521837192256,
             "path": "assets/world/relief/-90_120.r1relief",
@@ -4558,6 +5753,11 @@
         "3695884678095450690": {
             "hash": 6784178022864065099,
             "path": "assets/models/signs/street/glyph_00c4-r1.glb",
+            "type": "Mesh"
+        },
+        "3719850505565981890": {
+            "hash": 1276738281863629693,
+            "path": "assets/animals/robin.glb",
             "type": "Mesh"
         },
         "3730037659156948755": {
@@ -4615,6 +5815,16 @@
             "path": "assets/world/relief/-70_-170.r1relief",
             "type": "Unknown"
         },
+        "3899518631170362166": {
+            "hash": 15741717046333085307,
+            "path": "assets/animals/shrike.glb",
+            "type": "Mesh"
+        },
+        "3904232494138395932": {
+            "hash": 16656599265665005114,
+            "path": "assets/animals/horse_persian_coat5.glb",
+            "type": "Mesh"
+        },
         "3909295429217055768": {
             "hash": 10088325518444789219,
             "path": "assets/models/external/understory/grass_medium_02_near.glb",
@@ -4623,6 +5833,11 @@
         "3916916485640998989": {
             "hash": 11559480275770802597,
             "path": "assets/models/external/polyhaven_trees/fir_sapling_1k.gltf",
+            "type": "Mesh"
+        },
+        "3918043318152320385": {
+            "hash": 2389345702911906993,
+            "path": "assets/animals/arctic_wolf.glb",
             "type": "Mesh"
         },
         "3918998752220943297": {
@@ -4659,6 +5874,11 @@
             "hash": 13781747487527074433,
             "path": "assets/world/relief/10_110.r1relief",
             "type": "Unknown"
+        },
+        "402919358668782503": {
+            "hash": 2493793319237381118,
+            "path": "assets/animals/bull_shape2.glb",
+            "type": "Mesh"
         },
         "405135692187018739": {
             "hash": 1357011881855934209,
@@ -4735,6 +5955,11 @@
             "path": "assets/models/external/nature_cards/quiver_tree.png",
             "type": "Texture"
         },
+        "4190243606833812277": {
+            "hash": 2684797955467003954,
+            "path": "assets/animals/crow-lod1.glb",
+            "type": "Mesh"
+        },
         "4208383206889135192": {
             "hash": 13251916868029479985,
             "path": "assets/world/landmarks/statue_of_liberty-r3-lod2.glb",
@@ -4744,6 +5969,11 @@
             "hash": 11491159715831056766,
             "path": "assets/world/relief/-30_-90.r1relief",
             "type": "Unknown"
+        },
+        "421577362822502992": {
+            "hash": 15450877434700805588,
+            "path": "assets/animals/horse_persian_coat11-lod1.glb",
+            "type": "Mesh"
         },
         "4220642537586115279": {
             "hash": 11773757729871425676,
@@ -4800,9 +6030,19 @@
             "path": "assets/models/signs/fr_ab4-urban-r1.glb",
             "type": "Mesh"
         },
+        "4337879589272815156": {
+            "hash": 12741154371328316087,
+            "path": "assets/animals/ant-lod1.glb",
+            "type": "Mesh"
+        },
         "433788652062831255": {
             "hash": 15040395979837605170,
             "path": "assets/models/signs/town/glyph_0045-r1.glb",
+            "type": "Mesh"
+        },
+        "4342433334483278268": {
+            "hash": 1421129246860170873,
+            "path": "assets/animals/pony_coat2.glb",
             "type": "Mesh"
         },
         "4346115515654796156": {
@@ -4865,6 +6105,11 @@
             "path": "assets/world/relief/50_20.r1relief",
             "type": "Unknown"
         },
+        "4495098602837464288": {
+            "hash": 14636181695993744106,
+            "path": "assets/animals/comparaison-ajouts-2.jpg",
+            "type": "Texture"
+        },
         "4498234675306915879": {
             "hash": 1609150225372808994,
             "path": "assets/world/relief/70_-140.r1relief",
@@ -4889,6 +6134,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/0_-30.r1relief",
             "type": "Unknown"
+        },
+        "450857067251765426": {
+            "hash": 13604911085980383779,
+            "path": "assets/animals/sanga_cattle_coat5_shape2-lod1.glb",
+            "type": "Mesh"
         },
         "4511212367070882585": {
             "hash": 9495786222153652492,
@@ -4925,15 +6175,40 @@
             "path": "assets/world/relief/30_60.r1relief",
             "type": "Unknown"
         },
+        "4559695974345858747": {
+            "hash": 3281357711539122832,
+            "path": "assets/animals/cat_tabby.glb",
+            "type": "Mesh"
+        },
         "4565894782901207360": {
             "hash": 524711282558976273,
             "path": "assets/textures/surfaces/sand_beach_mr.jpg",
             "type": "Texture"
         },
+        "4577370221372364877": {
+            "hash": 550812844907083336,
+            "path": "assets/animals/zebu.glb",
+            "type": "Mesh"
+        },
         "4590983136915026712": {
             "hash": 15133306391966583055,
             "path": "assets/world/relief/50_-110.r1relief",
             "type": "Unknown"
+        },
+        "4597781172586751771": {
+            "hash": 6582999491936978563,
+            "path": "assets/animals/catalog.csv",
+            "type": "Unknown"
+        },
+        "4614257814560460745": {
+            "hash": 2694920551758634050,
+            "path": "assets/animals/pony_coat3-lod1.glb",
+            "type": "Mesh"
+        },
+        "4615518263280808832": {
+            "hash": 2757491569270430622,
+            "path": "assets/animals/horse_breed_coat5-lod1.glb",
+            "type": "Mesh"
         },
         "4630541755821531324": {
             "hash": 9087799989069191293,
@@ -4945,6 +6220,11 @@
             "path": "assets/world/relief/-90_90.r1relief",
             "type": "Unknown"
         },
+        "4648259973880166937": {
+            "hash": 4281630864463080976,
+            "path": "assets/animals/lioness-lod1.glb",
+            "type": "Mesh"
+        },
         "4648494310648111057": {
             "hash": 2254892956889973019,
             "path": "assets/world/relief/10_90.r1relief",
@@ -4954,6 +6234,11 @@
             "hash": 17426015823916506103,
             "path": "assets/models/external/nature_cards/fir_sapling.source.json",
             "type": "Unknown"
+        },
+        "4688074988040258337": {
+            "hash": 8018648734823514639,
+            "path": "assets/animals/bear_brown-lod1.glb",
+            "type": "Mesh"
         },
         "4697510989683092945": {
             "hash": 6293425953422442901,
@@ -4978,6 +6263,16 @@
         "4713365770161433739": {
             "hash": 9555140502420367543,
             "path": "assets/world/landmarks/sydney_opera_house-r3-lod2.glb",
+            "type": "Mesh"
+        },
+        "4725469749894051576": {
+            "hash": 6093337974952598595,
+            "path": "assets/animals/sheep1.glb",
+            "type": "Mesh"
+        },
+        "472547334407060466": {
+            "hash": 4186890529736686001,
+            "path": "assets/animals/horse_breed_coat5.glb",
             "type": "Mesh"
         },
         "4734712813129730964": {
@@ -5020,6 +6315,16 @@
             "path": "assets/skies/skies.json",
             "type": "Unknown"
         },
+        "4771054065143393604": {
+            "hash": 5877799586546184120,
+            "path": "assets/animals/bat.glb",
+            "type": "Mesh"
+        },
+        "4778444052559517303": {
+            "hash": 18206715829501541404,
+            "path": "assets/animals/horse_tessalian_coat3.glb",
+            "type": "Mesh"
+        },
         "4783936207460840380": {
             "hash": 18050868634705181001,
             "path": "assets/models/signs/town/glyph_0058-r1.glb",
@@ -5035,6 +6340,11 @@
             "path": "assets/world/relief/30_150.r1relief",
             "type": "Unknown"
         },
+        "4823111845909210271": {
+            "hash": 6966689805762781506,
+            "path": "assets/animals/turtle_pond.glb",
+            "type": "Mesh"
+        },
         "4823534181187174828": {
             "hash": 9316844486064432843,
             "path": "assets/skies/qwantani_dusk_2.hdr",
@@ -5049,6 +6359,11 @@
             "hash": 12130353159444459608,
             "path": "assets/models/external/kenney_nature_kit/textures/quiver_tree_01_leaf_nor_gl_1k.jpg",
             "type": "Texture"
+        },
+        "483857020542177468": {
+            "hash": 4185352507675864916,
+            "path": "assets/animals/horse_coat10.glb",
+            "type": "Mesh"
         },
         "4848947967643712215": {
             "hash": 8550242997973014854,
@@ -5075,10 +6390,20 @@
             "path": "assets/world/relief/30_30.r1relief",
             "type": "Unknown"
         },
+        "4914702092766098184": {
+            "hash": 17883899620849447577,
+            "path": "assets/animals/sanga_cattle-lod1.glb",
+            "type": "Mesh"
+        },
         "4917683255130654296": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/0_-140.r1relief",
             "type": "Unknown"
+        },
+        "4923913288392682174": {
+            "hash": 15793178065994012039,
+            "path": "assets/animals/deer.glb",
+            "type": "Mesh"
         },
         "4925740750151711135": {
             "hash": 5686412886186456060,
@@ -5100,6 +6425,11 @@
             "path": "assets/world/relief/-30_160.r1relief",
             "type": "Unknown"
         },
+        "4974195787702280418": {
+            "hash": 13551219022438725326,
+            "path": "assets/animals/bull.glb",
+            "type": "Mesh"
+        },
         "497504481594021124": {
             "hash": 14777516818771569047,
             "path": "assets/models/signs/street/glyph_0059-r1.glb",
@@ -5108,6 +6438,11 @@
         "5000829476177517925": {
             "hash": 1540915446277840530,
             "path": "assets/models/signs/town/bar-r1.glb",
+            "type": "Mesh"
+        },
+        "5002038654397317182": {
+            "hash": 13603295022478957554,
+            "path": "assets/animals/piglet-lod1.glb",
             "type": "Mesh"
         },
         "5014654822683067604": {
@@ -5135,6 +6470,11 @@
             "path": "assets/textures/interiors/wood_albedo.jpg",
             "type": "Texture"
         },
+        "5043807235292564972": {
+            "hash": 14270336269528255392,
+            "path": "assets/animals/sanga_cattle_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "508706331315757587": {
             "hash": 7212113240552767805,
             "path": "assets/textures/facades/timber_and_window_height.jpg",
@@ -5144,6 +6484,16 @@
             "hash": 13306713225261102849,
             "path": "assets/world/relief/20_-120.r1relief",
             "type": "Unknown"
+        },
+        "5092505117405391232": {
+            "hash": 16346040435855456195,
+            "path": "assets/animals/sanga_cattle_shape2.glb",
+            "type": "Mesh"
+        },
+        "5110222370460004703": {
+            "hash": 4420139961444461198,
+            "path": "assets/animals/horse_lusitano_coat6-lod1.glb",
+            "type": "Mesh"
         },
         "5111892054181493639": {
             "hash": 12097986237366844188,
@@ -5175,6 +6525,11 @@
             "path": "assets/models/signs/town/glyph_00dc-r1.glb",
             "type": "Mesh"
         },
+        "5162732418496380667": {
+            "hash": 14526720768731481675,
+            "path": "assets/animals/goat_coat3_shape2-lod1.glb",
+            "type": "Mesh"
+        },
         "5169000978713570794": {
             "hash": 15298281352091128578,
             "path": "assets/world/relief/40_130.r1relief",
@@ -5184,6 +6539,16 @@
             "hash": 9772659261367582665,
             "path": "assets/world/relief/30_70.r1relief",
             "type": "Unknown"
+        },
+        "5190024523569001950": {
+            "hash": 6108081452142803711,
+            "path": "assets/animals/hawk-lod1.glb",
+            "type": "Mesh"
+        },
+        "5190990547664974779": {
+            "hash": 1775316195639704877,
+            "path": "assets/animals/gorilla-lod1.glb",
+            "type": "Mesh"
         },
         "5197206562806809261": {
             "hash": 7050399862033892405,
@@ -5219,6 +6584,21 @@
             "hash": 4445044995614940876,
             "path": "assets/world/relief/-30_10.r1relief",
             "type": "Unknown"
+        },
+        "5279904342261363162": {
+            "hash": 552565883568197184,
+            "path": "assets/animals/horse_persian_coat6.glb",
+            "type": "Mesh"
+        },
+        "5282841336110129464": {
+            "hash": 14084078364970259316,
+            "path": "assets/animals/elephant_african_baby.glb",
+            "type": "Mesh"
+        },
+        "5288939686024040373": {
+            "hash": 15323626493624212699,
+            "path": "assets/animals/horse_breed_coat9-lod1.glb",
+            "type": "Mesh"
         },
         "5289070922463604356": {
             "hash": 14004913851697567670,
@@ -5300,14 +6680,39 @@
             "path": "assets/world/relief/50_130.r1relief",
             "type": "Unknown"
         },
+        "543642437383400069": {
+            "hash": 13703263771605429786,
+            "path": "assets/animals/horse_palomino_01.glb",
+            "type": "Mesh"
+        },
+        "5437388465139858709": {
+            "hash": 13168903938835237637,
+            "path": "assets/animals/deer_coat2.glb",
+            "type": "Mesh"
+        },
+        "544228377700163185": {
+            "hash": 12620238542226075641,
+            "path": "assets/animals/licenses/CC-BY-4.0.txt",
+            "type": "Unknown"
+        },
         "5456922046745996998": {
             "hash": 1982201812670147384,
             "path": "assets/world/relief/70_-130.r1relief",
             "type": "Unknown"
         },
+        "5464161659614844868": {
+            "hash": 2816820730703011781,
+            "path": "assets/animals/bear_brown.glb",
+            "type": "Mesh"
+        },
         "5477221516109406678": {
             "hash": 6772301522737497379,
             "path": "assets/models/external/kenney_boats/ship_ocean_liner.glb",
+            "type": "Mesh"
+        },
+        "5487871406892840170": {
+            "hash": 4979963228515647494,
+            "path": "assets/animals/horse_breed_coat10-lod1.glb",
             "type": "Mesh"
         },
         "5493542347019388953": {
@@ -5330,6 +6735,11 @@
             "path": "assets/models/external/nature_cards/quiver_tree-slice.png",
             "type": "Texture"
         },
+        "553489452387131607": {
+            "hash": 6187512624141979613,
+            "path": "assets/animals/piglet_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "5547514888084254733": {
             "hash": 3043861934368210799,
             "path": "assets/world/relief/-30_-150.r1relief",
@@ -5339,6 +6749,11 @@
             "hash": 5393270147993107711,
             "path": "assets/world/relief/20_-180.r1relief",
             "type": "Unknown"
+        },
+        "5559235212050909984": {
+            "hash": 12035959787869905481,
+            "path": "assets/animals/zebra-lod1.glb",
+            "type": "Mesh"
         },
         "5564693382623470311": {
             "hash": 6878214998098133497,
@@ -5370,6 +6785,11 @@
             "path": "assets/models/external/polyhaven_trees/island_tree_01_1k.gltf",
             "type": "Mesh"
         },
+        "5674237690368351356": {
+            "hash": 5011103480157407024,
+            "path": "assets/animals/horse_marwari_coat5-lod1.glb",
+            "type": "Mesh"
+        },
         "5675335069705816735": {
             "hash": 15414428912650156039,
             "path": "assets/models/signs/fr_ab6-urban-r1.glb",
@@ -5379,6 +6799,21 @@
             "hash": 4728777825918529415,
             "path": "assets/world/relief/0_50.r1relief",
             "type": "Unknown"
+        },
+        "5685424468667535714": {
+            "hash": 16322138336935557756,
+            "path": "assets/animals/goat.glb",
+            "type": "Mesh"
+        },
+        "5689911896300545126": {
+            "hash": 3514529933077784161,
+            "path": "assets/animals/sanga_cattle_coat4-lod1.glb",
+            "type": "Mesh"
+        },
+        "5692162098095724248": {
+            "hash": 17456375731664538656,
+            "path": "assets/animals/horse_breed_coat6-lod1.glb",
+            "type": "Mesh"
         },
         "5699074655249066450": {
             "hash": 17466433791511618031,
@@ -5398,6 +6833,11 @@
         "5743058879046846828": {
             "hash": 12192034107291523885,
             "path": "assets/models/external/kenney_nature_kit/quiver_tree_02_1k.gltf",
+            "type": "Mesh"
+        },
+        "57559181434378922": {
+            "hash": 8848608626712447100,
+            "path": "assets/animals/butterfly.glb",
             "type": "Mesh"
         },
         "5760798315927800175": {
@@ -5420,6 +6860,11 @@
             "path": "assets/textures/surfaces/quay_albedo.jpg",
             "type": "Texture"
         },
+        "5797874029815579325": {
+            "hash": 7238950215887748391,
+            "path": "assets/animals/horse_breed_coat8.glb",
+            "type": "Mesh"
+        },
         "5800500693661855540": {
             "hash": 4482795551739230407,
             "path": "assets/world/landmarks/statue_of_liberty-r3-lod1.glb",
@@ -5434,6 +6879,11 @@
             "hash": 9638868970645062568,
             "path": "assets/textures/surfaces/deck_albedo.jpg",
             "type": "Texture"
+        },
+        "5831218799843530538": {
+            "hash": 14261083220535157443,
+            "path": "assets/animals/cow.glb",
+            "type": "Mesh"
         },
         "5832378160784173076": {
             "hash": 7203041136955210099,
@@ -5465,6 +6915,11 @@
             "path": "assets/world/relief/-40_80.r1relief",
             "type": "Unknown"
         },
+        "5904675174714031570": {
+            "hash": 14502477793476642795,
+            "path": "assets/animals/frog_amazon.glb",
+            "type": "Mesh"
+        },
         "59068046576923134": {
             "hash": 5645271522768717222,
             "path": "assets/licenses/Poly-by-Google-Parachute-CC-BY-3.0.txt",
@@ -5495,9 +6950,19 @@
             "path": "assets/world/landmarks/parthenon-r3.glb",
             "type": "Mesh"
         },
+        "5974636185514065693": {
+            "hash": 5894387191657761781,
+            "path": "assets/animals/sanga_cattle.glb",
+            "type": "Mesh"
+        },
         "5996166590899373047": {
             "hash": 14470313018425025515,
             "path": "assets/models/signs/street/post-r1.glb",
+            "type": "Mesh"
+        },
+        "6006167279314846295": {
+            "hash": 8676073672413770144,
+            "path": "assets/animals/pony_coat4.glb",
             "type": "Mesh"
         },
         "6006182533386509906": {
@@ -5513,6 +6978,16 @@
         "6027825936430180015": {
             "hash": 16576238631210332810,
             "path": "assets/world/landmarks/eiffel_tower-r3.glb",
+            "type": "Mesh"
+        },
+        "6035849321575156272": {
+            "hash": 14638320383502149338,
+            "path": "assets/animals/horse_coat8.glb",
+            "type": "Mesh"
+        },
+        "6046868340100980149": {
+            "hash": 9051177642046388436,
+            "path": "assets/animals/sheep1-lod1.glb",
             "type": "Mesh"
         },
         "6065121015111706946": {
@@ -5555,6 +7030,11 @@
             "path": "assets/world/relief/-80_-90.r1relief",
             "type": "Unknown"
         },
+        "6148169470157966989": {
+            "hash": 3775616668147315631,
+            "path": "assets/animals/horse_fading_black-lod1.glb",
+            "type": "Mesh"
+        },
         "6150484182168626621": {
             "hash": 773528182643074959,
             "path": "assets/models/signs/street/glyph_0042-r1.glb",
@@ -5585,6 +7065,11 @@
             "path": "assets/world/relief/-40_110.r1relief",
             "type": "Unknown"
         },
+        "619869794714368402": {
+            "hash": 3330865738027880178,
+            "path": "assets/animals/ant.glb",
+            "type": "Mesh"
+        },
         "6199638533152821133": {
             "hash": 959131270193115700,
             "path": "assets/models/signs/town/glyph_00ce-r1.glb",
@@ -5599,6 +7084,11 @@
             "hash": 9801033151083107209,
             "path": "assets/world/relief/-90_-70.r1relief",
             "type": "Unknown"
+        },
+        "6235128392745334674": {
+            "hash": 12064597732207480504,
+            "path": "assets/animals/horse_chestnut_01.glb",
+            "type": "Mesh"
         },
         "6236841575736105943": {
             "hash": 10298512544000014559,
@@ -5645,15 +7135,30 @@
             "path": "assets/models/signs/faces/fr_b14_20-petite-r1.png",
             "type": "Texture"
         },
+        "6344608136479390026": {
+            "hash": 533797357193650052,
+            "path": "assets/animals/horse.glb",
+            "type": "Mesh"
+        },
         "6374033010792675978": {
             "hash": 2411806946296509479,
             "path": "assets/textures/surfaces/membrane_mr.jpg",
             "type": "Texture"
         },
+        "6386692765057518236": {
+            "hash": 5122309391298631012,
+            "path": "assets/animals/horse_tessalian_coat10.glb",
+            "type": "Mesh"
+        },
         "63869397035432344": {
             "hash": 11704817561034048310,
             "path": "assets/textures/surfaces/quay_mr.jpg",
             "type": "Texture"
+        },
+        "6389964333484572892": {
+            "hash": 3168382765443144188,
+            "path": "assets/animals/sanga_cattle_coat3_shape2-lod1.glb",
+            "type": "Mesh"
         },
         "6404115727148370819": {
             "hash": 6271810807875847883,
@@ -5670,6 +7175,11 @@
             "path": "assets/textures/surfaces/step_stone_mr.jpg",
             "type": "Texture"
         },
+        "6488950920945628772": {
+            "hash": 17903012583018926044,
+            "path": "assets/animals/eagle_bald-lod1.glb",
+            "type": "Mesh"
+        },
         "6499054439455032256": {
             "hash": 1474878172710831004,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_leaves_arm_1k.jpg",
@@ -5684,6 +7194,11 @@
             "hash": 1833479127761012952,
             "path": "assets/textures/facades/brick_red_and_window_height.jpg",
             "type": "Texture"
+        },
+        "6517169729415765471": {
+            "hash": 9599172166072617865,
+            "path": "assets/animals/butterfly-lod1.glb",
+            "type": "Mesh"
         },
         "6519361308412369131": {
             "hash": 4046613771597991778,
@@ -5714,6 +7229,11 @@
             "hash": 14458850088160721630,
             "path": "assets/world/relief/-10_-90.r1relief",
             "type": "Unknown"
+        },
+        "6564656648881278050": {
+            "hash": 9529731744334340268,
+            "path": "assets/animals/whale_fin-lod1.glb",
+            "type": "Mesh"
         },
         "6567061633911533649": {
             "hash": 11238822847193575853,
@@ -5754,6 +7274,11 @@
             "hash": 6558619344921950395,
             "path": "assets/world/relief/20_-110.r1relief",
             "type": "Unknown"
+        },
+        "6627016232711082748": {
+            "hash": 11769044019586036719,
+            "path": "assets/animals/hippopotamus_coat2.glb",
+            "type": "Mesh"
         },
         "6642889017681833271": {
             "hash": 3580518989115578598,
@@ -5798,6 +7323,11 @@
         "6695491851820061373": {
             "hash": 676349647035302359,
             "path": "assets/models/signs/street/glyph_00c8-r1.glb",
+            "type": "Mesh"
+        },
+        "6696500341586447156": {
+            "hash": 14071220357245711443,
+            "path": "assets/animals/bat-lod1.glb",
             "type": "Mesh"
         },
         "6705464619695437735": {
@@ -5845,6 +7375,11 @@
             "path": "assets/textures/surfaces/ashlar_albedo.jpg",
             "type": "Texture"
         },
+        "6779081909485341209": {
+            "hash": 11317072642017171953,
+            "path": "assets/animals/pig1-lod1.glb",
+            "type": "Mesh"
+        },
         "6784616716434482435": {
             "hash": 5596447220486624814,
             "path": "assets/models/external/kenney_boats/boat_speed_a.glb",
@@ -5859,6 +7394,11 @@
             "hash": 1023386320205281741,
             "path": "assets/textures/surfaces/grass_normal.jpg",
             "type": "Texture"
+        },
+        "6814187041902186589": {
+            "hash": 15062975826800676566,
+            "path": "assets/animals/zebu_coat3-lod1.glb",
+            "type": "Mesh"
         },
         "6816399651733267283": {
             "hash": 14440198282409149647,
@@ -5878,6 +7418,16 @@
         "6858121671664385801": {
             "hash": 3184959556848005562,
             "path": "assets/models/signs/fr_a2b-urban-r1.glb",
+            "type": "Mesh"
+        },
+        "6858928393828071474": {
+            "hash": 11104481369216663348,
+            "path": "assets/animals/wolf-lod1.glb",
+            "type": "Mesh"
+        },
+        "6869734134861420099": {
+            "hash": 15988512792514311585,
+            "path": "assets/animals/cat_tabby-lod1.glb",
             "type": "Mesh"
         },
         "6891176124803460655": {
@@ -5905,6 +7455,21 @@
             "path": "assets/world/relief/-70_-100.r1relief",
             "type": "Unknown"
         },
+        "6903236373358041824": {
+            "hash": 10935967304858049059,
+            "path": "assets/animals/OPTIMISATION.md",
+            "type": "Unknown"
+        },
+        "6919657190279355646": {
+            "hash": 814687571863642402,
+            "path": "assets/animals/horse_persian_coat6-lod1.glb",
+            "type": "Mesh"
+        },
+        "6924008921707106687": {
+            "hash": 11177081097265152274,
+            "path": "assets/animals/horse_breed_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "6931626268006404158": {
             "hash": 13097439767754220803,
             "path": "assets/models/external/understory/nettle_plant_near.glb",
@@ -5928,6 +7493,21 @@
         "7005326745710076461": {
             "hash": 11818998661650029849,
             "path": "assets/models/signs/us_r2-1_65-rural-r1.glb",
+            "type": "Mesh"
+        },
+        "7008894931594675241": {
+            "hash": 12535089685892626687,
+            "path": "assets/animals/horse_marwari.glb",
+            "type": "Mesh"
+        },
+        "7009034969589536185": {
+            "hash": 4784090499778911888,
+            "path": "assets/animals/horse_breed.glb",
+            "type": "Mesh"
+        },
+        "7009760617256774461": {
+            "hash": 504079669244097117,
+            "path": "assets/animals/horse_lusitano_coat3-lod1.glb",
             "type": "Mesh"
         },
         "7013145478428331466": {
@@ -5960,6 +7540,16 @@
             "path": "assets/world/landmarks/eiffel_tower-r3-lod2.glb",
             "type": "Mesh"
         },
+        "7080548361465875799": {
+            "hash": 17793451238184617929,
+            "path": "assets/animals/sanga_cattle_coat3-lod1.glb",
+            "type": "Mesh"
+        },
+        "7081810090668152019": {
+            "hash": 13218947006260219002,
+            "path": "assets/animals/goat_coat4.glb",
+            "type": "Mesh"
+        },
         "7088469241559345923": {
             "hash": 11002883388934090171,
             "path": "assets/textures/surfaces/terrace_normal.jpg",
@@ -5971,7 +7561,7 @@
             "type": "Unknown"
         },
         "7092704690704086645": {
-            "hash": 10751105507613868751,
+            "hash": 9118485586078917401,
             "path": "assets/models/external/nature_selected/pine_tall_far.source.json",
             "type": "Unknown"
         },
@@ -6010,6 +7600,11 @@
             "path": "assets/world/relief/40_-10.r1relief",
             "type": "Unknown"
         },
+        "7161751595415171233": {
+            "hash": 16024526707174354365,
+            "path": "assets/animals/cow_coat3_shape2-lod1.glb",
+            "type": "Mesh"
+        },
         "716984850769847932": {
             "hash": 2355117279102345055,
             "path": "assets/textures/surfaces/tile_canal_albedo.jpg",
@@ -6040,6 +7635,16 @@
             "path": "assets/models/signs/faces/us_r1-2-us-r1.png",
             "type": "Texture"
         },
+        "7269278397074849295": {
+            "hash": 8410207516471560931,
+            "path": "assets/animals/horse_breed_coat3.glb",
+            "type": "Mesh"
+        },
+        "7284285413556316091": {
+            "hash": 13774073975921450661,
+            "path": "assets/animals/README.md",
+            "type": "Unknown"
+        },
         "7287320863551833219": {
             "hash": 12377852095728387139,
             "path": "assets/licenses/Kenney-Nature-Kit-CC0.txt",
@@ -6065,6 +7670,11 @@
             "path": "assets/models/external/nature_cards/quiver_tree.glb",
             "type": "Mesh"
         },
+        "7329921642922026413": {
+            "hash": 12781222333956313254,
+            "path": "assets/animals/sanga_cattle_coat5.glb",
+            "type": "Mesh"
+        },
         "7331644693607710951": {
             "hash": 13340635321685871106,
             "path": "assets/models/external/nature_cards/fir_sapling.png",
@@ -6085,6 +7695,11 @@
             "path": "assets/models/signs/street/glyph_00ca-r1.glb",
             "type": "Mesh"
         },
+        "7355633734594832648": {
+            "hash": 16027142742440118036,
+            "path": "assets/animals/fox_arctic-lod1.glb",
+            "type": "Mesh"
+        },
         "7363260482107354833": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-60_-180.r1relief",
@@ -6099,6 +7714,16 @@
             "hash": 15430578426452660918,
             "path": "assets/world/relief/-80_160.r1relief",
             "type": "Unknown"
+        },
+        "7387144695918745472": {
+            "hash": 1442629973491699850,
+            "path": "assets/animals/whale_fin.glb",
+            "type": "Mesh"
+        },
+        "7389321449600116568": {
+            "hash": 17960940749407300773,
+            "path": "assets/animals/horse_tessalian_coat7.glb",
+            "type": "Mesh"
         },
         "7396504244788634088": {
             "hash": 10820631969034465299,
@@ -6150,6 +7775,11 @@
             "path": "assets/textures/facades/stone_and_window_mr.jpg",
             "type": "Texture"
         },
+        "7486039679699318421": {
+            "hash": 7704864129135722687,
+            "path": "assets/animals/goat_coat4-lod1.glb",
+            "type": "Mesh"
+        },
         "7510292782636393000": {
             "hash": 16580708522380415446,
             "path": "assets/models/signs/town/glyph_002d-r1.glb",
@@ -6163,6 +7793,11 @@
         "752658616283445923": {
             "hash": 1755770235125931955,
             "path": "assets/models/humans/pilot_female_02.glb",
+            "type": "Mesh"
+        },
+        "7532597634492105185": {
+            "hash": 5810171641828204635,
+            "path": "assets/animals/boar.glb",
             "type": "Mesh"
         },
         "7537605783923696026": {
@@ -6194,6 +7829,16 @@
             "hash": 7058398662597618411,
             "path": "assets/textures/facades/earth_and_window_albedo.jpg",
             "type": "Texture"
+        },
+        "7593566995023357931": {
+            "hash": 11524838572179869054,
+            "path": "assets/animals/horse_lusitano_coat8.glb",
+            "type": "Mesh"
+        },
+        "7604125056178940847": {
+            "hash": 13162849512691766356,
+            "path": "assets/animals/horse_marwari-lod1.glb",
+            "type": "Mesh"
         },
         "7606222232532918883": {
             "hash": 7613100298439292925,
@@ -6230,6 +7875,11 @@
             "path": "assets/models/signs/street/glyph_0043-r1.glb",
             "type": "Mesh"
         },
+        "7677742773609251664": {
+            "hash": 11074267598623981327,
+            "path": "assets/animals/horse_cream_spotted_01.glb",
+            "type": "Mesh"
+        },
         "7680149808673818913": {
             "hash": 9581767904192970049,
             "path": "assets/world/relief/10_0.r1relief",
@@ -6249,6 +7899,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/80_-130.r1relief",
             "type": "Unknown"
+        },
+        "7709429346846962997": {
+            "hash": 2303815490332633018,
+            "path": "assets/animals/horse_cream_spotted_02-lod1.glb",
+            "type": "Mesh"
         },
         "7713585581648145798": {
             "hash": 6271810807875847883,
@@ -6295,6 +7950,16 @@
             "path": "assets/models/external/kenney_props/waste_bin.glb",
             "type": "Mesh"
         },
+        "7807570537728839024": {
+            "hash": 6458171082714325349,
+            "path": "assets/animals/camel_coat3-lod1.glb",
+            "type": "Mesh"
+        },
+        "7821207811675349036": {
+            "hash": 9206995617951211957,
+            "path": "assets/animals/frog_red_eye-lod1.glb",
+            "type": "Mesh"
+        },
         "7844485774027863451": {
             "hash": 17680519425585276193,
             "path": "assets/models/signs/faces/us_r2-1_55-us-r1.png",
@@ -6315,10 +7980,20 @@
             "path": "assets/textures/surfaces/tile_grey_mr.jpg",
             "type": "Texture"
         },
+        "7875672669264877744": {
+            "hash": 4728672243682989566,
+            "path": "assets/animals/pig1_coat3.glb",
+            "type": "Mesh"
+        },
         "7878230293876054306": {
             "hash": 1725481425194220381,
             "path": "assets/world/relief/-20_110.r1relief",
             "type": "Unknown"
+        },
+        "788522407525479956": {
+            "hash": 5432202661106762410,
+            "path": "assets/animals/horse_coat2.glb",
+            "type": "Mesh"
         },
         "7886871173456972916": {
             "hash": 14954173329426344134,
@@ -6335,9 +8010,24 @@
             "path": "assets/models/signs/town/glyph_0036-r1.glb",
             "type": "Mesh"
         },
+        "7912236937322302338": {
+            "hash": 5391253891282952439,
+            "path": "assets/animals/seagull.glb",
+            "type": "Mesh"
+        },
         "7918234061687626932": {
             "hash": 8716205158011175204,
             "path": "assets/models/external/nature_selected/grass_dry.glb",
+            "type": "Mesh"
+        },
+        "7927597130732213358": {
+            "hash": 16823397111934798541,
+            "path": "assets/animals/camel_coat2-lod1.glb",
+            "type": "Mesh"
+        },
+        "7928402886448244339": {
+            "hash": 3256742984628330737,
+            "path": "assets/animals/hippopotamus-lod1.glb",
             "type": "Mesh"
         },
         "7934390406131645080": {
@@ -6345,10 +8035,25 @@
             "path": "assets/models/signs/town/glyph_0031-r1.glb",
             "type": "Mesh"
         },
+        "7943133119161665504": {
+            "hash": 11284209768237981682,
+            "path": "assets/animals/turkey.glb",
+            "type": "Mesh"
+        },
         "7972202665560400278": {
             "hash": 2781988084775130657,
             "path": "assets/world/relief/-50_40.r1relief",
             "type": "Unknown"
+        },
+        "7977562900677661088": {
+            "hash": 15039577128463704716,
+            "path": "assets/animals/horse_lusitano_coat8-lod1.glb",
+            "type": "Mesh"
+        },
+        "7996054786139481638": {
+            "hash": 15717269817520863756,
+            "path": "assets/animals/horse_breed_coat7-lod1.glb",
+            "type": "Mesh"
         },
         "8001389024626973622": {
             "hash": 6271810807875847883,
@@ -6380,10 +8085,20 @@
             "path": "assets/THIRD_PARTY_ASSETS.json",
             "type": "Unknown"
         },
+        "8049196444515573218": {
+            "hash": 5033222661015623016,
+            "path": "assets/animals/horse_lusitano_coat9-lod1.glb",
+            "type": "Mesh"
+        },
         "8051289168186980294": {
             "hash": 7048921282168540915,
             "path": "assets/models/external/polyhaven_trees/textures/island_tree_01_arm_1k.jpg",
             "type": "Texture"
+        },
+        "8072739890648849306": {
+            "hash": 15376273595236563215,
+            "path": "assets/animals/horse_palomino_02-lod1.glb",
+            "type": "Mesh"
         },
         "8085357905247894336": {
             "hash": 6271810807875847883,
@@ -6415,6 +8130,11 @@
             "path": "assets/models/signs/fr_b14_80-rural-r1.glb",
             "type": "Mesh"
         },
+        "8164122759194931842": {
+            "hash": 1862953993488012919,
+            "path": "assets/animals/mastiff_coat2.glb",
+            "type": "Mesh"
+        },
         "8169404739501655560": {
             "hash": 13769418050478275450,
             "path": "assets/world/relief/40_-80.r1relief",
@@ -6439,6 +8159,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-50_80.r1relief",
             "type": "Unknown"
+        },
+        "8192867271089298946": {
+            "hash": 13760462433438530336,
+            "path": "assets/animals/comparaison-ajouts-1.jpg",
+            "type": "Texture"
         },
         "8207346229122176860": {
             "hash": 12825179526405233814,
@@ -6470,6 +8195,11 @@
             "path": "assets/world/relief/-60_120.r1relief",
             "type": "Unknown"
         },
+        "8278490283981152651": {
+            "hash": 14634672302446735363,
+            "path": "assets/animals/hawk.glb",
+            "type": "Mesh"
+        },
         "8279687529826946174": {
             "hash": 4796820961717347027,
             "path": "assets/models/signs/street/glyph_00c0-r1.glb",
@@ -6480,10 +8210,25 @@
             "path": "assets/world/relief/-70_120.r1relief",
             "type": "Unknown"
         },
+        "8289095354243190005": {
+            "hash": 16297358798154211337,
+            "path": "assets/animals/turtle_sea-lod1.glb",
+            "type": "Mesh"
+        },
         "8293164063118974863": {
             "hash": 7264679110697854468,
             "path": "assets/world/relief/30_130.r1relief",
             "type": "Unknown"
+        },
+        "8339530260831711462": {
+            "hash": 4424935623381110011,
+            "path": "assets/animals/sanga_cattle_shape2-lod1.glb",
+            "type": "Mesh"
+        },
+        "8344305225980285596": {
+            "hash": 6642235605237849224,
+            "path": "assets/animals/shark.glb",
+            "type": "Mesh"
         },
         "8364024110213667273": {
             "hash": 4145152598492123637,
@@ -6515,10 +8260,20 @@
             "path": "assets/textures/surfaces/tile_flat_normal.jpg",
             "type": "Texture"
         },
+        "8420967840395560488": {
+            "hash": 10079929364881679701,
+            "path": "assets/animals/fish_generic.glb",
+            "type": "Mesh"
+        },
         "8421679419159190920": {
             "hash": 12387480158694967165,
             "path": "assets/textures/surfaces/shingle_mr.jpg",
             "type": "Texture"
+        },
+        "8423328200712294650": {
+            "hash": 4098155779079445020,
+            "path": "assets/animals/hawk_coat2-lod1.glb",
+            "type": "Mesh"
         },
         "8453146933582653217": {
             "hash": 382952220692759452,
@@ -6555,13 +8310,23 @@
             "path": "assets/world/landmarks/st_basils_cathedral-r3-lod1.glb",
             "type": "Mesh"
         },
+        "8476535637442399740": {
+            "hash": 13939241892202087648,
+            "path": "assets/animals/doe-lod1.glb",
+            "type": "Mesh"
+        },
         "8477393788606490618": {
             "hash": 10187872676434121327,
             "path": "assets/world/landmarks/leaning_tower_of_pisa-r3-lod2.glb",
             "type": "Mesh"
         },
+        "8488157042506796378": {
+            "hash": 5621843076438685559,
+            "path": "assets/animals/fish_kelgar-lod1.glb",
+            "type": "Mesh"
+        },
         "8505060791082797504": {
-            "hash": 1655919096764856391,
+            "hash": 409823669061320585,
             "path": "assets/models/external/nature_selected/sakura_far.source.json",
             "type": "Unknown"
         },
@@ -6580,6 +8345,11 @@
             "path": "assets/world/relief/-70_0.r1relief",
             "type": "Unknown"
         },
+        "8579718994440947829": {
+            "hash": 1951756132896837325,
+            "path": "assets/animals/horse_dark_chestnut-lod1.glb",
+            "type": "Mesh"
+        },
         "8583976404142614856": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-60_-20.r1relief",
@@ -6595,6 +8365,11 @@
             "path": "assets/models/external/polyhaven_trees/textures/fir_sapling_twigs_arm_1k.jpg",
             "type": "Texture"
         },
+        "8606999656188598912": {
+            "hash": 11300256935812189985,
+            "path": "assets/animals/goat_shape2.glb",
+            "type": "Mesh"
+        },
         "8618068308656848543": {
             "hash": 11328615981197634370,
             "path": "assets/world/relief/10_40.r1relief",
@@ -6609,6 +8384,16 @@
             "hash": 1245157311241850492,
             "path": "assets/world/relief/-20_-10.r1relief",
             "type": "Unknown"
+        },
+        "8652939442877109524": {
+            "hash": 17964250566384952864,
+            "path": "assets/animals/rhino-lod1.glb",
+            "type": "Mesh"
+        },
+        "8657587481011574505": {
+            "hash": 486300533466232321,
+            "path": "assets/animals/piglet_coat3-lod1.glb",
+            "type": "Mesh"
         },
         "8658995772489224633": {
             "hash": 605273921873213345,
@@ -6665,6 +8450,21 @@
             "path": "assets/models/signs/street/glyph_0034-r1.glb",
             "type": "Mesh"
         },
+        "8723957764936617804": {
+            "hash": 12102273204823100946,
+            "path": "assets/animals/fish_single.glb",
+            "type": "Mesh"
+        },
+        "8726359230359306420": {
+            "hash": 1868417954228656414,
+            "path": "assets/animals/arctic_wolf-lod1.glb",
+            "type": "Mesh"
+        },
+        "87289389057197497": {
+            "hash": 2871204522171767645,
+            "path": "assets/animals/fish_generic-lod1.glb",
+            "type": "Mesh"
+        },
         "8730423583192058581": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/30_-180.r1relief",
@@ -6680,10 +8480,25 @@
             "path": "assets/models/signs/town/glyph_0042-r1.glb",
             "type": "Mesh"
         },
+        "8756171441928212675": {
+            "hash": 13308271316585672024,
+            "path": "assets/animals/horse_marwari_coat4.glb",
+            "type": "Mesh"
+        },
+        "8767551120658439542": {
+            "hash": 10279985469743468787,
+            "path": "assets/animals/horse_tessalian_coat3-lod1.glb",
+            "type": "Mesh"
+        },
         "8776665228352228341": {
             "hash": 4492699248082789776,
             "path": "assets/world/relief/-20_-180.r1relief",
             "type": "Unknown"
+        },
+        "8780190272838247529": {
+            "hash": 6339970031279620541,
+            "path": "assets/animals/shark_coat2.glb",
+            "type": "Mesh"
         },
         "879138113221944352": {
             "hash": 6271810807875847883,
@@ -6704,6 +8519,11 @@
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-40_40.r1relief",
             "type": "Unknown"
+        },
+        "8817490826190956189": {
+            "hash": 9971134981343645623,
+            "path": "assets/animals/horse_marwari_coat2.glb",
+            "type": "Mesh"
         },
         "8832665572069056291": {
             "hash": 15967346686191695034,
@@ -6728,6 +8548,11 @@
         "886411303202714337": {
             "hash": 10702431279474502216,
             "path": "assets/models/external/understory/fern_02_near.glb",
+            "type": "Mesh"
+        },
+        "8874070339690512891": {
+            "hash": 17585424410566431750,
+            "path": "assets/animals/shrike-lod1.glb",
             "type": "Mesh"
         },
         "8875202158347261813": {
@@ -6785,6 +8610,21 @@
             "path": "assets/models/signs/fr_b14_130-urban-r1.glb",
             "type": "Mesh"
         },
+        "8943827225845012605": {
+            "hash": 6450012562741650817,
+            "path": "assets/animals/horse_tessalian_coat4-lod1.glb",
+            "type": "Mesh"
+        },
+        "8944023703098388488": {
+            "hash": 7068647047005921968,
+            "path": "assets/animals/parrot_macaw.glb",
+            "type": "Mesh"
+        },
+        "8988679303202472085": {
+            "hash": 14152106756962441675,
+            "path": "assets/animals/cow_coat2.glb",
+            "type": "Mesh"
+        },
         "8991772093710747248": {
             "hash": 7713317927707247664,
             "path": "assets/world/relief/60_70.r1relief",
@@ -6795,10 +8635,30 @@
             "path": "assets/world/relief/80_40.r1relief",
             "type": "Unknown"
         },
+        "9022269233195579787": {
+            "hash": 11891395554834392938,
+            "path": "assets/animals/seagull-lod1.glb",
+            "type": "Mesh"
+        },
+        "9039911579736137910": {
+            "hash": 11251901257864224352,
+            "path": "assets/animals/horseshoe_crab.glb",
+            "type": "Mesh"
+        },
+        "9051042319478792634": {
+            "hash": 13573060602469565539,
+            "path": "assets/animals/horse_chestnut_01-lod1.glb",
+            "type": "Mesh"
+        },
         "9057514563124709177": {
             "hash": 1233585823436327151,
             "path": "assets/textures/surfaces/asphalt_mr.jpg",
             "type": "Texture"
+        },
+        "9058179223081719538": {
+            "hash": 14390261170323964545,
+            "path": "assets/animals/wolf_coat2-lod1.glb",
+            "type": "Mesh"
         },
         "9072096430979147168": {
             "hash": 11632306925311038392,
@@ -6845,6 +8705,16 @@
             "path": "assets/world/relief/0_-170.r1relief",
             "type": "Unknown"
         },
+        "911908104234085306": {
+            "hash": 5798667099350024340,
+            "path": "assets/animals/tiger-lod1.glb",
+            "type": "Mesh"
+        },
+        "9119196073873004250": {
+            "hash": 4628056083416456893,
+            "path": "assets/animals/mouse_brown.glb",
+            "type": "Mesh"
+        },
         "9127116019583856254": {
             "hash": 56258203104198017,
             "path": "assets/world/relief/0_30.r1relief",
@@ -6859,6 +8729,16 @@
             "hash": 9679194014903369608,
             "path": "assets/models/signs/faces/us_r2-1_65-us-r1.png",
             "type": "Texture"
+        },
+        "9147917082799920906": {
+            "hash": 4822887854802694914,
+            "path": "assets/animals/horseshoe_crab-lod1.glb",
+            "type": "Mesh"
+        },
+        "915148067163495255": {
+            "hash": 12743857899588553925,
+            "path": "assets/animals/horse_tessalian-lod1.glb",
+            "type": "Mesh"
         },
         "9166237546024091581": {
             "hash": 17261576240635998513,
@@ -6875,6 +8755,11 @@
             "path": "assets/world/relief/-40_-130.r1relief",
             "type": "Unknown"
         },
+        "9188376805662166112": {
+            "hash": 8930102903482431178,
+            "path": "assets/animals/doe.glb",
+            "type": "Mesh"
+        },
         "9195383826052671986": {
             "hash": 430334977872553805,
             "path": "assets/models/signs/street/glyph_0046-r1.glb",
@@ -6888,6 +8773,11 @@
         "9207360085781941389": {
             "hash": 1074268488943197751,
             "path": "assets/models/signs/street/glyph_0053-r1.glb",
+            "type": "Mesh"
+        },
+        "9230906353967590754": {
+            "hash": 7448081145394349400,
+            "path": "assets/animals/horse_tessalian_coat6.glb",
             "type": "Mesh"
         },
         "9232930449581558099": {
@@ -6935,6 +8825,11 @@
             "path": "assets/world/relief/40_60.r1relief",
             "type": "Unknown"
         },
+        "9257020190515435098": {
+            "hash": 1995186543021130295,
+            "path": "assets/animals/goat_coat2_shape2.glb",
+            "type": "Mesh"
+        },
         "9337195641308935139": {
             "hash": 7935362340842768873,
             "path": "assets/models/external/nature_selected/sakura_far_normal.png",
@@ -6945,6 +8840,11 @@
             "path": "assets/world/relief/-70_40.r1relief",
             "type": "Unknown"
         },
+        "9352004258441871036": {
+            "hash": 4661294294491997489,
+            "path": "assets/animals/frog_amazon-lod1.glb",
+            "type": "Mesh"
+        },
         "9354603239638997047": {
             "hash": 4610950340166906645,
             "path": "assets/models/signs/town/glyph_0035-r1.glb",
@@ -6954,6 +8854,11 @@
             "hash": 4849348148731189874,
             "path": "assets/world/relief/-80_-70.r1relief",
             "type": "Unknown"
+        },
+        "9359394554244072756": {
+            "hash": 8128291439853052359,
+            "path": "assets/animals/goat_coat2-lod1.glb",
+            "type": "Mesh"
         },
         "9362403766653960405": {
             "hash": 3876234970742853486,
@@ -7030,10 +8935,25 @@
             "path": "assets/world/relief/-50_130.r1relief",
             "type": "Unknown"
         },
+        "9463762387083509173": {
+            "hash": 16010915123808055133,
+            "path": "assets/animals/cat_sphynx-lod1.glb",
+            "type": "Mesh"
+        },
+        "9474396657861248312": {
+            "hash": 15523606002065845472,
+            "path": "assets/animals/licenses/0ad-art.txt",
+            "type": "Unknown"
+        },
         "9494166626728662793": {
             "hash": 13480910841824049443,
             "path": "assets/world/relief/70_150.r1relief",
             "type": "Unknown"
+        },
+        "95134298292394585": {
+            "hash": 8824344772855726465,
+            "path": "assets/animals/horse_coat7-lod1.glb",
+            "type": "Mesh"
         },
         "9519909961953568870": {
             "hash": 17203702334297691746,
@@ -7045,13 +8965,18 @@
             "path": "assets/models/humans/female_adult_11.glb",
             "type": "Mesh"
         },
+        "9545654824145514001": {
+            "hash": 1301533578839764715,
+            "path": "assets/animals/horse_tessalian_coat9.glb",
+            "type": "Mesh"
+        },
         "9559921789908334708": {
             "hash": 8048768953048098509,
             "path": "assets/textures/surfaces/riprap_normal.jpg",
             "type": "Texture"
         },
         "9569450703380592770": {
-            "hash": 1363941381018045837,
+            "hash": 7828148219094515023,
             "path": "assets/models/external/nature_selected/SOURCES.json",
             "type": "Unknown"
         },
@@ -7080,6 +9005,11 @@
             "path": "assets/models/signs/street/glyph_0027-r1.glb",
             "type": "Mesh"
         },
+        "9593126347250517388": {
+            "hash": 15625074556906665119,
+            "path": "assets/animals/horse_tessalian_coat8-lod1.glb",
+            "type": "Mesh"
+        },
         "961358041253395920": {
             "hash": 6271810807875847883,
             "path": "assets/world/relief/-70_-120.r1relief",
@@ -7105,6 +9035,11 @@
             "path": "assets/world/relief/-20_150.r1relief",
             "type": "Unknown"
         },
+        "9658874714077763760": {
+            "hash": 9033720198930772874,
+            "path": "assets/animals/stag.glb",
+            "type": "Mesh"
+        },
         "9661999023916983468": {
             "hash": 8625248630744489666,
             "path": "assets/models/external/polyhaven_trees/island_tree_01.bin",
@@ -7120,15 +9055,45 @@
             "path": "assets/models/signs/street/glyph_0038-r1.glb",
             "type": "Mesh"
         },
+        "9699311067410030107": {
+            "hash": 914100152262033674,
+            "path": "assets/animals/licenses/CC-BY-SA-3.0.txt",
+            "type": "Unknown"
+        },
+        "9700093637925170972": {
+            "hash": 1856838815260558392,
+            "path": "assets/animals/fish_single-lod1.glb",
+            "type": "Mesh"
+        },
         "9707553953933687028": {
             "hash": 4268342893281983007,
             "path": "assets/textures/surfaces.json",
             "type": "Unknown"
         },
+        "9742110343794492396": {
+            "hash": 3763783529354529079,
+            "path": "assets/animals/horse_persian_coat11.glb",
+            "type": "Mesh"
+        },
         "9745547955817295292": {
             "hash": 13816373252690942106,
             "path": "assets/models/vehicles/fleet.json",
             "type": "Unknown"
+        },
+        "974907262313174696": {
+            "hash": 767382928808493950,
+            "path": "assets/animals/horse_lusitano-lod1.glb",
+            "type": "Mesh"
+        },
+        "9758531806427993089": {
+            "hash": 7335956146044865058,
+            "path": "assets/animals/turkey-lod1.glb",
+            "type": "Mesh"
+        },
+        "9764748789278086365": {
+            "hash": 3200633824929817858,
+            "path": "assets/animals/hippopotamus_coat2-lod1.glb",
+            "type": "Mesh"
         },
         "9780211379644380957": {
             "hash": 6655064351875024625,
@@ -7180,14 +9145,29 @@
             "path": "assets/models/external/kenney_boats/boat_house_c.glb",
             "type": "Mesh"
         },
+        "9901297089598232620": {
+            "hash": 1788898352025489895,
+            "path": "assets/animals/mastiff_coat2-lod1.glb",
+            "type": "Mesh"
+        },
         "9904778354795972245": {
             "hash": 15256717980198119571,
             "path": "assets/world/relief/70_-10.r1relief",
             "type": "Unknown"
         },
+        "9906856996519092143": {
+            "hash": 3947404061646996984,
+            "path": "assets/animals/horse_chestnut_02-lod1.glb",
+            "type": "Mesh"
+        },
         "992184736309449659": {
             "hash": 4050910636811256521,
             "path": "assets/models/external/kenney_boats/boat_sail_b.glb",
+            "type": "Mesh"
+        },
+        "9930872841212979941": {
+            "hash": 14724876946664392954,
+            "path": "assets/animals/horse_coat6-lod1.glb",
             "type": "Mesh"
         },
         "9936721101026846282": {
@@ -7208,6 +9188,11 @@
         "9969077444783896650": {
             "hash": 14066656505742101371,
             "path": "assets/models/signs/street/glyph_0037-r1.glb",
+            "type": "Mesh"
+        },
+        "9974848676452831007": {
+            "hash": 12624263596066852736,
+            "path": "assets/animals/horse_coat8-lod1.glb",
             "type": "Mesh"
         }
     },

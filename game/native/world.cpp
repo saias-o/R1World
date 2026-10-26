@@ -26,6 +26,8 @@
 #ifdef SAIDA_ENABLE_XR
 #include "xr/toolkit/XROrigin.hpp"
 #include "xr/toolkit/XRHand.hpp"
+#include "xr_gesture_input.hpp"
+#include "saida/xrgesture/OpenXRInput.hpp"
 #endif
 #include "nodes/MeshNode.hpp"
 #include "nodes/LightNode.hpp"
@@ -828,6 +830,7 @@ class World : public Rml::EventListener {
     bool vr=false;
 #ifdef SAIDA_ENABLE_XR
     saida::XROrigin* vrRig=nullptr;
+    r1::XrGestureInput vrGestures;
 #endif
     double smokeFlyTime=0,smokeFlyAlt=0,smokeFlyTop=0,smokeFlyClear=0,smokeF=0,smokeR=0,smokeUp=0;
     glm::dvec3 smokeFlyStart{0}; std::set<std::string> smokeFlown;
@@ -8733,6 +8736,9 @@ private:
         }
     }
 public:
+#ifdef SAIDA_ENABLE_XR
+    void setXrGestureInput(const saida::xrgesture::RuntimeInputState& state) { vrGestures.setRuntimeState(state); }
+#endif
     World(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false,bool headset=false):engine(e),game(g),smokeSail(sail),smokeFly(fly),vr(headset),pickLon(startLon),pickLat(startLat),mapCenterLon(startLon),mapCenterLat(startLat),smoke(test),hopLon(hopX),hopLat(hopY),hopWanted(hop),worldCapture(capture),captureView(view) {
         performanceSmoke=smoke&&std::getenv("R1WORLD_DEBUG_SMOKE");
         if(!perfSmoke.empty()&&(!smoke||(perfSmoke!="walk"&&perfSmoke!="drive")))
@@ -10072,6 +10078,14 @@ public:
         }
         if(!playing)cost.warm=timed([&]{warm();});
         updateRadio(delta);
+#ifdef SAIDA_ENABLE_XR
+        if(vr) {
+            const bool permitted=playing&&!menu&&!optionsOpen&&!cheatOpen&&!playerDown&&
+                !driving&&!sailing&&!piloting&&!swimming&&drop.phase==Drop::None&&jumpOffset<3.&&delta>0;
+            vrGestures.sample(saida::Time::unscaledElapsed(),permitted);
+            if(const char* notice=vrGestures.notice())text("stream-status",notice);
+        }
+#endif
         // A drop not yet armed: the world under the globe is still the one
         // left, or none; nothing of it plays.
         if(!playing||menu||(drop.phase!=Drop::None&&!drop.armed)){updateRain(delta);return;}
@@ -10183,6 +10197,17 @@ public:
             smokeApproachTime+=std::min(.05,double(delta));
         }
         double length=std::hypot(f,r),dt=std::min(.05,double(delta));
+        glm::vec3 gestureStep(0);
+#ifdef SAIDA_ENABLE_XR
+        if(vr) {
+            const float turn=vrGestures.consumeTurnDegrees();
+            if(turn!=0) {
+                yaw=wrap(yaw+turn);
+                player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
+            }
+            gestureStep=vrGestures.advance(float(dt),length>0);
+        }
+#endif
         // One door key for both directions, and the refusals are inside
         // enterCar/leaveCar so that every one of them says something.
         bool doorKey=held(GLFW_KEY_F);
@@ -10263,12 +10288,12 @@ public:
                 } else text("stream-status","More data is on its way… swimming held at the edge of the area.");
             }
             if(moving)request(lon,lat);
-        } else if(length>0&&jumpOffset<3.) {  // falling from higher, he cannot steer
+        } else if((length>0||glm::length(gestureStep)>0)&&jumpOffset<3.) {  // falling from higher, he cannot steer
             double speed=held(GLFW_KEY_LEFT_SHIFT)&&!aiming?7.:2.8;
             // A stride broken by running into someone (World::staggerPlayer).
             if(stagger>0)speed*=.35;
-            double east=(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt;
-            double north=(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt;
+            double east=length>0?(sin(yaw*rad)*f+cos(yaw*rad)*r)/length*speed*dt:gestureStep.x;
+            double north=length>0?(cos(yaw*rad)*f-sin(yaw*rad)*r)/length*speed*dt:-gestureStep.z;
             footEast=east/dt;footNorth=north/dt;
             // People are bodies: he stops at them and slides round them.
             auto next=moveFeet(east,north,dt);
@@ -10290,7 +10315,12 @@ public:
                     auto facing=glm::angleAxis(float(-std::atan2(east,north)),glm::vec3(0,1,0));
                     player->transform().rotation=glm::slerp(player->transform().rotation,facing,float(1-std::exp(-16*dt)));
                 }
-            }else text("stream-status","More data is on its way… movement held at the edge of the area.");
+            }else {
+#ifdef SAIDA_ENABLE_XR
+                if(vr)vrGestures.rejectStep();
+#endif
+                text("stream-status","More data is on its way… movement held at the edge of the area.");
+            }
             request(lon,lat);
         } else if(jumpOffset<=0) {
             // Standing still, he is still a body: whoever walks into him
@@ -10938,7 +10968,12 @@ int main(int argc,char** argv) {
         #ifndef SAIDA_ENABLE_XR
         if(vr)throw std::runtime_error("--vr: this build of the engine has no OpenXR (SAIDA_ENABLE_XR=OFF)");
 #endif
-        saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),vr,{},physics);
+        std::vector<std::shared_ptr<saida::xr::InputExtension>> xrInputs;
+#ifdef SAIDA_ENABLE_XR
+        std::shared_ptr<saida::xrgesture::MetaMicrogestureInput> gestureInput;
+        if(vr) {gestureInput=std::make_shared<saida::xrgesture::MetaMicrogestureInput>();xrInputs.push_back(gestureInput);}
+#endif
+        saida::Engine engine(nullptr,(game/"R1World.saidaproj").string(),vr,{},physics,std::move(xrInputs));
         engine.resources().assetLoader().setBudget(kDecodedAssetBudget);
         if(!saida::SceneSerializer::loadIntoScene(engine.scene(),engine.resources(),(game/"scenes/earth.scene").string()))throw std::runtime_error("Cannot load Earth scene");
         engine.mountWorld();saida::Time::setScale(1);
@@ -10952,6 +10987,9 @@ int main(int argc,char** argv) {
         // reads before any tile is cooked, and refuses to run without.
         r1::loadPalette(game.string());
         World world(engine,game,smoke,capture,startLon,startLat,hop,hopLon,hopLat,view,sail,fly,vr);
+#ifdef SAIDA_ENABLE_XR
+        if(gestureInput)world.setXrGestureInput(gestureInput->state());
+#endif
         world.setMenuGlobe(menuGlobe);
         for(int i=1;i<argc;++i)if(std::string(argv[i])=="--dive")world.diveSmoke();
         for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--at") {
