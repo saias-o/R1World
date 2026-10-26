@@ -327,30 +327,40 @@ hands use SaidaEngine's skinned `XRHand` models, with procedural joints as the
 missing-asset fallback. The desktop window stays hidden; close the session
 from the headset to quit.
 
-Thumb locomotion uses the optional `XRGesture` add-on. With the other fingers
-slightly curled, touch the side of the middle index segment with the thumb and
-lift to enable walking. Keep that hand as the owner, then touch, swipe and lift:
-forward/backward step 0.5 m along the headset's horizontal heading; left/right
-rotate the player and VR rig by 15 degrees without lateral translation. Turning
-clears an unfinished step. Right-hand left means toward the index fingertip;
-left-hand left means away from it. Tap again, extend the index, tilt the wrist by more than
-45 degrees, or leave the hand idle for eight seconds to stop. Focus/tracking
-loss, menus, vehicles, swimming, ragdoll and parachuting also cancel the gate.
-The game uses a more sensitive optical profile: 4 mm swipe travel (instead of
-the add-on default 8 mm), 40 ms neutral, 20 ms minimum contact and 60 ms cooldown.
-Tap travel allows up to 3 mm to keep taps separate from short swipes. These
-settings tune the optical heuristic and completion cooldown; the runtime owns
-its native classifier. Each step is fed at a bounded speed through the existing
-character collision and loaded-ground checks. Keyboard walking takes priority and clears queued
-steps; rejected/unloaded ground does not replay a stored step later.
+Thumb locomotion uses the optional `XRGesture` add-on and **native Meta
+microgestures only** by default. With the other fingers slightly curled, touch
+the side of the middle index segment with the thumb and lift to enable walking.
+Owner-hand forward/backward swipes step 0.5 m along the headset's horizontal
+heading; left/right rotate the player and VR rig by 15 degrees without lateral
+translation. Turning clears an unfinished step. Right-hand left means toward
+the index fingertip; left-hand left means away from it. Tap the same hand again
+to stop, or tap the other hand to transfer control.
 
-Logs beginning `[XRGesture]` report recognized gestures and whether the source
-is `meta-openxr` or `skeleton-heuristic`. The native path requires the runtime
-to expose both Meta microgestures and EXT hand interaction. If it does not,
-NativePreferred uses an independent optical-joint heuristic; it is not the
-Meta native classifier. A missing optical hand skeleton is reported explicitly.
-Actual headset accuracy, native availability over Link and walking comfort
-remain to be tested on hardware.
+The game no longer adds its own finger-posture/wrist-tilt classifier, idle cutoff
+or cooldown to native Meta completions. Native actions remain usable when
+individual optical finger joints are occluded. Temporary native tracking loss
+suspends output and consumes queued steps; a fresh completion after recovery
+works without another activation tap. Streaming hitches clear queued movement
+without silently closing the gate. Focus loss, menus, vehicles, swimming,
+ragdoll and parachuting still cancel locomotion, requiring an activation tap.
+Each step uses the existing character collision and loaded-ground checks.
+Keyboard walking takes priority and clears queued steps; unloaded-ground
+rejection cannot replay a stored step later.
+
+Logs beginning `[XRGesture]` include raw native completion timestamps, selected
+hand, `walking disabled reason=...` and suspend/resume transitions. A rejected
+swipe while unarmed reports `activation-required` with a visible tap hint.
+The native backend requires the runtime to expose both Meta microgestures and
+EXT hand interaction. Unavailable/inactive native input is reported explicitly;
+there is no automatic substitution by the geometric heuristic. The independent
+heuristic remains available through the add-on and explicit adapter mode for
+other integrations/tests; it is not Meta's classifier.
+
+The 2026-10-26 Meta Quest 3 / Oculus Link session logs confirmed native completion
+input continued after the old locomotion gate disabled walking. The revised
+adapter is covered by a four-minute synthetic replay with repeated stalls and
+joint loss, plus tracking recovery and hand transfer tests. Headset behavior
+must still be rechecked after this fix.
 
 The integration smoke test opens no window and needs no headset:
 

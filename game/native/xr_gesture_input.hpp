@@ -10,7 +10,9 @@ namespace r1 {
 // geographic position, loaded-ground checks and CharacterBody collision solve.
 class XrGestureInput {
 public:
-    XrGestureInput() : gestures_(microgestureConfig()), gate_(walkingConfig()) {}
+    explicit XrGestureInput(
+        saida::xrgesture::MicrogestureMode mode = saida::xrgesture::MicrogestureMode::NativeOnly)
+        : gestures_(microgestureConfig(mode)), gate_(walkingConfig()), mode_(mode) {}
     void setRuntimeState(const saida::xrgesture::RuntimeInputState& state) { runtime_ = &state; }
 
     void sample(double monotonicSeconds, bool permitted) {
@@ -27,20 +29,39 @@ public:
         for (const auto& event : events) {
             if (event.phase == Phase::Performed && event.gesture <= gesture::ThumbTap)
                 saida::Log::info("[XRGesture] ", event.hand == saida::XRHand::Left ? "left " : "right ",
-                                 name(event.gesture), " source=", name(event.source));
+                                 name(event.gesture), " source=", name(event.source), " t=", event.time);
         }
         reportAvailability(frame);
         const auto intent = gate_.update(frame, events, permitted);
-        if (!gate_.active())
+        if (!gate_.active() || intent.discardPendingMotion)
             motion_.cancel();
+        if (intent.suspended && !suspended_)
+            saida::Log::info("[XRGesture] walking suspended reason=", name(intent.reason),
+                             "; activation retained");
+        if (!intent.suspended && suspended_ && gate_.active())
+            saida::Log::info("[XRGesture] walking resumed");
+        suspended_ = intent.suspended;
         if (intent.activated) {
             notice_ = "Hand movement enabled: swipe forward/back to step, left/right to turn. Tap to stop.";
-            saida::Log::info("[XRGesture] walking enabled");
+            saida::Log::info("[XRGesture] walking enabled hand=",
+                             gate_.hand() == saida::XRHand::Left ? "left" : "right");
         }
         if (intent.deactivated) {
             motion_.cancel();
-            notice_ = "Hand movement stopped.";
-            saida::Log::info("[XRGesture] walking disabled");
+            notice_ = "Hand movement stopped. Tap your thumb to enable it again.";
+            saida::Log::info("[XRGesture] walking disabled reason=", name(intent.reason));
+        }
+        if (!gate_.active() && frame.focused && frame.time - lastActivationHint_ >= 1) {
+            for (const auto& event : events) {
+                if (event.phase == Phase::Performed && event.gesture >= gesture::SwipeLeft &&
+                    event.gesture <= gesture::SwipeBackward) {
+                    lastActivationHint_ = frame.time;
+                    notice_ = "Tap your thumb once to enable movement, then swipe to walk or turn.";
+                    saida::Log::info("[XRGesture] locomotion ignored reason=activation-required; thumb tap "
+                                     "enables walking");
+                    break;
+                }
+            }
         }
         // Game heading grows clockwise; the plugin's world +Y turn grows left.
         turnDegrees_ = -intent.turnDegrees;
@@ -50,7 +71,7 @@ public:
     }
 
     glm::vec3 advance(float seconds, bool keyboardWalking = false) {
-        if (!gate_.active() || keyboardWalking) {
+        if (!gate_.active() || suspended_ || keyboardWalking) {
             motion_.cancel();
             return glm::vec3(0);
         }
@@ -66,8 +87,9 @@ public:
     bool active() const { return gate_.active(); }
 
 private:
-    static saida::xrgesture::MicrogestureConfig microgestureConfig() {
+    static saida::xrgesture::MicrogestureConfig microgestureConfig(saida::xrgesture::MicrogestureMode mode) {
         saida::xrgesture::MicrogestureConfig config;
+        config.mode = mode;
         config.neutralSeconds = .04;
         config.minimumContactSeconds = .02;
         config.cooldownSeconds = .06;
@@ -80,6 +102,8 @@ private:
         saida::xrgesture::LocomotionConfig config;
         config.lateral = saida::xrgesture::LateralAction::SnapTurn;
         config.snapTurnDegrees = 15;
+        config.mode = saida::xrgesture::LocomotionGateMode::Explicit;
+        config.idleTimeoutSeconds = 0;
         return config;
     }
     void reportAvailability(const saida::xrgesture::Frame& frame) {
@@ -87,17 +111,25 @@ private:
         if (frame.focused) {
             status = 1;
             for (const auto& hand : frame.hands) {
-                if (!hand.skeleton.active)
-                    continue;
-                status = std::max(status, hand.native.supported && hand.native.active ? 3 : 2);
+                if (mode_ != saida::xrgesture::MicrogestureMode::SkeletonOnly && hand.native.supported &&
+                    hand.native.active)
+                    status = 3;
+                else if (mode_ != saida::xrgesture::MicrogestureMode::NativeOnly && hand.skeleton.active)
+                    status = std::max(status, 2);
             }
         }
         if (status == status_)
             return;
         status_ = status;
         if (status == 1) {
-            notice_ = "Hand movement unavailable: this VR session is not providing tracked fingers.";
-            saida::Log::warn("[XRGesture] no optical hand skeleton; walking gestures unavailable");
+            if (mode_ == saida::xrgesture::MicrogestureMode::NativeOnly) {
+                notice_ = "Meta microgestures unavailable or hands not tracked in this VR session.";
+                saida::Log::warn(
+                    "[XRGesture] native Meta actions unavailable/inactive; geometric fallback disabled");
+            } else {
+                notice_ = "Hand movement unavailable: this VR session is not providing tracked fingers.";
+                saida::Log::warn("[XRGesture] no optical hand skeleton; walking gestures unavailable");
+            }
         } else if (status == 2) {
             notice_ =
                 "Hand tracking ready. Tap your thumb on the side of your index finger to enable movement.";
@@ -115,6 +147,9 @@ private:
     saida::xrgesture::StepMotion motion_;
     const char* notice_ = nullptr;
     int status_ = -1;
+    bool suspended_ = false;
+    double lastActivationHint_ = -1;
+    saida::xrgesture::MicrogestureMode mode_;
     float turnDegrees_ = 0;
     const saida::xrgesture::RuntimeInputState* runtime_ = nullptr; // provider outlives World
 };

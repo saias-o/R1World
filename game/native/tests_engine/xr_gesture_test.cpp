@@ -57,7 +57,7 @@ static void sensitivityContracts() {
     for (XRHand side : {XRHand::Left, XRHand::Right}) {
         for (glm::vec2 travel :
              {glm::vec2(.005f, 0), glm::vec2(-.005f, 0), glm::vec2(0, .005f), glm::vec2(0, -.005f)}) {
-            r1::XrGestureInput input;
+            r1::XrGestureInput input(MicrogestureMode::SkeletonOnly);
             Frame frame;
             frame.focused = frame.head.tracked = true;
             frame.head.position = {0, 1.7f, 0};
@@ -97,6 +97,94 @@ static void sensitivityContracts() {
             }
         }
     }
+}
+
+static void nativeRecoveryContracts() {
+    r1::XrGestureInput input;
+    auto frame = tracked();
+    frame.hands[1].skeleton = {};
+    double time = 0;
+    const auto tap = xrMicrogestureBit(XRMicrogesture::ThumbTap);
+    const auto forward = xrMicrogestureBit(XRMicrogesture::SwipeForward);
+    auto sample = [&](double at, uint32_t mask) {
+        frame.time = at;
+        frame.hands[1].native.downMask = frame.hands[1].native.pressedMask = mask;
+        input.submit(frame, true);
+    };
+    auto step = [&] {
+        glm::vec3 moved(0);
+        for (int i = 0; i < 10; ++i)
+            moved += input.advance(.02f);
+        return moved;
+    };
+    sample(time, tap);
+    check(input.active(),
+          "first genuine Meta tap can arm without an optical skeleton or prior neutral frame");
+    sample(time += .02, 0);
+    sample(time += .02, forward);
+    check(glm::length(step() - glm::vec3(0, 0, -.5f)) < 1e-5f,
+          "native movement does not depend on finger-joint geometry");
+    frame.hands[1].skeleton = curled(XRHand::Right);
+    frame.hands[1].skeleton.joints[static_cast<int>(XRHandJoint::IndexTip)].valid = false;
+    frame.hands[1].skeleton.joints[static_cast<int>(XRHandJoint::Wrist)].pose.orientation =
+        glm::angleAxis(glm::radians(75.f), glm::vec3(1, 0, 0));
+    sample(time += .02, 0);
+    sample(time += .02, forward);
+    check(input.active() && glm::length(step()) > .49f,
+          "invalid finger joints and wrist pitch cannot veto a classified Meta completion");
+    for (int i = 0; i < 100; ++i)
+        sample(time += .1, 0);
+    check(input.active(), "ten seconds idle does not silently disarm native locomotion");
+    sample(time += .02, forward);
+    sample(time += 2, 0);
+    check(input.active() && glm::length(input.advance(.02f)) == 0,
+          "streaming hitch clears an unfinished step while retaining explicit activation");
+    sample(time += 1, forward);
+    check(glm::length(step()) > .49f, "fresh completion on the first frame after a hitch is usable");
+    sample(time += .02, 0);
+    sample(time += .02, forward);
+    frame.hands[1].native.active = false;
+    sample(time += .02, 0);
+    check(input.active() && glm::length(input.advance(.02f)) == 0,
+          "native tracking loss suspends movement and consumes the queued step");
+    frame.hands[1].native.active = true;
+    sample(time += .02, forward);
+    check(input.active() && glm::length(step()) > .49f,
+          "tracking recovery accepts the next fresh Meta completion without another activation tap");
+    bool allSteps = true;
+    for (int i = 0; i < 120; ++i) {
+        sample(time += 2, 0);
+        frame.hands[1].skeleton.active = i % 2 == 0;
+        sample(time += .02, forward);
+        if (glm::length(step() - glm::vec3(0, 0, -.5f)) >= 1e-5f || !input.active())
+            allSteps = false;
+    }
+    check(allSteps,
+          "four-minute replay with repeated streaming stalls and joint loss keeps all 120 native steps");
+    sample(time += .02, 0);
+    sample(time += .02, tap);
+    check(!input.active(), "explicit tap still stops locomotion after a long session");
+
+    r1::XrGestureInput handoff;
+    frame = tracked();
+    frame.hands[1].skeleton = {};
+    frame.hands[0].native.supported = frame.hands[0].native.active = true;
+    auto send = [&](double at, XRHand hand, uint32_t mask) {
+        frame.time = at;
+        for (auto& sample : frame.hands)
+            sample.native.downMask = sample.native.pressedMask = 0;
+        frame.hands[xrHandIndex(hand)].native.downMask = frame.hands[xrHandIndex(hand)].native.pressedMask =
+            mask;
+        handoff.submit(frame, true);
+    };
+    send(0, XRHand::Right, tap);
+    frame.hands[1].native.active = false;
+    send(.02, XRHand::Left, tap);
+    check(handoff.active(), "tap on the other hand transfers control even while the old hand is lost");
+    send(.04, XRHand::Left, forward);
+    check(glm::length(handoff.advance(.02f)) > 0, "newly selected hand can move immediately after transfer");
+    send(.06, XRHand::Left, tap);
+    check(!handoff.active(), "tap on the newly selected hand stops locomotion");
 }
 
 int main() {
@@ -183,6 +271,7 @@ int main() {
     check(quick.consumeTurnDegrees() == 0 && !quick.active(),
           "gameplay suspension clears an unconsumed turn");
     sensitivityContracts();
+    nativeRecoveryContracts();
     std::printf("%s R1World XRGesture: %d checks, %d failures\n", failures ? "FAIL" : "PASS", checks,
                 failures);
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
