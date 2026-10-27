@@ -1,333 +1,350 @@
 ﻿# R1World
 
-**Explorer la Terre entiÃ¨re Ã  l'Ã©chelle 1:1 et, Ã  terme, photographier tous
+**Explorer la Terre entière à l'échelle 1:1 et, à terme, photographier tous
 les animaux du jeu.**
 
-Mis Ã  jour le 23 octobre 2026. Ce plan conserve la direction du jeu, ses
-contraintes durables et les travaux restant Ã  faire. Les fonctionnalitÃ©s
-livrÃ©es, leur fonctionnement et leurs mesures sont documentÃ©s dans
+## À traiter en premier (28 octobre 2026)
+
+- **Le smoke « perf walk » échoue par intermittence.** Depuis le cache des
+  contributeurs GI (Saida 7b33d9f : GI/Prepare ~12 → ~1 ms, image ~45 → ~22 ms
+  sur la MX450), `R1WORLD_PERF_SMOKE=walk` à Paris finit en
+  `FAIL data timeout` 3 fois sur 5. Une fois, deux tuiles n'ont jamais démarré
+  le niveau Far de leurs bâtiments (`World::updateBuildingLods`) ; une autre,
+  trois tuiles n'ont jamais été servies par le service de cuisson. Le même
+  build avec l'ancien parcours GI complet passe, le smoke complet hors ligne
+  aussi. C'est une course du streaming que des images plus rapides révèlent,
+  et elle se tait : la trouver, et la faire dire (CLAUDE.md §3).
+- **Il manque des espèces d'oiseaux.** Paris montre désormais 27 à 37 oiseaux
+  autour du joueur, mais seulement pigeons, corneilles, mouettes et
+  rouges-gorges : aucun modèle de moineau, merle, étourneau, mésange ni pie.
+  Il faut des assets CC0 du même grade que les existants, choisis par
+  l'utilisateur (CLAUDE.md §1).
+
+Mis à jour le 23 octobre 2026. Ce plan conserve la direction du jeu, ses
+contraintes durables et les travaux restant à faire. Les fonctionnalités
+livrées, leur fonctionnement et leurs mesures sont documentés dans
 `game/README.md` ; leur historique reste dans Git.
 
-**La version actuelle du jeu est la 0.1. Sa sortie est prÃ©vue prochainement.**
-Le catalogue animalier et la collection photo sont un objectif Ã  terme,
-pas une fonctionnalitÃ© annoncÃ©e comme disponible dans cette version.
+**La version actuelle du jeu est la 0.1. Sa sortie est prévue prochainement.**
+Le catalogue animalier et la collection photo sont un objectif à terme,
+pas une fonctionnalité annoncée comme disponible dans cette version.
 
 **Le but du jeu est l'exploration.** La collection photo donnera une raison
-concrÃ¨te de voyager : les animaux apparaÃ®tront selon l'endroit du monde oÃ¹
-se trouve le joueur. ComplÃ©ter la collection imposera de dÃ©couvrir des pays,
-des rÃ©gions et des milieux diffÃ©rents.
+concrète de voyager : les animaux apparaîtront selon l'endroit du monde où
+se trouve le joueur. Compléter la collection imposera de découvrir des pays,
+des régions et des milieux différents.
 
 Deux exigences guident les choix :
 
-1. Le monde doit ressembler Ã  la Terre, Ã  l'endroit prÃ©cis oÃ¹ se trouve le joueur.
+1. Le monde doit ressembler à la Terre, à l'endroit précis où se trouve le joueur.
 2. Le jeu doit tenir 30 fps sur le Ryzen 7 5700U avec NVIDIA MX450, selon I4.
 
 ---
 
-## 1. La thÃ¨se
+## 1. La thèse
 
-> **Le monde n'est pas stockÃ©. Il est dÃ©crit, puis rÃ©gÃ©nÃ©rÃ© Ã  l'identique chez
+> **Le monde n'est pas stocké. Il est décrit, puis régénéré à l'identique chez
 > chaque joueur.**
 
-Ce qui transite n'est jamais de la gÃ©omÃ©trie, mais des observations (OSM,
-Ã©lÃ©vation). La gÃ©omÃ©trie est fabriquÃ©e par le jeu lui-mÃªme (`game/native/gen`),
-de faÃ§on dÃ©terministe, Ã  chaque visite. Trois consÃ©quences :
+Ce qui transite n'est jamais de la géométrie, mais des observations (OSM,
+élévation). La géométrie est fabriquée par le jeu lui-même (`game/native/gen`),
+de façon déterministe, à chaque visite. Trois conséquences :
 
 1. **Le volume s'effondre** : le cache garde les observations, jamais la
-   gÃ©omÃ©trie.
-2. **Le dÃ©terminisme remplace la synchronisation de la gÃ©omÃ©trie statique** :
-   mÃªme gÃ©nÃ©rateur, mÃªmes observations et atlas, mÃªme tuile, mÃªme ville au
-   triangle prÃ¨s. Les Ã©tats dynamiques multijoueurs restent Ã  synchroniser.
-3. **Le monde s'amÃ©liore sans Ãªtre re-livrÃ©** : amÃ©liorer un gÃ©nÃ©rateur repeint
-   la planÃ¨te.
+   géométrie.
+2. **Le déterminisme remplace la synchronisation de la géométrie statique** :
+   même générateur, mêmes observations et atlas, même tuile, même ville au
+   triangle près. Les états dynamiques multijoueurs restent à synchroniser.
+3. **Le monde s'améliore sans être re-livré** : améliorer un générateur repeint
+   la planète.
 
 Ce qui distingue R1World d'une extrusion OSM de plus :
 
-- **L'Atlas de styles rÃ©gionaux.** Un bÃ¢timent sans attributs hÃ©rite de la
-  distribution de *sa* rÃ©gion, pas d'un dÃ©faut mondial. C'est le premier facteur
-  de ressemblance, loin devant la qualitÃ© des modÃ¨les 3D.
-- **L'infÃ©rence comble le vide sans le masquer**, et elle est marquÃ©e comme
+- **L'Atlas de styles régionaux.** Un bâtiment sans attributs hérite de la
+  distribution de *sa* région, pas d'un défaut mondial. C'est le premier facteur
+  de ressemblance, loin devant la qualité des modèles 3D.
+- **L'inférence comble le vide sans le masquer**, et elle est marquée comme
   telle.
 
 ---
 
-## 2. Ce que Â« ressembler Ã  la Terre Â» veut dire
+## 2. Ce que « ressembler à la Terre » veut dire
 
-Classement par contribution rÃ©elle Ã  Â« je reconnais cet endroit Â». Il gouverne
+Classement par contribution réelle à « je reconnais cet endroit ». Il gouverne
 l'allocation de l'effort.
 
-| Rang | Facteur | Origine | PrÃ©cision |
+| Rang | Facteur | Origine | Précision |
 |---|---|---|---|
 | 1 | Silhouette du relief et horizon | IGN RGE ALTI, Copernicus DEM | Exacte |
-| 2 | Trame urbaine : routes, Ã®lots, orientation | OSM | Exacte |
-| 3 | Emprises des bÃ¢timents | OSM | Exacte |
-| 4 | LumiÃ¨re : soleil rÃ©el, atmosphÃ¨re | Ã‰phÃ©mÃ©rides + heure rÃ©elle | Exacte |
-| 5 | Hauteurs et gabarits | OSM partiel â†’ Atlas | MesurÃ©e ou infÃ©rÃ©e |
-| 6 | MatÃ©riaux et couleurs de faÃ§ade | Atlas | InfÃ©rÃ©e â€” *le point critique* |
-| 7 | Toitures | OSM partiel â†’ Atlas | InfÃ©rÃ©e |
-| 8 | VÃ©gÃ©tation | OSM + Atlas | InfÃ©rÃ©e par biome |
-| 9 | Sols et revÃªtements | OSM partiel â†’ rÃ¨gles | InfÃ©rÃ©e |
-| 10 | Mobilier urbain | OSM + kits | MesurÃ© ou infÃ©rÃ© |
+| 2 | Trame urbaine : routes, îlots, orientation | OSM | Exacte |
+| 3 | Emprises des bâtiments | OSM | Exacte |
+| 4 | Lumière : soleil réel, atmosphère | Éphémérides + heure réelle | Exacte |
+| 5 | Hauteurs et gabarits | OSM partiel → Atlas | Mesurée ou inférée |
+| 6 | Matériaux et couleurs de façade | Atlas | Inférée — *le point critique* |
+| 7 | Toitures | OSM partiel → Atlas | Inférée |
+| 8 | Végétation | OSM + Atlas | Inférée par biome |
+| 9 | Sols et revêtements | OSM partiel → règles | Inférée |
+| 10 | Mobilier urbain | OSM + kits | Mesuré ou inféré |
 
-Les quatre premiers rangs sont **mesurÃ©s**, donc exacts et quasi gratuits. Le
-travail crÃ©atif commence au rang 5 et il est portÃ© par l'Atlas
+Les quatre premiers rangs sont **mesurés**, donc exacts et quasi gratuits. Le
+travail créatif commence au rang 5 et il est porté par l'Atlas
 (`assets/world/atlas.json`).
 
-**On ne reproduit pas :** les intÃ©rieurs rÃ©els (ils sont gÃ©nÃ©rÃ©s), les
-personnes rÃ©elles et les plaques, les logos exacts des marques, la
-photogrammÃ©trie (elle ne se corrige pas), ni l'exactitude au-delÃ  de la donnÃ©e
+**On ne reproduit pas :** les intérieurs réels (ils sont générés), les
+personnes réelles et les plaques, les logos exacts des marques, la
+photogrammétrie (elle ne se corrige pas), ni l'exactitude au-delà de la donnée
 disponible.
 
 ---
 
 ## 3. Les invariants
 
-### I0 â€” La fidÃ©litÃ© arbitre
-En cas de conflit, on rÃ©duit la portÃ©e (zone, densitÃ©), jamais la justesse. Seule
+### I0 — La fidélité arbitre
+En cas de conflit, on réduit la portée (zone, densité), jamais la justesse. Seule
 exception : les plafonds de I4.
 
-### I1 â€” Aucune coordonnÃ©e ECEF n'atteint le moteur
-Le moteur ne voit que de l'ENU local, ancrÃ© prÃ¨s du joueur. Le `float32` n'est
-pas ce qui limite la vue (2,4 cm de pas Ã  200 km) ; ce qui limite, c'est le
-jitter camÃ©ra/physique, d'oÃ¹ une **origine flottante rebasÃ©e** tous les 350 m
+### I1 — Aucune coordonnée ECEF n'atteint le moteur
+Le moteur ne voit que de l'ENU local, ancré près du joueur. Le `float32` n'est
+pas ce qui limite la vue (2,4 cm de pas à 200 km) ; ce qui limite, c'est le
+jitter caméra/physique, d'où une **origine flottante rebasée** tous les 350 m
 (`native/world.cpp`).
 
-### I2 â€” La courbure est du contenu, pas une erreur
-L'ENU est rigide. Aucune Â« correction de courbure Â» nulle part. Horizons :
-1,7 m â†’ 4,7 km Â· 50 m â†’ 25 km Â· 4 000 m â†’ 226 km Â· 10 000 m â†’ 357 km.
+### I2 — La courbure est du contenu, pas une erreur
+L'ENU est rigide. Aucune « correction de courbure » nulle part. Horizons :
+1,7 m → 4,7 km · 50 m → 25 km · 4 000 m → 226 km · 10 000 m → 357 km.
 
-### I3 â€” Le dÃ©terminisme est un contrat versionnÃ©
-`gÃ©omÃ©trie = G(version_gÃ©nÃ©rateur, tuile, observations, atlas)`. Aucune
-horloge, aucun alÃ©a non seedÃ© : les tirages d'un bÃ¢timent dÃ©rivent de son
-identifiant OSM. Le gÃ©nÃ©rateur est compilÃ© sans contraction flottante
-(`-ffp-contract=off`) pour donner la mÃªme ville sur toute machine. Changer un
-gÃ©nÃ©rateur incrÃ©mente sa version (`kVersion`), jamais en silence.
+### I3 — Le déterminisme est un contrat versionné
+`géométrie = G(version_générateur, tuile, observations, atlas)`. Aucune
+horloge, aucun aléa non seedé : les tirages d'un bâtiment dérivent de son
+identifiant OSM. Le générateur est compilé sans contraction flottante
+(`-ffp-contract=off`) pour donner la même ville sur toute machine. Changer un
+générateur incrémente sa version (`kVersion`), jamais en silence.
 
-### I4 â€” Le budget est un contrat
-Machine de rÃ©fÃ©rence : **Ryzen 7 5700U, NVIDIA MX450 2 Gio, environ 7,4 Gio de
-RAM utilisable, alimentation secteur, 1920 Ã— 1080 / 30 fps.** Objectif fixÃ© par
+### I4 — Le budget est un contrat
+Machine de référence : **Ryzen 7 5700U, NVIDIA MX450 2 Gio, environ 7,4 Gio de
+RAM utilisable, alimentation secteur, 1920 × 1080 / 30 fps.** Objectif fixé par
 l'utilisateur le 9 octobre 2026 : **30 fps soutenus dans le jeu, partout dans
 le monde**, soit un budget de **33,33 ms par image**. Il s'applique aux villes
-denses, campagnes, forÃªts, cÃ´tes, montagnes et pÃ´les, aux intÃ©rieurs et aux
-dÃ©placements Ã  pied ou en vÃ©hicule, y compris pendant le streaming. Une mesure
+denses, campagnes, forêts, côtes, montagnes et pôles, aux intérieurs et aux
+déplacements à pied ou en véhicule, y compris pendant le streaming. Une mesure
 locale ou une moyenne qui masque des ralentissements ne qualifie pas cet
-objectif global ; les distributions de temps de frame et les pics sont relevÃ©s.
-CPU, GPU, RAM et VRAM sont mesurÃ©s sur ce portable : aucune ressource n'est
-prÃ©sumÃ©e Ãªtre le seul facteur limitant. Les anciens relevÃ©s sur d'autres
+objectif global ; les distributions de temps de frame et les pics sont relevés.
+CPU, GPU, RAM et VRAM sont mesurés sur ce portable : aucune ressource n'est
+présumée être le seul facteur limitant. Les anciens relevés sur d'autres
 machines restent des observations, pas une qualification de cette cible.
-L'arÃ¨ne de gÃ©omÃ©trie du moteur est fixÃ©e Ã  **1 048 576 sommets**
+L'arène de géométrie du moteur est fixée à **1 048 576 sommets**
 (`GeometryRegistry::kDefaultMaxVertices`)
-et tous les budgets de sommets en dÃ©coulent (`CLAUDE.md` Â§5). **120 000 sommets
-est un seuil de dÃ©gradation, pas de refus** : une tuile dont la gÃ©omÃ©trie propre
-le dÃ©passe voit sa foule divisÃ©e par quatre et ses nouveaux intÃ©rieurs bloquÃ©s.
-La dÃ©cision est conservÃ©e par rangÃ©e et colonne entre visites, redÃ©marrages et
-versions du gÃ©nÃ©rateur. Une tuile de 140 000 sommets reste visitable si l'arÃ¨ne
-rÃ©sidente le permet ; seul le plafond global peut encore refuser de la
-gÃ©omÃ©trie, en disant pourquoi.
+et tous les budgets de sommets en découlent (`CLAUDE.md` §5). **120 000 sommets
+est un seuil de dégradation, pas de refus** : une tuile dont la géométrie propre
+le dépasse voit sa foule divisée par quatre et ses nouveaux intérieurs bloqués.
+La décision est conservée par rangée et colonne entre visites, redémarrages et
+versions du générateur. Une tuile de 140 000 sommets reste visitable si l'arène
+résidente le permet ; seul le plafond global peut encore refuser de la
+géométrie, en disant pourquoi.
 
-Seule la gÃ©omÃ©trie de la tuile compte, au montage, telle que le manifeste la
-mesure. Les props et les arbres sont des nÅ“uds sur des modÃ¨les partagÃ©s
-(`CLAUDE.md` Â§5) et n'entrent pas dans ce compte, et la rÃ¨gle ne touche jamais
-aux arbres (`CLAUDE.md` Â§1). Les marqueurs de densitÃ© sont propres Ã  chaque
-tuile et indÃ©pendants des observations et de la gÃ©omÃ©trie dÃ©terministe.
+Seule la géométrie de la tuile compte, au montage, telle que le manifeste la
+mesure. Les props et les arbres sont des nœuds sur des modèles partagés
+(`CLAUDE.md` §5) et n'entrent pas dans ce compte, et la règle ne touche jamais
+aux arbres (`CLAUDE.md` §1). Les marqueurs de densité sont propres à chaque
+tuile et indépendants des observations et de la géométrie déterministe.
 
-Les niveaux de dÃ©tail doivent conserver le mÃªme asset, sa silhouette et son
+Les niveaux de détail doivent conserver le même asset, sa silhouette et son
 ancrage. Les transitions sont progressives ; les collisions gardent
-l'enveloppe rÃ©elle indÃ©pendamment du LOD. Les bÃ¢timents Far restent plafonnÃ©s
-Ã  12 triangles par bÃ¢timent. Les distances et budgets existants sont dÃ©crits
-dans `game/README.md` ; ils ne constituent pas de nouvelles tÃ¢ches Ã  rÃ©aliser.
+l'enveloppe réelle indépendamment du LOD. Les bâtiments Far restent plafonnés
+à 12 triangles par bâtiment. Les distances et budgets existants sont décrits
+dans `game/README.md` ; ils ne constituent pas de nouvelles tâches à réaliser.
 
-### I5 â€” Le jeu sait toujours ce qu'il ignore
-Chaque Ã©lÃ©ment porte sa provenance : `mesurÃ©`, `infÃ©rÃ©` ou `synthÃ©tisÃ©`. Ce qui
-est mesurÃ© n'est jamais Ã©crasÃ© par ce qui est infÃ©rÃ©, et le manifeste de chaque
-tuile dit lequel a rÃ©pondu.
+### I5 — Le jeu sait toujours ce qu'il ignore
+Chaque élément porte sa provenance : `mesuré`, `inféré` ou `synthétisé`. Ce qui
+est mesuré n'est jamais écrasé par ce qui est inféré, et le manifeste de chaque
+tuile dit lequel a répondu.
 
 ---
 
-## 4. Les donnÃ©es sources
+## 4. Les données sources
 
 | Couche | Source | Licence |
 |---|---|---|
-| BÃ¢ti, voirie, eau, usage du sol, aÃ©roports | OpenStreetMap (Overpass) | ODbL |
-| Ã‰lÃ©vation, France | IGN RGE ALTI (GÃ©oplateforme) | Licence Ouverte |
-| Ã‰lÃ©vation, ailleurs | Terrain Tiles (Mapzen, AWS) : SRTM, 3DEP, EU-DEM, relevÃ©s nationaux | libre, attribution par source (`assets/licenses/`) |
-| Ã‰lÃ©vation, en dernier recours | Copernicus DEM GLO-90 (Open-Meteo) | libre, attribution |
-| Sommets (altitude relevÃ©e) | OpenStreetMap `natural=peak` avec `ele` | ODbL |
-| MÃ©tÃ©o, visibilitÃ©, vent, neige au sol, courants | Open-Meteo | CC BY 4.0 |
-| Banquise (glace de mer, son Ã¢ge) | NOAA CoastWatch/PolarWatch, ASCAT Metop-C | libre, sans garantie |
-| Trait de cÃ´te hors ligne | Natural Earth | domaine public |
+| Bâti, voirie, eau, usage du sol, aéroports | OpenStreetMap (Overpass) | ODbL |
+| Élévation, France | IGN RGE ALTI (Géoplateforme) | Licence Ouverte |
+| Élévation, ailleurs | Terrain Tiles (Mapzen, AWS) : SRTM, 3DEP, EU-DEM, relevés nationaux | libre, attribution par source (`assets/licenses/`) |
+| Élévation, en dernier recours | Copernicus DEM GLO-90 (Open-Meteo) | libre, attribution |
+| Sommets (altitude relevée) | OpenStreetMap `natural=peak` avec `ele` | ODbL |
+| Météo, visibilité, vent, neige au sol, courants | Open-Meteo | CC BY 4.0 |
+| Banquise (glace de mer, son âge) | NOAA CoastWatch/PolarWatch, ASCAT Metop-C | libre, sans garantie |
+| Trait de côte hors ligne | Natural Earth | domaine public |
 | Trafic maritime moyen | Global Shipping Traffic Density (Banque mondiale) | CC BY 4.0 |
-| CanopÃ©e (arbres, haies, hauteur) | High Resolution Canopy Height Maps (Meta & WRI), 1 m, images 2009-2020 | CC BY 4.0 |
+| Canopée (arbres, haies, hauteur) | High Resolution Canopy Height Maps (Meta & WRI), 1 m, images 2009-2020 | CC BY 4.0 |
 
-Les donnÃ©es dÃ©rivÃ©es d'OSM sont soumises Ã  l'ODbL, avec attribution visible en
+Les données dérivées d'OSM sont soumises à l'ODbL, avec attribution visible en
 jeu. Aucune source `CC BY-NC`. Les assets sont **CC0** (Poly Haven, ambientCG,
-Kenney) ou dessinÃ©s par le projet, avec deux exceptions : les personnages sont
+Kenney) ou dessinés par le projet, avec deux exceptions : les personnages sont
 Microsoft Rocketbox, **MIT** ; les sept voitures de Ruff et Scopia / Space
 Mushrooms sont **CC BY 3.0** ; les deux motos originales de R1World sont
-**CC0**. Les notices sont conservÃ©es
-(`assets/licenses/`) et les auteurs crÃ©ditÃ©s en jeu. Tous sont normalisÃ©s avant
-d'entrer : Ã©chelle mÃ©trique, albÃ©dos mesurÃ©s, un asset non conforme n'entre pas.
+**CC0**. Les notices sont conservées
+(`assets/licenses/`) et les auteurs crédités en jeu. Tous sont normalisés avant
+d'entrer : échelle métrique, albédos mesurés, un asset non conforme n'entre pas.
 
 ---
 
 ## 5. Le tuilage
 
-Anneaux de latitude mÃ©triques, sans coupure polaire (`native/gen/common.hpp`) :
-36 000 rangÃ©es de 0,005Â° et, par rangÃ©e, `72 000 Â· cos(lat)` colonnes. Une
-tuile fait donc environ 556 m de cÃ´tÃ© Ã  toute latitude, et sa clÃ©
-(`v<version>_<rangÃ©e>_<colonne>`) ne dÃ©pend ni de la session ni du point
-d'arrivÃ©e.
+Anneaux de latitude métriques, sans coupure polaire (`native/gen/common.hpp`) :
+36 000 rangées de 0,005° et, par rangée, `72 000 · cos(lat)` colonnes. Une
+tuile fait donc environ 556 m de côté à toute latitude, et sa clé
+(`v<version>_<rangée>_<colonne>`) ne dépend ni de la session ni du point
+d'arrivée.
 
-Ã€ moins de 18 km d'un pÃ´le, un anneau n'est plus que quelques quartiers :
-le voisinage y est fait des tuiles les plus proches en mÃ¨tres, douze au pÃ´le.
+À moins de 18 km d'un pôle, un anneau n'est plus que quelques quartiers :
+le voisinage y est fait des tuiles les plus proches en mètres, douze au pôle.
 
-Une requÃªte Overpass sert un voisinage de neuf tuiles. Le jeu cuit d'abord la
+Une requête Overpass sert un voisinage de neuf tuiles. Le jeu cuit d'abord la
 tuile du joueur, puis ses voisines par distance, puis un couloir devant le
-vÃ©hicule. La gÃ©omÃ©trie rÃ©sidente reste bornÃ©e par l'arÃ¨ne.
+véhicule. La géométrie résidente reste bornée par l'arène.
 
-**Le dÃ©tail ne dÃ©pend pas de la vitesse.** Le mobilier continue Ã  se charger et
-la portÃ©e de la vÃ©gÃ©tation reste celle du mode graphique choisi, mÃªme en vÃ©hicule.
+**Le détail ne dépend pas de la vitesse.** Le mobilier continue à se charger et
+la portée de la végétation reste celle du mode graphique choisi, même en véhicule.
 
 ---
 
-## 6. DÃ©cisions prises
+## 6. Décisions prises
 
-1. **Licence et distribution.** Jeu gratuit. DonnÃ©es OSM dÃ©rivÃ©es sous ODbL avec
+1. **Licence et distribution.** Jeu gratuit. Données OSM dérivées sous ODbL avec
    attribution visible.
-2. **Moteur : dÃ©pÃ´t Saida direct, sans fork.** Une modification moteur n'est
-   admise que si elle amÃ©liore le moteur en gÃ©nÃ©ral ; aucune exception
-   spÃ©cifique Ã  R1World. Ce qui est propre au jeu se compile dans le binaire du
-   jeu, jamais dans la bibliothÃ¨que du moteur.
-3. **Le monde est gÃ©nÃ©rÃ© dans le jeu, en C++.** Pas de processus Ã  cÃ´tÃ©, pas de
+2. **Moteur : dépôt Saida direct, sans fork.** Une modification moteur n'est
+   admise que si elle améliore le moteur en général ; aucune exception
+   spécifique à R1World. Ce qui est propre au jeu se compile dans le binaire du
+   jeu, jamais dans la bibliothèque du moteur.
+3. **Le monde est généré dans le jeu, en C++.** Pas de processus à côté, pas de
    Python au lancement ; `game/Play.ps1` compile et lance.
-4. **L'heure est rÃ©elle.** Arriver de nuit Ã  Tokyo est l'heure qu'il y est.
-5. **Le ciel suit l'heure.** Une journÃ©e de ciels photographiÃ©s (sÃ©rie Qwantani,
-   Poly Haven, CC0), fondus deux Ã  deux selon la vraie hauteur du soleil, calÃ©s
-   sur la couleur d'horizon du modÃ¨le. Le soleil des photos est retirÃ© ; le
-   moteur dessine un seul disque, lÃ  d'oÃ¹ vient la lumiÃ¨re (`r1/skies.py`).
-6. **Le joueur est une position gÃ©odÃ©sique.** Ã€ pied, en voiture, en bateau ou
+4. **L'heure est réelle.** Arriver de nuit à Tokyo est l'heure qu'il y est.
+5. **Le ciel suit l'heure.** Une journée de ciels photographiés (série Qwantani,
+   Poly Haven, CC0), fondus deux à deux selon la vraie hauteur du soleil, calés
+   sur la couleur d'horizon du modèle. Le soleil des photos est retiré ; le
+   moteur dessine un seul disque, là d'où vient la lumière (`r1/skies.py`).
+6. **Le joueur est une position géodésique.** À pied, en voiture, en bateau ou
    en vol, il est une longitude, une latitude et une altitude ; une seule
-   autoritÃ© sur la position, dont dÃ©pendent le rebasage, le streamer et le
+   autorité sur la position, dont dépendent le rebasage, le streamer et le
    soleil.
-7. **Le cache est une promesse.** Un lieu dÃ©jÃ  visitÃ© se recharge sans requÃªte
-   rÃ©seau de donnÃ©es du monde (`CLAUDE.md` Â§7). Les Ã©changes P2P de la future
+7. **Le cache est une promesse.** Un lieu déjà visité se recharge sans requête
+   réseau de données du monde (`CLAUDE.md` §7). Les échanges P2P de la future
    MULTIPLAYER UPDATE sont distincts ; le lieu reste jouable hors ligne.
 
 ---
 
 ## 7. Version 0.1 et sortie prochaine
 
-La **0.1 dÃ©signe l'Ã©tat jouable actuel**, dont la sortie sera prÃ©parÃ©e
-prochainement. La collection animaliÃ¨re Ã  terme ne conditionne pas cette
-premiÃ¨re sortie.
+La **0.1 désigne l'état jouable actuel**, dont la sortie sera préparée
+prochainement. La collection animalière à terme ne conditionne pas cette
+première sortie.
 
-- PrÃ©parer la distribution de la 0.1 et vÃ©rifier l'installation et le
+- Préparer la distribution de la 0.1 et vérifier l'installation et le
   lancement du paquet sur une machine propre.
-- VÃ©rifier les parcours essentiels, les lieux dÃ©jÃ  visitÃ©s hors ligne et
-  les limites annoncÃ©es sur la machine de rÃ©fÃ©rence.
-- Documenter les prÃ©requis, commandes et limites du paquet distribuÃ©.
+- Vérifier les parcours essentiels, les lieux déjà visités hors ligne et
+  les limites annoncées sur la machine de référence.
+- Documenter les prérequis, commandes et limites du paquet distribué.
 
 ---
 
-## 8. Travaux restant Ã  faire
+## 8. Travaux restant à faire
 
-Chaque chantier conserve les rÃ¨gles du projet : ne pas dÃ©grader un asset
-existant (`CLAUDE.md` Â§1), employer des albÃ©dos mesurÃ©s, distinguer les
-infÃ©rences dans le manifeste (I5), et mesurer CPU, GPU, RAM, VRAM et arÃ¨ne (I4).
-Une implÃ©mentation terminÃ©e sort du plan ; sa documentation et ses rÃ©sultats
-vont dans `game/README.md`. Une validation non rÃ©alisÃ©e reste ouverte.
+Chaque chantier conserve les règles du projet : ne pas dégrader un asset
+existant (`CLAUDE.md` §1), employer des albédos mesurés, distinguer les
+inférences dans le manifeste (I5), et mesurer CPU, GPU, RAM, VRAM et arène (I4).
+Une implémentation terminée sort du plan ; sa documentation et ses résultats
+vont dans `game/README.md`. Une validation non réalisée reste ouverte.
 
-### Animals update â€” collection photo et exploration du monde
+### Animals update — collection photo et exploration du monde
 
-**Objectif principal Ã  terme : prendre en photo tous les animaux du jeu.**
-Le catalogue devra dÃ©passer **5 000 animaux diffÃ©rents**. Ce nombre est
-une cible de contenu Ã  construire progressivement.
+**Objectif principal à terme : prendre en photo tous les animaux du jeu.**
+Le catalogue devra dépasser **5 000 animaux différents**. Ce nombre est
+une cible de contenu à construire progressivement.
 
 - Concevoir la boucle de jeu : rechercher un animal, l'observer, le
-  photographier et enregistrer la dÃ©couverte dans une collection persistante.
+  photographier et enregistrer la découverte dans une collection persistante.
   Le joueur doit pouvoir consulter ses photos et les animaux qui lui restent
-  Ã  trouver, avec une progression vers la collection complÃ¨te.
-- Faire dÃ©pendre les apparitions de l'endroit rÃ©el du monde : rÃ©partition
-  gÃ©ographique, rÃ©gion, biome, climat et habitat/usage du sol. Une espÃ¨ce
-  n'apparaÃ®t que dans les lieux qui lui conviennent ; tout le catalogue ne
-  peut pas Ãªtre rencontrÃ© au mÃªme endroit.
-- **La recherche de tous les animaux doit pousser le joueur Ã  explorer la
-  planÃ¨te.** Voyager entre pays, rÃ©gions et milieux fait partie de la
+  à trouver, avec une progression vers la collection complète.
+- Faire dépendre les apparitions de l'endroit réel du monde : répartition
+  géographique, région, biome, climat et habitat/usage du sol. Une espèce
+  n'apparaît que dans les lieux qui lui conviennent ; tout le catalogue ne
+  peut pas être rencontré au même endroit.
+- **La recherche de tous les animaux doit pousser le joueur à explorer la
+  planète.** Voyager entre pays, régions et milieux fait partie de la
   progression ; l'exploration reste le but central du jeu.
-- PrÃ©voir des animaux terrestres, oiseaux et animaux adaptÃ©s aux autres
-  milieux, avec comportements cohÃ©rents : errer, paÃ®tre, fuir le joueur,
-  voler en groupe. Leur prÃ©sence doit rendre chaque lieu vivant.
+- Prévoir des animaux terrestres, oiseaux et animaux adaptés aux autres
+  milieux, avec comportements cohérents : errer, paître, fuir le joueur,
+  voler en groupe. Leur présence doit rendre chaque lieu vivant.
 - Construire le catalogue et ses assets progressivement, avec provenance,
-  qualitÃ© visuelle et rÃ©partition gÃ©ographique explicites.
-- Garder des instances partagÃ©es, des animations et niveaux de dÃ©tail adaptÃ©s,
-  un budget local de population et aucune simulation dÃ©taillÃ©e hors du rayon
-  utile. Les 5 000 animaux du catalogue ne sont pas simultanÃ©ment chargÃ©s.
+  qualité visuelle et répartition géographique explicites.
+- Garder des instances partagées, des animations et niveaux de détail adaptés,
+  un budget local de population et aucune simulation détaillée hors du rayon
+  utile. Les 5 000 animaux du catalogue ne sont pas simultanément chargés.
 
-### MULTIPLAYER UPDATE â€” pair Ã  pair par tuile, UDP, rollback et prÃ©diction
+### MULTIPLAYER UPDATE — pair à pair par tuile, UDP, rollback et prédiction
 
-**Objectif : rencontrer les autres joueurs prÃ©sents sur sa tuile, en P2P
+**Objectif : rencontrer les autres joueurs présents sur sa tuile, en P2P
 direct et sans aucun serveur central.** Cette update utilisera la brique
-network UDP gÃ©nÃ©rique prÃ©vue dans `engine/ROADMAP.md` (Â§5). Le transport et
-les sessions sont fournis par le moteur ; le dÃ©coupage gÃ©ographique et les
-rÃ¨gles de synchronisation appartiennent au jeu. Ce chantier est Ã  rÃ©aliser,
-pas une fonctionnalitÃ© annoncÃ©e comme disponible dans la 0.1.
+network UDP générique prévue dans `engine/ROADMAP.md` (§5). Le transport et
+les sessions sont fournis par le moteur ; le découpage géographique et les
+règles de synchronisation appartiennent au jeu. Ce chantier est à réaliser,
+pas une fonctionnalité annoncée comme disponible dans la 0.1.
 
-- Ã€ l'arrivÃ©e sur une tuile, dÃ©couvrir ses joueurs et Ã©tablir une connexion
-  UDP pair Ã  pair avec chacun d'eux. Une tuile vide se joue seul et doit
-  permettre Ã  un autre joueur de rejoindre ensuite. Aucun serveur central
-  de prÃ©sence, de matchmaking ou de simulation ne doit Ãªtre nÃ©cessaire.
-- Concevoir la dÃ©couverte et l'amorÃ§age dÃ©centralisÃ©s : comment un premier
-  joueur obtient un pair joignable, comment retrouver les joueurs d'une clÃ©
-  de tuile et comment expirer les annonces pÃ©rimÃ©es. DÃ©finir aussi la
-  traversÃ©e des NAT et pare-feu et les cas de connectivitÃ© impossibles sans
+- À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
+  UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit
+  permettre à un autre joueur de rejoindre ensuite. Aucun serveur central
+  de présence, de matchmaking ou de simulation ne doit être nécessaire.
+- Concevoir la découverte et l'amorçage décentralisés : comment un premier
+  joueur obtient un pair joignable, comment retrouver les joueurs d'une clé
+  de tuile et comment expirer les annonces périmées. Définir aussi la
+  traversée des NAT et pare-feu et les cas de connectivité impossibles sans
   relais ; ne pas supposer qu'UDP rend tous les pairs directement joignables.
-  Une Ã©ventuelle entraide entre pairs doit conserver l'absence de serveur central.
+  Une éventuelle entraide entre pairs doit conserver l'absence de serveur central.
 - Au changement de tuile, quitter les sessions de l'ancienne et rejoindre
-  les joueurs de la nouvelle automatiquement. PrÃ©parer la dÃ©couverte de la
-  destination Ã  l'approche de la frontiÃ¨re, puis transfÃ©rer l'Ã©tat Ã  un tick
-  dÃ©fini, sans pause du jeu ni apparition en double. DÃ©finir la visibilitÃ© et
-  les interactions aux frontiÃ¨res, y compris pour deux joueurs de part et
-  d'autre, sans conserver indÃ©finiment les connexions de la tuile quittÃ©e.
-- Conserver une identitÃ© de joueur stable entre tuiles, avec identifiants de
-  session et gÃ©nÃ©rations de transfert pour rejeter les paquets tardifs de
-  l'ancienne tuile. GÃ©rer arrivÃ©es simultanÃ©es, dÃ©parts brusques, reconnexions,
-  changements rapides de tuile et tuiles momentanÃ©ment injoignables.
-- Mettre en place un netcode moderne Ã  pas de simulation fixe : entrÃ©es
-  horodatÃ©es par tick, prÃ©diction immÃ©diate des actions locales et prÃ©diction
-  bornÃ©e des entrÃ©es distantes manquantes. Ã€ rÃ©ception d'une entrÃ©e divergente,
-  restaurer un Ã©tat historique puis rejouer les ticks concernÃ©s (**rollback**).
-  Lisser les corrections visuelles et interpoler les Ã©tats distants sans
+  les joueurs de la nouvelle automatiquement. Préparer la découverte de la
+  destination à l'approche de la frontière, puis transférer l'état à un tick
+  défini, sans pause du jeu ni apparition en double. Définir la visibilité et
+  les interactions aux frontières, y compris pour deux joueurs de part et
+  d'autre, sans conserver indéfiniment les connexions de la tuile quittée.
+- Conserver une identité de joueur stable entre tuiles, avec identifiants de
+  session et générations de transfert pour rejeter les paquets tardifs de
+  l'ancienne tuile. Gérer arrivées simultanées, départs brusques, reconnexions,
+  changements rapides de tuile et tuiles momentanément injoignables.
+- Mettre en place un netcode moderne à pas de simulation fixe : entrées
+  horodatées par tick, prédiction immédiate des actions locales et prédiction
+  bornée des entrées distantes manquantes. À réception d'une entrée divergente,
+  restaurer un état historique puis rejouer les ticks concernés (**rollback**).
+  Lisser les corrections visuelles et interpoler les états distants sans
   retarder les commandes locales ; borner historique et travail de rattrapage.
-- DÃ©finir l'autoritÃ© des joueurs et objets partagÃ©s, les conflits simultanÃ©s
-  et le transfert d'autoritÃ© quand un pair part ou franchit une frontiÃ¨re,
-  sans arbitre central permanent. PrÃ©voir l'Ã©tat initial d'un nouvel arrivant,
-  la dÃ©tection des dÃ©synchronisations et une resynchronisation bornÃ©e lorsque
-  le retard dÃ©passe la fenÃªtre de rollback.
-- Qualifier le dÃ©terminisme de la simulation physique Ã  rejouer : I3 garantit
-  la gÃ©nÃ©ration du monde, pas le dÃ©terminisme de toute la simulation rÃ©seau.
-  Synchroniser versions du protocole, gÃ©nÃ©rateur, observations et atlas utiles ;
-  conserver les positions gÃ©odÃ©siques et rendre les Ã©tats restaurÃ©s compatibles
-  avec les rebasages ENU. Le rejeu ne doit pas doubler sons, effets, dÃ©gÃ¢ts ni
-  Ã©critures persistantes.
-- DÃ©finir le pÃ©rimÃ¨tre des Ã©tats partagÃ©s : dÃ©placements Ã  pied et en vÃ©hicule,
-  collisions, interactions et consÃ©quences persistantes. SÃ©parer les messages
-  de contrÃ´le fiables des entrÃ©es/Ã©tats frÃ©quents, et valider les messages reÃ§us
-  avec budgets par pair. Mesurer le coÃ»t du maillage P2P quand une tuile se remplit
-  et dÃ©finir ses limites de population, dÃ©bit, CPU et mÃ©moire selon I4.
-- Valider Ã  plusieurs joueurs sur LAN puis Internet, sous latence, gigue,
-  pertes, duplication et dÃ©sordre des paquets. Couvrir les frontiÃ¨res Ã  pied
-  et en vÃ©hicule, le rollback pendant streaming/rebasage, les dÃ©connexions et
-  le retour hors ligne. Mesurer fluiditÃ©, corrections, bande passante et
-  p95/p99 des frames sur la machine de rÃ©fÃ©rence, y compris pendant un transfert.
+- Définir l'autorité des joueurs et objets partagés, les conflits simultanés
+  et le transfert d'autorité quand un pair part ou franchit une frontière,
+  sans arbitre central permanent. Prévoir l'état initial d'un nouvel arrivant,
+  la détection des désynchronisations et une resynchronisation bornée lorsque
+  le retard dépasse la fenêtre de rollback.
+- Qualifier le déterminisme de la simulation physique à rejouer : I3 garantit
+  la génération du monde, pas le déterminisme de toute la simulation réseau.
+  Synchroniser versions du protocole, générateur, observations et atlas utiles ;
+  conserver les positions géodésiques et rendre les états restaurés compatibles
+  avec les rebasages ENU. Le rejeu ne doit pas doubler sons, effets, dégâts ni
+  écritures persistantes.
+- Définir le périmètre des états partagés : déplacements à pied et en véhicule,
+  collisions, interactions et conséquences persistantes. Séparer les messages
+  de contrôle fiables des entrées/états fréquents, et valider les messages reçus
+  avec budgets par pair. Mesurer le coût du maillage P2P quand une tuile se remplit
+  et définir ses limites de population, débit, CPU et mémoire selon I4.
+- Valider à plusieurs joueurs sur LAN puis Internet, sous latence, gigue,
+  pertes, duplication et désordre des paquets. Couvrir les frontières à pied
+  et en véhicule, le rollback pendant streaming/rebasage, les déconnexions et
+  le retour hors ligne. Mesurer fluidité, corrections, bande passante et
+  p95/p99 des frames sur la machine de référence, y compris pendant un transfert.
 
-### Detail update â€” couche de dÃ©tails manuels
+### Detail update — couche de détails manuels
 
 - Ajouter une couche de placements et corrections manuels au-dessus des
-  modÃ¨les prÃ©dictifs, sans rÃ¨gle spÃ©ciale par lieu dans le gÃ©nÃ©rateur.
-- DÃ©crire les placements en JSON : coordonnÃ©es, modÃ¨le, orientation et
-  provenance. Les placements manuels priment localement et Ã©vitent les doublons.
-- IntÃ©grer les monuments au mÃªme systÃ¨me en conservant leurs modÃ¨les,
-  ancrages et orientations mesurÃ©s.
+  modèles prédictifs, sans règle spéciale par lieu dans le générateur.
+- Décrire les placements en JSON : coordonnées, modèle, orientation et
+  provenance. Les placements manuels priment localement et évitent les doublons.
+- Intégrer les monuments au même système en conservant leurs modèles,
+  ancrages et orientations mesurés.
 
 ### ROCKET UPDATE — qualification
 
@@ -337,49 +354,49 @@ L'explosion SaidaFX, l'éjection et le retrait du véhicule partagent le même
 traitement d'impact. Les vérifications sont consignées dans
 `docs/ROCKET_UPDATE.md`. Reste à mesurer les poursuites prolongées et le coût
 des explosions sur la machine MX450 de référence.
-### VÃ©hicules et trafic â€” extensions et qualifications
+### Véhicules et trafic — extensions et qualifications
 
-- RÃ©sistances et dÃ©gÃ¢ts mÃ©caniques par piÃ¨ce : carrosserie, chÃ¢ssis, roues,
-  vitres et moteur, avec consÃ©quences de conduite localisÃ©es et bornÃ©es.
-- Sons et effets dÃ©diÃ©s aux impacts, rÃ©utilisables et limitÃ©s par budget.
-- ComplÃ©ter les rÃ¨gles nationales de prioritÃ©, les ronds-points et la matrice
+- Résistances et dégâts mécaniques par pièce : carrosserie, châssis, roues,
+  vitres et moteur, avec conséquences de conduite localisées et bornées.
+- Sons et effets dédiés aux impacts, réutilisables et limités par budget.
+- Compléter les règles nationales de priorité, les ronds-points et la matrice
   des mouvements en conflit aux carrefours.
-- Prendre en charge les restrictions OSM conditionnelles et chaÃ®nes via-way,
+- Prendre en charge les restrictions OSM conditionnelles et chaînes via-way,
   le routage vers une destination, le stationnement au bord des rues et les
-  contournements autorisÃ©s qui manquent encore.
-- RÃ©duire le coÃ»t des recherches imbriquÃ©es de conflits aux carrefours et
-  qualifier les bouchons, incidents et franchissements de tuiles prolongÃ©s.
-- AmÃ©liorer les vitrages automobiles, le vernis et les reflets locaux dans
-  le moteur gÃ©nÃ©rique, Ã  partir des assets existants.
-- Qualifier le rendu des dÃ©formations sur Web contraint et les performances
-  sur casque rÃ©el. Conserver les Ã©tats de dÃ©gÃ¢ts pendant rebasage, LOD et
-  prise de contrÃ´le ; ne pas annoncer un backend sur la seule compilation.
-- Le shape matching par groupes reste une extension du systÃ¨me gÃ©nÃ©rique ;
-  la fracture, les piÃ¨ces arrachÃ©es et une simulation industrielle complÃ¨te
-  de carrosserie ne font pas partie du socle Ã  qualifier.
+  contournements autorisés qui manquent encore.
+- Réduire le coût des recherches imbriquées de conflits aux carrefours et
+  qualifier les bouchons, incidents et franchissements de tuiles prolongés.
+- Améliorer les vitrages automobiles, le vernis et les reflets locaux dans
+  le moteur générique, à partir des assets existants.
+- Qualifier le rendu des déformations sur Web contraint et les performances
+  sur casque réel. Conserver les états de dégâts pendant rebasage, LOD et
+  prise de contrôle ; ne pas annoncer un backend sur la seule compilation.
+- Le shape matching par groupes reste une extension du système générique ;
+  la fracture, les pièces arrachées et une simulation industrielle complète
+  de carrosserie ne font pas partie du socle à qualifier.
 
 ### Updates pays par pays
 
-- AmÃ©liorer sols, vÃ©gÃ©tation, matÃ©riaux, bÃ¢timents et dÃ©tails locaux par
-  comparaison avec les lieux rÃ©els, en tenant compte de la rÃ©gion, du climat,
+- Améliorer sols, végétation, matériaux, bâtiments et détails locaux par
+  comparaison avec les lieux réels, en tenant compte de la région, du climat,
   de la saison et de l'usage du sol dans chaque pays.
-- **Burkina Faso â€” premier cas signalÃ© :** corriger l'excÃ¨s d'herbe et
-  restituer la terre nue et les couleurs effectivement prÃ©sentes sur place.
-- Poursuivre les vÃ©rifications de la vÃ©gÃ©tation basse aux points GPS des
-  photos, Ã  heure et mÃ©tÃ©o comparables, en conservant la mÃªme camÃ©ra.
+- **Burkina Faso — premier cas signalé :** corriger l'excès d'herbe et
+  restituer la terre nue et les couleurs effectivement présentes sur place.
+- Poursuivre les vérifications de la végétation basse aux points GPS des
+  photos, à heure et météo comparables, en conservant la même caméra.
 
-### IntÃ©rieurs, la suite
+### Intérieurs, la suite
 
-- Ã‰tages visitables, escaliers et ascenseurs.
-- IntÃ©rieurs des monuments adaptÃ©s Ã  leurs modÃ¨les propres.
+- Étages visitables, escaliers et ascenseurs.
+- Intérieurs des monuments adaptés à leurs modèles propres.
 
-### FidÃ©litÃ© et portabilitÃ© â€” limites Ã  traiter
+### Fidélité et portabilité — limites à traiter
 
-- Restituer la ville et le couvert dÃ©taillÃ© au-delÃ  des tuiles rÃ©sidentes.
-- Affiner les cÃ´tes lointaines et les replis cÃ´tiers avant rÃ©ception d'OSM.
-- ComplÃ©ter les donnÃ©es de voirie : polygones municipaux, rampes, Ã®lots,
-  raccordements, marquages directionnels et Ã©quipements observÃ©s manquants.
-- Reprendre les palettes du bÃ¢ti comme albÃ©dos mesurÃ©s et les finitions des
-  monuments qui utilisent encore des feuilles de faÃ§ade avec fenÃªtres.
-- Pour un port Web ou consoles du monde gÃ©ographique, intÃ©grer le chargement
-  asynchrone des blocs de relief au systÃ¨me d'assets gÃ©nÃ©rique du moteur.
+- Restituer la ville et le couvert détaillé au-delà des tuiles résidentes.
+- Affiner les côtes lointaines et les replis côtiers avant réception d'OSM.
+- Compléter les données de voirie : polygones municipaux, rampes, îlots,
+  raccordements, marquages directionnels et équipements observés manquants.
+- Reprendre les palettes du bâti comme albédos mesurés et les finitions des
+  monuments qui utilisent encore des feuilles de façade avec fenêtres.
+- Pour un port Web ou consoles du monde géographique, intégrer le chargement
+  asynchrone des blocs de relief au système d'assets générique du moteur.
