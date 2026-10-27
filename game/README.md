@@ -1,5 +1,24 @@
 # R1World game project
 
+## Global illumination quality
+
+Settings → Graphics exposes a separate Global illumination selector: Off,
+Auto, Low, Medium, High and Ultra / Max. The choice applies immediately and is
+saved in `cache/options.json` as `giQuality` (-1 for Off, 0..4 otherwise).
+Toaster mode temporarily disables GI; returning to Standard restores the choice.
+
+Auto retains the GPU's performance budget. Low and Medium calculate lighting
+at half resolution. High uses per-pixel lighting, eight neighboring probes and
+larger update budgets. Ultra uses finer voxels and updates all probes and all
+pending voxel regions every frame, at a very high GPU cost. It is intended to
+compare the visual ceiling of the existing GI with its optimized profiles;
+probe spacing and the approximate voxel representation still impose limits.
+
+For reproducible captures/smokes, set `R1WORLD_GI_QUALITY` to `off`, `auto`,
+`low`, `medium`, `high` or `ultra`. Test runs ignore and preserve saved player
+options. Normal launches can also use this override; a later UI change is saved
+as usual.
+
 This directory is the playable SaidaEngine project. Its one scene,
 `scenes/earth.scene` (the project's `mainScene`), answers one question: can you
 pick any point on Earth and walk there?

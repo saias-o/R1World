@@ -40,6 +40,11 @@ h2 { margin: 0; font-size: 38px; font-weight: bold; letter-spacing: -1px; }
 .settings-tab.active { background-color: #293d53; color: #f0f7ff; }
 .settings-panel { display: none; margin-top: 32px; }
 .settings-panel.active { display: block; }
+#settings-graphics { max-height: 440px; overflow-y: auto; }
+#settings-graphics .choice-grid button { height: 54px; }
+#settings-graphics .hint { margin-top: 16px; line-height: 22px; }
+#settings-graphics .feedback { margin-top: 10px; line-height: 20px; }
+#gi-presets { margin-top: 12px; }
 .description { margin: 0 0 30px 0; font-size: 17px; color: #a9bbcf; }
 label { display: block; margin-bottom: 12px; font-size: 14px; color: #a9bbcf; }
 .form-row { display: flex; align-items: center; gap: 12px; }

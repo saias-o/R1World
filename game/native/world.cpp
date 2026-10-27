@@ -2588,6 +2588,8 @@ class World : public Rml::EventListener {
     std::optional<int> forcedMinutes; std::optional<double> forcedSent; bool forcedSaid=false,optionsOpen=false;
     r1::WeatherOverride forcedWeather=r1::WeatherOverride::Real;
     bool toasterMode=false;
+    int giQuality=0; // -1: off, 0..4: engine Auto/Low/Medium/High/Ultra
+    inline static constexpr const char* giQualityKeys[]={"off","auto","low","medium","high","ultra"};
     int standardWidth=1600,standardHeight=900;
     saida::CaptureRequest worldCapture;
     saida::runtime::CaptureViewpoint captureView;
@@ -6089,6 +6091,10 @@ private:
                     saida::Log::info("[World options] fullscreen ",enabled?"enabled":"disabled");
                 } else saida::Log::error("[World options] cache/options.json: invalid fullscreen, ignored");
             }
+            if(const auto gi=options.find("giQuality");gi!=options.end()) {
+                if(gi->is_number_integer() && *gi>=-1 && *gi<=4) giQuality=gi->get<int>();
+                else saida::Log::error("[World options] cache/options.json: invalid giQuality, ignored");
+            }
         } catch(const std::exception& e) {
             saida::Log::error("[World options] cache/options.json unreadable, ignored: ",e.what());
         }
@@ -6112,6 +6118,7 @@ private:
         else options.erase("forcedTime");
         options["forcedWeather"]=r1::weatherOverrideKey(forcedWeather);
         options["toasterMode"]=toasterMode;
+        options["giQuality"]=giQuality;
         options["fullscreen"]=engine.window().isFullscreen();
         std::error_code ignored;fs::create_directories(optionsFile().parent_path(),ignored);
         std::ofstream output(optionsFile());
@@ -6122,6 +6129,7 @@ private:
             sayForcedTime("Option applied, but it could not be saved: see game.log.");
             sayForcedWeather("Option applied, but it could not be saved: see game.log.");
             sayToasterMode("Option applied, but it could not be saved: see game.log.");
+            sayGIQuality("Option applied, but it could not be saved: see game.log.");
             sayFullscreen("Option applied, but it could not be saved: see game.log.");
         }
     }
@@ -6169,9 +6177,36 @@ private:
     void toggleFullscreenMode() {
         setFullscreenMode(!engine.window().isFullscreen());
     }
+    void applyGIQuality() {
+        auto& settings=engine.sceneTree().world().settings();
+        settings.giEnabled=!toasterMode && giQuality>=0;
+        settings.giQuality=static_cast<saida::GIQuality>(std::max(0,giQuality));
+        settings.giMode=saida::GIMode::FullRealtime;
+    }
+    void sayGIQuality(const std::string& problem={}) {
+        for(int q=-1;q<=4;++q)
+            if(auto* button=ui->findElementById(std::string("gi-quality-")+giQualityKeys[q+1]))
+                button->SetClass("selected",q==giQuality);
+        ui->notifyJsMutation();
+        static constexpr const char* descriptions[]={
+            "Off: no indirect lighting.",
+            "Auto: performance budget chosen for your graphics card.",
+            "Low: half-resolution lighting, reduced detail and update budget.",
+            "Medium: half-resolution lighting, more detail and faster updates.",
+            "High: per-pixel lighting, smoother interpolation and faster updates.",
+            "Ultra: finest voxels, per-pixel lighting, every probe updated each frame. Very high GPU cost."};
+        text("gi-options-status",!problem.empty()?problem:toasterMode
+            ?"GI is off in Toaster mode. Your choice is kept for Standard quality."
+            :descriptions[giQuality+1]);
+    }
+    void setGIQuality(int quality) {
+        if(quality<-1 || quality>4)return;
+        giQuality=quality;
+        applyGIQuality();sayGIQuality();saveOptions();
+        saida::Log::info("[World options] GI quality ",giQualityKeys[giQuality+1]);
+    }
     void applyToasterResolution() {
-        engine.sceneTree().world().settings().giEnabled=!toasterMode;
-        engine.sceneTree().world().settings().giQuality=toasterMode?saida::GIQuality::Low:saida::GIQuality::Auto;
+        applyGIQuality();
         if(toasterMode) {
             int w=0,h=0;
             engine.window().size(w,h);
@@ -6211,6 +6246,7 @@ private:
         if(globe)globe->toaster=toasterMode;
         applyWeather();
         sayToasterMode();
+        sayGIQuality();
         sayFullscreen();
         saveOptions();
     }
@@ -6229,6 +6265,7 @@ private:
         text("local-conditions",weatherLabel());
     }
     void showOptions(bool show) {
+        sayGIQuality();
         optionsOpen=show;
         globeDragging=false;
         style("options-screen","display",show?"block":"none");
@@ -8826,6 +8863,13 @@ public:
             countryNames=places.at("countries").get<std::map<std::string,std::string>>();
         }
         loadOptions();
+        if(const char* requested=std::getenv("R1WORLD_GI_QUALITY")) {
+            const auto end=std::end(giQualityKeys);
+            const auto found=std::find(std::begin(giQualityKeys),end,std::string(requested));
+            if(found==end)throw std::runtime_error("R1WORLD_GI_QUALITY must be off, auto, low, medium, high or ultra");
+            giQuality=int(found-std::begin(giQualityKeys))-1;
+        }
+        applyGIQuality();
         engine.window().size(standardWidth,standardHeight);
         if(toasterMode)applyToasterResolution();
         player=e.sceneTree().firstInGroup("player");
@@ -8988,6 +9032,9 @@ public:
         else if(id=="weather-storm")forceWeather(r1::WeatherOverride::Storm);
         else if(id=="toaster-off")setToasterMode(false);
         else if(id=="toaster-on")setToasterMode(true);
+        else if(id.rfind("gi-quality-",0)==0) {
+            for(int q=-1;q<=4;++q)if(id==std::string("gi-quality-")+giQualityKeys[q+1])setGIQuality(q);
+        }
         else if(id=="fullscreen-off")setFullscreenMode(false);
         else if(id=="fullscreen-on")setFullscreenMode(true);
         else if(id=="fullscreen")toggleFullscreenMode();
@@ -9040,6 +9087,7 @@ public:
     // back to the real clock, close it. Presses only, like every other click.
     bool smokeOptions() {
         const bool savedToaster=toasterMode;
+        const int savedGIQuality=giQuality;
         const auto savedTime=forcedMinutes;
         const auto savedWeather=forcedWeather;
         auto fail=[&](const std::string& why){
@@ -9071,8 +9119,16 @@ public:
         if(engine.sceneTree().world().settings().giEnabled)return fail("Toaster mode left GI enabled");
         testClick("toaster-off",false);
         if(toasterMode)return fail("Standard quality did not disable toaster mode");
-        if(!engine.sceneTree().world().settings().giEnabled||engine.sceneTree().world().settings().giQuality!=saida::GIQuality::Auto)
-            return fail("Standard quality did not restore automatic GI");
+        for(int q=-1;q<=4;++q) {
+            testClick(std::string("gi-quality-")+giQualityKeys[q+1],false);
+            const auto& settings=engine.sceneTree().world().settings();
+            if(giQuality!=q || settings.giEnabled!=(q>=0) || int(settings.giQuality)!=std::max(0,q))
+                return fail("GI quality button did not apply its profile");
+        }
+        testClick("toaster-on",false);testClick("toaster-off",false);
+        if(giQuality!=4 || engine.sceneTree().world().settings().giQuality!=saida::GIQuality::Ultra)
+            return fail("Toaster toggle lost the selected GI quality");
+        setGIQuality(savedGIQuality);
         testClick("fullscreen",false);
         if(!engine.window().isFullscreen())return fail("Full screen button did not enable full screen");
         testClick("fullscreen-off",false);
@@ -9998,6 +10054,7 @@ public:
                          "options","options-back","forced-apply","forced-clear",
                          "weather-real","weather-clear","weather-light-rain","weather-storm",
                          "toaster-off","toaster-on",
+                         "gi-quality-off","gi-quality-auto","gi-quality-low","gi-quality-medium","gi-quality-high","gi-quality-ultra",
                          "fullscreen-off","fullscreen","fullscreen-on",
                          "forced-preset-8","forced-preset-12","forced-preset-17","forced-preset-22"})
                 if(auto* e=ui->findElementById(id)){e->AddEventListener("click",this);
