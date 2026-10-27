@@ -85,6 +85,9 @@
 #include "combat_kit.hpp"
 #include "rocket_kit.hpp"
 #include "knockdown.hpp"
+#include "animal_physics.hpp"
+#include "bird_animation.hpp"
+#include "bird_habitat.hpp"
 #include "police.hpp"
 #include "cheats.hpp"
 #include <filesystem>
@@ -368,7 +371,9 @@ struct Footprint {
 // One animal as drawn (World::makeBeast): a pooled node with its own animator
 // over one model's shared meshes, rig and clips.
 struct Beast {
-    saida::Node* node=nullptr; saida::Animator* animator=nullptr; saida::RigidBodyNode* body=nullptr;
+    saida::Node* node=nullptr; saida::Node* visual=nullptr;
+    saida::Animator* animator=nullptr; saida::RigidBodyNode* body=nullptr;
+    r1::BirdPose* birdPose=nullptr;
     std::string model,clip; float playback=-1.f,poseRate=-1.f;
     uint64_t identity=0; double yaw=0,y=0; bool shown=false;
 };
@@ -636,6 +641,9 @@ struct Loaded {
     std::vector<FaunaKind> faunaKinds;          // by the add-on's kind index
     std::vector<const r1::Species*> groupSpecies;
     saida::wildlife::Herds herds;
+    struct BirdSupport {const saida::Node* tree=nullptr;saida::wildlife::Perch perch;};
+    std::vector<BirdSupport> birdPerches;
+    bool birdPerchesDirty=true,birdTreesEnabled=true;
     std::vector<Beast> beasts;            // keyed by animal slot, pooled
     double faunaActiveAge=1e9;
     // The manifest unpacked once at mount, because a frame cannot afford to
@@ -1958,6 +1966,9 @@ class World : public Rml::EventListener {
         const auto hit=physics->raycast(muzzle,dir,length+.05f,combatFilter());
         if(!hit.hit)return;
         const double heard=glm::length(eye-hit.point);
+        if(hitAnimal(hit,dir,float(r1::combat::kPistol.impulse))) {
+            sounds.play(r1::CombatSounds::Impact,heard,.5f);return;
+        }
         if(hitPolice(hit,r1::combat::kPistol.damage,dir))return;
         Loaded* t=nullptr;size_t slot=0;
         if(personByBody(hit,t,slot)) {
@@ -4140,6 +4151,7 @@ class World : public Rml::EventListener {
             r.flame->transform().position=r.position-r.direction*.7f;r.flame->initialVelocity=-r.direction*14.f;
         }
         rocketEffects.rebase(rocketRotation,rocketTranslation);
+        rebaseAnimalRemains(next);
         auto rebaseVehicle=[&](saida::Node* node) {
             if(!node)return;
             r1::VehicleRuntime::synchronize(*node);
@@ -8400,6 +8412,7 @@ private:
                         entry.lod=n->getBehaviour<saida::LODGroupBehaviour>();
                         if(toasterMode&&entry.lod)entry.lod->setFinestLevel(1);
                         l.vegetation.push_back(entry);
+                        if(entry.tree)addBirdPerches(l,*n);
                         n->setVisible(false);
                     }
                     if(doc.contains("groups")&&std::find(doc["groups"].begin(),doc["groups"].end(),"tree")!=doc["groups"].end())
@@ -8557,6 +8570,7 @@ private:
             for(const auto& agent:region.flow.agents())if(agent.alive&&trafficVisible(region,region.flow.pose(agent))){visible=true;break;}
             if(visible)keep.insert(key);
         }
+        pauseDepartingAnimalRemains(keep);
         bool removed=false;
         auto stale=[&](const Loaded& t){
             const auto current=service->find(t.served->cooked.tile);
@@ -8883,7 +8897,7 @@ public:
         readFarLandmarks();
         e.window().setCursorCaptured(false);
     }
-    ~World(){clearPolice();for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
+    ~World(){saveAnimalRemains();clearPolice();for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
         for(const char* type:{"click","mousedown","mouseup","mousemove","mousescroll","dblclick"})e->RemoveEventListener(type,this);}}
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model) {
         globe=std::move(model);globeTarget=globe->view;globe->toaster=toasterMode;

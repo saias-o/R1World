@@ -2509,8 +2509,9 @@ and 4 Hz, held in between (`Animator::setPoseRate(hz, PoseRateMode::Hold)`).
 
 ## The animals (Animals update, 26 October 2026)
 
-Land animals live where they really live: 55 species (no birds, bats, fish
-or sea animals yet), from `assets/animals/fauna.json`. Each species names its
+The catalogue places 67 ecological profiles: 55 land-animal profiles and 12
+bird profiles (14 bird models/variants), from `assets/animals/fauna.json`.
+Bats, fish and sea animals are not placed yet. Each species names its
 range as countries narrowed by boxes (wolves in the French Alps and the
 Pyrenees' bears, never Paris or Brocéliande), its climates, its habitats, a
 density per km² of optimal habitat, the share of it a walker can meet, its
@@ -2555,10 +2556,147 @@ the tropics), how it takes rain, and its home range.
   standing off its place -- onto each model's own skeleton, leaves every
   other clip as its author made it, and refuses clips that stay broken (a
   goat idle with a key 4 m off, a sheep walk whose feet push forwards). One pooled node per animal with its own animator over shared
-  meshes, LOD0/LOD1, pose rate by distance, a kinematic box for the big ones.
+  meshes, LOD0/LOD1, pose rate by distance and a kinematic hit box at the measured body size.
   The engine now draws a skinned mesh in its root bones' parent frame, as
   glTF requires (`GLTFLoader::skinnedPrimitiveFrame`): an armature scaled to
   size no longer doubles the animal.
+
+### BIRD update — 27 October 2026
+
+All 14 bird models/variants in `assets/animals/catalog.csv` now occur through
+`fauna.json`: pigeon, robin, crow, gull, both hawk coats, bald eagle, eagle owl,
+macaw, yellow-billed shrike, hen, rooster, peacock and turkey. This adds 12
+profiles; no bird asset is replaced. Crow, gull and hawk are explicitly broad
+visual proxies, not claims that the same exact species inhabits every listed
+country. Other profiles use narrower country/climate envelopes; northern robin
+and eagle ranges have seasonal occupancy. Density and all numerical flight
+parameters are inferred game tuning, not measured population counts or aerodynamics.
+
+Generator v62 / fauna revision 2 recooks visited tiles from cached observations.
+Resident draws retain their v61 population seed and identity, independently of
+terrain version, so existing saved death IDs survive this update. Birds share
+the existing 40-animal local budget, per-tile slots, shared meshes and both LODs.
+
+`Species::bird` reads speed, acceleration, climb/turn limits, altitude band,
+flight/rest durations, flap frequency, glide share, ground/perch preferences,
+maximum wind and twelve monthly effort values from JSON. The host maps local
+solar time to approximate sunrise/sunset for the latitude and month (including
+polar day/night), reverses the seasonal effort calendar in the south, and
+reduces activity in rain and strong wind. Seasonal absence uses the existing
+range calendar. Present birds rest at night rather than being removed solely
+because their flight activity falls; owls forage at night. This models local
+seasonal occupancy, not individual transcontinental migration routes.
+
+Saida's optional wildlife add-on supplies continuous takeoff, cruise, approach
+and perch states with bounded acceleration/climb, banked turns, loose group
+cohesion, separation, wind drift and flap/glide spells. Songbirds make short,
+low flights; raptors spend longer aloft and glide more; turkey and peacock
+mostly forage on the ground and make short flights. Hens and roosters keep
+their source ground locomotion: their delivered rigs do not have independently
+usable wing joints, so full winged flight is not claimed for them.
+
+Perches come from actual upward-facing opaque bark triangles of mounted tree
+models, excluding cutout foliage and distant cards. Branch candidates are
+cached per shared geometry and sampled across heights, then transformed with
+the real tree. Birds reserve supports within their species' height band,
+brake on approach and attach at the support elevation; absent support triggers
+takeoff. A tree with no suitable bark surface contributes no invented perch.
+Building footprints/roof heights and real trunk positions constrain flight;
+leaf volume is permeable. A safe ground landing is the fallback when no branch
+fits. The algorithm does not simulate talon contacts or deforming branches.
+
+`native/bird_animation.hpp` authors procedural wing, tail, head and leg poses
+on the delivered skeletons through Saida's existing `PoseModifier` interface.
+Original fly/glide clips remain in use for the legacy birds; resting blends
+back to a folded pose. The control-only rigs receive locomotion poses rather
+than playing diagnostic clips as flight. Geometry, weights, UVs, materials and
+source textures are preserved exactly. Their simple folded-wing rigs remain
+a content limitation: feather deployment and close-up anatomy need visual
+review and possibly targeted rig/weight work; these are not motion-captured
+production flight animations. Procedural modifiers run continuously; the
+existing clip pose cadence is not a claim of equivalent procedural CPU savings.
+
+Flying deaths inherit horizontal and vertical motion, stop live wing control
+and enter the persistent ragdoll/save system. The physics fixture now covers
+133 used models, including birds falling from 12 m: 129 articulated profiles,
+automatic rest, exact saved-pose restore, repeated blasts and origin rebasing.
+`[World birds]` reports alive/flying/perched birds and available bark supports.
+
+Headless verification (no game, editor or visible window launched):
+
+- `r1test --game game Birds` and `Fauna`: geographic envelopes, coastal water,
+  farm habitat, daylight, seasons, hemispheres and weather.
+- Python `r1.tests.test_animals`: all 14 shipped bird variants are placed,
+  measured, licensed and share the two LOD rigs.
+- `r1_bird_animation_test`: imports all 28 LOD rigs, evaluates flight/rest,
+  checks finite normalized rotations, unchanged bone lengths/scales and stops
+  motion for ragdoll handoff; synthetic bark-support acceptance/rejection.
+- Wildlife `test_flight.cpp`: flight cycle, continuous elevation, exact perch,
+  roost, fright, lost support, seeded replay, blocking geometry and death.
+- Numerical skinning: 28 bird GLBs, 110 source clips, five samples per clip.
+  Khronos validation: all 378 GLBs, zero errors and warnings. Six retargeted
+  hawk/peacock GLBs retain identical geometry, rigs, weights, UVs and image bytes.
+
+The optimized game builds. In-game appearance, real-tree landing success across
+biomes and sustained MX450 frame times still require a playtest; no visual or
+performance qualification is inferred from these CPU/file checks.
+
+Ecological references: [Cornell bald eagle habitat and flight](https://www.allaboutbirds.org/guide/Bald_Eagle/lifehistory),
+[Cornell turkey ground foraging and tree roosts](https://www.allaboutbirds.org/guide/Wild_Turkey/id),
+[BTO robin distribution and seasonality](https://www.bto.org/learn/about-birds/birdfacts/robin),
+[RSPB robin](https://www.rspb.org.uk/birds-and-wildlife/robin),
+[Cornell rock pigeon habitat](https://www.allaboutbirds.org/guide/Rock_Pigeon/lifehistory),
+[Animal Diversity Web scarlet macaw](https://animaldiversity.org/accounts/Ara_macao/),
+[Avibase/Clements yellow-billed shrike range](https://avibase.bsc-eoc.org/species.jsp?avibaseid=E44FAD6F1D1DBB34&lang=EN).
+
+### Animal deaths and persistent remains — 27 October 2026
+
+Pistol hits are lethal to animals, including small and indoor residents.
+The displayed pose and current movement pass directly to Saida's ragdoll;
+bullet momentum is limited per struck part, so a bullet collapses an animal
+instead of launching it like an explosion. `native/animal_physics.hpp` fits
+the shipped skeleton families with torso, neck and limb capsules and joint
+limits. Mass is inferred from measured bounds and species scale, rather than
+claimed as measured anatomy. The four insect rigs retain their authored limb
+pose on a compact physical body; 129 of the 133 resident model variants have
+articulated profiles. No animal mesh or texture is replaced; source-clip frame repairs are documented above.
+
+Rockets apply an outward and upward blast with distance falloff and bounded,
+mass-dependent velocity; off-axis rotation starts the tumble. Direct hits and
+exposed animals inside the 14 m blast are killed and charred. Cover queries
+are resolved before creating the victims' ragdolls, so a new corpse cannot
+shield the next animal from the same explosion. Carbonized material variants
+retain texture detail, normal maps and alpha cutouts on both LODs; shared
+materials on living animals remain unchanged. A later bullet or rocket can
+move an existing corpse again.
+
+Bodies belong to independent geographic anchors in the world, outside living
+population slots and room/tile ownership. They have no lifetime, distance
+retirement or corpse-count eviction. Once settled, their exact fallen pose
+is retained, animation stops and a compound static collider replaces the
+dynamic joints until another weapon impact. A tumble leaving resident terrain
+is paused with its velocity and resumes when that terrain is resident again;
+its node remains present. Floating-origin rebases carry bodies and colliders.
+
+`cache/fauna-remains.json` stores stable resident/member IDs, model, charred
+state, geographic frame, transforms, bone names, local pose and pending
+motion. Death IDs prevent wildlife respawns and are replayed after a tile's
+population resets. Saved bodies mount on approach (within 2 km, once terrain
+is available), then remain mounted. Writes use an atomic Windows replacement;
+invalid saves are reported and preserved rather than overwritten. Missing or
+changed skeletons are reported explicitly. Deleting this save resets deaths.
+
+Verification is entirely headless: build `r1_animal_physics_test` through the
+game SDK, then run `generated/native-tests/r1_animal_physics_test.exe`.
+It imports all 133 used models through Saida's real CPU GLB loader, starts
+from a usable animation, checks the physical joint positions against the
+displayed rig frame, then exercises falls, frozen poses, JSON pose restoration,
+repeated blasts and geographic rebasing. The wildlife tests cover permanent
+member retirement; the five targeted engine physics/ragdoll CTest suites pass
+(106 ragdoll assertions). The optimized game builds. No game window, GPU
+capture or visual playtest was launched for this change, at the user's request.
+The final appearance and sustained frame cost on MX450 remain unqualified;
+retained scene/collider memory grows with the number of bodies encountered.
 
 Every 20 s the log says what lives around the player (`[World fauna] around
 the player`): groups, out, spawned, alive, drawn and the nearest home.

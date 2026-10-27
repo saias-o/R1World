@@ -6146,7 +6146,7 @@
     },
     {
       "file": "hawk-lod1.glb",
-      "bytes": 70536,
+      "bytes": 70680,
       "triangles": 92,
       "vertices": 83,
       "bones": 9,
@@ -6167,14 +6167,14 @@
         {
           "name": "hawk_glide",
           "duration": 1.1666666269302368,
-          "max_displacement_m": 0.3118492232434766,
-          "bounds_ratio": 1.0001011802487276
+          "max_displacement_m": 0.3118492232434765,
+          "bounds_ratio": 1.0001011802496778
         }
       ]
     },
     {
       "file": "hawk.glb",
-      "bytes": 72296,
+      "bytes": 72440,
       "triangles": 134,
       "vertices": 105,
       "bones": 9,
@@ -6195,14 +6195,14 @@
         {
           "name": "hawk_glide",
           "duration": 1.1666666269302368,
-          "max_displacement_m": 0.3118492232434766,
-          "bounds_ratio": 1.0001011802487276
+          "max_displacement_m": 0.3118492232434765,
+          "bounds_ratio": 1.0001011802496778
         }
       ]
     },
     {
       "file": "hawk_coat2-lod1.glb",
-      "bytes": 70548,
+      "bytes": 70692,
       "triangles": 92,
       "vertices": 83,
       "bones": 9,
@@ -6223,14 +6223,14 @@
         {
           "name": "hawk_glide",
           "duration": 1.1666666269302368,
-          "max_displacement_m": 0.3118492232434766,
-          "bounds_ratio": 1.0001011802487276
+          "max_displacement_m": 0.3118492232434765,
+          "bounds_ratio": 1.0001011802496778
         }
       ]
     },
     {
       "file": "hawk_coat2.glb",
-      "bytes": 72308,
+      "bytes": 72448,
       "triangles": 134,
       "vertices": 105,
       "bones": 9,
@@ -6251,8 +6251,8 @@
         {
           "name": "hawk_glide",
           "duration": 1.1666666269302368,
-          "max_displacement_m": 0.3118492232434766,
-          "bounds_ratio": 1.0001011802487276
+          "max_displacement_m": 0.3118492232434765,
+          "bounds_ratio": 1.0001011802496778
         }
       ]
     },
@@ -16354,7 +16354,7 @@
     },
     {
       "file": "peacock-lod1.glb",
-      "bytes": 531200,
+      "bytes": 536912,
       "triangles": 465,
       "vertices": 635,
       "bones": 36,
@@ -16369,8 +16369,8 @@
         {
           "name": "peacock_idle",
           "duration": 0.30000001192092896,
-          "max_displacement_m": 0.05368440903579342,
-          "bounds_ratio": 0.9938804737434717
+          "max_displacement_m": 0.05368440903579352,
+          "bounds_ratio": 0.9938806700840958
         },
         {
           "name": "peacock_idle_transition",
@@ -16393,8 +16393,8 @@
         {
           "name": "peacock_walk",
           "duration": 0.5333333611488342,
-          "max_displacement_m": 0.24448610920283312,
-          "bounds_ratio": 1.0066020306243928
+          "max_displacement_m": 0.21212894805475865,
+          "bounds_ratio": 1.0059275978820579
         },
         {
           "name": "peacock_walk_feeding",
@@ -16412,7 +16412,7 @@
     },
     {
       "file": "peacock.glb",
-      "bytes": 548848,
+      "bytes": 554564,
       "triangles": 846,
       "vertices": 931,
       "bones": 36,
@@ -16427,8 +16427,8 @@
         {
           "name": "peacock_idle",
           "duration": 0.30000001192092896,
-          "max_displacement_m": 0.05368440837843452,
-          "bounds_ratio": 0.9938860682228355
+          "max_displacement_m": 0.053684408378434384,
+          "bounds_ratio": 0.9938862030849975
         },
         {
           "name": "peacock_idle_transition",
@@ -16451,8 +16451,8 @@
         {
           "name": "peacock_walk",
           "duration": 0.5333333611488342,
-          "max_displacement_m": 0.28345922323727585,
-          "bounds_ratio": 1.0069963627842669
+          "max_displacement_m": 0.21212892833091881,
+          "bounds_ratio": 1.006513974730654
         },
         {
           "name": "peacock_walk_feeding",

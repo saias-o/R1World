@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "note": "Where each land animal lives and how often a walker meets it. Read by gen/fauna.cpp (the cook places residents) and native/world.cpp (they live their lives). Ranges are countries (ISO 3166-1, assets/world/countries.geojson) narrowed by boxes [west, south, east, north] where a species holds only part of a country. Densities are individuals per km2 of optimal habitat, orders of magnitude from published counts; detectability is the share of them a walker can meet at the species' peak hour (the rest are hidden, underground or far in cover). Months are the northern temperate calendar (flipped south of the equator, ignored in the tropics). Fish, marine animals, birds and bats are not placed yet (PLAN: Animals update). behaviour.home is the radius of a home range, metres: a group is at one point of it at a time.",
+ "note": "Where each land animal lives and how often a walker meets it. Read by gen/fauna.cpp (the cook places residents) and native/world.cpp (they live their lives). Ranges are countries (ISO 3166-1, assets/world/countries.geojson) narrowed by boxes [west, south, east, north] where a species holds only part of a country. Densities are individuals per km2 of optimal habitat, orders of magnitude from published counts; detectability is the share of them a walker can meet at the species' peak hour (the rest are hidden, underground or far in cover). Months are the northern temperate calendar (flipped south of the equator, ignored in the tropics). Birds are placed since BIRD update (generator v62). Fish, marine animals and bats are not placed yet. Bird speeds, seasonal effort and densities are inferred game parameters; country envelopes and perch support remain explicit. behaviour.home is the radius of a home range, metres: a group is at one point of it at a time.",
  "habitats": ["forest", "scrub", "meadow", "park", "farmland", "farmyard", "orchard", "wetland", "beach", "desert", "savanna", "rock", "ice", "urban", "bare", "open"],
  "activity": {
   "diurnal":     [0.03, 0.03, 0.03, 0.03, 0.03, 0.1, 0.4, 0.8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9, 0.6, 0.3, 0.1, 0.05, 0.03, 0.03],
@@ -792,6 +792,875 @@
    "models": [{"model": "ant"}],
    "clips": {"walk": ["walk"]},
    "indoor": {"homes": 0.03, "rooms": ["kitchen"], "place": "trail"}
+  },
+{
+ "id": "rock_pigeon",
+ "name": "Pigeon biset",
+ "scientific": "Columba livia",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "@EUROPE_W",
+    "@EUROPE_N",
+    "@EUROPE_E",
+    "@EUROPE_S",
+    "@MAGHREB",
+    "@MIDDLE_EAST",
+    "@CENTRAL_ASIA",
+    "@SOUTH_ASIA",
+    "@SE_ASIA",
+    "@EAST_ASIA",
+    "@N_AMERICA",
+    "@C_AMERICA",
+    "@CARIBBEAN",
+    "@S_AMERICA",
+    "@OCEANIA",
+    "@AFRICA_W",
+    "@AFRICA_C",
+    "@AFRICA_E",
+    "@AFRICA_S"
+   ]
   }
+ ],
+ "habitats": {
+  "urban": 1,
+  "park": 0.8,
+  "farmyard": 0.6,
+  "rock": 0.6,
+  "farmland": 0.2
+ },
+ "settlement": "any",
+ "density": 220,
+ "detectability": 0.65,
+ "group": [
+  3,
+  9
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 6,
+  "spread": 2.2,
+  "home": 100
+ },
+ "bird": {
+  "speed": 12,
+  "low": 7,
+  "high": 24,
+  "flapHz": 5,
+  "groundShare": 0.65,
+  "glide": 0.12,
+  "perchLow": 2,
+  "flyMin": 12,
+  "flyMax": 35
+ },
+ "models": [
+  {
+   "model": "pigeon_rock"
+  }
+ ]
+},
+{
+ "id": "european_robin",
+ "name": "Rouge-gorge familier",
+ "scientific": "Erithacus rubecula",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "@EUROPE_W",
+    "@EUROPE_S",
+    "GB",
+    "IE",
+    "DK",
+    "PL",
+    "CZ",
+    "SK",
+    "HU",
+    "RO",
+    "BG",
+    "TR"
+   ]
+  },
+  {
+   "countries": [
+    "NO",
+    "SE",
+    "FI",
+    "EE",
+    "LV",
+    "LT",
+    "BY",
+    "UA",
+    "RU"
+   ],
+   "absLat": [
+    45,
+    67
+   ],
+   "months": [
+    4,
+    10
+   ]
+  },
+  {
+   "countries": [
+    "MA",
+    "DZ",
+    "TN"
+   ],
+   "months": [
+    10,
+    3
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 0.8,
+  "scrub": 1,
+  "park": 1,
+  "orchard": 0.9,
+  "farmyard": 0.5
+ },
+ "settlement": "tolerant",
+ "density": 70,
+ "detectability": 0.65,
+ "group": [
+  1,
+  2
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 4,
+  "spread": 5,
+  "home": 45
+ },
+ "bird": {
+  "speed": 6,
+  "low": 1.5,
+  "high": 7,
+  "flapHz": 11,
+  "groundShare": 0.35,
+  "glide": 0,
+  "perchLow": 0.6,
+  "perchHigh": 9,
+  "flyMin": 3,
+  "flyMax": 8,
+  "restMin": 10,
+  "restMax": 40,
+  "turn": 3,
+  "seasonalFlight": [
+   0.65,
+   0.7,
+   0.95,
+   1,
+   1,
+   0.9,
+   0.65,
+   0.55,
+   0.8,
+   0.9,
+   0.7,
+   0.65
+  ]
+ },
+ "models": [
+  {
+   "model": "robin"
+  }
+ ]
+},
+{
+ "id": "crow",
+ "name": "Corbeaux et corneilles",
+ "scientific": "Corvus spp.",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "@EUROPE_W",
+    "@EUROPE_N",
+    "@EUROPE_E",
+    "@EUROPE_S",
+    "@N_AMERICA",
+    "@MAGHREB",
+    "@MIDDLE_EAST",
+    "@CENTRAL_ASIA",
+    "@EAST_ASIA"
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 0.6,
+  "scrub": 0.5,
+  "meadow": 0.9,
+  "farmland": 1,
+  "park": 0.9,
+  "urban": 0.5,
+  "rock": 0.5,
+  "beach": 0.4
+ },
+ "settlement": "any",
+ "density": 12,
+ "detectability": 0.65,
+ "group": [
+  2,
+  5
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 18,
+  "spread": 5,
+  "home": 180
+ },
+ "bird": {
+  "speed": 10,
+  "low": 8,
+  "high": 35,
+  "flapHz": 3.5,
+  "glide": 0.35,
+  "groundShare": 0.45,
+  "perchLow": 3,
+  "seasonalFlight": [
+   0.6,
+   0.65,
+   0.85,
+   1,
+   1,
+   0.85,
+   0.7,
+   0.75,
+   0.9,
+   0.85,
+   0.7,
+   0.6
+  ]
+ },
+ "models": [
+  {
+   "model": "crow"
+  }
+ ]
+},
+{
+ "id": "gull",
+ "name": "Mouettes et goelands",
+ "scientific": "Laridae (visual proxy)",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "@EUROPE_W",
+    "@EUROPE_N",
+    "@EUROPE_E",
+    "@EUROPE_S",
+    "@MAGHREB",
+    "@MIDDLE_EAST",
+    "@CENTRAL_ASIA",
+    "@SOUTH_ASIA",
+    "@SE_ASIA",
+    "@EAST_ASIA",
+    "@N_AMERICA",
+    "@C_AMERICA",
+    "@CARIBBEAN",
+    "@S_AMERICA",
+    "@OCEANIA",
+    "@AFRICA_W",
+    "@AFRICA_C",
+    "@AFRICA_E",
+    "@AFRICA_S"
+   ]
+  }
+ ],
+ "habitats": {
+  "beach": 1,
+  "wetland": 0.8,
+  "park": 0.25,
+  "urban": 0.15,
+  "rock": 0.5
+ },
+ "settlement": "any",
+ "density": 45,
+ "detectability": 0.65,
+ "group": [
+  2,
+  6
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 12,
+  "spread": 5,
+  "home": 160
+ },
+ "bird": {
+  "speed": 11,
+  "low": 8,
+  "high": 40,
+  "flapHz": 3,
+  "glide": 0.65,
+  "groundShare": 0.7,
+  "perchLow": 3,
+  "maxWind": 18,
+  "flyMin": 30,
+  "flyMax": 90
+ },
+ "models": [
+  {
+   "model": "seagull"
+  }
+ ],
+ "water": 240
+},
+{
+ "id": "hawk",
+ "name": "Buses (modele generique)",
+ "scientific": "Buteo spp.",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "@EUROPE_W",
+    "@EUROPE_N",
+    "@EUROPE_E",
+    "@EUROPE_S",
+    "@MIDDLE_EAST",
+    "@CENTRAL_ASIA",
+    "@EAST_ASIA",
+    "@N_AMERICA",
+    "MX"
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 0.5,
+  "scrub": 0.9,
+  "meadow": 1,
+  "farmland": 1,
+  "rock": 0.7,
+  "open": 0.6
+ },
+ "settlement": "tolerant",
+ "density": 0.8,
+ "detectability": 0.65,
+ "group": [
+  1,
+  1
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 35,
+  "spread": 10,
+  "home": 210
+ },
+ "bird": {
+  "speed": 10,
+  "low": 20,
+  "high": 65,
+  "climb": 2.5,
+  "turn": 0.65,
+  "flapHz": 3,
+  "glide": 0.8,
+  "groundShare": 0.05,
+  "perchLow": 4,
+  "perchHigh": 35,
+  "flyMin": 45,
+  "flyMax": 120,
+  "seasonalFlight": [
+   0.45,
+   0.55,
+   0.8,
+   1,
+   1,
+   1,
+   0.95,
+   0.95,
+   1,
+   0.8,
+   0.55,
+   0.45
+  ]
+ },
+ "models": [
+  {
+   "model": "hawk"
+  },
+  {
+   "model": "hawk_coat2"
+  }
+ ]
+},
+{
+ "id": "bald_eagle",
+ "name": "Pygargue a tete blanche",
+ "scientific": "Haliaeetus leucocephalus",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "US",
+    "CA"
+   ],
+   "absLat": [
+    24,
+    55
+   ]
+  },
+  {
+   "countries": [
+    "US",
+    "CA"
+   ],
+   "absLat": [
+    55,
+    72
+   ],
+   "months": [
+    4,
+    10
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 0.8,
+  "wetland": 1,
+  "beach": 1,
+  "rock": 0.7,
+  "meadow": 0.2
+ },
+ "settlement": "tolerant",
+ "density": 0.18,
+ "detectability": 0.65,
+ "group": [
+  1,
+  2
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 45,
+  "spread": 12,
+  "home": 220
+ },
+ "bird": {
+  "speed": 12,
+  "low": 18,
+  "high": 65,
+  "climb": 2,
+  "turn": 0.55,
+  "flapHz": 2.5,
+  "glide": 0.85,
+  "groundShare": 0.02,
+  "perchLow": 5,
+  "perchHigh": 40,
+  "flyMin": 50,
+  "flyMax": 120,
+  "maxWind": 17
+ },
+ "models": [
+  {
+   "model": "eagle_bald"
+  }
+ ],
+ "water": 400
+},
+{
+ "id": "eurasian_eagle_owl",
+ "name": "Grand-duc d Europe",
+ "scientific": "Bubo bubo",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "@EUROPE_W",
+    "@EUROPE_E",
+    "@EUROPE_S",
+    "NO",
+    "SE",
+    "FI",
+    "@MIDDLE_EAST",
+    "@CENTRAL_ASIA",
+    "CN",
+    "KP",
+    "KR",
+    "MN"
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 1,
+  "scrub": 0.7,
+  "rock": 1,
+  "meadow": 0.25,
+  "orchard": 0.3
+ },
+ "settlement": "tolerant",
+ "density": 0.15,
+ "detectability": 0.65,
+ "group": [
+  1,
+  1
+ ],
+ "activity": "nocturnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 25,
+  "spread": 12,
+  "home": 150
+ },
+ "bird": {
+  "speed": 8,
+  "low": 4,
+  "high": 17,
+  "flapHz": 3.5,
+  "glide": 0.65,
+  "groundShare": 0.05,
+  "perchLow": 3,
+  "perchHigh": 22,
+  "flyMin": 12,
+  "flyMax": 40,
+  "restMin": 25,
+  "restMax": 70
+ },
+ "models": [
+  {
+   "model": "owl_eagle"
+  }
+ ]
+},
+{
+ "id": "scarlet_macaw",
+ "name": "Ara rouge",
+ "scientific": "Ara macao",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "MX",
+    "BZ",
+    "GT",
+    "HN",
+    "NI",
+    "CR",
+    "PA",
+    "CO",
+    "VE",
+    "GY",
+    "SR",
+    "EC",
+    "PE",
+    "BO",
+    "BR"
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 1,
+  "orchard": 0.3,
+  "wetland": 0.25
+ },
+ "settlement": "tolerant",
+ "density": 1.5,
+ "detectability": 0.65,
+ "group": [
+  2,
+  4
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 25,
+  "spread": 5,
+  "home": 170
+ },
+ "bird": {
+  "speed": 10,
+  "low": 14,
+  "high": 35,
+  "flapHz": 4,
+  "glide": 0.2,
+  "groundShare": 0,
+  "perchLow": 4,
+  "perchHigh": 40,
+  "flyMin": 20,
+  "flyMax": 65,
+  "restMin": 20,
+  "restMax": 60
+ },
+ "models": [
+  {
+   "model": "parrot_macaw"
+  }
+ ],
+ "climates": [
+  "tropical"
+ ]
+},
+{
+ "id": "yellow_billed_shrike",
+ "name": "Pie-grieche a bec jaune",
+ "scientific": "Corvinella corvina",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "SN",
+    "GM",
+    "GN",
+    "GW",
+    "SL",
+    "ML",
+    "BF",
+    "CI",
+    "GH",
+    "TG",
+    "BJ",
+    "NG",
+    "CM",
+    "TD",
+    "CF",
+    "SS",
+    "SD",
+    "UG"
+   ]
+  }
+ ],
+ "habitats": {
+  "savanna": 1,
+  "scrub": 1,
+  "meadow": 0.7,
+  "orchard": 0.4,
+  "farmyard": 0.3
+ },
+ "settlement": "tolerant",
+ "density": 7,
+ "detectability": 0.65,
+ "group": [
+  2,
+  5
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 8,
+  "spread": 3,
+  "home": 70
+ },
+ "bird": {
+  "speed": 7,
+  "low": 2,
+  "high": 9,
+  "flapHz": 7,
+  "glide": 0.05,
+  "groundShare": 0.2,
+  "perchLow": 1,
+  "perchHigh": 10,
+  "flyMin": 4,
+  "flyMax": 12,
+  "restMin": 15,
+  "restMax": 45,
+  "turn": 2.5
+ },
+ "models": [
+  {
+   "model": "shrike"
+  }
+ ]
+},
+{
+ "id": "chicken",
+ "name": "Poule et coq domestiques",
+ "scientific": "Gallus gallus domesticus",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "@EUROPE_W",
+    "@EUROPE_N",
+    "@EUROPE_E",
+    "@EUROPE_S",
+    "@MAGHREB",
+    "@MIDDLE_EAST",
+    "@CENTRAL_ASIA",
+    "@SOUTH_ASIA",
+    "@SE_ASIA",
+    "@EAST_ASIA",
+    "@N_AMERICA",
+    "@C_AMERICA",
+    "@CARIBBEAN",
+    "@S_AMERICA",
+    "@OCEANIA",
+    "@AFRICA_W",
+    "@AFRICA_C",
+    "@AFRICA_E",
+    "@AFRICA_S"
+   ]
+  }
+ ],
+ "habitats": {
+  "farmyard": 1,
+  "orchard": 0.1
+ },
+ "settlement": "pastoral",
+ "density": 100,
+ "detectability": 0.65,
+ "group": [
+  3,
+  7
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 3,
+  "spread": 1.4,
+  "home": 18
+ },
+ "bird": {
+  "flies": false,
+  "speed": 3,
+  "low": 1,
+  "high": 2,
+  "groundShare": 1,
+  "flapHz": 5
+ },
+ "models": [
+  {
+   "model": "chicken_kelgar"
+  },
+  {
+   "model": "rooster"
+  }
+ ],
+ "domestic": true
+},
+{
+ "id": "wild_turkey",
+ "name": "Dindon sauvage",
+ "scientific": "Meleagris gallopavo",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "US",
+    "CA",
+    "MX"
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 1,
+  "meadow": 0.7,
+  "farmland": 0.5,
+  "scrub": 0.5
+ },
+ "settlement": "tolerant",
+ "density": 3,
+ "detectability": 0.65,
+ "group": [
+  2,
+  5
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 18,
+  "spread": 3,
+  "home": 100
+ },
+ "bird": {
+  "speed": 8,
+  "low": 3,
+  "high": 8,
+  "flapHz": 4,
+  "glide": 0.02,
+  "groundShare": 0.8,
+  "perchLow": 2,
+  "perchHigh": 12,
+  "flyMin": 2,
+  "flyMax": 6,
+  "restMin": 90,
+  "restMax": 240
+ },
+ "models": [
+  {
+   "model": "turkey"
+  }
+ ]
+},
+{
+ "id": "indian_peafowl",
+ "name": "Paon bleu",
+ "scientific": "Pavo cristatus",
+ "class": "bird",
+ "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "range": [
+  {
+   "countries": [
+    "IN",
+    "LK"
+   ]
+  }
+ ],
+ "habitats": {
+  "forest": 0.5,
+  "scrub": 1,
+  "farmland": 0.5,
+  "farmyard": 0.5,
+  "orchard": 0.6
+ },
+ "settlement": "tolerant",
+ "density": 4,
+ "detectability": 0.65,
+ "group": [
+  2,
+  4
+ ],
+ "activity": "diurnal",
+ "rain": 0.2,
+ "behaviour": {
+  "flee": 12,
+  "spread": 3,
+  "home": 75
+ },
+ "bird": {
+  "speed": 6,
+  "low": 2,
+  "high": 7,
+  "flapHz": 4,
+  "glide": 0,
+  "groundShare": 0.85,
+  "perchLow": 2,
+  "perchHigh": 9,
+  "flyMin": 2,
+  "flyMax": 5,
+  "restMin": 70,
+  "restMax": 180
+ },
+ "models": [
+  {
+   "model": "peacock"
+  }
+ ],
+ "climates": [
+  "tropical",
+  "arid",
+  "temperate"
+ ]
+}
  ]
 }

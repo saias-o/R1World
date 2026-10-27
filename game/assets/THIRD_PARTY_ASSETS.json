@@ -1047,17 +1047,21 @@
     {
       "name": "Animals — CDmir / TinyWorlds (CC0-1.0)",
       "author": "CDmir / TinyWorlds",
-      "source": "https://opengameart.org/content/butterfly-animated; https://opengameart.org/content/deer-female; https://opengameart.org/content/old-deer-male; https://opengameart.org/content/rabbit-0",
+      "source": "https://opengameart.org/content/butterfly-animated; https://opengameart.org/content/chicken-animated; https://opengameart.org/content/deer-female; https://opengameart.org/content/old-deer-male; https://opengameart.org/content/rabbit-0; https://opengameart.org/content/rooster-animated",
       "license": "CC0 1.0",
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "modified": "Prepared by data/animal-pipeline (GLB, approximate species scale, LOD1, rigs where noted in assets/animals/manifest.json); clips retargeted onto each model's own skeleton by tools/r1/animals.py. Attribution in assets/animals/ATTRIBUTION.md and in game.",
       "files": [
         "assets/animals/butterfly.glb",
         "assets/animals/butterfly-lod1.glb",
+        "assets/animals/chicken_kelgar.glb",
+        "assets/animals/chicken_kelgar-lod1.glb",
         "assets/animals/doe.glb",
         "assets/animals/doe-lod1.glb",
         "assets/animals/rabbit.glb",
         "assets/animals/rabbit-lod1.glb",
+        "assets/animals/rooster.glb",
+        "assets/animals/rooster-lod1.glb",
         "assets/animals/stag.glb",
         "assets/animals/stag-lod1.glb"
       ]
@@ -1089,7 +1093,7 @@
     {
       "name": "Animals — Grab3D (CC0-1.0)",
       "author": "Grab3D",
-      "source": "https://grab3d.com/models/animals/bicolor-sphynx-cat/; https://grab3d.com/models/animals/cat/; https://grab3d.com/models/animals/frog/; https://grab3d.com/models/animals/gorilla/",
+      "source": "https://grab3d.com/models/animals/bicolor-sphynx-cat/; https://grab3d.com/models/animals/bird/; https://grab3d.com/models/animals/cat/; https://grab3d.com/models/animals/eagle/; https://grab3d.com/models/animals/frog/; https://grab3d.com/models/animals/gorilla/; https://grab3d.com/models/animals/owl/; https://grab3d.com/models/animals/parrot/",
       "license": "CC0 1.0",
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "modified": "Prepared by data/animal-pipeline (GLB, approximate species scale, LOD1, rigs where noted in assets/animals/manifest.json); clips retargeted onto each model's own skeleton by tools/r1/animals.py. Attribution in assets/animals/ATTRIBUTION.md and in game.",
@@ -1098,10 +1102,18 @@
         "assets/animals/cat_sphynx-lod1.glb",
         "assets/animals/cat_tabby.glb",
         "assets/animals/cat_tabby-lod1.glb",
+        "assets/animals/eagle_bald.glb",
+        "assets/animals/eagle_bald-lod1.glb",
         "assets/animals/frog_blue.glb",
         "assets/animals/frog_blue-lod1.glb",
         "assets/animals/gorilla.glb",
-        "assets/animals/gorilla-lod1.glb"
+        "assets/animals/gorilla-lod1.glb",
+        "assets/animals/owl_eagle.glb",
+        "assets/animals/owl_eagle-lod1.glb",
+        "assets/animals/parrot_macaw.glb",
+        "assets/animals/parrot_macaw-lod1.glb",
+        "assets/animals/robin.glb",
+        "assets/animals/robin-lod1.glb"
       ]
     },
     {
@@ -1157,9 +1169,21 @@
       ]
     },
     {
+      "name": "Animals — The Council of Modders, Fallen Empire Studio, Scion Development (CC-BY-SA-3.0)",
+      "author": "The Council of Modders, Fallen Empire Studio, Scion Development",
+      "source": "https://github.com/0ADMods/terra_magna/blob/3c75bc3b6bd88380265c12a0bdc0768e83d3a37e/art/actors/fauna/turkey.xml",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "modified": "Prepared by data/animal-pipeline (GLB, approximate species scale, LOD1, rigs where noted in assets/animals/manifest.json); clips retargeted onto each model's own skeleton by tools/r1/animals.py. Attribution in assets/animals/ATTRIBUTION.md and in game.",
+      "files": [
+        "assets/animals/turkey.glb",
+        "assets/animals/turkey-lod1.glb"
+      ]
+    },
+    {
       "name": "Animals — Wildfire Games (CC-BY-SA-3.0)",
       "author": "Wildfire Games",
-      "source": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/arctic_wolf.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bear_black.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bear_brown.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bear_white.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/boar.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bull.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/camel.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/cow.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/crocodile.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/donkey.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_baby.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_bush.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_forest.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_asian.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/fox_arctic.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/fox_red.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/gazelle.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/giraffe_adult.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/giraffe_baby.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/goat.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/hippopotamus.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_brown_spotted_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_chestnut_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_chestnut_02.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_cream_spotted_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_dark_chestnut.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_fading_black.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_lusitano.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_marwari.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_palomino_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_persian.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_skewbald.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_tessalian.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/lion.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/lioness.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/pig1.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/piglet.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/pony.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/rhino.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sanga_cattle.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sheep1.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sheep3.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/tiger.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/wildebeest.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/wolf.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/zebra.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/zebu.xml",
+      "source": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/arctic_wolf.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bear_black.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bear_brown.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bear_white.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/boar.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/bull.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/camel.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/cow.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/crocodile.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/crow.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/donkey.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_baby.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_bush.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_african_forest.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/elephant_asian.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/fox_arctic.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/fox_red.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/gazelle.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/giraffe_adult.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/giraffe_baby.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/goat.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/hawk.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/hippopotamus.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_brown_spotted_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_chestnut_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_chestnut_02.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_cream_spotted_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_dark_chestnut.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_fading_black.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_lusitano.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_marwari.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_palomino_01.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_persian.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_skewbald.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/horse_tessalian.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/lion.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/lioness.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/peacock.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/pig1.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/piglet.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/pony.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/rhino.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sanga_cattle.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/seagull.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sheep1.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/sheep3.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/tiger.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/wildebeest.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/wolf.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/zebra.xml; https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/zebu.xml",
       "license": "CC BY-SA 3.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "modified": "Prepared by data/animal-pipeline (GLB, approximate species scale, LOD1, rigs where noted in assets/animals/manifest.json); clips retargeted onto each model's own skeleton by tools/r1/animals.py. Attribution in assets/animals/ATTRIBUTION.md and in game.",
@@ -1198,6 +1222,8 @@
         "assets/animals/cow_shape2-lod1.glb",
         "assets/animals/crocodile.glb",
         "assets/animals/crocodile-lod1.glb",
+        "assets/animals/crow.glb",
+        "assets/animals/crow-lod1.glb",
         "assets/animals/donkey.glb",
         "assets/animals/donkey-lod1.glb",
         "assets/animals/elephant_african_baby.glb",
@@ -1238,6 +1264,10 @@
         "assets/animals/goat_coat4_shape2-lod1.glb",
         "assets/animals/goat_shape2.glb",
         "assets/animals/goat_shape2-lod1.glb",
+        "assets/animals/hawk.glb",
+        "assets/animals/hawk-lod1.glb",
+        "assets/animals/hawk_coat2.glb",
+        "assets/animals/hawk_coat2-lod1.glb",
         "assets/animals/hippopotamus.glb",
         "assets/animals/hippopotamus-lod1.glb",
         "assets/animals/hippopotamus_coat2.glb",
@@ -1302,6 +1332,8 @@
         "assets/animals/lion-lod1.glb",
         "assets/animals/lioness.glb",
         "assets/animals/lioness-lod1.glb",
+        "assets/animals/peacock.glb",
+        "assets/animals/peacock-lod1.glb",
         "assets/animals/pig1.glb",
         "assets/animals/pig1-lod1.glb",
         "assets/animals/pig1_coat2.glb",
@@ -1344,6 +1376,8 @@
         "assets/animals/sanga_cattle_coat5_shape2-lod1.glb",
         "assets/animals/sanga_cattle_shape2.glb",
         "assets/animals/sanga_cattle_shape2-lod1.glb",
+        "assets/animals/seagull.glb",
+        "assets/animals/seagull-lod1.glb",
         "assets/animals/sheep1.glb",
         "assets/animals/sheep1-lod1.glb",
         "assets/animals/sheep3.glb",
@@ -1371,6 +1405,18 @@
       ]
     },
     {
+      "name": "Animals — mariaagapova29 (CC-BY-4.0)",
+      "author": "mariaagapova29",
+      "source": "https://sketchfab.com/3d-models/901d1a2e9e26465db2432939b35bc384",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "modified": "Prepared by data/animal-pipeline (GLB, approximate species scale, LOD1, rigs where noted in assets/animals/manifest.json); clips retargeted onto each model's own skeleton by tools/r1/animals.py. Attribution in assets/animals/ATTRIBUTION.md and in game.",
+      "files": [
+        "assets/animals/pigeon_rock.glb",
+        "assets/animals/pigeon_rock-lod1.glb"
+      ]
+    },
+    {
       "name": "Animals — mujtaba-io (CC0-1.0)",
       "author": "mujtaba-io",
       "source": "https://opengameart.org/content/ant-3d-model-rigging-animated-low-poly-ish",
@@ -1380,6 +1426,18 @@
       "files": [
         "assets/animals/ant.glb",
         "assets/animals/ant-lod1.glb"
+      ]
+    },
+    {
+      "name": "Animals — pistachio / Al Stachio (CC0-1.0)",
+      "author": "pistachio / Al Stachio",
+      "source": "https://opengameart.org/content/bird-yellow-billed-shrike",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "modified": "Prepared by data/animal-pipeline (GLB, approximate species scale, LOD1, rigs where noted in assets/animals/manifest.json); clips retargeted onto each model's own skeleton by tools/r1/animals.py. Attribution in assets/animals/ATTRIBUTION.md and in game.",
+      "files": [
+        "assets/animals/shrike.glb",
+        "assets/animals/shrike-lod1.glb"
       ]
     }
   ]

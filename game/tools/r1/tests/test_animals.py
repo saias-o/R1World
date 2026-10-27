@@ -1,8 +1,8 @@
 """The animals: placed by fauna.json, measured by r1/animals.py, never wrong-way round.
 
 Every model a species places is measured (ground, head, gaits) with both its
-levels on one skeleton; a clip refused for a defect plays no part; birds,
-bats, fish and sea animals wait for their own update; indoor animals stay rare.
+levels on one skeleton; a clip refused for a defect plays no part; all shipped
+birds have geographic profiles; indoor animals stay rare.
 """
 import json
 import math
@@ -15,9 +15,8 @@ GAME = Path(__file__).resolve().parents[3]
 FAUNA = json.loads((GAME / "assets/animals/fauna.json").read_text(encoding="utf-8"))
 MEASURED = json.loads((GAME / "assets/animals/animals.json").read_text(encoding="utf-8"))["models"]
 
-# Not this update: birds and bats fly, fish and sea animals swim (PLAN).
-NOT_YET = {"crow", "hawk", "hawk_coat2", "seagull", "eagle_bald", "owl_eagle", "parrot_macaw", "pigeon_rock",
-           "robin", "shrike", "peacock", "turkey", "chicken_kelgar", "rooster", "bat", "dolphin", "fish_generic",
+# Bats and aquatic species still need their own habitat/runtime integration.
+NOT_YET = {"bat", "dolphin", "fish_generic",
            "fish_single", "fish_kelgar", "pike", "shark", "shark_coat2", "tuna", "whale_fin", "turtle_sea",
            "horseshoe_crab"}
 
@@ -44,9 +43,24 @@ class Animals(unittest.TestCase):
                 self.assertTrue(gait["speedSource"].startswith(("measured", "inferred")), f"{model} {role}")
                 self.assertEqual(m["roles"][role][0], gait["clip"], f"{model}: {role} plays its measured clip first")
 
-    def test_no_bird_fish_or_sea_animal_yet(self):
+    def test_no_bat_fish_or_sea_animal_yet(self):
         for model in animals.used_models(FAUNA):
             self.assertNotIn(model, NOT_YET)
+
+    def test_every_shipped_bird_is_geographically_placed(self):
+        import csv
+        labels={"Ara", "Hibou", "Corbeau", "Mouette", "Rapace", "Pigeon", "Rouge-gorge",
+                "Pie-grièche à bec jaune", "Pygargue à tête blanche", "Paon", "Dindon", "Poule / coq"}
+        with (GAME/"assets/animals/catalog.csv").open(encoding="utf-8-sig") as source:
+            shipped={row["id"] for row in csv.DictReader(source) if row["animal"] in labels}
+        placed={m["model"] for s in FAUNA["species"] if s.get("class")=="bird" for m in s["models"]}
+        self.assertEqual(len(shipped),14)
+        self.assertEqual(placed,shipped)
+        for species in FAUNA["species"]:
+            if species.get("class")!="bird": continue
+            self.assertIn("bird",species)
+            self.assertTrue(species["range"] and species["habitats"])
+            self.assertGreater(species["density"],0)
 
     def test_indoor_animals_are_rare(self):
         for species in FAUNA["species"]:
@@ -61,6 +75,8 @@ class Animals(unittest.TestCase):
         self.assertEqual(animals.assign_roles(["Rig_Check_Head", "Rig_Check_Limbs"]), {"idle": ["Rig_Check_Head"]})
         self.assertEqual(animals.assign_roles(["peacock_walk_feeding", "peacock_feeding_transition"]), {})
         self.assertEqual(animals.assign_roles(["Flying"], {"fly": ["Flying"]}), {"fly": ["Flying"]})
+        self.assertEqual(animals.assign_roles(["crow_flight","crow_glide"]),
+                         {"fly":["crow_flight"],"glide":["crow_glide"]})
 
     def test_registered_with_their_licences(self):
         registry = json.loads((GAME / "assets/THIRD_PARTY_ASSETS.json").read_text(encoding="utf-8"))

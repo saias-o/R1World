@@ -50,7 +50,7 @@ add_dependencies(R1World r1_menu_shaders)
 set_source_files_properties(${generator} ${clipper} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
 
 # Integration checks consume the same SDK as the game, never copied flags.
-foreach(check vehicle_runtime motorcycle_pose vehicle_radio)
+foreach(check vehicle_runtime motorcycle_pose vehicle_radio animal_physics bird_animation)
     add_executable(r1_${check}_test EXCLUDE_FROM_ALL "native/tests_engine/${check}_test.cpp")
     target_link_libraries(r1_${check}_test PRIVATE Saida::Engine)
     target_compile_options(r1_${check}_test PRIVATE -UNDEBUG)

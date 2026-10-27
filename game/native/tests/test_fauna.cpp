@@ -102,7 +102,7 @@ TEST(Fauna, a_breton_forest_holds_deer_and_boar_and_never_savanna_game) {
     std::map<std::string, int> total;
     for (int d = 0; d < 60; ++d)
         for (const auto& [id, n] : speciesOf(cookAt(-2.18, 48.02, "FR", "forest", 0, d / 8, d % 8))) total[id] += n;
-    const std::set<std::string> allowed{"roe_deer", "wild_boar", "red_deer", "red_fox", "european_rabbit", "fallow_deer", "common_wasp"};
+    const std::set<std::string> allowed{"roe_deer", "wild_boar", "red_deer", "red_fox", "european_rabbit", "fallow_deer", "common_wasp", "european_robin", "crow", "hawk", "eurasian_eagle_owl"};
     for (const auto& [id, n] : total) CHECK_MSG(allowed.count(id), id << " in a Breton forest");
     // About one roe deer group a forest tile: tens over sixty tiles, never hundreds.
     CHECK_MSG(total["roe_deer"] >= 30 && total["roe_deer"] <= 120, total["roe_deer"]);
@@ -113,7 +113,7 @@ TEST(Fauna, paris_streets_hold_rats_and_cats_not_deer) {
     std::map<std::string, int> total;
     for (int d = 0; d < 30; ++d)
         for (const auto& [id, n] : speciesOf(cookAt(2.3522, 48.8566, "FR", "urban", 14, d / 6, d % 6))) total[id] += n;
-    for (const auto& [id, n] : total) CHECK_MSG(id == "brown_rat" || id == "domestic_cat", id << " in central Paris");
+    for (const auto& [id, n] : total) CHECK_MSG(id == "brown_rat" || id == "domestic_cat" || id=="rock_pigeon" || id=="crow", id << " in central Paris");
     CHECK(total["brown_rat"] + total["domestic_cat"] > 0);
 }
 
@@ -227,4 +227,55 @@ TEST(Fauna, a_spider_in_a_few_houses_in_a_hundred) {
     // The same house on the same day keeps its spider.
     plan.id = 4242;
     CHECK(planIndoor(plan, layout, summer).size() == planIndoor(plan, layout, summer).size());
+}
+
+TEST(Birds, all_profiles_have_valid_flight_and_measured_models) {
+    size_t species=0,models=0;
+    for(const auto& s:fauna().species)if(s.klass=="bird") {
+        ++species;CHECK(s.bird.enabled);CHECK(s.density>0);CHECK(!s.range.empty());
+        CHECK(s.bird.speed>0&&s.bird.climb>0&&s.bird.turn>0);
+        CHECK(s.bird.flyMin<=s.bird.flyMax&&s.bird.low<=s.bird.high);
+        for(const auto& m:s.models){++models;CHECK(!m.model.empty());}
+    }
+    CHECK(species==12&&models==14);
+}
+
+TEST(Birds, regional_birds_do_not_fill_the_wrong_continent) {
+    CHECK(lives("rock_pigeon","FR",2.35,48.86));
+    CHECK(lives("european_robin","GB",-.1,51.5));
+    CHECK(!lives("european_robin","US",-74,40.7));
+    CHECK(lives("bald_eagle","US",-122,47.6));
+    CHECK(!lives("bald_eagle","FR",2.35,48.86));
+    CHECK(lives("scarlet_macaw","BR",-60,-3));
+    CHECK(!lives("scarlet_macaw","FR",2.35,48.86));
+    CHECK(lives("yellow_billed_shrike","SN",-16,14));
+    CHECK(!lives("yellow_billed_shrike","FR",2.35,48.86));
+    CHECK(lives("wild_turkey","US",-85,35));
+    CHECK(!lives("wild_turkey","FR",2.35,48.86));
+    CHECK(lives("indian_peafowl","IN",77,20));
+    CHECK(!lives("indian_peafowl","CA",-100,50));
+}
+
+TEST(Birds, night_seasons_day_length_and_weather_change_flight) {
+    const auto& robin=*speciesById("european_robin");
+    const auto& owl=*speciesById("eurasian_eagle_owl");
+    CHECK(birdActivityAt(owl,1,6,48,0,0)>birdActivityAt(owl,12,6,48,0,0)*5);
+    CHECK(birdActivityAt(robin,12,6,48,0,0)>birdActivityAt(robin,1,6,48,0,0)*5);
+    CHECK(birdActivityAt(robin,5,6,48,0,0)>birdActivityAt(robin,5,12,48,0,0)*2);
+    CHECK(birdActivityAt(robin,12,6,48,8,20)==0);
+    const auto& eagle=*speciesById("bald_eagle");
+    auto north=rangeAt(eagle,"CA",-110,65,"boreal");CHECK(north.inside);
+    CHECK(seasonAt(eagle,north,1,65)==0&&seasonAt(eagle,north,7,65)==1);
+    CHECK(birdActivityAt(robin,12,6,-35,0,0)<birdActivityAt(robin,12,12,-35,0,0));
+    CHECK(birdActivityAt(owl,12,6,80,0,0)<.1);
+    CHECK(birdActivityAt(owl,12,12,80,0,0)>.5);
+}
+
+TEST(Birds, coastal_species_need_water_and_farm_birds_need_farm_habitat) {
+    HabitatGrid g;g.cols=20;g.rows=20;g.cell=8;g.cells.assign(400,uint8_t(Habitat::Beach));g.finish();
+    const auto& gull=*speciesById("gull");RangeAnswer range;range.inside=true;
+    CHECK(suitability(gull,range,g,30)==0);
+    g.cells[0]=uint8_t(Habitat::Water);g.finish();CHECK(suitability(gull,range,g,30)>0);
+    const auto& hen=*speciesById("chicken");CHECK(suitability(hen,range,g,30)==0);
+    g.cells[30]=uint8_t(Habitat::Farmyard);g.finish();CHECK(suitability(hen,range,g,30)>0);
 }

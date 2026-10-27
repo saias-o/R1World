@@ -12,7 +12,7 @@
     "models_including_variants": 189,
     "animal_types": 62,
     "glb_files": 378,
-    "glb_bytes": 246350748,
+    "glb_bytes": 248852752,
     "lod0_triangle_range": [
       56,
       14000
@@ -11338,7 +11338,7 @@
       "kind": "individual",
       "lod0": {
         "file": "hawk.glb",
-        "bytes": 72296,
+        "bytes": 72440,
         "triangles": 134,
         "vertices": 105,
         "bones": 9,
@@ -11359,14 +11359,14 @@
           {
             "name": "hawk_glide",
             "duration": 1.1666666269302368,
-            "max_displacement_m": 0.3118492232434766,
-            "bounds_ratio": 1.0001011802487276
+            "max_displacement_m": 0.3118492232434765,
+            "bounds_ratio": 1.0001011802496778
           }
         ]
       },
       "lod1": {
         "file": "hawk-lod1.glb",
-        "bytes": 70536,
+        "bytes": 70680,
         "triangles": 92,
         "vertices": 83,
         "bones": 9,
@@ -11387,18 +11387,26 @@
           {
             "name": "hawk_glide",
             "duration": 1.1666666269302368,
-            "max_displacement_m": 0.3118492232434766,
-            "bounds_ratio": 1.0001011802487276
+            "max_displacement_m": 0.3118492232434765,
+            "bounds_ratio": 1.0001011802496778
           }
         ],
         "triangle_ratio": 0.6865671641791045
       },
       "sha256": {
-        "hawk.glb": "595956655a39a0d260d436533cebd985c82a4ccd277342275fb52f2c6ad8c5e2",
-        "hawk-lod1.glb": "e484ff97bd0faecfd2fa4f702b08d9804300f940990c9f2aa68a1928175b3aa3"
+        "hawk.glb": "ef08dc9655d6e583b2f1976ae5e864e09af64e6df1ff5f4f21fb1b3a2223f7c5",
+        "hawk-lod1.glb": "c39e413402fd5906194d5fbdddde5e63a8e332ba9e7cc49c1d24181134c7d903"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/hawk.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "hawk_glide": [
+          0.692,
+          0.063,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "hawk_coat2",
@@ -11444,7 +11452,7 @@
       "kind": "individual",
       "lod0": {
         "file": "hawk_coat2.glb",
-        "bytes": 72308,
+        "bytes": 72448,
         "triangles": 134,
         "vertices": 105,
         "bones": 9,
@@ -11465,14 +11473,14 @@
           {
             "name": "hawk_glide",
             "duration": 1.1666666269302368,
-            "max_displacement_m": 0.3118492232434766,
-            "bounds_ratio": 1.0001011802487276
+            "max_displacement_m": 0.3118492232434765,
+            "bounds_ratio": 1.0001011802496778
           }
         ]
       },
       "lod1": {
         "file": "hawk_coat2-lod1.glb",
-        "bytes": 70548,
+        "bytes": 70692,
         "triangles": 92,
         "vertices": 83,
         "bones": 9,
@@ -11493,18 +11501,26 @@
           {
             "name": "hawk_glide",
             "duration": 1.1666666269302368,
-            "max_displacement_m": 0.3118492232434766,
-            "bounds_ratio": 1.0001011802487276
+            "max_displacement_m": 0.3118492232434765,
+            "bounds_ratio": 1.0001011802496778
           }
         ],
         "triangle_ratio": 0.6865671641791045
       },
       "sha256": {
-        "hawk_coat2.glb": "51f0be2ac7402c8c0f15a642efb61f2ab5c0ca5f6f50679114094eaf47b711d8",
-        "hawk_coat2-lod1.glb": "999282539efad2c4440929e2a16934d80de039029b530ecb2a925714d41ab386"
+        "hawk_coat2.glb": "99c374995e8882bbbab9286d340772ed9a8915f781c0455c0b414dc10ebd31e9",
+        "hawk_coat2-lod1.glb": "68bebf62e8a401dbd1b408d13f6e1f60716840a1ea686b08242cd3b32daa793c"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/hawk.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "hawk_glide": [
+          0.692,
+          0.063,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "hippopotamus",
@@ -29418,7 +29434,7 @@
       "kind": "individual",
       "lod0": {
         "file": "peacock.glb",
-        "bytes": 548848,
+        "bytes": 554564,
         "triangles": 846,
         "vertices": 931,
         "bones": 36,
@@ -29433,8 +29449,8 @@
           {
             "name": "peacock_idle",
             "duration": 0.30000001192092896,
-            "max_displacement_m": 0.05368440837843452,
-            "bounds_ratio": 0.9938860682228355
+            "max_displacement_m": 0.053684408378434384,
+            "bounds_ratio": 0.9938862030849975
           },
           {
             "name": "peacock_idle_transition",
@@ -29457,8 +29473,8 @@
           {
             "name": "peacock_walk",
             "duration": 0.5333333611488342,
-            "max_displacement_m": 0.28345922323727585,
-            "bounds_ratio": 1.0069963627842669
+            "max_displacement_m": 0.21212892833091881,
+            "bounds_ratio": 1.006513974730654
           },
           {
             "name": "peacock_walk_feeding",
@@ -29476,7 +29492,7 @@
       },
       "lod1": {
         "file": "peacock-lod1.glb",
-        "bytes": 531200,
+        "bytes": 536912,
         "triangles": 465,
         "vertices": 635,
         "bones": 36,
@@ -29491,8 +29507,8 @@
           {
             "name": "peacock_idle",
             "duration": 0.30000001192092896,
-            "max_displacement_m": 0.05368440903579342,
-            "bounds_ratio": 0.9938804737434717
+            "max_displacement_m": 0.05368440903579352,
+            "bounds_ratio": 0.9938806700840958
           },
           {
             "name": "peacock_idle_transition",
@@ -29515,8 +29531,8 @@
           {
             "name": "peacock_walk",
             "duration": 0.5333333611488342,
-            "max_displacement_m": 0.24448610920283312,
-            "bounds_ratio": 1.0066020306243928
+            "max_displacement_m": 0.21212894805475865,
+            "bounds_ratio": 1.0059275978820579
           },
           {
             "name": "peacock_walk_feeding",
@@ -29534,11 +29550,24 @@
         "triangle_ratio": 0.549645390070922
       },
       "sha256": {
-        "peacock.glb": "d5a0890a5dd191de1598f84df70d883f2fb25d30cea8b74a0be4c4cd7f48450d",
-        "peacock-lod1.glb": "440bd0da97c65dc480cf48ed377aca956f07868990ba7aecc59b69b39d9c1ab0"
+        "peacock.glb": "2af5bbfc89ae3626c18996ad8d48fe5b231c725bf3bea302e0eff0b49d82d735",
+        "peacock-lod1.glb": "cf16423e93294b754197ed155c639dacac3502f89745487ceaac2dff8fab916e"
       },
       "source_url": "https://github.com/0ad/0ad/blob/61a3b9507d974084e6badb88a0826bd89a6d5b8b/binaries/data/mods/public/art/actors/fauna/peacock.xml",
-      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded."
+      "visual_review": "Reviewed textured LOD0/LOD1 pair from background render. Natural proportions and consistent realistic texture style. Lower-grade and death-texture candidates excluded.",
+      "clip_retarget": "game/tools/r1/animals.py: clips retargeted onto the model's own skeleton",
+      "clip_retarget_clips": {
+        "peacock_idle": [
+          0.078,
+          0.015,
+          "re-anchored root"
+        ],
+        "peacock_walk": [
+          0.144,
+          0.068,
+          "re-anchored root"
+        ]
+      }
     },
     {
       "id": "pig1",

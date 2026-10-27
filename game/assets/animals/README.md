@@ -1,5 +1,11 @@
 # Animaux préparés — 26 octobre 2026
 
+**Integration update, 27 October 2026:** all 14 bird models/variants are now
+placed through `fauna.json` and measured in `animals.json`. Flight, roosting,
+real-tree supports, procedural rig poses and the remaining visual limitations
+are documented in [the BIRD update](../../README.md#bird-update--27-october-2026).
+The preparation/validation statements below describe the original delivery.
+
 189 modèles/variantes, regroupés en **62 types d’animaux**, avec un GLB et un GLB LOD1 chacun. Les robes, sexes, âges et races ne sont pas comptés comme des espèces distinctes.
 
 **378 GLB, 234.9 Mio au total.** LOD0 : 56–14000 triangles ; LOD1 : 38–7700 triangles. Le LOD1 conserve en moyenne 57.0 % des triangles.

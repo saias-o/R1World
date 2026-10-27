@@ -248,6 +248,21 @@ void loadFauna(const std::string& gameRoot) {
             s.hoverHigh = b.at("hover")[1].get<double>();
         }
         s.scale = j.value("scale", 1.0);
+        if (j.contains("bird")) {
+            const auto& bird=j.at("bird"); auto& f=s.bird; f.enabled=true;
+            f.flies=bird.value("flies",true);
+            auto read=[&](const char* key,double& value){value=bird.value(key,value);if(!std::isfinite(value)||value<0)throw std::runtime_error("fauna.json: "+s.id+" bad bird "+key);};
+            read("speed",f.speed);read("acceleration",f.acceleration);read("climb",f.climb);read("turn",f.turn);
+            read("low",f.low);read("high",f.high);read("flyMin",f.flyMin);read("flyMax",f.flyMax);
+            read("restMin",f.restMin);read("restMax",f.restMax);read("glide",f.glide);read("flapHz",f.flapHz);
+            read("groundShare",f.groundShare);read("perchLow",f.perchLow);read("perchHigh",f.perchHigh);read("maxWind",f.maxWind);
+            if(f.speed<=0||f.acceleration<=0||f.climb<=0||f.turn<=0||f.flapHz<=0||f.maxWind<=0||
+               f.high<f.low||f.flyMin<=0||f.flyMax<f.flyMin||f.restMin<=0||f.restMax<f.restMin||
+               f.perchHigh<f.perchLow||f.glide>1||f.groundShare>1)
+                throw std::runtime_error("fauna.json: "+s.id+" invalid bird flight limits");
+            if(bird.contains("seasonalFlight"))f.seasonalFlight=bird.at("seasonalFlight").get<std::array<double,12>>();
+            for(double v:f.seasonalFlight)if(!std::isfinite(v)||v<0||v>1)throw std::runtime_error("fauna.json: "+s.id+" invalid bird season");
+        }
         s.models = modelsOf(j.at("models"), gameRoot, s.id);
         if (s.models.empty()) throw std::runtime_error("fauna.json: " + s.id + " places no model");
         s.indoorModels = modelsOf(j.value("indoorModels", nlohmann::json::array()), gameRoot, s.id);
@@ -313,6 +328,28 @@ double seasonAt(const Species& s, const RangeAnswer& range, int month, double la
     if (!s.months || std::abs(lat) < 23.44) return 1.0;
     const int local = lat < 0 ? (month + 5) % 12 + 1 : month;
     return monthIn(local, *s.months) ? 1.0 : s.offSeason;
+}
+
+double birdActivityAt(const Species& s,double hour,int month,double lat,double rain,double wind) {
+    if(!s.bird.enabled)return activityAt(s.activity,hour);
+    month=std::clamp(month,1,12);lat=std::clamp(lat,-89.9,89.9);
+    const double declination=radians(23.44)*std::sin(kTau*(double(month)-3.)/12.);
+    const double cosine=-std::tan(radians(lat))*std::tan(declination);
+    double activity;
+    if(cosine<=-1.)activity=s.activity=="nocturnal"?.04:1.;
+    else if(cosine>=1.)activity=s.activity=="nocturnal"?1.:.04;
+    else {
+        const double halfDay=std::acos(cosine)*12./kPi,sunrise=12.-halfDay,sunset=12.+halfDay;
+        hour=pymod(hour,24.);
+        double normalized=hour>=sunrise&&hour<sunset?6.+12.*(hour-sunrise)/(sunset-sunrise):
+            18.+12.*pymod(hour-sunset,24.)/(24.-(sunset-sunrise));
+        activity=activityAt(s.activity,normalized);
+    }
+    const int local=lat<0?(month+5)%12+1:month;
+    activity*=s.bird.seasonalFlight[size_t(local-1)];
+    activity*=1.-std::clamp(rain/5.,0.,1.)*(1.-s.rain);
+    activity*=std::clamp((s.bird.maxWind-wind)/(s.bird.maxWind*.35),0.,1.);
+    return std::clamp(activity,0.,1.);
 }
 
 double settlementFactor(const Species& s, double built) {
@@ -475,7 +512,7 @@ nlohmann::json planFauna(const FaunaInput& in) {
     grid.finish();
 
     const P2 centre = in.tile.center();
-    const std::string key = in.tile.key();
+    const std::string key = in.tile.key(kFaunaIdentityVersion);
     const double cellKm2 = kFaunaCell * kFaunaCell / 1e6;
     struct Candidate { const Species* species; int group; uint64_t identity; FaunaResident resident; };
     std::vector<Candidate> drawn;

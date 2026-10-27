@@ -160,18 +160,20 @@ void destroyRocketAircraft(saida::Node* node) {
     for(auto& [key,t]:loaded)for(auto& a:t.aircraft)if(a.node==node){a.node=nullptr;a.taken=true;}
     retireRocketVehicle(node);
 }
-bool rocketExposed(glm::vec3 at,glm::vec3 point,saida::CollisionObjectNode* body=nullptr) {
+bool rocketExposed(glm::vec3 at,glm::vec3 point,saida::CollisionObjectNode* body=nullptr,const saida::Ragdoll* ragdoll=nullptr) {
     const auto delta=point-at;const float d=glm::length(delta);if(d<.15f)return true;
     auto* physics=engine.sceneTree().world().physics();if(!physics)return false;
     // Keep the struck wall in the query: its far side remains sheltered.
     const auto hit=physics->raycast(at+delta/d*.02f,delta/d,d-.02f);
-    return !hit.hit||hit.distance>=d-.05f||(body&&(hit.body==body->bodyId()||hit.body==body->innerBodyId()));
+    return !hit.hit||hit.distance>=d-.05f||(body&&(hit.body==body->bodyId()||hit.body==body->innerBodyId()))||
+        (ragdoll&&ragdoll->partOf(hit.body)>=0);
 }
 void explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police) {
     ++rocketImpacts;rocketPoliceDamage=police;rocketEffects.explode(at);
     sounds.play(r1::CombatSounds::RocketExplosion,glm::distance(at,camera->transform().position),1.4f);
     blastShake=std::max(blastShake,.55*std::max(0.,1.-glm::distance(at,camera->transform().position)/65.));
     alarm(at,140,14);
+    blastAnimals(at,direct);
     auto exposed=[&](glm::vec3 point,saida::CollisionObjectNode* body) {
         return rocketExposed(at,point,body);
     };

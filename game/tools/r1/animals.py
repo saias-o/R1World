@@ -668,6 +668,8 @@ def assign_roles(clips, override=None):
         return [name for name in clips if test(lower[name])]
 
     roles = {
+        "fly": pick(lambda n: "flight" in n or n.endswith("_fly")),
+        "glide": pick(lambda n: "glide" in n),
         "idle": pick(lambda n: ("idle" in n and "transition" not in n) or n.startswith("lookaround")),
         "eat": pick(lambda n: ("feeding" in n or n.startswith("eat")) and "walk" not in n and "transition" not in n),
         "walk": pick(lambda n: "walk" in n and "feeding" not in n),

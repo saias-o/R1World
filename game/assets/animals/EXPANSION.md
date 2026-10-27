@@ -1,5 +1,12 @@
 # Extension réaliste des animaux — 26 octobre 2026
 
+**Runtime integration, 27 October 2026:** the BIRD update now authors flight,
+resting and foraging poses on the delivered bird rigs through Saida's pose
+modifier interface. The original `Rig_Check_*` clips remain diagnostic assets;
+they have not been relabelled as production flight. Folded feather deployment
+and close-up rig quality still need visual qualification. See
+[game documentation](../../README.md#bird-update--27-october-2026).
+
 **20 modèles ajoutés, 17 types supplémentaires, 15 rigs créés et 5 rigs d’origine conservés.** Les 338 GLB précédents sont conservés ; l’ensemble a ensuite été compacté sans changement de géométrie, de squelette, de mouvement visible ni de pixels utilisés par les matériaux (voir `OPTIMISATION.md`). L’ensemble passe de 169 à 189 modèles/variantes et de 45 à 62 types ; 378 fichiers GLB au total.
 
 Les ajouts occupent **34.6 Mio**, textures et clips compris. Chaque modèle possède un LOD1 avec le même squelette et les mêmes noms de clips. Les nombres ci-dessous sont des triangles mesurés dans les GLB finaux.

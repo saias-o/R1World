@@ -1,5 +1,13 @@
 # Pipeline des animaux — état après nettoyage
 
+**Integration note, 27 October 2026:** `game/tools/r1/animals.py` now measures
+all 14 bird variants used by `fauna.json` and recognizes source fly/glide roles.
+The existing repair pass retargets hawk glide and peacock clips on both LODs;
+an exact comparison confirms unchanged geometry, rigs, weights, UVs, materials
+and image bytes in those six files. Procedural gameplay flight is authored in
+`game/native/bird_animation.hpp`; source control clips remain diagnostic.
+See `game/README.md` for the BIRD update and its validation limits.
+
 Livraison : `game/assets/animals/`. Le catalogue et son manifeste sont les références pour les 189 modèles/variantes, 62 types et 378 GLB. Aucun comportement ni code du jeu modifié.
 
 Les sources brutes, doublons, rendus intermédiaires, journaux et caches ont été placés dans la corbeille à la demande de l’utilisateur. Les preuves de licence, métadonnées et empreintes historiques sont dans `game/assets/animals/licenses/provenance.zip`. Les téléchargements originaux ne sont plus dans l’espace de travail. Les outils de téléchargement et préparation restent disponibles, mais leur utilisation nécessite de récupérer à nouveau les sources.

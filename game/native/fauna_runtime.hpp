@@ -11,8 +11,8 @@
 // which clip plays what and how fast each gait carries the body.
 
 // How many animals live at once around the player, nearest tiles first, and
-// how many slots one tile pools: each is a node, an animator and, for those
-// big enough to walk into, a kinematic box.
+// how many slots one tile pools: each is a node, an animator and a kinematic
+// hit/collision box, including small residents.
 static constexpr size_t kFaunaAnimals=40;
 struct AnimalKind {
     std::string model,lod0,lod1;
@@ -22,7 +22,7 @@ struct AnimalKind {
     std::vector<std::pair<std::string,std::vector<std::unique_ptr<saida::MeshNode>>>> levels;
     saida::Rig* rig=nullptr;
     std::vector<std::pair<std::string,const saida::AnimationClip*>> clips;
-    bool ready=false,failed=false;
+    bool ready=false,failed=false,bird=false;
     std::string refusal;
 };
 std::map<std::string,AnimalKind> animalKinds;
@@ -44,10 +44,13 @@ void loadAnimals() {
         if(gaits.contains("walk"))kind.walkSpeed=gaits.at("walk").value("speed",0.);
         if(gaits.contains("run"))kind.runSpeed=gaits.at("run").value("speed",0.);
         if(!m.value("sameRig",false)){kind.failed=true;kind.refusal="its LOD1 has another skeleton";}
+        for(const auto& s:r1::fauna().species)if(s.bird.enabled)
+            for(const auto& variant:s.models)if(variant.model==id)kind.bird=true;
         animalKinds.emplace(id,std::move(kind));
     }
     size_t species=r1::fauna().species.size();
     saida::Log::info("[World fauna] ",species," species, ",animalKinds.size()," measured models");
+    loadAnimalRemains();
 }
 // A refusal is said once, in the log and to the player, and fails a smoke
 // (CLAUDE.md §3); the animal is not drawn rather than drawn wrong.
@@ -104,45 +107,51 @@ AnimalKind* animalKind(const std::string& model) {
     return &kind;
 }
 // One animal as drawn: a node with its animator over a kind's shared meshes,
-// both levels under it, and a kinematic box for the big ones.
+// both levels in the rig's imported parent frame, and a kinematic hit box.
 bool makeBeast(saida::Node& parent,const std::string& model,double scale,Beast& beast) {
     AnimalKind* kind=animalKind(model);
     if(!kind)return false;
     if(beast.node){beast.node->queueFree();beast.node=nullptr;}
     auto root=std::make_unique<saida::Node>("animal-"+model);
-    auto* animator=root->addBehaviour<saida::Animator>();
+    auto visual=std::make_unique<saida::Node>("Skeleton frame");
+    visual->transform()=r1::animalTransform(kind->rig->rootParent());
+    auto* animator=visual->addBehaviour<saida::Animator>();
     animator->setRig(kind->rig);
+    beast.birdPose=kind->bird?animator->addModifier<r1::BirdPose>(*kind->rig,float(kind->forward)):nullptr;
     for(const auto& [name,clip]:kind->clips)animator->addClip(name,clip);
     for(const auto& [level,meshes]:kind->levels) {
         auto holder=std::make_unique<saida::Node>(level);
         for(const auto& m:meshes) {
             auto mesh=std::make_unique<saida::MeshNode>(m->name(),m->mesh(),m->material());
-            mesh->transform()=m->transform();
+            mesh->transform()=r1::animalTransform(glm::inverse(kind->rig->rootParent())*m->localMatrix());
             holder->addChild(std::move(mesh));
         }
-        root->addChild(std::move(holder));
+        visual->addChild(std::move(holder));
     }
     // The near model while the animal stands taller than 5% of the screen.
-    root->addBehaviour<saida::LODGroupBehaviour>()->setLevels({{"Near",.05f},{"Far",0.f}});
-    if(kind->height*scale>.5) {
-        // Big enough to walk into: a box over its body, along its head axis.
+    visual->addBehaviour<saida::LODGroupBehaviour>()->setLevels({{"Near",.05f},{"Far",0.f}});
+    beast.visual=root->addChild(std::move(visual));
+    {
+        // A box over its body, along its head axis, at its actual size.
         auto body=std::make_unique<saida::RigidBodyNode>();
         body->kinematic=true;
         const bool sideways=std::abs(std::sin(kind->forward))>.7;
         auto box=std::make_unique<saida::CollisionShapeNode>();
         box->shapeType=saida::CollisionShapeType::Box;
-        const float along=float(kind->length*.8),across=float(std::max(.2,kind->width*.8));
-        box->halfExtents=.5f*glm::vec3(sideways?along:across,float(kind->height*.85),sideways?across:along);
+        const float along=float(std::max(.006,kind->length*(kind->bird?.65:.9))),across=float(std::max(.004,kind->width*(kind->bird?.22:.9)));
+        box->halfExtents=.5f*glm::vec3(sideways?along:across,float(std::max(.004,kind->height*.9)),sideways?across:along);
         box->offset=glm::vec3(0.f,float(kind->ground+kind->height*.45),0.f);
         body->addChild(std::move(box));
         beast.body=static_cast<saida::RigidBodyNode*>(root->addChild(std::move(body)));
-    } else beast.body=nullptr;
+    }
     root->transform().scale=glm::vec3(float(scale));
     beast.node=parent.addChild(std::move(root));
     beast.animator=animator;beast.model=model;beast.clip.clear();beast.playback=-1;beast.poseRate=-1;
     beast.shown=false;
     return true;
 }
+#include "fauna_combat.hpp"
+#include "bird_runtime.hpp"
 // The clip a state calls for, and its playback rate at `speed` m/s: a gait
 // plays as fast as the body moves over its measured stride speed.
 std::pair<std::string,float> beastClip(const AnimalKind& kind,saida::wildlife::State state,double speed,double scale,uint64_t identity,bool aloft) {
@@ -194,7 +203,7 @@ void readFauna(Loaded& tile) {
                 const double scale=species->scale;
                 saida::wildlife::Kind k;
                 k.walkSpeed=float((m.roles.count("walk")?m.walkSpeed:m.roles.count("run")?m.runSpeed*.6:0.)*scale);
-                if(m.roles.count("fly"))k.walkSpeed=float(std::max(.6,species->spread*.3));
+                if(m.roles.count("fly")&&!species->bird.enabled)k.walkSpeed=float(std::max(.6,species->spread*.3));
                 k.runSpeed=float(m.roles.count("run")?m.runSpeed*scale:0.);
                 k.fleeSpeed=float(species->dart?std::max(1.5,m.length*scale*8):
                                   k.runSpeed>0?k.runSpeed*1.8f:k.walkSpeed*2.f);
@@ -214,6 +223,17 @@ void readFauna(Loaded& tile) {
                 k.viewRange=float(std::clamp(std::max(viewScale*std::sqrt(std::max(.0001,m.height*scale)),
                                                      flightMargin*species->flee),minView,maxView));
                 k.radius=float(std::max(.02,m.width*scale*.5));
+                if(species->bird.enabled&&species->bird.flies) {
+                    const auto& b=species->bird;auto& f=k.flight;f.enabled=true;
+                    f.speed=float(b.speed);f.acceleration=float(b.acceleration);f.climb=float(b.climb);f.turn=float(b.turn);
+                    f.low=float(b.low);f.high=float(b.high);f.flyMin=float(b.flyMin);f.flyMax=float(b.flyMax);
+                    f.restMin=float(b.restMin);f.restMax=float(b.restMax);f.glide=float(b.glide);f.flapHz=float(b.flapHz);
+                    f.groundShare=float(b.groundShare);f.perchLow=float(b.perchLow);f.perchHigh=float(b.perchHigh);
+                    k.flee=saida::wildlife::FleeStyle::Run;k.canStand=true;
+                    // The new small-bird rigs have no measured stride; this
+                    // short foraging gait is inferred and animated explicitly.
+                    if(m.roles.count("idle")&&!m.roles.count("walk"))k.walkSpeed=float(std::clamp(m.length*scale*2.,.12,.7));
+                }
                 kinds.push_back(k);
                 tile.faunaKinds.push_back({species,model,r1::rangeAt(*species,country,lon,lat,climate)});
             }
@@ -226,6 +246,10 @@ void readFauna(Loaded& tile) {
     for(const auto& g:groups)tile.groupSpecies.push_back(tile.faunaKinds[g.members.front()].species);
     tile.herds.reset(std::move(kinds),std::move(groups),kFaunaSlots,
                      uint64_t(std::hash<std::string>{}(tile.data.at("key").get<std::string>()))|1u);
+    for(size_t g=0;g<tile.herds.groups().size();++g)
+        for(size_t m=0;m<tile.herds.groups()[g].members.size();++m)
+            if(animalDeaths.count(animalResidentId(tile.herds.groups()[g].identity,m)))
+                tile.herds.setMemberEnabled(g,m,false);
     Loaded* self=&tile;
     tile.herds.setAllowed([self](uint16_t kind,saida::wildlife::Vec2 at) {
         const auto& grid=self->faunaGrid;
@@ -233,8 +257,16 @@ void readFauna(Loaded& tile) {
         const int i=grid.index(at.x,at.y);
         if(i<0)return false;
         const auto& k=self->faunaKinds[kind];
+        if(k.species->bird.enabled&&k.species->bird.flies)return grid.cells[size_t(i)]!=uint8_t(r1::Habitat::None);
         return r1::suitability(*k.species,k.range,grid,i)>0;
     });
+    tile.herds.setFlightLandingAllowed([self](uint16_t kind,saida::wildlife::Vec2 at) {
+        const int i=self->faunaGrid.index(at.x,at.y);
+        if(i<0||kind>=self->faunaKinds.size())return false;
+        const auto& k=self->faunaKinds[kind];return r1::suitability(*k.species,k.range,self->faunaGrid,i)>0;
+    });
+    tile.herds.setFlightGround([this,self](saida::wildlife::Vec2 at){return float(groundUnder(*self,at.x,at.y,0.));});
+    tile.herds.setFlightClear([this,self](auto a,float ay,auto b,float by){return birdFlightClear(*self,a,ay,b,by);});
     tile.beasts.resize(kFaunaSlots);
     tile.faunaActiveAge=1e9;
     if(!tile.residents.empty()) {
@@ -255,6 +287,12 @@ void faunaActivity(Loaded& tile,double hour,int month,const r1::WeatherState& we
         const r1::Species& s=*tile.groupSpecies[g];
         const auto& kind=tile.faunaKinds[tile.herds.groups()[g].members.front()];
         double out=r1::activityAt(s.activity,hour)*r1::seasonAt(s,kind.range,month,lat);
+        if(s.bird.enabled&&s.bird.flies) {
+            const double season=r1::seasonAt(s,kind.range,month,lat);
+            tile.herds.setActive(g,season>0.);
+            tile.herds.setFlightActivity(g,float(r1::birdActivityAt(s,hour,month,lat,weather.known?weather.rain:0.,weather.known?weather.windSpeed:0.)));
+            continue;
+        }
         if(weather.known&&(weather.rain>.5||weather.snowfall>.3))out*=s.rain;
         const uint64_t draw=std::hash<uint64_t>{}(tile.herds.groups()[g].identity*0x9E3779B97F4A7C15ull+slot);
         tile.herds.setActive(g,double(draw%10000)/10000.<out);
@@ -274,6 +312,7 @@ int localMonth() {
 void updateFauna(float delta) {
     SAIDA_PROFILE_SCOPE("World/Fauna");
     const double dt=std::min(.05,double(delta));
+    updateAnimalRemains();
     const double hour=localSolarHour();
     const int month=localMonth();
     const auto weather=effectiveWeather();
@@ -284,6 +323,9 @@ void updateFauna(float delta) {
         if(found==loaded.end())continue;
         Loaded& l=found->second;
         if(l.herds.groups().empty())continue;
+        refreshBirdPerches(l);
+        const double wind=weather.known?weather.windSpeed:0.,from=r1::radians(weather.windFrom);
+        l.herds.setWind({float(-std::sin(from)*wind),float(std::cos(from)*wind)});
         l.faunaActiveAge+=dt;
         if(l.faunaActiveAge>=2.){faunaActivity(l,hour,month,weather);l.faunaActiveAge=0;}
         const glm::dvec3 eye=cameraTileLocal(l);
@@ -307,7 +349,7 @@ void updateFauna(float delta) {
         l.herds.setBudget(remaining);
         l.herds.update(float(dt),scene);
         remaining-=std::min(remaining,l.herds.live());
-        syncBeasts(l,eye);
+        syncBeasts(l,eye,dt);
     }
     checkFaunaSmoke();
     faunaShot(dt);
@@ -320,7 +362,7 @@ void sayFauna(double dt) {
     faunaSaidAge+=dt;
     if(faunaSaidAge<(smoke?5.:20.))return;
     faunaSaidAge=0;
-    size_t groups=0,out=0,spawned=0,live=0,drawn=0;
+    size_t groups=0,out=0,spawned=0,live=0,drawn=0,birds=0,flying=0,perched=0,perches=0;
     double nearest=1e9;std::string what="none";
     for(auto& [key,t]:loaded) {
         const glm::dvec3 me=t.frame.local(ecef(lon,lat,alt));
@@ -338,10 +380,17 @@ void sayFauna(double dt) {
             }
         }
         live+=t.herds.live();
+        perches+=t.birdPerches.size();
+        for(const auto& a:t.herds.animals())if(a.alive&&t.faunaKinds[a.kind].species->bird.enabled) {
+            ++birds;
+            flying+=a.flightPhase==saida::wildlife::FlightPhase::Takeoff||a.flightPhase==saida::wildlife::FlightPhase::Cruise||a.flightPhase==saida::wildlife::FlightPhase::Approach;
+            perched+=a.flightPhase==saida::wildlife::FlightPhase::Perched;
+        }
         for(const auto& b:t.beasts)drawn+=b.node&&b.node->enabled();
     }
     saida::Log::info("[World fauna] around the player: ",groups," groups, ",out," out, ",spawned," spawned, ",live,
                      " animals alive, ",drawn," drawn; nearest home ",int(nearest)," m: ",what);
+    saida::Log::info("[World birds] ",birds," alive, ",flying," flying, ",perched," perched; ",perches," bark support points on mounted trees");
 }
 // R1WORLD_FAUNA_SHOT=<png> with --smoke photographs the nearest animal out
 // (R1WORLD_FAUNA_SHOT_SPECIES narrows it to a species id) from its side, a
@@ -434,7 +483,7 @@ void faunaShot(double dt) {
     saida::Log::info("[World fauna E2E] photographing ",k.species->id," to ",shot.pngPath);
     engine.captureFrameThenExit(shot);
 }
-void syncBeasts(Loaded& tile,const glm::dvec3& eye) {
+void syncBeasts(Loaded& tile,const glm::dvec3& eye,double dt) {
     const auto& animals=tile.herds.animals();
     if(tile.beasts.size()<animals.size())tile.beasts.resize(animals.size());
     for(size_t i=0;i<animals.size();++i) {
@@ -453,15 +502,23 @@ void syncBeasts(Loaded& tile,const glm::dvec3& eye) {
         const double x=a.position.x,z=a.position.y;
         const double ground=groundUnder(tile,x,z,b.shown?b.y:eye.y);
         b.y=ground;
-        const bool aloft=a.height>.01f;
-        b.node->transform().position=glm::vec3(float(x),float(ground+a.height-kind.ground*scale),float(z));
+        const bool bird=kindOf.species->bird.enabled&&kindOf.species->bird.flies;
+        const bool aloft=bird?(a.flightPhase!=saida::wildlife::FlightPhase::Ground&&a.flightPhase!=saida::wildlife::FlightPhase::Perched):a.height>.01f;
+        b.node->transform().position=glm::vec3(float(x),float((bird&&a.flightInitialized?a.elevation:ground+a.height)-kind.ground*scale),float(z));
         // The plugin's heading is from +z toward +x, a model's head is at
         // `forward` in its own frame: turn by the difference, eased.
         const double want=double(a.heading)-kind.forward;
         if(!b.shown){b.yaw=want;b.shown=true;}
-        else b.yaw+=std::remainder(want-b.yaw,6.283185307179586)*(1-std::exp(-8.*std::min(.05,1./60.)));
-        b.node->transform().rotation=glm::angleAxis(float(b.yaw),glm::vec3(0,1,0));
-        const auto [clip,rate]=beastClip(kind,a.state,a.speed,scale,a.identity,aloft);
+        else b.yaw+=std::remainder(want-b.yaw,6.283185307179586)*(1-std::exp(-8.*dt));
+        auto rotation=glm::angleAxis(float(b.yaw),glm::vec3(0,1,0));
+        if(bird) {
+            const glm::vec3 forward(float(std::sin(kind.forward)),0,float(std::cos(kind.forward)));
+            rotation=rotation*glm::angleAxis(a.bank,forward)*glm::angleAxis(-a.pitch,glm::cross(glm::vec3(0,1,0),forward));
+            if(b.birdPose)b.birdPose->setFlight(aloft,a.flap,float(kindOf.species->bird.flapHz),a.speed,tile.herds.groups()[a.group].identity+a.member);
+        }
+        b.node->transform().rotation=rotation;
+        auto [clip,rate]=beastClip(kind,a.state,a.speed,scale,a.identity,aloft);
+        if(bird&&aloft&&a.flap<.5f&&kind.roles.count("glide"))clip=kind.roles.at("glide").front();
         const float bucket=std::round(rate*10.f)/10.f;
         if(!clip.empty()&&(clip!=b.clip||std::abs(bucket-b.playback)>.05f)) {
             saida::ClipView view;view.name=clip+"@"+std::to_string(int(bucket*10));view.source=clip;view.speed=bucket;
@@ -470,7 +527,7 @@ void syncBeasts(Loaded& tile,const glm::dvec3& eye) {
         }
         // Animation LOD, as the crowd's: every frame close by, then 15, 8, 4 Hz held.
         const double d=std::hypot(x-eye.x,z-eye.z);
-        const float poseRate=d<15.?0.f:d<40.?15.f:d<80.?8.f:4.f;
+        const float poseRate=bird?(d<40.?0.f:d<100.?20.f:12.f):(d<15.?0.f:d<40.?15.f:d<80.?8.f:4.f);
         if(poseRate!=b.poseRate){b.animator->setPoseRate(poseRate,saida::Animator::PoseRateMode::Hold);b.poseRate=poseRate;}
     }
 }
@@ -532,9 +589,9 @@ void updateRoomAnimals(LiveInterior& room,const Loaded& t,double dt) {
             const r1::Species* s=r1::speciesById(a.species);
             const int n=a.place=="trail"?a.count:1;
             for(int k=0;k<n;++k) {
+                if(animalDeaths.count(indoorAnimalId(room,i,k)))continue;
                 IndoorBeast beast;beast.animal=i;beast.member=k;
                 if(!makeBeast(*room.node,a.model,s?s->scale:1.,beast.beast))continue;
-                if(beast.beast.body){beast.beast.body->queueFree();beast.beast.body=nullptr;}
                 room.beasts.push_back(std::move(beast));
             }
         }

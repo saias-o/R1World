@@ -30,7 +30,10 @@
 
 namespace r1 {
 
-constexpr int kFaunaRevision = 1;
+constexpr int kFaunaRevision = 2;
+// Residents retain their v61 identity across later terrain recooks, so saved
+// deaths are not undone when bird content increments the world generator.
+constexpr int kFaunaIdentityVersion = 61;
 // The habitat grid's cell: a hedge-bound meadow is a few cells across.
 constexpr double kFaunaCell = 8.0;
 // Built share is the buildings and urban ground within this of a cell.
@@ -64,6 +67,14 @@ struct FaunaRange {
 };
 
 struct Species {
+    struct Bird {
+        bool enabled = false, flies = true;
+        double speed = 9, acceleration = 4, climb = 3, turn = 1.5;
+        double low = 8, high = 25, flyMin = 15, flyMax = 50, restMin = 10, restMax = 35;
+        double glide = .2, flapHz = 4, groundShare = .3, perchLow = 1, perchHigh = 30;
+        double maxWind = 12;
+        std::array<double,12> seasonalFlight{1,1,1,1,1,1,1,1,1,1,1,1};
+    } bird;
     std::string id, name, scientific, klass, activity, settlement;
     bool domestic = false;
     std::vector<FaunaRange> range;
@@ -116,6 +127,9 @@ double activityAt(const std::string& activity, double hour);
 // Share out in a calendar month (1..12) at `lat`: the northern temperate
 // calendar flipped south of the equator, every month in the tropics.
 double seasonAt(const Species& s, const RangeAnswer& range, int month, double lat);
+// Daylight-adjusted solar hour and species' seasonal flight effort. Rain and
+// wind are host weather inputs in mm/h and m/s. All parameters are inferred.
+double birdActivityAt(const Species& s, double hour, int month, double lat, double rain, double wind);
 // How the built share around a point (0..1) suits a species.
 double settlementFactor(const Species& s, double built);
 
