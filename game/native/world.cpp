@@ -78,8 +78,10 @@
 #include "menu_intro.hpp"
 #include "arrival.hpp"
 #include <RmlUi/Core/Context.h>
+#include <RmlUi/Core/ElementDocument.h>
 #include "weather.hpp"
 #include "forced_time.hpp"
+#include "destination.hpp"
 #include "density_policy.hpp"
 #include "combat.hpp"
 #include "combat_kit.hpp"
@@ -2193,7 +2195,16 @@ class World : public Rml::EventListener {
     // or "comet" would walk the player forward and toggle the debug panel.
     // A code that cannot be done here says why, on screen and in the log
     // (CLAUDE.md rule 3).
-    bool held(int key) const {return !cheatOpen&&engine.window().keyDown(key);}
+    // The menu's text fields are typed in the same way: the keys are GLFW's,
+    // named after their US place, so on AZERTY the comma is M and "48,02"
+    // closed the settings at the comma.
+    bool typing() const {
+        if(cheatOpen)return true;
+        auto* document=ui?ui->documentElement():nullptr;
+        auto* focus=document&&document->GetContext()?document->GetContext()->GetFocusElement():nullptr;
+        return focus&&focus->GetTagName()=="input"&&focus->IsVisible(true);
+    }
+    bool held(int key) const {return !typing()&&engine.window().keyDown(key);}
     bool clicked(int button) const {return !cheatOpen&&engine.window().mouseButtonDown(button);}
     // The process's private memory, in MB: what a bad_alloc runs out of.
     static double privateMegabytes() {
@@ -3208,12 +3219,18 @@ class World : public Rml::EventListener {
         service->want(std::move(genTiles),std::move(genGroups));requested=signature;
     }
     int goCount=0;
+    // Go, from the menu or the Destination tab: the typed place
+    // (native/destination.hpp), or the reason it is not one, on both screens.
     bool go() {
         ++goCount;
+        const auto typed=r1::readDestination(value("latitude"),value("longitude"));
+        if(!typed) {
+            text("status",typed.refusal);text("destination-status",typed.refusal);
+            saida::Log::info("[World] destination refused: '",value("latitude"),"', '",value("longitude"),"': ",typed.refusal);
+            return false;
+        }
+        const double lo=typed.lon,la=typed.lat;
         try {
-            size_t a,b;std::string x=value("longitude"),y=value("latitude");
-            double lo=std::stod(x,&a),la=std::stod(y,&b);
-            if(a!=x.size()||b!=y.size()||!std::isfinite(lo)||!std::isfinite(la)||la< -90||la>90||lo< -180||lo>180)throw std::runtime_error("coordinate");
             select(lo,la);pending=true;
             goStarted=std::chrono::steady_clock::now();poll=1;
             arrivalFrames=arrivalHitches=0;arrivalWorst=0;arrivalSaid=false;
@@ -3222,9 +3239,11 @@ class World : public Rml::EventListener {
             saida::Log::info("[World] destination ",lo,", ",la);
             text("destination-status",std::string());
             return true;
-        } catch(...) {
-            text("status","Invalid coordinates: latitude −90 to 90, longitude −180 to 180 (decimal point).");
-            saida::Log::info("[World] destination refused: '",value("latitude"),"', '",value("longitude"),"'");
+        } catch(const std::exception& e) {
+            // Not the coordinates: say what failed rather than blame them.
+            const std::string why=std::string("Could not start the trip: ")+e.what();
+            text("status",why);text("destination-status",why);
+            saida::Log::error("[World] destination ",lo,", ",la," failed: ",e.what());
             return false;
         }
     }
@@ -9042,9 +9061,8 @@ public:
         else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
         else if(id=="destination-go") {
             // The typed coordinates, from the Destination tab: leave the
-            // settings only when they hold, and say why when they do not.
+            // settings only when they hold; go() says why when they do not.
             if(go())showOptions(false);
-            else text("destination-status","Invalid coordinates: latitude −90 to 90, longitude −180 to 180 (decimal point).");
         }
         else if(id=="street-map")zoomMap(std::max(zoom,32768.));
         else if(id=="reset-map")zoomMap(1);
@@ -9135,21 +9153,39 @@ public:
         testClick("fullscreen-off",false);
         if(engine.window().isFullscreen())return fail("Windowed button did not disable full screen");
         // Go from the Destination tab refuses what is not a coordinate and
-        // stays open to say so (the valid trip is the smoke's own Go below).
+        // stays open to say which field and why (the valid trip is the
+        // smoke's own Go below). South and west are typed as players type
+        // them, key by key into the focused field: a typographic minus and a
+        // decimal comma, while M -- the AZERTY comma -- leaves the menu alone.
         {
             const std::string latitude=value("latitude"),longitude=value("longitude");
             const bool wasPending=pending;
             ui->executeJS("showSettingsTab('destination');");
-            field("latitude",std::string("91"));testClick("destination-go",false);
-            if(!optionsOpen||pending!=wasPending)return fail("Go accepted latitude 91 or left the settings");
-            if(auto* status=ui->findElementById("destination-status");!status||status->GetInnerRML().empty())
-                return fail("Go refused latitude 91 without saying why");
+            ui->documentElement()->GetContext()->Update();
+            auto type=[&](const char* id,std::u32string_view keys){
+                auto* input=ui->findElementById(id);
+                if(!input)return false;
+                field(id,std::string());input->Focus(true);
+                for(char32_t key:keys)ui->fireTextInput(uint32_t(key));
+                return true;
+            };
+            if(!type("latitude",U"−33,8688")||!typing())return fail("the latitude field did not take the keyboard");
+            if(!type("longitude",U" 151.2093")||!typing())return fail("the longitude field did not take the keyboard");
+            if(const auto sydney=r1::readDestination(value("latitude"),value("longitude"));
+               !sydney||sydney.lat!=-33.8688||sydney.lon!=151.2093)
+                return fail("typed Sydney read as '"+value("latitude")+"', '"+value("longitude")+"': "+sydney.refusal);
+            type("latitude",U"-91");type("longitude",U"-73.9857");
+            ui->findElementById("longitude")->Blur();
+            testClick("destination-go",false);
+            if(!optionsOpen||pending!=wasPending)return fail("Go accepted latitude -91 or left the settings");
+            if(auto* status=ui->findElementById("destination-status");!status||status->GetInnerRML().find("Latitude -91")==std::string::npos)
+                return fail("Go refused latitude -91 without naming the field and the range");
             field("latitude",latitude);field("longitude",longitude);
             ui->executeJS("showSettingsTab('time');");
         }
         testClick("options-back",false);
         if(optionsOpen)return fail("Retour did not close the screen");
-        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, full screen toggled, bad destination refused in place)");
+        saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, full screen toggled, negative coordinates typed, bad destination refused in place)");
         forceTime(savedTime);
         forceWeather(savedWeather);
         // Testing both buttons must not silently change the measured preset.
