@@ -271,6 +271,25 @@ TEST(Birds, night_seasons_day_length_and_weather_change_flight) {
     CHECK(birdActivityAt(owl,12,12,80,0,0)>.5);
 }
 
+// Paris counted about 23 000 rock pigeons (2016-17, for the City: paris.fr),
+// some 275 a km2 of its streets and roofs outside the woods and the river.
+// A dense tile -- half of it roofs, where none is placed -- holds that
+// many a km2 of tile, not that many a km2 of street, and no cap trims it.
+TEST(Birds, central_paris_holds_pigeons_at_the_city_count) {
+    const Species* pigeon = speciesById("rock_pigeon");
+    CHECK(pigeon);
+    double individuals = 0, km2 = 0;
+    for (int d = 0; d < 12; ++d) {
+        const auto f = cookAt(2.3522, 48.8566, "FR", "urban", 14, d / 4, d % 4);
+        for (const auto& [habitat, cells] : f.at("habitats").items()) km2 += cells.get<double>() * kFaunaCell * kFaunaCell / 1e6;
+        const auto& expected = f.at("expected").at("rock_pigeon");
+        individuals += expected.at("individuals").get<double>() / pigeon->detectability;
+        CHECK_MSG(expected.at("groups").get<int>() < kFaunaSpeciesGroups, "pigeons trimmed by the tile cap: " << expected);
+    }
+    const double perKm2 = individuals / km2;
+    CHECK_MSG(perKm2 > 200 && perKm2 < 360, perKm2 << " rock pigeons a km2 of central Paris");
+}
+
 TEST(Birds, coastal_species_need_water_and_farm_birds_need_farm_habitat) {
     HabitatGrid g;g.cols=20;g.rows=20;g.cell=8;g.cells.assign(400,uint8_t(Habitat::Beach));g.finish();
     const auto& gull=*speciesById("gull");RangeAnswer range;range.inside=true;

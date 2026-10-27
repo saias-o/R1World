@@ -170,7 +170,7 @@ inline PyRandom seeded(__int128 id, __int128 salt) { return PyRandom((id * 10000
 // raw observations already on disk.
 constexpr int kRows = 36000;
 constexpr double kStep = 180.0 / kRows;
-constexpr int kVersion = 62;  // 62: geographically placed bird populations (gen/fauna.cpp)
+constexpr int kVersion = 63;  // 63: rock pigeons at the Paris census density (assets/animals/fauna.json)
 // The version the Python worker wrote its caches under. Its raw observations
 // (osm.json, elevation) are reused, never its geometry.
 constexpr int kFirstVersion = 1;

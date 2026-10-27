@@ -798,7 +798,7 @@
  "name": "Pigeon biset",
  "scientific": "Columba livia",
  "class": "bird",
- "basis": "Inferred game population and flight parameters; conservative country/habitat envelope, not a local census. See game/README.md Bird update for sources and proxy limits.",
+ "basis": "Density from a census: Paris counted about 23 000 rock pigeons (2016-17 study for the City, paris.fr), some 275 per km2 of streets and roofs outside its woods and river. Roofs are not ground the game places birds on, and half a central cell grid is roofs, so 560 per km2 of street ground gives 275 per km2 of city (r1test Birds.central_paris_holds_pigeons_at_the_city_count). Flocks of 4-16 and flight parameters are inferred; the country/habitat envelope is conservative. See game/README.md Bird update.",
  "range": [
   {
    "countries": [
@@ -832,11 +832,11 @@
   "farmland": 0.2
  },
  "settlement": "any",
- "density": 220,
+ "density": 560,
  "detectability": 0.65,
  "group": [
-  3,
-  9
+  4,
+  16
  ],
  "activity": "diurnal",
  "rain": 0.2,

@@ -2594,7 +2594,29 @@ parameters are inferred game tuning, not measured population counts or aerodynam
 Generator v62 / fauna revision 2 recooks visited tiles from cached observations.
 Resident draws retain their v61 population seed and identity, independently of
 terrain version, so existing saved death IDs survive this update. Birds share
-the existing 40-animal local budget, per-tile slots, shared meshes and both LODs.
+the local animal budget, per-tile slots, shared meshes and both LODs.
+
+**More birds, 28 October 2026 (generator v63).** Central Paris drew 9 birds
+around a walker, all pigeons; it now draws 27-37. Three limits, measured:
+- The pigeon's density was the Paris count (~23 000 birds, 2016-17 study for
+  the City) spread over the whole city, but the game places birds only on
+  street ground, and half a central cell grid is roofs. It is now 560 a km2 of
+  street ground, which gives the census' ~275 a km2 of city
+  (`r1test Birds.central_paris_holds_pigeons_at_the_city_count`); flocks are
+  4-16 so the tile's per-species cap does not trim them.
+- A flying bird is met by the most it shows -- wingspan or length -- not by
+  its height: the hawk, modelled wings spread, is 11 cm tall and was met at
+  83 m; it is now met at 262 m, the crow at 230 m, the gull at 285 m.
+- A tile pooled 24 animals and silently capped two pigeon flocks at that; it
+  pools 48 (`kFaunaSlots`), and 64 live around the player (`kFaunaAnimals`).
+  The wildlife add-on now gives a short budget to the nearest groups first.
+
+Their cost: the add-on asked the game's ground query (`groundUnder`, ~12 us,
+which scans every resident tile's interiors and decks) three to five times a
+tick per bird, sitting birds included -- 0.75 ms for 24 birds. It now asks once
+a tick per moving bird and never for a still one, and the game no longer asks
+it again for a bird in flight: `World/Fauna` is 0.64 ms for 27 animals (0.42 ms
+for 9 before). Each animal's kinematic box costs Jolt about 30 us.
 
 `Species::bird` reads speed, acceleration, climb/turn limits, altitude band,
 flight/rest durations, flap frequency, glide share, ground/perch preferences,

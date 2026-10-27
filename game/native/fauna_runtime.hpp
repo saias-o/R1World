@@ -12,8 +12,9 @@
 
 // How many animals live at once around the player, nearest tiles first, and
 // how many slots one tile pools: each is a node, an animator and a kinematic
-// hit/collision box, including small residents.
-static constexpr size_t kFaunaAnimals=40;
+// hit/collision box, including small residents. Birds share it: central
+// Paris holds some 40 pigeons within sight, and the beasts must still come.
+static constexpr size_t kFaunaAnimals=64;
 struct AnimalKind {
     std::string model,lod0,lod1;
     double ground=0,height=0,length=0,width=0,forward=0;
@@ -219,8 +220,13 @@ void readFauna(Loaded& tile) {
                 if(species->surface=="air"){k.surface=saida::wildlife::Surface::Air;k.hoverLow=float(species->hoverLow);k.hoverHigh=float(species->hoverHigh);}
                 // Stream animals in well before their flight distance: a deer
                 // must already be there when a walker approaches it.
+                // A bird that flies is seen by the most it shows, wingspan
+                // or length, against the sky: a hawk modelled wings spread
+                // is 11 cm tall and 1.1 m across, and is met at the latter.
                 constexpr double viewScale=250.,flightMargin=3.,minView=24.,maxView=450.;
-                k.viewRange=float(std::clamp(std::max(viewScale*std::sqrt(std::max(.0001,m.height*scale)),
+                const bool flier=species->bird.enabled&&species->bird.flies;
+                const double seen=flier?std::max({m.height,m.length,m.width}):m.height;
+                k.viewRange=float(std::clamp(std::max(viewScale*std::sqrt(std::max(.0001,seen*scale)),
                                                      flightMargin*species->flee),minView,maxView));
                 k.radius=float(std::max(.02,m.width*scale*.5));
                 if(species->bird.enabled&&species->bird.flies) {
@@ -347,8 +353,12 @@ void updateFauna(float delta) {
         }
         if(faunaShotWanted())scene.threats.clear();  // a sitter for the portrait
         l.herds.setBudget(remaining);
-        l.herds.update(float(dt),scene);
+        {
+            SAIDA_PROFILE_SCOPE("World/Fauna/Herds");
+            l.herds.update(float(dt),scene);
+        }
         remaining-=std::min(remaining,l.herds.live());
+        SAIDA_PROFILE_SCOPE("World/Fauna/Sync");
         syncBeasts(l,eye,dt);
     }
     checkFaunaSmoke();
@@ -500,9 +510,11 @@ void syncBeasts(Loaded& tile,const glm::dvec3& eye,double dt) {
         if(b.identity!=a.identity){b.identity=a.identity;b.shown=false;}
         if(!b.node->enabled())b.node->setEnabled(true);
         const double x=a.position.x,z=a.position.y;
-        const double ground=groundUnder(tile,x,z,b.shown?b.y:eye.y);
-        b.y=ground;
         const bool bird=kindOf.species->bird.enabled&&kindOf.species->bird.flies;
+        // A bird in the add-on's flight already knows the ground under it
+        // (setFlightGround): asking it again costs as much as its whole flight.
+        const double ground=bird&&a.flightInitialized?double(a.elevation-a.height):groundUnder(tile,x,z,b.shown?b.y:eye.y);
+        b.y=ground;
         const bool aloft=bird?(a.flightPhase!=saida::wildlife::FlightPhase::Ground&&a.flightPhase!=saida::wildlife::FlightPhase::Perched):a.height>.01f;
         b.node->transform().position=glm::vec3(float(x),float((bird&&a.flightInitialized?a.elevation:ground+a.height)-kind.ground*scale),float(z));
         // The plugin's heading is from +z toward +x, a model's head is at

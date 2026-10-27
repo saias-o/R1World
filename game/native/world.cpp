@@ -269,8 +269,9 @@ constexpr size_t kPolarTiles=12;
 constexpr uint32_t kTileStaticBodies=1536;
 // Its moving ones: a traffic slot keeps its car's box once used, a crowd slot
 // its person's capsule, each at most the whole neighbourhood's share.
-// The land animals a tile pools (World::readFauna), the big ones a box each.
-constexpr size_t kFaunaSlots=24;
+// The animals a tile pools (World::readFauna), a box each: two pigeon flocks
+// of up to 16 and the birds and beasts around them.
+constexpr size_t kFaunaSlots=48;
 constexpr uint32_t kTileMovingBodies=uint32_t(kTrafficCars+kCrowdPeople+r1::Crowd::kVehicleEscapeSlots+kFaunaSlots);
 // The ring near a pole, plus the tile kept under the player through a teleport.
 constexpr uint32_t kResidentTiles=uint32_t(kPolarTiles)+1;
