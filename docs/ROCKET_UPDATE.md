@@ -32,11 +32,15 @@ anticipent le déplacement et respectent un temps de rechargement.
 - `combat.hpp` : troisième arme, munitions distinctes, rechargement et confiscation.
 - `rocket.hpp` : dégâts, budgets, calcul d'interception et règles de visée.
 - `rocket_kit.hpp` : géométrie partagée et explosions avec les nœuds GPU SaidaFX.
-- `rocket_runtime.hpp` : projectiles, collisions, souffle, retrait des véhicules,
+- `world/rocket.cpp` : projectiles, collisions, souffle, retrait des véhicules,
   éjection du joueur, effets et sons.
-- `police_runtime.hpp` : tirs depuis les patrouilles, officiers et hélicoptères,
+- `world/police.cpp` : tirs depuis les patrouilles, officiers et hélicoptères,
   contrôle de visibilité et délai de remplacement de l'appui aérien détruit.
-- `world.cpp` : touches, pose de l'arme, hélicoptères, caméra et origine flottante.
+- `world/update.cpp`, `world/combat.cpp`, `world/aircraft.cpp` et
+  `world/terrain.cpp` : touches, pose de l'arme, hélicoptères, caméra et origine flottante.
+
+Chemins sous `game/native/`, actualisés après le découpage du 28 octobre 2026
+décrit dans `WORLD_REFACTOR.md`.
 
 Les modèles et les deux nouveaux sons sont créés par le projet. Les meilleurs
 assets existants sont conservés. Aucun code moteur n'a été modifié : les effets

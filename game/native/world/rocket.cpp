@@ -1,31 +1,19 @@
-// World-owned gameplay. Saida owns collision queries, GPU particles and meshes.
-struct RocketFlight {
-    saida::Node* mesh=nullptr;
-    saida::ParticleSystemNode* trail=nullptr;
-    saida::ParticleSystemNode* flame=nullptr;
-    glm::vec3 position{0},direction{0,0,1};
-    saida::QueryFilter filter;
-    float life=0,rest=0;
-    bool police=false;
-};
-std::array<RocketFlight,r1::rocket::kProjectiles> rockets;
-r1::RocketEffects rocketEffects;
-saida::Node* launcher=nullptr;
-bool rocketPoliceDamage=false;
-double blastShake=0;
-int rocketLaunches=0,rocketImpacts=0,rocketDestroyed=0;
+#include "session.hpp"
 
-static saida::CollisionObjectNode* aircraftCollider(saida::Node* node) {
+namespace r1::world {
+saida::CollisionObjectNode* World::Impl::aircraftCollider(saida::Node* node) {
     return node?dynamic_cast<saida::CollisionObjectNode*>(node->findByPath("Aircraft hull")):nullptr;
 }
-static void armAircraft(saida::Node& node,const r1::AircraftType& type) {
+
+void World::Impl::armAircraft(saida::Node& node,const r1::AircraftType& type) {
     if(aircraftCollider(&node))return;
     auto body=std::make_unique<saida::RigidBodyNode>();body->setName("Aircraft hull");body->kinematic=true;
     auto shape=std::make_unique<saida::CollisionShapeNode>();shape->shapeType=saida::CollisionShapeType::Box;
     shape->halfExtents={float(fuselageHalf(type)),float(type.height*.32),float(type.length*.36)};
     shape->offset={0,float(type.height*.45),0};body->addChild(std::move(shape));node.addChild(std::move(body));
 }
-void buildRockets() {
+
+void World::Impl::buildRockets() {
     auto held=r1::buildRocketModel(engine.resources(),true);
     held->addBehaviour<saida::BoneAttachmentBehaviour>("Bip01 R Hand",pistolGrip);
     launcher=playerBody->addChild(std::move(held));launcher->setVisible(false);
@@ -45,14 +33,17 @@ void buildRockets() {
         f.radius=.06f;f.useInitialVelocity=true;f.playing=false;
     }
 }
-void clearRockets() {
+
+void World::Impl::clearRockets() {
     for(auto& r:rockets){r.life=r.rest=0;if(r.mesh)r.mesh->setEnabled(false);if(r.trail)r.trail->stop();if(r.flame)r.flame->stop();}
     rocketEffects.clear();blastShake=0;
 }
-bool rocketRoom()const {
+
+bool World::Impl::rocketRoom()const {
     return std::any_of(rockets.begin(),rockets.end(),[](const auto& r){return r.life<=0&&r.rest<=0;});
 }
-bool launchRocket(glm::vec3 muzzle,glm::vec3 target,saida::QueryFilter filter,bool police) {
+
+bool World::Impl::launchRocket(glm::vec3 muzzle,glm::vec3 target,saida::QueryFilter filter,bool police) {
     if(glm::length(target-muzzle)<.01f)return false;
     for(auto& r:rockets)if(r.life<=0&&r.rest<=0) {
         r.position=muzzle;r.direction=glm::normalize(target-muzzle);r.filter=filter;r.police=police;r.life=r1::rocket::kLifetime;
@@ -64,7 +55,8 @@ bool launchRocket(glm::vec3 muzzle,glm::vec3 target,saida::QueryFilter filter,bo
     }
     return false;
 }
-void fireRocket() {
+
+void World::Impl::fireRocket() {
     if(!rocketRoom()){text("stream-status","Trop de roquettes en vol — patientez.");return;}
     const auto result=arsenal.pull();
     if(result==r1::combat::Arsenal::Trigger::Empty){sounds.play(r1::CombatSounds::DryFire);return;}
@@ -94,13 +86,15 @@ void fireRocket() {
     launchRocket(muzzle,target,filter,false);recoil=.6;
     alarm(muzzle,120,12);reportCrime(r1::police::Crime::Gunshot,policePlayerPosition());
 }
-glm::vec3 rocketTarget()const {
+
+glm::vec3 World::Impl::rocketTarget()const {
     glm::vec3 velocity(0);
     if(driving&&car)if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())velocity=body->physicsWorld()->linearVelocity(body->bodyId());
     if(piloting&&plane.node)velocity=plane.node->transform().rotation*glm::vec3(0,0,float(-plane.speed))+glm::vec3(0,float(plane.climb),0);
     return velocity;
 }
-bool policeRocket(glm::vec3 muzzle,saida::CollisionObjectNode* shooter,bool aerial) {
+
+bool World::Impl::policeRocket(glm::vec3 muzzle,saida::CollisionObjectNode* shooter,bool aerial) {
     // Stagger the whole response, so independently ready patrols cannot
     // deliver a simultaneous salvo. At 100% every attack is still a rocket.
     if(policeRocketSpacing>0)return false;
@@ -118,14 +112,14 @@ bool policeRocket(glm::vec3 muzzle,saida::CollisionObjectNode* shooter,bool aeri
     policeRocketSpacing=wanted.percent>=100?1.5:3.;
     return true;
 }
-// Disable and detach immediately, then defer node deletion to the scene. All
-// ownership lists are cleared in this transaction before another rocket runs.
-void retireRocketVehicle(saida::Node* node) {
+
+void World::Impl::retireRocketVehicle(saida::Node* node) {
     if(!node)return;
     node->traverse([](saida::Node& n,const glm::mat4&){if(auto* body=n.asCollisionObject())body->detachFromPhysics();});
     node->setEnabled(false);node->queueFree();++rocketDestroyed;
 }
-void destroyRocketCar(saida::Node* node) {
+
+void World::Impl::destroyRocketCar(saida::Node* node) {
     if(node==car) {
         if(driving)leaveCar();
         policeCarImpact.disconnect();policeImpactBody=nullptr;
@@ -140,7 +134,8 @@ void destroyRocketCar(saida::Node* node) {
     }
     retireRocketVehicle(node);
 }
-void destroyRocketAircraft(saida::Node* node) {
+
+void World::Impl::destroyRocketAircraft(saida::Node* node) {
     if(piloting&&plane.node==node) {
         // Forced ejection cannot fail because the ground is not streamed.
         const auto at=nodePosition(*node)+glm::vec3(0,2,0);
@@ -160,7 +155,8 @@ void destroyRocketAircraft(saida::Node* node) {
     for(auto& [key,t]:loaded)for(auto& a:t.aircraft)if(a.node==node){a.node=nullptr;a.taken=true;}
     retireRocketVehicle(node);
 }
-bool rocketExposed(glm::vec3 at,glm::vec3 point,saida::CollisionObjectNode* body=nullptr,const saida::Ragdoll* ragdoll=nullptr) {
+
+bool World::Impl::rocketExposed(glm::vec3 at,glm::vec3 point,saida::CollisionObjectNode* body,const saida::Ragdoll* ragdoll) {
     const auto delta=point-at;const float d=glm::length(delta);if(d<.15f)return true;
     auto* physics=engine.sceneTree().world().physics();if(!physics)return false;
     // Keep the struck wall in the query: its far side remains sheltered.
@@ -168,7 +164,8 @@ bool rocketExposed(glm::vec3 at,glm::vec3 point,saida::CollisionObjectNode* body
     return !hit.hit||hit.distance>=d-.05f||(body&&(hit.body==body->bodyId()||hit.body==body->innerBodyId()))||
         (ragdoll&&ragdoll->partOf(hit.body)>=0);
 }
-void explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police) {
+
+void World::Impl::explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police) {
     ++rocketImpacts;rocketPoliceDamage=police;rocketEffects.explode(at);
     sounds.play(r1::CombatSounds::RocketExplosion,glm::distance(at,camera->transform().position),1.4f);
     blastShake=std::max(blastShake,.55*std::max(0.,1.-glm::distance(at,camera->transform().position)/65.));
@@ -221,7 +218,8 @@ void explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police) 
     rocketPoliceDamage=false;
     saida::Log::info("[World rocket] explosion #",rocketImpacts," destroyed=",rocketDestroyed," ejected=",ejected);
 }
-void updateRockets(double elapsed) {
+
+void World::Impl::updateRockets(double elapsed) {
     const float dt=float(std::clamp(elapsed,0.,.1));rocketEffects.update(dt);blastShake=std::max(0.,blastShake-dt);
     auto* physics=engine.sceneTree().world().physics();if(!physics)return;
     for(auto& r:rockets) {
@@ -241,3 +239,5 @@ void updateRockets(double elapsed) {
         r.flame->transform().position=r.position-r.direction*.7f;
     }
 }
+
+} // namespace r1::world

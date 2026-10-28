@@ -7,9 +7,49 @@ add_subdirectory("${SaidaEngine_SOURCE_DIR}/plugins/xrgesture"
 
 file(GLOB generator CONFIGURE_DEPENDS "native/gen/*.cpp")
 file(GLOB clipper CONFIGURE_DEPENDS "native/third_party/clipper2/src/*.cpp")
+set(world_runtime
+    native/world/world.cpp
+    native/world/geography.cpp
+    native/world/tile_preparation.cpp
+    native/world/menu_tile_cache.cpp
+    native/world/lifecycle.cpp
+    native/world/update.cpp
+    native/world/player.cpp
+    native/world/camera.cpp
+    native/world/capture.cpp
+    native/world/hud.cpp
+    native/world/smoke_update.cpp
+    native/world/menu.cpp
+    native/world/options.cpp
+    native/world/options_store.cpp
+    native/world/arrival.cpp
+    native/world/streaming.cpp
+    native/world/tile_streaming.cpp
+    native/world/terrain.cpp
+    native/world/assets.cpp
+    native/world/distant.cpp
+    native/world/environment.cpp
+    native/world/interiors.cpp
+    native/world/vehicles.cpp
+    native/world/boats.cpp
+    native/world/aircraft.cpp
+    native/world/sea.cpp
+    native/world/traffic.cpp
+    native/world/people.cpp
+    native/world/beach.cpp
+    native/world/fauna.cpp
+    native/world/bird.cpp
+    native/world/animal_remains.cpp
+    native/world/combat.cpp
+    native/world/rocket.cpp
+    native/world/police.cpp
+    native/world/cheats.cpp
+    native/world/performance.cpp
+    native/world/smoke.cpp
+    native/world/rocket_smoke.cpp)
 saida_add_game(R1World CUSTOM_MAIN PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated/world-windows"
-    SOURCES native/world.cpp native/minimap.cpp native/menu_globe.cpp native/menu_globe_view.cpp ${generator} ${clipper})
+    SOURCES native/world.cpp ${world_runtime} native/minimap.cpp native/menu_globe.cpp native/menu_globe_view.cpp ${generator} ${clipper})
 target_include_directories(R1World PRIVATE native
     native/third_party/clipper2/include native/third_party/earcut
     "${SaidaEngine_SOURCE_DIR}/plugins/traffic/include"
@@ -67,3 +107,35 @@ target_include_directories(r1_xr_gesture_test PRIVATE native)
 target_compile_options(r1_xr_gesture_test PRIVATE -UNDEBUG)
 set_target_properties(r1_xr_gesture_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated/native-tests")
+
+# Runtime module contracts. These executables never create an Engine/window/GPU.
+add_executable(r1_world_geography_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_geography_test.cpp native/world/geography.cpp)
+target_link_libraries(r1_world_geography_test PRIVATE glm::glm)
+
+add_executable(r1_world_tile_preparation_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_tile_preparation_test.cpp
+    native/world/tile_preparation.cpp native/gen/mesh.cpp)
+target_link_libraries(r1_world_tile_preparation_test PRIVATE Saida::Engine)
+
+add_executable(r1_world_menu_tile_cache_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_menu_tile_cache_test.cpp
+    native/world/menu_tile_cache.cpp native/gen/net.cpp)
+target_link_libraries(r1_world_menu_tile_cache_test PRIVATE Saida::Engine winhttp)
+
+add_executable(r1_world_options_store_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_options_store_test.cpp native/world/options_store.cpp)
+target_include_directories(r1_world_options_store_test PRIVATE "${SaidaEngine_SOURCE_DIR}/third_party/json")
+
+enable_testing()
+foreach(check geography tile_preparation menu_tile_cache options_store)
+    target_compile_features(r1_world_${check}_test PRIVATE cxx_std_17)
+    target_compile_options(r1_world_${check}_test PRIVATE -UNDEBUG)
+    target_include_directories(r1_world_${check}_test PRIVATE native)
+    set_target_properties(r1_world_${check}_test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated/native-tests")
+    add_test(NAME world_${check} COMMAND r1_world_${check}_test)
+    set_tests_properties(world_${check} PROPERTIES LABELS "headless;world" TIMEOUT 30)
+endforeach()
+add_custom_target(r1_world_headless_tests DEPENDS
+    r1_world_geography_test r1_world_tile_preparation_test r1_world_menu_tile_cache_test r1_world_options_store_test)

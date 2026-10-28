@@ -1,8 +1,7 @@
-// R1World's coastal visitors. Included inside World so ownership stays with
-// streamed tiles; generation and attendance policy are independently testable.
-size_t beachLive=0;
-double beachClock=0,beachSunAge=1e9,beachSun=0;
-saida::Node* makeBeachFurniture(Loaded& tile,bool parasol,unsigned color) {
+#include "session.hpp"
+
+namespace r1::world {
+saida::Node* World::Impl::makeBeachFurniture(Loaded& tile,bool parasol,unsigned color) {
     auto root=std::make_unique<saida::Node>("Beach towel and shade");
     const auto parts=r1::beachFurniture(parasol,color);
     for(size_t i=0;i<parts.size();++i)if(!parts[i].mesh.empty()) {
@@ -15,7 +14,8 @@ saida::Node* makeBeachFurniture(Loaded& tile,bool parasol,unsigned color) {
     }
     return tile.node->addChild(std::move(root));
 }
-void updateBeach(float dt) {
+
+void World::Impl::updateBeach(float dt) {
     SAIDA_PROFILE_SCOPE("World/Beach");
     beachClock+=dt;beachSunAge+=dt;beachLive=0;
     bool nearby=false;for(const auto& [key,t]:loaded)nearby|=!t.beachSpots.empty();
@@ -89,3 +89,5 @@ void updateBeach(float dt) {
         }
     }
 }
+
+} // namespace r1::world

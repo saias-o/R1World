@@ -1,9 +1,7 @@
-// Opt-in end-to-end checks against the real World, physics and SaidaFX.
-bool rocketSmoke=std::getenv("R1WORLD_ROCKET_SMOKE")!=nullptr;
-int rocketSmokePhase=0,rocketSmokeCount=0;
-double rocketSmokeTime=0;
-saida::Node* rocketSmokeWall=nullptr;
-void runRocketSmoke(double dt) {
+#include "session.hpp"
+
+namespace r1::world {
+void World::Impl::runRocketSmoke(double dt) {
     if(dropFlying())return;
     rocketSmokeTime+=dt;
     auto fail=[&](const char* why){saida::Log::error("[World rocket E2E] FAIL ",why," phase=",rocketSmokePhase);testFailed=true;engine.sceneTree().quit();};
@@ -81,3 +79,5 @@ void runRocketSmoke(double dt) {
         saida::Log::info("[World rocket E2E] PASS all Rocket Update scenarios");engine.sceneTree().quit();rocketSmoke=false;
     }
 }
+
+} // namespace r1::world

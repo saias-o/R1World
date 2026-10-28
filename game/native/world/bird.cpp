@@ -1,7 +1,7 @@
-// Included inside World. Habitat and geographic adaptation of the optional
-// wildlife flight model; no game coordinates leak into the engine add-on.
-std::map<const saida::Mesh*,std::vector<glm::vec3>> birdBranchCache;
-void addBirdPerches(Loaded& tile,const saida::Node& tree) {
+#include "session.hpp"
+
+namespace r1::world {
+void World::Impl::addBirdPerches(Loaded& tile,const saida::Node& tree) {
     const saida::Mesh* cacheKey=nullptr;
     std::function<void(const saida::Node&)> findKey=[&](const saida::Node& n) {
         if(cacheKey||n.name()=="Mid"||n.name()=="Far")return;
@@ -49,14 +49,16 @@ void addBirdPerches(Loaded& tile,const saida::Node& tree) {
     }
     tile.birdPerchesDirty=true;
 }
-void refreshBirdPerches(Loaded& tile) {
+
+void World::Impl::refreshBirdPerches(Loaded& tile) {
     if(!tile.birdPerchesDirty&&tile.birdTreesEnabled==debugTrees)return;
     tile.birdPerchesDirty=false;tile.birdTreesEnabled=debugTrees;
     std::vector<saida::wildlife::Perch> perches;
     if(debugTrees)for(const auto& p:tile.birdPerches)if(p.tree&&p.tree->enabled())perches.push_back(p.perch);
     tile.herds.setPerches(std::move(perches));
 }
-bool birdFlightClear(const Loaded& tile,saida::wildlife::Vec2 from,float fy,saida::wildlife::Vec2 to,float ty) const {
+
+bool World::Impl::birdFlightClear(const Loaded& tile,saida::wildlife::Vec2 from,float fy,saida::wildlife::Vec2 to,float ty) const {
     const double length=saida::wildlife::distance(from,to);
     const int samples=std::max(1,int(std::ceil(length/1.5)));
     for(int i=1;i<=samples;++i) {
@@ -78,3 +80,5 @@ bool birdFlightClear(const Loaded& tile,saida::wildlife::Vec2 from,float fy,said
     }
     return true;
 }
+
+} // namespace r1::world

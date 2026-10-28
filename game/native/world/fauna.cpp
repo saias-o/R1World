@@ -1,36 +1,7 @@
-// R1World's land animals at run time. Included inside World, like the beach
-// and the police: the residents are cooked with each tile (gen/fauna.hpp),
-// the engine's wildlife add-on (engine/plugins/wildlife) lives their lives,
-// and this draws them: one pooled node per slot with its own animator over a
-// model's shared meshes, rig and clips (CLAUDE.md §5: a hundred cows upload
-// one cow), its two levels of detail, and the clip its state calls for at the
-// speed it moves, so hooves stay planted.
-//
-// assets/animals/animals.json (tools/r1/animals.py) says how each model was
-// measured: where its hooves touch the ground, which way its head points,
-// which clip plays what and how fast each gait carries the body.
+#include "session.hpp"
 
-// How many animals live at once around the player, nearest tiles first, and
-// how many slots one tile pools: each is a node, an animator and a kinematic
-// hit/collision box, including small residents. Birds share it: central
-// Paris holds some 40 pigeons within sight, and the beasts must still come.
-static constexpr size_t kFaunaAnimals=64;
-struct AnimalKind {
-    std::string model,lod0,lod1;
-    double ground=0,height=0,length=0,width=0,forward=0;
-    std::map<std::string,std::vector<std::string>> roles;
-    double walkSpeed=0,runSpeed=0;
-    std::vector<std::pair<std::string,std::vector<std::unique_ptr<saida::MeshNode>>>> levels;
-    saida::Rig* rig=nullptr;
-    std::vector<std::pair<std::string,const saida::AnimationClip*>> clips;
-    bool ready=false,failed=false,bird=false;
-    std::string refusal;
-};
-std::map<std::string,AnimalKind> animalKinds;
-std::set<std::string> animalRefusalsSaid;
-bool faunaSmokeSaid=false;
-
-void loadAnimals() {
+namespace r1::world {
+void World::Impl::loadAnimals() {
     std::ifstream input(game/"assets/animals/animals.json");
     if(!input)throw std::runtime_error("Missing assets/animals/animals.json (python -m r1.animals)");
     json doc;input>>doc;
@@ -53,18 +24,16 @@ void loadAnimals() {
     saida::Log::info("[World fauna] ",species," species, ",animalKinds.size()," measured models");
     loadAnimalRemains();
 }
-// A refusal is said once, in the log and to the player, and fails a smoke
-// (CLAUDE.md §3); the animal is not drawn rather than drawn wrong.
-void refuseAnimal(AnimalKind& kind,const std::string& why) {
+
+void World::Impl::refuseAnimal(AnimalKind& kind,const std::string& why) {
     kind.failed=true;kind.refusal=why;
     if(!animalRefusalsSaid.insert(kind.model).second)return;
     saida::Log::error("[World fauna] ",kind.model," is not drawn: ",why);
     text("stream-status","Some animals are unavailable: "+kind.model+" ("+why+").");
     if(smoke){saida::Log::error("[World E2E] FAIL fauna: ",kind.model,": ",why);testFailed=true;}
 }
-// The meshes of one prototype, flattened with the transforms above them --
-// the root joints' parent frame included (GLTFLoader::skinnedPrimitiveFrame).
-static void collectSkinned(const saida::Node& source,std::vector<std::unique_ptr<saida::MeshNode>>& out) {
+
+void World::Impl::collectSkinned(const saida::Node& source,std::vector<std::unique_ptr<saida::MeshNode>>& out) {
     std::function<void(const saida::Node&,const saida::Transform&)> walk=[&](const saida::Node& n,const saida::Transform& above) {
         saida::Transform here;
         here.rotation=above.rotation*n.transform().rotation;
@@ -78,9 +47,8 @@ static void collectSkinned(const saida::Node& source,std::vector<std::unique_ptr
     };
     walk(source,saida::Transform{});
 }
-// A model's shared parts, from its two prototypes on first use; null while
-// they stream in or once refused.
-AnimalKind* animalKind(const std::string& model) {
+
+World::Impl::AnimalKind* World::Impl::animalKind(const std::string& model) {
     auto found=animalKinds.find(model);
     if(found==animalKinds.end())return nullptr;
     AnimalKind& kind=found->second;
@@ -107,9 +75,8 @@ AnimalKind* animalKind(const std::string& model) {
     kind.ready=true;
     return &kind;
 }
-// One animal as drawn: a node with its animator over a kind's shared meshes,
-// both levels in the rig's imported parent frame, and a kinematic hit box.
-bool makeBeast(saida::Node& parent,const std::string& model,double scale,Beast& beast) {
+
+bool World::Impl::makeBeast(saida::Node& parent,const std::string& model,double scale,Beast& beast) {
     AnimalKind* kind=animalKind(model);
     if(!kind)return false;
     if(beast.node){beast.node->queueFree();beast.node=nullptr;}
@@ -151,11 +118,8 @@ bool makeBeast(saida::Node& parent,const std::string& model,double scale,Beast& 
     beast.shown=false;
     return true;
 }
-#include "fauna_combat.hpp"
-#include "bird_runtime.hpp"
-// The clip a state calls for, and its playback rate at `speed` m/s: a gait
-// plays as fast as the body moves over its measured stride speed.
-std::pair<std::string,float> beastClip(const AnimalKind& kind,saida::wildlife::State state,double speed,double scale,uint64_t identity,bool aloft) {
+
+std::pair<std::string,float> World::Impl::beastClip(const AnimalKind& kind,saida::wildlife::State state,double speed,double scale,uint64_t identity,bool aloft) {
     auto pick=[&](const char* role)->const std::vector<std::string>*{
         auto it=kind.roles.find(role);return it==kind.roles.end()||it->second.empty()?nullptr:&it->second;
     };
@@ -179,7 +143,7 @@ std::pair<std::string,float> beastClip(const AnimalKind& kind,saida::wildlife::S
     return {clip,1.f};
 }
 
-void readFauna(Loaded& tile) {
+void World::Impl::readFauna(Loaded& tile) {
     const json& f=tile.data.value("fauna",json());
     tile.faunaGrid=r1::HabitatGrid::from(f.value("grid",json()));
     tile.residents=r1::readResidents(f);
@@ -283,10 +247,8 @@ void readFauna(Loaded& tile) {
         saida::Log::info("[World fauna] ",tile.data.value("key",std::string()),": ",tile.residents.size()," resident groups (",said,")");
     }
 }
-// Which groups are out now: their hour, their season, the rain. Each group
-// draws against a stable share, so the same group is out for the same half
-// hour on every machine.
-void faunaActivity(Loaded& tile,double hour,int month,const r1::WeatherState& weather) {
+
+void World::Impl::faunaActivity(Loaded& tile,double hour,int month,const r1::WeatherState& weather) {
     const double lat=tile.data.at("lat").get<double>();
     const uint64_t slot=uint64_t(std::floor(hour*2.));
     for(size_t g=0;g<tile.herds.groups().size()&&g<tile.groupSpecies.size();++g) {
@@ -304,7 +266,8 @@ void faunaActivity(Loaded& tile,double hour,int month,const r1::WeatherState& we
         tile.herds.setActive(g,double(draw%10000)/10000.<out);
     }
 }
-int localMonth() {
+
+int World::Impl::localMonth() {
     double unixSeconds=double(std::time(nullptr));gameTime(unixSeconds);
     const std::time_t local=std::time_t(unixSeconds+lon/15.*3600.);
     std::tm parts{};
@@ -315,7 +278,8 @@ int localMonth() {
 #endif
     return parts.tm_mon+1;
 }
-void updateFauna(float delta) {
+
+void World::Impl::updateFauna(float delta) {
     SAIDA_PROFILE_SCOPE("World/Fauna");
     const double dt=std::min(.05,double(delta));
     updateAnimalRemains();
@@ -365,10 +329,8 @@ void updateFauna(float delta) {
     faunaShot(dt);
     sayFauna(dt);
 }
-// Every 20 s, what lives around the player: groups out, spawned, animals
-// alive and drawn, and the nearest home -- so a walk without animals says why.
-double faunaSaidAge=0;
-void sayFauna(double dt) {
+
+void World::Impl::sayFauna(double dt) {
     faunaSaidAge+=dt;
     if(faunaSaidAge<(smoke?5.:20.))return;
     faunaSaidAge=0;
@@ -402,14 +364,10 @@ void sayFauna(double dt) {
                      " animals alive, ",drawn," drawn; nearest home ",int(nearest)," m: ",what);
     saida::Log::info("[World birds] ",birds," alive, ",flying," flying, ",perched," perched; ",perches," bark support points on mounted trees");
 }
-// R1WORLD_FAUNA_SHOT=<png> with --smoke photographs the nearest animal out
-// (R1WORLD_FAUNA_SHOT_SPECIES narrows it to a species id) from its side, a
-// few body lengths away, then ends the run: a test says the animal is built,
-// only a picture says it stands on its feet, its size, facing the way it
-// walks (CLAUDE.md rule 1).
-std::string faunaShotTile; size_t faunaShotSlot=0; uint64_t faunaShotIdentity=0,faunaShotMoved=0; double faunaShotClock=0;
-bool faunaShotWanted() const { return smoke&&std::getenv("R1WORLD_FAUNA_SHOT"); }
-void faunaShot(double dt) {
+
+bool World::Impl::faunaShotWanted() const { return smoke&&std::getenv("R1WORLD_FAUNA_SHOT"); }
+
+void World::Impl::faunaShot(double dt) {
     if(!faunaShotWanted()||captureQueued)return;
     const char* only=std::getenv("R1WORLD_FAUNA_SHOT_SPECIES");
     Loaded* tile=faunaShotTile.empty()?nullptr:tileByKey(faunaShotTile);
@@ -493,7 +451,8 @@ void faunaShot(double dt) {
     saida::Log::info("[World fauna E2E] photographing ",k.species->id," to ",shot.pngPath);
     engine.captureFrameThenExit(shot);
 }
-void syncBeasts(Loaded& tile,const glm::dvec3& eye,double dt) {
+
+void World::Impl::syncBeasts(Loaded& tile,const glm::dvec3& eye,double dt) {
     const auto& animals=tile.herds.animals();
     if(tile.beasts.size()<animals.size())tile.beasts.resize(animals.size());
     for(size_t i=0;i<animals.size();++i) {
@@ -543,9 +502,8 @@ void syncBeasts(Loaded& tile,const glm::dvec3& eye,double dt) {
         if(poseRate!=b.poseRate){b.animator->setPoseRate(poseRate,saida::Animator::PoseRateMode::Hold);b.poseRate=poseRate;}
     }
 }
-// The smoke builds every kind the mounted tiles' residents use, both levels,
-// and says how many live; a model that cannot be drawn fails it by name.
-void checkFaunaSmoke() {
+
+void World::Impl::checkFaunaSmoke() {
     if(!smoke||faunaSmokeSaid||loaded.empty())return;
     std::set<std::string> needed;
     size_t groups=0;
@@ -567,13 +525,7 @@ void checkFaunaSmoke() {
     if(refused)testFailed=true;
 }
 
-// ── indoors ─────────────────────────────────────────────────────────────────
-//
-// A furnished home sometimes has a spider on a wall, a trail of ants in the
-// kitchen, a mouse, a wasp at the window, a cat asleep: rare, drawn from the
-// building and the day (gen/fauna.cpp planIndoor). They stand in the room's
-// node and go with it.
-void planRoomAnimals(LiveInterior& room,const Loaded& t) {
+void World::Impl::planRoomAnimals(LiveInterior& room,const Loaded& t) {
     r1::IndoorContext context;
     const json& f=t.data.value("fauna",json());
     context.country=f.value("country",std::string());context.climate=f.value("climate",std::string());
@@ -588,7 +540,8 @@ void planRoomAnimals(LiveInterior& room,const Loaded& t) {
         saida::Log::info("[World fauna] ",room.plan.name.empty()?"a home":room.plan.name," shelters ",a.species,
                          a.place=="trail"?" ("+std::to_string(a.count)+" ants)":"");
 }
-void updateRoomAnimals(LiveInterior& room,const Loaded& t,double dt) {
+
+void World::Impl::updateRoomAnimals(LiveInterior& room,const Loaded& t,double dt) {
     if(room.animals.empty()||!room.node)return;
     if(!room.animalsPlaced) {
         // Wait for every model still streaming in; a refused one is left out.
@@ -662,3 +615,5 @@ void updateRoomAnimals(LiveInterior& room,const Loaded& t,double dt) {
         }
     }
 }
+
+} // namespace r1::world

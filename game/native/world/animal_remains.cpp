@@ -1,56 +1,50 @@
-// Included inside World. Wildlife owns living residents; these nodes belong
-// to the world independently of pooled slots, interiors and terrain tiles.
-struct AnimalRemains {
-    Beast beast;
-    Frame frame;
-    saida::Node* anchor=nullptr;
-    saida::RagdollBehaviour* fall=nullptr;
-    saida::StaticBodyNode* restBody=nullptr;
-    saida::RagdollProfile profile;
-    std::string resident;
-    bool charred=false,stored=false,refused=false,distant=false;
-    glm::vec3 resumeVelocity{0},resumeSpin{0}; // in this remains' geographic frame
-    json saved;
-};
-std::vector<AnimalRemains> animalRemains;
-std::set<std::string> animalDeaths;
-bool animalSaveBlocked=false,animalSaveErrorSaid=false;
+#include "session.hpp"
+#include <windows.h>
 
-static std::string animalResidentId(uint64_t group,size_t member) {
+namespace r1::world {
+std::string World::Impl::animalResidentId(uint64_t group,size_t member) {
     return "resident:"+std::to_string(group)+":"+std::to_string(member);
 }
-static std::string indoorAnimalId(const LiveInterior& room,size_t animal,int member) {
+
+std::string World::Impl::indoorAnimalId(const LiveInterior& room,size_t animal,int member) {
     const auto& a=room.animals[animal];
     return "room:"+std::to_string(room.plan.id)+":"+a.species+":"+std::to_string(animal)+":"+std::to_string(member);
 }
-static json animalTransformJson(const saida::Transform& t) {
+
+json World::Impl::animalTransformJson(const saida::Transform& t) {
     return r1::animalTransformJson(t);
 }
-static saida::Transform animalReadTransform(const json& j) {
+
+saida::Transform World::Impl::animalReadTransform(const json& j) {
     return r1::animalReadTransform(j);
 }
-void animalSaveError(const std::string& why) {
+
+void World::Impl::animalSaveError(const std::string& why) {
     if(animalSaveErrorSaid)return;animalSaveErrorSaid=true;
     saida::Log::error("[World fauna] remains persistence: ",why);
     text("stream-status","Animal body error: "+why);
     if(smoke)testFailed=true;
 }
-void placeAnimalRemains(AnimalRemains& c,const Frame& observer,bool rebase=false) {
+
+void World::Impl::placeAnimalRemains(AnimalRemains& c,const Frame& observer,bool rebase) {
     const auto position=glm::vec3(observer.local(c.frame.origin));
     const auto rotation=glm::normalize(glm::quat_cast(glm::mat3(glm::transpose(observer.basis)*c.frame.basis)));
     if(rebase)engine.sceneTree().world().rebaseSubtreeTo(*c.anchor,position,rotation);
     else {c.anchor->transform().position=position;c.anchor->transform().rotation=rotation;}
 }
-void rebaseAnimalRemains(const Frame& next) {
+
+void World::Impl::rebaseAnimalRemains(const Frame& next) {
     for(auto& c:animalRemains)if(c.anchor)placeAnimalRemains(c,next,true);
 }
-void charAnimal(Beast& b) {
+
+void World::Impl::charAnimal(Beast& b) {
     b.node->traverse([&](saida::Node& n,const glm::mat4&) {
         if(auto* mesh=dynamic_cast<saida::MeshNode*>(&n);mesh&&mesh->material())
             mesh->setMaterial(engine.resources().getMaterial(r1::charredAnimalMaterial(mesh->material()->desc())));
     });
 }
-json snapshotAnimal(const AnimalRemains& c) const {
+
+json World::Impl::snapshotAnimal(const AnimalRemains& c) const {
     if(!c.beast.node)return c.saved;
     const auto& rig=*c.beast.animator->rig();
     const auto pose=r1::animalLocalPose(rig,c.beast.animator->globalPose());
@@ -72,7 +66,8 @@ json snapshotAnimal(const AnimalRemains& c) const {
         {"velocity",{velocity.x,velocity.y,velocity.z}},
         {"spin",{spin.x,spin.y,spin.z}}};
 }
-void saveAnimalRemains() {
+
+void World::Impl::saveAnimalRemains() {
     if(animalSaveBlocked||animalRemains.empty())return;
     try {
         json all=json::array();for(const auto& c:animalRemains)all.push_back(snapshotAnimal(c));
@@ -84,7 +79,8 @@ void saveAnimalRemains() {
             throw std::runtime_error("cannot replace "+path.string()+" (Windows "+std::to_string(GetLastError())+")");
     } catch(const std::exception& e){animalSaveError(e.what());}
 }
-void loadAnimalRemains() {
+
+void World::Impl::loadAnimalRemains() {
     const fs::path path=game/"cache/fauna-remains.json";
     if(!fs::exists(path))return;
     try {
@@ -118,7 +114,7 @@ void loadAnimalRemains() {
     }
 }
 
-void buildAnimalRestBody(AnimalRemains& c) {
+void World::Impl::buildAnimalRestBody(AnimalRemains& c) {
     if(c.restBody)return;
     auto body=std::make_unique<saida::StaticBodyNode>();body->setName("Animal remains collision");
     const auto& rig=*c.beast.animator->rig();const auto& pose=c.beast.animator->globalPose().globalMatrices;
@@ -141,7 +137,8 @@ void buildAnimalRestBody(AnimalRemains& c) {
     }
     c.restBody=static_cast<saida::StaticBodyNode*>(c.beast.visual->addChild(std::move(body)));
 }
-void updateAnimalRemains() {
+
+void World::Impl::updateAnimalRemains() {
     bool changed=false;
     for(auto& c:animalRemains) {
         if(!c.anchor&&!c.refused) {
@@ -196,7 +193,8 @@ void updateAnimalRemains() {
     }
     if(changed)saveAnimalRemains();
 }
-bool wakeAnimalRemains(AnimalRemains& c,const glm::vec3& velocity={},const glm::vec3& spin={}) {
+
+bool World::Impl::wakeAnimalRemains(AnimalRemains& c,const glm::vec3& velocity,const glm::vec3& spin) {
     if(c.fall->simulating())return true;
     c.beast.animator->setEnabled(true);
     // RagdollBehaviour retains the visible pose while Frozen. A restored
@@ -205,7 +203,8 @@ bool wakeAnimalRemains(AnimalRemains& c,const glm::vec3& velocity={},const glm::
     if(c.restBody){c.restBody->setEnabled(false);c.restBody->queueFree();c.restBody=nullptr;}
     c.stored=false;c.distant=false;return true;
 }
-void pauseDepartingAnimalRemains(const std::set<std::string>& kept) {
+
+void World::Impl::pauseDepartingAnimalRemains(const std::set<std::string>& kept) {
     bool changed=false;
     for(auto& c:animalRemains)if(c.fall&&c.fall->simulating()) {
         auto* ragdoll=c.fall->ragdoll();const auto geo=sceneToGeo(ragdoll->rootPosition());
@@ -218,7 +217,8 @@ void pauseDepartingAnimalRemains(const std::set<std::string>& kept) {
     }
     if(changed)saveAnimalRemains();
 }
-bool leaveAnimalBody(Beast& beast,const Frame& frame,const std::string& resident,
+
+bool World::Impl::leaveAnimalBody(Beast& beast,const Frame& frame,const std::string& resident,
                     const glm::vec3& velocity,const glm::vec3& impulse,const glm::vec3& point,bool charred) {
     if(!beast.node||animalDeaths.count(resident))return false;
     auto* oldParent=beast.node->parent();beast.node->updateTransforms(oldParent->worldTransform(),true);
@@ -250,7 +250,8 @@ bool leaveAnimalBody(Beast& beast,const Frame& frame,const std::string& resident
     animalDeaths.insert(resident);animalRemains.push_back(std::move(c));beast=Beast{};
     return true;
 }
-bool hitAnimal(const saida::RaycastHit& hit,const glm::vec3& direction,float momentum) {
+
+bool World::Impl::hitAnimal(const saida::RaycastHit& hit,const glm::vec3& direction,float momentum) {
     auto matches=[&](const Beast& b){return b.body&&!hit.body.IsInvalid()&&b.body->bodyId()==hit.body;};
     for(auto& [key,t]:loaded) {
         for(size_t i=0;i<t.beasts.size()&&i<t.herds.animals().size();++i) {
@@ -277,7 +278,8 @@ bool hitAnimal(const saida::RaycastHit& hit,const glm::vec3& direction,float mom
     }
     return false;
 }
-void blastAnimals(glm::vec3 at,saida::CollisionObjectNode* direct) {
+
+void World::Impl::blastAnimals(glm::vec3 at,saida::CollisionObjectNode* direct) {
     // Snapshot pointers before converting living slots: the vector of remains
     // may grow while the explosion is resolved, but each victim is hit once.
     const size_t old=animalRemains.size();
@@ -334,3 +336,5 @@ void blastAnimals(glm::vec3 at,saida::CollisionObjectNode* direct) {
     }
     saveAnimalRemains();
 }
+
+} // namespace r1::world

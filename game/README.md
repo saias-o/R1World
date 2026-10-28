@@ -460,6 +460,48 @@ place data is labelled as such.
 
 ## Building and testing
 
+### Native runtime organization — 28 October 2026
+
+`native/world.cpp` is the application entry point. `native/world/world.hpp`
+exposes only session lifecycle, frame callbacks and inspection commands; its
+private implementation is declared in `session.hpp`. Domain implementations
+compile separately under `native/world/`, with explicit sources in CMake.
+Architecture, scope and validation are in
+[WORLD_REFACTOR.md](../docs/WORLD_REFACTOR.md).
+
+- `geography`, `tile_preparation`, `menu_tile_cache` and `options_store` are
+  independent of `World`: geographic coordinates, CPU geometry preparation,
+  map caching and options persistence. The options store preserves unknown
+  keys and protects player preferences during test/capture runs; applying
+  those preferences to the engine remains the session's responsibility.
+- `streaming`, `tile_streaming`, `terrain`, `assets` and `distant` cover tile
+  residence, uploads, queries, models and the horizon. `loaded_tile.hpp` holds
+  the tile-owned runtime data, whose address stability is preserved.
+- `vehicles`, `boats`, `aircraft`, `traffic`, `people`, `fauna`, `bird`, `beach`,
+  `combat`, `rocket` and `police` contain the corresponding gameplay methods.
+- `menu`, `options`, `arrival`, `environment`, `sea` and `interiors` contain
+  presentation and environment methods; `animal_remains` owns the implementation
+  of persistent animal remains. `performance`, `smoke` and `rocket_smoke` contain
+  diagnostics. `lifecycle` constructs the session. `update` orchestrates UI
+  refresh, session/streaming, world scene, player, camera, capture, HUD and smoke
+  phases, preserving their order and early frame exits. `player`, `camera`,
+  `capture`, `hud` and `smoke_update` hold the extracted phase implementations.
+
+This bounded refactor preserves actor ownership and service destruction order
+inside the private session. Gameplay systems still share that internal state;
+they have not been rewritten as independent controllers. The former headers
+included inside the class have been removed, and copying/moving a live session
+is explicitly disabled to protect callback and node references.
+
+The four module contract tests run entirely in the console, without creating
+an engine, GPU device or window. From the repository root, with MSYS2 UCRT64
+first in `PATH` and the game build already configured:
+
+```powershell
+cmake --build game/generated/world-windows/build --target r1_world_headless_tests --parallel 2
+ctest --test-dir game/generated/world-windows/build -L headless --output-on-failure
+```
+
 ### What `Play.ps1` needs
 
 The executable, and nothing else: the world is generated inside it
@@ -476,8 +518,9 @@ quoting. It needs MSYS2's UCRT64 `g++` and `cmake` and puts
   frame cost 35 ms of CPU there against 4.5 ms optimized.
 - **It rebuilds by itself** whenever a source, a generator header or the engine
   library is newer than the executable, recompiling only what is stale.
-  `world.cpp`, the one unit that includes the engine's headers, is recompiled
-  whenever the engine library changes. `-Rebuild` recompiles everything,
+  Runtime methods now compile as separate units under `native/world/`; CMake
+  tracks their header dependencies and relinks when the engine library changes.
+  `-Rebuild` recompiles everything,
   `-BuildOnly` stops after building. Output: `generated/world-windows`.
 - **The log** (stderr included) goes to `cache/sessions/<id>/game.log` in UTF-8.
   When the game exits with an error, its `[error]` and `FAIL` lines are repeated
@@ -2874,7 +2917,7 @@ captures the final car explosion. Validation results are recorded in
 ## Police
 
 The game owns dispatch, offences and pursuit (`native/police.hpp` and
-`native/police_runtime.hpp`). Saida supplies the existing character controller,
+`native/world/police.cpp`). Saida supplies the existing character controller,
 physical vehicles, ray queries, animation, attachments and ragdolls.
 
 - The HUD shows **Recherche 0–100%**, without stars. Witnessed assaults,

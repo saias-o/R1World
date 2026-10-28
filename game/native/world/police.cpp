@@ -1,68 +1,18 @@
-// Included inside World, like beach_runtime.hpp: actors belong to the game;
-// Wanted and routing remain independent of rendering and physics.
-struct PoliceOfficer {
-    Person person;
-    saida::Node* gun=nullptr;
-    saida::Node* launcher=nullptr;
-    r1::rocket::FireControl rocket;
-    r1::police::WeaponChoice weapon;
-    double health=100, shot=0;
-    bool sees=false;
-    std::vector<r1::police::Routes::Point> path;
-    size_t step=0;
-};
-struct PoliceUnit {
-    saida::Node* car=nullptr;
-    r1::rocket::FireControl rocket;
-    r1::police::WeaponChoice weapon;
-    double shot=0;
-    std::array<PoliceOfficer,2> officers;
-    saida::Node* rocketMount=nullptr;
-    std::array<saida::LightNode*,2> lamps{};
-    r1::police::Identity identity;
-    glm::dvec3 home{0}; // ECEF, survives origin changes and tile eviction.
-    std::vector<r1::police::Routes::Point> path;
-    std::vector<saida::Node*> wheels;
-    size_t step=0;
-    double routeAge=10, spin=0, stuck=0, age=0, reach=0; // reach: target distance when they got out
-    bool dismounted=false, returning=false;
-    saida::AudioID siren=saida::kInvalidAudioID;
-};
-struct PoliceStation {glm::dvec3 at; r1::police::Identity identity;};
-r1::police::Wanted wanted;
-r1::police::Routes policeRoads,policeWalks;
-std::vector<std::pair<std::string,saida::Node*>> policeTiles;
-std::vector<PoliceStation> policeStations;
-std::array<PoliceUnit,r1::police::kCars> policeUnits;
-glm::dvec3 policeLastKnown{0};
-int punchPolice=-1;
-saida::Connection policeCarImpact;
-saida::CollisionObjectNode* policeImpactBody=nullptr;
-double policeCollisionAt=-10;
-double policeClock=0,policeThink=0,policeSpawn=0,policeArrest=0,policeDriving=0;
-bool policeObserved=false;
-std::string policeRefusal;
-saida::Node* policeHelicopter=nullptr;
-saida::LightNode* policeSearchlight=nullptr;
-std::vector<saida::Node*> policeMainRotors,policeTailRotors;
-double policeRotor=0,policeAirShot=0;
-double policeAirRespawn=0;
-r1::rocket::FireControl policeAirRocket;
-r1::police::WeaponChoice policeAirWeapon;
-r1::police::FireEscalation policeEscalation;
-double policeRocketSpacing=0;
-saida::Node* policeRocketTarget=nullptr;
-saida::AudioID policeRotorSound=saida::kInvalidAudioID;
+#include "session.hpp"
 
-static glm::vec3 policeVector(r1::police::Routes::Point p){return {p.x,p.y,p.z};}
-static r1::police::Routes::Point policePoint(glm::vec3 p){return {p.x,p.y,p.z};}
-glm::vec3 policePlayerPosition()const {
+namespace r1::world {
+glm::vec3 World::Impl::policeVector(r1::police::Routes::Point p){return {p.x,p.y,p.z};}
+
+r1::police::Routes::Point World::Impl::policePoint(glm::vec3 p){return {p.x,p.y,p.z};}
+
+glm::vec3 World::Impl::policePlayerPosition()const {
     if(driving&&car)return nodePosition(*car);
     if(piloting&&plane.node)return nodePosition(*plane.node);
     if(playerDown)return downAnchor();
     return player->transform().position;
 }
-glm::vec3 policeAimPoint()const {
+
+glm::vec3 World::Impl::policeAimPoint()const {
     // The mounted avatar has no separate solver body. An open motorcycle
     // exposes its rider to hits on its compact chassis, unlike a closed car.
     if(ridingBike())if(auto* body=r1::VehicleRuntime::body(*car))
@@ -70,7 +20,8 @@ glm::vec3 policeAimPoint()const {
             return glm::vec3(body->worldTransform()*glm::vec4(shape->offset,1));
     return policePlayerPosition()+glm::vec3(0,float(playerHeight*.7),0);
 }
-bool policeSight(glm::vec3 from,glm::vec3 to,saida::CollisionObjectNode* observer=nullptr,float range=140) {
+
+bool World::Impl::policeSight(glm::vec3 from,glm::vec3 to,saida::CollisionObjectNode* observer,float range) {
     const auto delta=to-from;const float distance=glm::length(delta);
     auto* physics=engine.sceneTree().world().physics();
     if(!physics||distance>range)return false;
@@ -86,7 +37,8 @@ bool policeSight(glm::vec3 from,glm::vec3 to,saida::CollisionObjectNode* observe
     return playerDown&&playerFall.ragdoll()&&playerFall.ragdoll()->ragdoll()&&
         playerFall.ragdoll()->ragdoll()->partOf(hit.body)>=0;
 }
-void reportCrime(r1::police::Crime crime,glm::vec3 at,bool identified=false) {
+
+void World::Impl::reportCrime(r1::police::Crime crime,glm::vec3 at,bool identified) {
     if(wasted||!playing||rocketPoliceDamage)return;
     const glm::vec3 suspect=policePlayerPosition()+glm::vec3(0,float(playerHeight*.7),0);
     bool witness=identified||policeObserved;
@@ -115,8 +67,7 @@ void reportCrime(r1::police::Crime crime,glm::vec3 at,bool identified=false) {
     saida::Log::info("[World police] reported offence=",int(crime)," wanted=",wanted.percent,"%");
 }
 
-// Rebuilt only when the streamed graph changes or the ENU origin moves.
-void policeBuildRoutes() {
+void World::Impl::policeBuildRoutes() {
     std::vector<std::pair<std::string,saida::Node*>> tiles;
     for(auto& [key,t]:loaded)tiles.emplace_back(key,t.node);
     if(tiles==policeTiles&&!policeRoads.points.empty())return;
@@ -171,7 +122,7 @@ void policeBuildRoutes() {
     for(auto& unit:policeUnits){unit.path.clear();unit.routeAge=10;for(auto& officer:unit.officers)officer.path.clear();}
 }
 
-saida::Node* policeBox(saida::Node& parent,const std::string& name,glm::vec3 at,glm::vec3 size,glm::vec3 colour) {
+saida::Node* World::Impl::policeBox(saida::Node& parent,const std::string& name,glm::vec3 at,glm::vec3 size,glm::vec3 colour) {
     r1::MeshPart part;part.name=name;part.mesh.addBox({0,0,0},{size.x,size.y,size.z});
     auto up=uploadOf(part,0);
     const std::string key="police/"+name+"/"+number(size.x,3)+"/"+number(size.y,3)+"/"+number(size.z,3);
@@ -181,7 +132,8 @@ saida::Node* policeBox(saida::Node& parent,const std::string& name,glm::vec3 at,
     auto node=std::make_unique<saida::MeshNode>(name,mesh,engine.resources().getMaterial(desc));
     node->transform().position=at;return parent.addChild(std::move(node));
 }
-void policeLivery(saida::Node& node,const r1::police::Identity& identity,float roof,bool authored) {
+
+void World::Impl::policeLivery(saida::Node& node,const r1::police::Identity& identity,float roof,bool authored) {
     if(!authored) {
         paintCar(node,{.035f,.055f,.11f});
         for(int side:{-1,1})if(auto sign=lettering(identity.label,1.6,.21,{.62f,.62f,.60f})) {
@@ -191,7 +143,8 @@ void policeLivery(saida::Node& node,const r1::police::Identity& identity,float r
     }
     policeBox(node,"Emergency light bar",{0,roof,0},{.8f,.09f,.18f},{.025f,.045f,.12f});
 }
-bool policeCreate(PoliceUnit& unit,glm::vec3 at,const PoliceStation* station) {
+
+bool World::Impl::policeCreate(PoliceUnit& unit,glm::vec3 at,const PoliceStation* station) {
     const auto country=countryCrowd.at(lon,lat).code;
     unit.identity=station?station->identity:r1::police::identity(country);
     const auto letters=r1::facadeLettering(unit.identity.label,1.6,.21);
@@ -247,12 +200,14 @@ bool policeCreate(PoliceUnit& unit,glm::vec3 at,const PoliceStation* station) {
     saida::Log::info("[World police] patrol deployed ",unit.identity.label," at ",at.x,",",at.z);
     return true;
 }
-void policeRemove(PoliceUnit& unit) {
+
+void World::Impl::policeRemove(PoliceUnit& unit) {
     saida::AudioManager::get().stop(unit.siren);
     for(auto& officer:unit.officers)if(officer.person.node){officer.person.node->setEnabled(false);officer.person.node->queueFree();}
     if(unit.car){unit.car->setEnabled(false);unit.car->queueFree();}unit={};
 }
-void clearPolice() {
+
+void World::Impl::clearPolice() {
     clearRockets();policeAirRocket={};policeAirRespawn=0;policeRocketTarget=nullptr;
     policeAirWeapon={};policeEscalation={};policeRocketSpacing=0;
     wanted.clear();policeObserved=false;policeArrest=0;policeRefusal.clear();
@@ -262,7 +217,7 @@ void clearPolice() {
     saida::AudioManager::get().stop(policeRotorSound);policeRotorSound=saida::kInvalidAudioID;
 }
 
-bool hitPolice(const saida::RaycastHit& hit,double damage,glm::vec3 direction,bool headshot=true,float impulse=float(r1::combat::kPistol.impulse)) {
+bool World::Impl::hitPolice(const saida::RaycastHit& hit,double damage,glm::vec3 direction,bool headshot,float impulse) {
     auto* physics=engine.sceneTree().world().physics();if(!physics)return false;
     auto* body=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body));
     for(auto& unit:policeUnits)if(unit.car) {
@@ -285,7 +240,7 @@ bool hitPolice(const saida::RaycastHit& hit,double damage,glm::vec3 direction,bo
     return false;
 }
 
-void policeArrestPlayer() {
+void World::Impl::policeArrestPlayer() {
     glm::dvec3 destination=ecef(lon,lat,alt);double best=1e30;
     for(const auto& station:policeStations){const double d=glm::length(station.at-destination);if(d<best){best=d;policeLastKnown=station.at;}}
     if(best<1e29)destination=policeLastKnown;
@@ -301,7 +256,7 @@ void policeArrestPlayer() {
     saida::Log::info("[World police] arrested, ammunition confiscated");
 }
 
-void policeFire(glm::vec3 muzzle,glm::vec3 target,saida::CollisionObjectNode* shooter,float range) {
+void World::Impl::policeFire(glm::vec3 muzzle,glm::vec3 target,saida::CollisionObjectNode* shooter,float range) {
     const auto direction=glm::normalize(target-muzzle);saida::QueryFilter filter;
     if(shooter){filter.ignore=shooter->bodyId();filter.ignoreInner=shooter->innerBodyId();}
     auto* physics=engine.sceneTree().world().physics();
@@ -328,7 +283,7 @@ void policeFire(glm::vec3 muzzle,glm::vec3 target,saida::CollisionObjectNode* sh
     } else effects.burst(r1::CombatEffects::Dust,hit.point);
 }
 
-void policeOfficer(PoliceUnit& unit,PoliceOfficer& officer,glm::vec3 target,double dt,bool think) {
+void World::Impl::policeOfficer(PoliceUnit& unit,PoliceOfficer& officer,glm::vec3 target,double dt,bool think) {
     auto& p=officer.person;if(!p.node)return;
     if(!unit.dismounted){p.node->setEnabled(false);officer.sees=false;officer.rocket.update(dt,false);officer.weapon.cancel();return;}
     p.node->setEnabled(true);
@@ -401,7 +356,7 @@ void policeOfficer(PoliceUnit& unit,PoliceOfficer& officer,glm::vec3 target,doub
         policeArrest=std::max(policeArrest,dt); // accumulated once per update below
 }
 
-void policeAir(double dt,bool think) {
+void World::Impl::policeAir(double dt,bool think) {
     policeAirRespawn=std::max(0.,policeAirRespawn-dt);
     if(wanted.helicopter&&!policeHelicopter&&policeAirRespawn<=0) {
         auto found=aircraftPrototypes.find("helicopter");
@@ -468,7 +423,7 @@ void policeAir(double dt,bool think) {
     }
 }
 
-void updatePolice(double elapsed) {
+void World::Impl::updatePolice(double elapsed) {
     SAIDA_PROFILE_SCOPE("World/Police");
     const double dt=std::clamp(elapsed,0.,.1);policeClock+=dt;policeThink+=dt;policeSpawn+=dt;
     policeRocketSpacing=std::max(0.,policeRocketSpacing-dt);
@@ -698,7 +653,7 @@ void updatePolice(double elapsed) {
     if(rocketLock)text("wanted-state","ROQUETTE EN APPROCHE · cherchez un abri !");
 }
 
-std::string policeMapRml() {
+std::string World::Impl::policeMapRml() {
     std::string markup;const Frame here(lon,lat,alt);
     auto marker=[&](glm::dvec3 ecef,const char* kind) {
         const auto at=here.local(ecef);const double x=148+at.x*296/900,z=128+at.z*296/900;
@@ -712,12 +667,7 @@ std::string policeMapRml() {
     return markup;
 }
 
-bool policeSmoke=std::getenv("R1WORLD_POLICE_SMOKE")!=nullptr;
-bool policeSmokeGroundHit=false,policeSmokeAirHit=false;
-int policeSmokePhase=0;
-double policeSmokeTime=0;
-glm::vec3 policeSmokeStart{0};
-void runPoliceSmoke(double dt) {
+void World::Impl::runPoliceSmoke(double dt) {
     if(dropFlying())return;
     policeSmokeTime+=dt;
     auto fail=[&](const char* reason){saida::Log::error("[World police E2E] FAIL ",reason," phase=",policeSmokePhase);testFailed=true;engine.sceneTree().quit();};
@@ -783,3 +733,5 @@ void runPoliceSmoke(double dt) {
         policeSmoke=false;
     }
 }
+
+} // namespace r1::world
