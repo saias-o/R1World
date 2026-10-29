@@ -197,7 +197,7 @@ void World::Impl::runSmokeTakeover() {
         testFailed=true;engine.sceneTree().quit();return;
     }
     lon=beside.x;lat=beside.y;alt=height(lon,lat);
-    if(!enterCar()||!driving) {
+    if(!enterCar()||!driving()) {
         saida::Log::error("[World E2E] FAIL could not take over a traffic car 2.5 m away");
         testFailed=true;engine.sceneTree().quit();return;
     }
@@ -316,7 +316,7 @@ void World::Impl::runSmokeSail(float delta) {
     smokeSailing=false;
     const double stopped=std::abs(boat.speed);
     smokeSwimBoat=boat.node;
-    if(!leaveBoat()||!swimming) {
+    if(!leaveBoat()||!swimming()) {
         saida::Log::error("[World E2E] FAIL swim: could not enter the water from a stopped boat");
         testFailed=true;engine.sceneTree().quit();return;
     }
@@ -329,7 +329,7 @@ void World::Impl::runSmokeSwim(float delta) {
     if(smokeSailTime<1.5)return;
     const double covered=glm::length(ecef(lon,lat,alt)-smokeSwimStart);
     const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
-    if(!swimming||!onWater(lon,lat)||covered<1.||rootBelow<playerHeight*.39||rootBelow>playerHeight*.78) {
+    if(!swimming()||!onWater(lon,lat)||covered<1.||rootBelow<playerHeight*.39||rootBelow>playerHeight*.78) {
         saida::Log::error("[World E2E] FAIL swim: covered=",covered,"m, water=",onWater(lon,lat),
                           ", body depth=",rootBelow,"m");
         testFailed=true;engine.sceneTree().quit();return;
@@ -342,11 +342,11 @@ void World::Impl::runSmokeSwim(float delta) {
     // A car already on this water cell must eject its driver and descend.
     carParked=true;car->setEnabled(true);
     carLon=lon;carLat=lat;carAlt=alt;carYaw=yaw;
-    carSinking=false;driving=true;swimming=false;
+    carSinking=false;transitionTravel(TravelMode::Car,false);
     driveCar(.05,1.,0.,false);
     updateSinkingCar(1.);
-    if(driving||!swimming||!carSinking||carAlt>carWaterLevel-1.) {
-        saida::Log::error("[World E2E] FAIL car sink: driver afloat=",swimming,
+    if(driving()||!swimming()||!carSinking||carAlt>carWaterLevel-1.) {
+        saida::Log::error("[World E2E] FAIL car sink: driver afloat=",swimming(),
                           ", car depth=",carWaterLevel-carAlt,"m");
         testFailed=true;engine.sceneTree().quit();return;
     }
@@ -382,7 +382,7 @@ void World::Impl::runSmokeSea(float delta) {
         boat.alt=alt=v.alt;boat.yaw=yaw=v.yaw;boat.speed=v.speed;
         const auto* hull=v.node;
         const double speed=v.speed;
-        if(hopAboard()!=HopResult::Boarded||!sailing||boat.node!=hull||std::abs(boat.speed-speed)>1e-6) {
+        if(hopAboard()!=HopResult::Boarded||!sailing()||boat.node!=hull||std::abs(boat.speed-speed)>1e-6) {
             saida::Log::error("[World E2E] FAIL sea helm: could not take the same moving hull from alongside");
             testFailed=true;
         } else saida::Log::info("[World E2E] PASS sea helm: took over the same moving hull at ",boat.speed," m/s");
@@ -471,7 +471,7 @@ void World::Impl::runSmokeFly(float delta) {
             }
         if(!placed)return flyFail("no standable ground beside the "+spot.type+" ("+spot.name+")");
         saida::Node* wanted=spot.node;
-        if(!enterAircraft()||!piloting||plane.node!=wanted)
+        if(!enterAircraft()||!piloting()||plane.node!=wanted)
             return flyFail("could not take the controls of the "+spot.type+" the pilot stands beside");
         smokeFlyWait=false;smokeFlyTime=0;smokeFlyTop=0;
         smokeFlyStart=ecef(plane.lon,plane.lat,plane.alt);smokeFlyAlt=plane.alt;
@@ -602,7 +602,7 @@ void World::Impl::runSmokeFly(float delta) {
         smokeF=p.speed>1.?-1.:0.;
         if(p.airborne&&std::abs(p.speed)<=1.) {
             const double up=p.alt-groundAt(p.lon,p.lat,p.alt);
-            if(!leaveAircraft()||piloting)return flyFail("F did not let the pilot out "+number(up,1)+" m up");
+            if(!leaveAircraft()||piloting())return flyFail("F did not let the pilot out "+number(up,1)+" m up");
             if(jumpOffset<5.)return flyFail("jumped from "+number(up,1)+" m up but falls only "+number(jumpOffset,1)+" m");
             saida::Log::info("[World E2E] PASS jumped from the helicopter, ",jumpOffset," m up");
             smokeFlyPhase=13;smokeFlyTime=0;
@@ -614,9 +614,9 @@ void World::Impl::runSmokeFly(float delta) {
     case 13: {  // he lands, and the helicopter he left comes down
         const bool down=jumpOffset<=0&&(leftAircraft.empty()||!leftAircraft.back().airborne);
         if(down) {
-            if(!swimming&&blocked(lon,lat))return flyFail("the jump landed inside a building");
+            if(!swimming()&&blocked(lon,lat))return flyFail("the jump landed inside a building");
             flyShot("jump");
-            saida::Log::info("[World E2E] PASS landed ",swimming?"in the water":"on the ground",
+            saida::Log::info("[World E2E] PASS landed ",swimming()?"in the water":"on the ground",
                              " in ",smokeFlyTime," s, and the helicopter came down");
             smokeFlown.insert("helicopter");smokeFlyPhase=0;smokeFlyWait=true;smokeFlyTime=0;
         } else if(smokeFlyTime>20.) {
@@ -779,8 +779,8 @@ void World::Impl::smokeFinishPhase() {
     if(hopWanted&&!hopDone) {
         // Arrive from the driver's seat while looking out of a side window.
         // A stale lookYaw made forward walking go sideways after loading.
-        if(!driving&&carParked&&carDistance()<kCarReach)enterCar();
-        if(driving) {
+        if(!driving()&&carParked&&carDistance()<kCarReach)enterCar();
+        if(driving()) {
             lookYaw=90.;lookIdle=.4;
             smokeArrivalHeading=wrap(yaw+lookYaw);
         }

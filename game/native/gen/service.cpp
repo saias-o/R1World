@@ -64,6 +64,12 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     std::set<std::string> landed;
     std::map<Tile, std::pair<ElevationGrid, std::string>> quickGrounds;
     std::set<Tile> busy;
+    struct GroundDependencies {
+        std::set<Tile> reads;
+        uint64_t revision = 0, published = 0;
+        Clock::time_point retryAfter{};
+    };
+    std::map<Tile, GroundDependencies> groundDependencies;
     std::string error;
     Clock::time_point offlineUntil{};
     std::atomic<int> fetching{0}, cooking{0};
@@ -213,6 +219,11 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     std::optional<Tile> next(bool& upgrade) {
         const auto now = Clock::now();
         auto arrived = [&](const Tile& t) {
+            if (!busy.count(t) && cooked.count(t)) {
+                const auto dependency = groundDependencies.find(t);
+                if (dependency != groundDependencies.end() &&
+                    dependency->second.revision != dependency->second.published && now >= dependency->second.retryAfter) return true;
+            }
             auto it = awaiting.find(t);
             if (it == awaiting.end() || busy.count(t) || !cooked.count(t)) return false;
             bool any = false;
@@ -310,7 +321,8 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
                     self->say("OSM-SKIPPED " + std::filesystem::path(path).filename().string());
                 } else {
                     if (retail) {
-                        self->store.fetchRetail(region,path);
+                        if(self->options.fetchRetail)self->options.fetchRetail(region,path);
+                        else self->store.fetchRetail(region,path);
                     } else if (aero) {
                         if (self->options.fetchAero) self->options.fetchAero(region, path);
                         else self->store.fetchAero(region, path);
@@ -364,7 +376,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             if (self->requested(key)) {
                 const auto asked = Clock::now();
                 try {
-                    const auto converted = fetchCanopyBand(tile);
+                    const auto converted = self->options.fetchCanopyBand ? self->options.fetchCanopyBand(tile) : fetchCanopyBand(tile);
                     size_t trees = 0;
                     for (const auto& [t, canopy] : converted) {
                         storeCanopy(self->store.root(), t, canopy);
@@ -400,25 +412,16 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         return store.tileFolder(tile) + "/ground-elevation.json";
     }
 
-    // Tiles whose ground is joined to `changed`'s (gen/seams): the same row's
-    // two neighbours and the rows above and below along its width.
-    static bool sharesSeams(const Tile& tile, const Tile& changed) {
-        if (tile == changed || std::abs(tile.row - changed.row) > 1) return false;
-        const Bounds a = tile.bounds(), b = changed.bounds();
-        const double margin = (a.east - a.west) * 0.5;
-        return b.east >= a.west - margin && b.west <= a.east + margin;
+    // Under lock. Track the actual reads performed by joinedGround, including
+    // its neighbours' seams and longitude wrapping, even during a first cook.
+    void groundChanged(const Tile& tile, const std::string&) {
+        for (auto& [owner, dependencies] : groundDependencies)
+            if (dependencies.reads.count(tile)) ++dependencies.revision;
     }
-    // Under `lock`. A tile's relief changed: its cooked neighbours are cooked
-    // again on it, or the seam they share keeps the step it had.
-    void groundChanged(const Tile& tile, const std::string& what) {
-        const std::string source = "seam:" + tile.key() + ":" + what;
-        bool any = false;
-        for (const Tile& t : wanted) {
-            if (!cooked.count(t) || !sharesSeams(t, tile)) continue;
-            awaiting[t].insert(source);
-            any = true;
-        }
-        if (any) landed.insert(source);
+
+    void watchGround(const Tile& owner, const Tile& source) {
+        std::lock_guard<std::mutex> guard(lock);
+        groundDependencies[owner].reads.insert(source);
     }
 
     // A neighbour's relief exactly as that neighbour is cooked on it (`observe`):
@@ -588,6 +591,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         const auto shared = sharedFor(tile);
         bool stale = false;
         auto document = store.osmPath(tile, shared, &stale);
+        watchGround(tile, tile);
         auto ground = store.ground(tile);
         const bool firstVisit = !document || stale || !ground;
         if (!document || stale) {
@@ -648,7 +652,10 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         // Joined to the neighbours' ground at the edges, on the rule both
         // sides apply (gen/seams).
         JoinedGround joined = joinedGround(tile, {in.elevations, groundRank(in.elevationSource)},
-                                           [this](const Tile& t) { return neighbourGround(t); });
+                                           [this, tile](const Tile& t) {
+                                               watchGround(tile, t);
+                                               return neighbourGround(t);
+                                           });
         in.elevations = std::move(joined.own);
         in.around = std::move(joined.around);
         in.seams = joined.seams;
@@ -672,10 +679,17 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         Counter c(cooking);
         const auto started = Clock::now();
         std::shared_ptr<ServedTile> served;
+        uint64_t groundRevision;
+        {
+            std::lock_guard<std::mutex> guard(lock);
+            auto& dependency = groundDependencies[tile];
+            dependency.reads.clear();
+            groundRevision = dependency.revision;
+        }
         try {
             served = std::make_shared<ServedTile>();
             Observations in = observe(tile);
-            in.targetVertices = options.tileVertexTarget;
+            in.profile.targetVertices = options.tileVertexTarget;
             served->cooked = cookTile(in);
             if (options.prepare) options.prepare(*served);
         } catch (const std::bad_alloc&) {
@@ -688,6 +702,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             const int was = allowed;
             allowed = std::max(1, allowed / 2);
             failedUntil[tile] = Clock::now() + kOutOfMemoryPause;
+            groundDependencies[tile].retryAfter = failedUntil[tile];
             error = tile.key() + ": out of memory";
             say("OUT-OF-MEMORY " + tile.key() + ": " + std::to_string(was) + " cooks at once ran out of memory; now " +
                 std::to_string(allowed));
@@ -695,6 +710,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         } catch (const std::exception& e) {
             std::lock_guard<std::mutex> guard(lock);
             failedUntil[tile] = Clock::now() + kFailurePause;
+            groundDependencies[tile].retryAfter = failedUntil[tile];
             error = tile.key() + ": " + e.what();
             say("ERROR " + error);
             return;
@@ -712,6 +728,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         const bool groundPending = served->cooked.manifest.value("groundPending", false);
         say(std::string(upgrade ? "UPGRADED " : osmPending ? "OSM-PENDING-READY " :
                         groundPending ? "GROUND-PENDING-READY " : "READY ") + tile.key() +
+            " profile=" + served->cooked.manifest.at("generationProfile").dump() +
             " osm_pending=" + std::to_string(int(osmPending)) + " ground_pending=" + std::to_string(int(groundPending)) + " cook_ms=" +
             std::to_string(int(served->cooked.cookMs)) + " total_ms=" +
             std::to_string(int(std::chrono::duration<double, std::milli>(Clock::now() - started).count())));
@@ -723,6 +740,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
             " shelters=" + std::to_string(served->cooked.manifest.at("busShelters").size()));
         if (error.rfind(tile.key(), 0) == 0) error.clear();
         cooked[tile] = std::move(served);
+        groundDependencies[tile].published = groundRevision;
         if (!approximate && !cooked[tile]->cooked.manifest.value("airportsPending", false)) failedUntil.erase(tile);
         // Keep what is wanted and what was wanted last; forget the oldest.
         trim();
@@ -776,13 +794,19 @@ WorldService::~WorldService() {
     state_->wake.notify_all();
 }
 
-void WorldService::want(std::vector<Tile> priority, std::vector<std::vector<Tile>> groups) {
+WorldService::Admission WorldService::want(std::vector<Tile> priority, std::vector<std::vector<Tile>> groups) {
+    Admission admission;
     {
         std::lock_guard<std::mutex> guard(state_->lock);
         // Never generate speculative tiles which cannot be retained: that
         // caused either unbounded wanted residency or endless eviction/cooking.
-        if (priority.size() > std::max(size_t(1), state_->options.keep))
-            priority.resize(std::max(size_t(1), state_->options.keep));
+        std::set<Tile> seen;
+        for (const auto& tile : priority) if (seen.insert(tile).second) {
+            auto& result = admission.accepted.size() < std::max(size_t(1), state_->options.requestLimit)
+                ? admission.accepted : admission.refused;
+            result.push_back(tile);
+        }
+        priority = admission.accepted;
         state_->wanted = std::move(priority);
         state_->trim();
         state_->groups = std::move(groups);
@@ -801,6 +825,10 @@ void WorldService::want(std::vector<Tile> priority, std::vector<std::vector<Tile
         for (auto it = state_->quickGrounds.begin(); it != state_->quickGrounds.end();)
             if (!current.count(it->first)) it = state_->quickGrounds.erase(it);
             else ++it;
+        for (auto it = state_->groundDependencies.begin(); it != state_->groundDependencies.end();)
+            if (!current.count(it->first) && !state_->cooked.count(it->first) && !state_->busy.count(it->first))
+                it = state_->groundDependencies.erase(it);
+            else ++it;
         std::set<std::string> awaitedPaths;
         for (const auto& [tile, paths] : state_->awaiting) awaitedPaths.insert(paths.begin(), paths.end());
         for (auto it = state_->landed.begin(); it != state_->landed.end();)
@@ -808,6 +836,7 @@ void WorldService::want(std::vector<Tile> priority, std::vector<std::vector<Tile
             else ++it;
     }
     state_->wake.notify_all();
+    return admission;
 }
 
 std::shared_ptr<const ServedTile> WorldService::find(const Tile& tile) const {

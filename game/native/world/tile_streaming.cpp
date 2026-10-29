@@ -82,7 +82,24 @@ std::unique_ptr<saida::GrassNode> World::Impl::grassNode(const r1::CookedTile& c
     return node;
 }
 
+void World::Impl::failTileUpload(const std::string& key, Loaded& tile, const std::string& reason) {
+    if(!tile.uploadError.empty())return;
+    tile.uploadError=reason;
+    saida::Log::error("[World streaming] upload failed for ",key,": ",reason);
+    text("stream-status","Terrain unavailable: "+reason);
+    if(smoke) {
+        saida::Log::error("[World E2E] FAIL terrain upload: ",reason);
+        testFailed=true;engine.sceneTree().quit();
+    } else if(pending) {
+        pending=false;warming=false;showMap(true);
+        text("status","Terrain could not be loaded: "+reason);
+    }
+}
+
 void World::Impl::uploadParts() {
+    for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles)
+        for(auto* mesh:t.partMeshes)if(mesh->uploadState()==saida::Mesh::UploadState::Failed)
+            failTileUpload(key,t,mesh->uploadError());
     const auto start=std::chrono::steady_clock::now();
     const auto anchor=streamAnchor();
     const auto priority=orderedNearby(anchor.x,anchor.y);
@@ -95,15 +112,15 @@ void World::Impl::uploadParts() {
     }
     for(auto [name,tile]:order) {
         const auto& key=*name;auto& t=*tile;
-        if(!t.geography)continue;
+        if(!t.geography||!t.uploadError.empty())continue;
         const auto& parts=std::any_cast<const PreparedTile&>(t.served->prepared).parts;
         while(t.nextPart<parts.size()) {
             const PartUpload& part=parts[t.nextPart++];
             auto* mesh=engine.resources().getMesh(engine.resources().queueMemoryMesh(part.prepared));
             if(!mesh) {
                 // Said, never silent: a tile missing a part looks like OSM missing it.
-                saida::Log::warn("[World streaming] the geometry arena refused ",part.name," of ",key);
-                continue;
+                failTileUpload(key,t,"geometry arena refused "+part.name);
+                break;
             }
             t.partMeshes.push_back(mesh);
             meshCollider(*t.geography,std::make_unique<saida::MeshNode>(part.name,mesh,
@@ -174,18 +191,20 @@ void World::Impl::updateBuildingLods() {
             candidates.push_back({&t,i,d});
             for(int level=0;level<3;++level) {
                 auto& state=b.levels[size_t(level)];const auto& parts=buildingParts(t,i,level);
+                bool failedUpload=false;
                 bool ready=state.started&&state.nextPart==parts.size();
                 for(size_t n=0;n<state.meshes.size();++n) {
                     auto* mesh=state.meshes[n];ready=ready&&mesh->loaded();
+                    failedUpload|=mesh->uploadState()==saida::Mesh::UploadState::Failed;
                     if(!mesh->loaded()) {pendingV+=parts[n].prepared->geometry.vertices.size();pendingI+=parts[n].prepared->geometry.indices.size();}
                 }
                 b.lod->setLevelReady(level,ready);
                 if(state.started&&state.nextPart==parts.size()&&!ready&&!state.failed&&
-                   engine.resources().assetLoadsSettled()) {
+                   (failedUpload||engine.resources().assetLoadsSettled())) {
                     state.failed=true;
                     saida::Log::error("[World building LOD] ",source.id," level=",level,
                         " GPU upload failed; retaining available representation");
-                    if(level==2)text("stream-status","A building could not be loaded.");
+                    if(level==2)failTileUpload(key,t,"building Far geometry upload failed");
                     if(smoke){testFailed=true;engine.sceneTree().quit();return;}
                 }
                 if(level<2&&state.started)for(const auto& part:parts) {

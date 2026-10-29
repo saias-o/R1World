@@ -34,6 +34,7 @@ int main() {
         }
     }
     assert(w::nearby(2.3522, 48.8566).size() == 9);
+    assert(w::nearby(0., 89.99).size() == 10);
     assert(w::nearby(0., 90.).size() == 12);
     assert(w::nearby(0., -90.).size() == 12);
     const auto crossing = w::advance(179.999, 0., 500., 0.);

@@ -1,4 +1,5 @@
 #include "session.hpp"
+#include "simulation_time.hpp"
 
 namespace r1::world {
 void World::Impl::update(float delta) {
@@ -34,7 +35,18 @@ void World::Impl::update(float delta) {
     if(!refreshInterface())return;
     if(!updateSession(delta,frameSeconds))return;
     updateWorldScene(delta);
-    const double dt=updatePlayer(delta);
+    const SimulationTime simulation(delta);
+    SAIDA_PROFILE_COUNTER("World/DroppedSimulationMs",simulation.dropped*1000.);
+    for(int step=0;step<simulation.steps;++step) {
+        updateCheats(simulation.step);
+        if(drop.phase!=Drop::Zoom)cost.world+=timed([&]{
+            updateTraffic(float(simulation.step));updateBeach(float(simulation.step));
+            updateCrowd(float(simulation.step));updateFauna(float(simulation.step));
+            updatePolice(simulation.step);updateSea(simulation.step);
+        });
+        updatePlayer(float(simulation.step),step==0);
+    }
+    const double dt=simulation.seconds;
     updateCamera(dt);
     if(!updateCapture(dt))return;
     if(!updateHud(delta))return;
@@ -108,7 +120,7 @@ bool World::Impl::updateSession(float delta, double frameSeconds) {
 #ifdef SAIDA_ENABLE_XR
     if(vr) {
         const bool permitted=playing&&!menu&&!optionsOpen&&!cheatOpen&&!playerDown&&
-            !driving&&!sailing&&!piloting&&!swimming&&drop.phase==Drop::None&&jumpOffset<3.&&delta>0;
+            !driving()&&!sailing()&&!piloting()&&!swimming()&&drop.phase==Drop::None&&jumpOffset<3.&&delta>0;
         vrGestures.sample(saida::Time::unscaledElapsed(),permitted);
         if(const char* notice=vrGestures.notice())text("stream-status",notice);
     }
@@ -120,7 +132,6 @@ bool World::Impl::updateSession(float delta, double frameSeconds) {
 }
 
 void World::Impl::updateWorldScene(float delta) {
-    updateCheats(std::min(.05,double(delta)));
     updateInteriors(delta);
     seaTime+=delta;
     {const auto anchor=streamAnchor();ring=orderedNearby(anchor.x,anchor.y);}
@@ -133,7 +144,7 @@ void World::Impl::updateWorldScene(float delta) {
     if(drop.phase!=Drop::Zoom) {
         cost.props=timed([&]{streamProps();});
         cost.distant=timed([&]{updateFar();updateFarPack();updateFarRelief();});
-        cost.world=timed([&]{updateNature();updateTraffic(delta);updateBeach(delta);updateCrowd(delta);updateFauna(delta);updatePolice(delta);updateSea(delta);bendGrass();});
+        cost.world=timed([&]{updateNature();bendGrass();});
     }
     conditionsRead+=delta;
     if(conditionsRead>.5){conditionsRead=0;readConditions();}

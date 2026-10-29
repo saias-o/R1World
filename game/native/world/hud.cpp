@@ -9,20 +9,20 @@ bool World::Impl::updateHud(float delta) {
         updateMinimap();
         text("local-conditions",weatherLabel());
         text("coordinates",number(lat)+"°  /  "+number(lon)+"°     "+number(alt,1)+" m"
-             +(driving?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":"")
-             +(sailing?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" knots":"")
-             +(piloting?"     "+std::to_string(int(std::round(std::abs(plane.speed)*3.6)))+" km/h · "
+             +(driving()?"     "+std::to_string(int(std::round(std::abs(carSpeed)*3.6)))+" km/h":"")
+             +(sailing()?"     "+std::to_string(int(std::round(std::abs(boat.speed)*1.943844)))+" knots":"")
+             +(piloting()?"     "+std::to_string(int(std::round(std::abs(plane.speed)*3.6)))+" km/h · "
                 +std::to_string(int(std::round(plane.alt-planeGround)))+" m AGL"
                 +(plane.helicopter()?"":" · throttle "+std::to_string(int(std::round(plane.lever*100)))+" %"):""));
         Reach within;BoatReach moored;PlaneReach standing;double howFar=0,boatFar=0,planeFar=0;
-        std::string mode=driving
+        std::string mode=driving()
             ?" · Driving · F: get out"
-            :piloting?std::string(plane.helicopter()
+            :piloting()?std::string(plane.helicopter()
                 ?" · Helicopter · Click: rocket · 3: launcher · E: reload · Space/Shift: climb/descend · F: get out"
                 :" · Plane · W/S: throttle · A/D: bank · Space/Shift: pitch up/down · F: get out")
               +(tile(lon,lat)?"":" · terrain below the aircraft unknown")
-            :sailing?" · At the helm · F: disembark or step aboard"
-            :swimming?" · In the water · WASD/ZQSD: swim · F: climb back aboard"
+            :sailing()?" · At the helm · F: disembark or step aboard"
+            :swimming()?" · In the water · WASD/ZQSD: swim · F: climb back aboard"
             :nearestAircraft(standing,planeFar)?" · F: take the aircraft"
             :nearestBoat(moored,boatFar)?" · F: take the boat"
             :(nearestCar(within,howFar)?" · F: get in the vehicle":performanceDebug?" · Esc: map":" · M: map");

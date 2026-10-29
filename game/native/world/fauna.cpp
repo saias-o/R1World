@@ -281,13 +281,13 @@ int World::Impl::localMonth() {
 
 void World::Impl::updateFauna(float delta) {
     SAIDA_PROFILE_SCOPE("World/Fauna");
-    const double dt=std::min(.05,double(delta));
+    const double dt=double(delta);
     updateAnimalRemains();
     const double hour=localSolarHour();
     const int month=localMonth();
     const auto weather=effectiveWeather();
     size_t remaining=kFaunaAnimals;
-    const bool onFoot=!driving&&!sailing&&!piloting&&!swimming;
+    const bool onFoot=!driving()&&!sailing()&&!piloting()&&!swimming();
     for(auto tile:ring) {
         auto found=loaded.find(tile.key());
         if(found==loaded.end())continue;
@@ -311,7 +311,7 @@ void World::Impl::updateFauna(float delta) {
             const double pace=std::hypot(footEast,footNorth);
             scene.threats.push_back({{float(p.x),float(p.z)},float(pace>3.?1.4:1.)});
         }
-        if(driving) {
+        if(driving()) {
             const glm::dvec3 p=l.frame.local(ecef(carLon,carLat,carAlt));
             scene.threats.push_back({{float(p.x),float(p.z)},float(std::abs(carSpeed)>3.?1.5:.6)});
         }

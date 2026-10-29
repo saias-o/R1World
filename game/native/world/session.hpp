@@ -1,5 +1,7 @@
 #pragma once
 #include "world.hpp"
+#include "travel_state.hpp"
+#include "remains_store.hpp"
 // Game-side integration with Saida's public C++ API.
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -147,7 +149,13 @@ class World::Impl : public Rml::EventListener {
     // car, not a copy of it moved under his feet.
     struct Parked {saida::Node* node; double lon,lat,alt,yaw;};
     std::vector<Parked> parked;
-    bool driving=false,wasEnterKey=false,carParked=false,carSinking=false,wheelsReported=false;
+    TravelState travel;
+    bool driving() const {return travel.mode()==TravelMode::Car;}
+    bool sailing() const {return travel.mode()==TravelMode::Boat;}
+    bool piloting() const {return travel.mode()==TravelMode::Aircraft;}
+    bool swimming() const {return travel.mode()==TravelMode::Swim;}
+    void transitionTravel(TravelMode next,bool carryView=true);
+    bool wasEnterKey=false,carParked=false,carSinking=false,wheelsReported=false;
     double carLon=0,carLat=0,carAlt=0,carYaw=0,carSpeed=0,wheelSpin=0,steerShown=0;
     double carWaterLevel=0,carSinkDepth=0;
     // Where the player is looking, measured from behind the car. The walk
@@ -163,7 +171,7 @@ class World::Impl : public Rml::EventListener {
         double length=8,beam=3,top=10,accel=2,turn=30;
         double lon=0,lat=0,alt=0,yaw=0,speed=0;
     };
-    bool sailing=false,swimming=false; Vessel boat; std::vector<Vessel> leftBoats;
+    Vessel boat; std::vector<Vessel> leftBoats;
     double seaTime=0,swimTime=0,swimHeading=0,swimLean=0;
     struct SeaShip {std::string id; Vessel v; double phase=0;};
     std::vector<SeaShip> seaShips; std::set<std::string> seaTaken;
@@ -191,7 +199,7 @@ class World::Impl : public Rml::EventListener {
         std::vector<saida::Node*> gear,mainRotors,tailRotors;
         bool helicopter() const {return type&&type->klass=="helicopter";}
     };
-    bool piloting=false; Aircraft plane; std::vector<Aircraft> leftAircraft;
+    Aircraft plane; std::vector<Aircraft> leftAircraft;
     std::map<std::string,saida::Node*> aircraftPrototypes;
     // The last surface seen under the aircraft: what it keeps to over tiles
     // that have not streamed yet, rather than inventing a ground.
@@ -442,9 +450,14 @@ class World::Impl : public Rml::EventListener {
         bool charred=false,stored=false,refused=false,distant=false;
         glm::vec3 resumeVelocity{0},resumeSpin{0}; // in this remains' geographic frame
         json saved;
+        fs::path savedPath;
     };
     std::vector<AnimalRemains> animalRemains;
     std::set<std::string> animalDeaths;
+    fs::path animalSaveRoot;
+    RemainsWriter animalWriter;
+    RemainsIndex animalIndex;
+    std::set<size_t> mountedRemains;
     bool animalSaveBlocked=false,animalSaveErrorSaid=false;
 
     static std::string animalResidentId(uint64_t group,size_t member);
@@ -456,9 +469,12 @@ class World::Impl : public Rml::EventListener {
     void rebaseAnimalRemains(const Frame& next);
     void charAnimal(Beast& b);
     json snapshotAnimal(const AnimalRemains& c) const;
-    void saveAnimalRemains();
+    std::chrono::steady_clock::time_point nextAnimalSave{};
+    void saveAnimalRemains(bool flush=false);
     void loadAnimalRemains();
 
+    bool unmountAnimalRemains(size_t index);
+    bool reserveAnimalSimulation(AnimalRemains* except=nullptr);
     void buildAnimalRestBody(AnimalRemains& c);
     void updateAnimalRemains();
     bool wakeAnimalRemains(AnimalRemains& c,const glm::vec3& velocity={},const glm::vec3& spin={});
@@ -1633,6 +1649,7 @@ private:
     // milliseconds of parts a frame, and the rest follows over the next frames.
     // Physics follows each uploaded mesh; arrivals wait for its first sync.
     void uploadParts();
+    void failTileUpload(const std::string& key, Loaded& tile, const std::string& reason);
     static const std::vector<PartUpload>& buildingParts(const Loaded& t,size_t index,int level);
     static const std::vector<r1::MeshPart>& buildingMaterials(const Loaded& t,size_t index,int level);
     static size_t residentVertices(const json& data);
@@ -1896,7 +1913,7 @@ private:
     bool refreshInterface();
     bool updateSession(float delta, double frameSeconds);
     void updateWorldScene(float delta);
-    double updatePlayer(float delta);
+    double updatePlayer(float delta, bool sampleMouse=true);
     void updateCamera(double dt);
     bool updateCapture(double dt);
     bool updateHud(float delta);

@@ -2,8 +2,9 @@
 
 namespace r1::world {
 
-double World::Impl::updatePlayer(float delta) {
+double World::Impl::updatePlayer(float delta, bool sampleMouse) {
     auto mouse=saida::Input::mouseDelta();
+    if(!sampleMouse)mouse={0,0};
     // At the wheel the mouse does not steer -- the car does -- so it turns
     // the head instead: a free yaw around the car, which is what you want
     // at a junction and what the first drive was missing entirely. It
@@ -17,11 +18,11 @@ double World::Impl::updatePlayer(float delta) {
             if(dropSteered())yaw=wrap(yaw+mouse.x*.12);else drop.lookYaw=wrap(drop.lookYaw+mouse.x*.12);
             drop.lookPitch=std::clamp(drop.lookPitch-mouse.y*.12,-35.,35.);
         }
-    } else if(driving||sailing||piloting) {
+    } else if(driving()||sailing()||piloting()) {
         if(std::abs(mouse.x)>1e-4){lookYaw=wrap(lookYaw+mouse.x*.12);lookIdle=0;}
         else lookIdle+=delta;
-        if(!aiming&&lookIdle>.6&&std::abs(driving?carSpeed:sailing?boat.speed:plane.speed)>2.)
-            lookYaw-=lookYaw*(1-std::exp(-2.2*std::min(.05,double(delta))));
+        if(!aiming&&lookIdle>.6&&std::abs(driving()?carSpeed:sailing()?boat.speed:plane.speed)>2.)
+            lookYaw-=lookYaw*(1-std::exp(-2.2*double(delta)));
     } else yaw+=mouse.x*.12;
     if(!dropFlying())pitch=std::clamp(pitch-mouse.y*.12,-65.,25.);
     double f=(held(GLFW_KEY_W)||held(GLFW_KEY_Z)?1.:0.)-(held(GLFW_KEY_S)?1.:0.);
@@ -41,7 +42,7 @@ double World::Impl::updatePlayer(float delta) {
             perfReadyWait=ready?perfReadyWait+delta:0.;
             if(perfReadyWait>=2.){perfReady=true;saida::Log::info("[World perf] warm ",perfSmoke," starts, preset=",toasterMode?"toaster":"standard");}
         }
-        if(perfSmoke.empty()||perfReady){f=1;r=0;smokeWalk+=std::min(.05,double(delta));}
+        if(perfSmoke.empty()||perfReady){f=1;r=0;smokeWalk+=double(delta);}
         else f=r=0;
         if(std::getenv("R1WORLD_TEST_VEHICLE_ESCAPE"))f=r=0;
         if(qualitySwitchSmoke&&perfReady&&qualitySwitches<24) {
@@ -70,9 +71,9 @@ double World::Impl::updatePlayer(float delta) {
     if(smokeApproach) {
         auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
         yaw=std::atan2(to.x,-to.z)/rad;f=1;r=0;
-        smokeApproachTime+=std::min(.05,double(delta));
+        smokeApproachTime+=double(delta);
     }
-    double length=std::hypot(f,r),dt=std::min(.05,double(delta));
+    double length=std::hypot(f,r),dt=double(delta);
     glm::vec3 gestureStep(0);
 #ifdef SAIDA_ENABLE_XR
     if(vr) {
@@ -88,10 +89,10 @@ double World::Impl::updatePlayer(float delta) {
     // enterCar/leaveCar so that every one of them says something.
     bool doorKey=held(GLFW_KEY_F);
     if(doorKey&&!wasEnterKey&&!playerDown&&!dropFlying()) {
-        if(driving)leaveCar();
-        else if(sailing){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
-        else if(piloting)leaveAircraft();
-        else if(swimming){
+        if(driving())leaveCar();
+        else if(sailing()){if(hopAboard()==HopResult::NoTarget)leaveBoat();}
+        else if(piloting())leaveAircraft();
+        else if(swimming()){
             if(!enterBoat()&&!enterAircraft())text("stream-status","No boat in reach — swim to one.");
         }
         else {
@@ -124,15 +125,15 @@ double World::Impl::updatePlayer(float delta) {
     } else if(dropFlying()) {
         flyDrop(dt,f,r);
         moving=true;
-    } else if(driving) {
+    } else if(driving()) {
         if(smokeDriving){f=smokeBrake?-1.:1.;r=0;}
         driveCar(dt,f,r,held(GLFW_KEY_SPACE)&&!smokeDriving);
         moving=std::abs(carSpeed)>.2;
-    } else if(sailing) {
+    } else if(sailing()) {
         if(smokeSailing){f=smokeSailBrake?-1.:1.;r=0;}
         sailBoat(dt,f,r);
         moving=std::abs(boat.speed)>.2;
-    } else if(piloting) {
+    } else if(piloting()) {
         double up=(held(GLFW_KEY_SPACE)||held(GLFW_KEY_UP)?1.:0.)
                  -(held(GLFW_KEY_LEFT_SHIFT)||held(GLFW_KEY_LEFT_CONTROL)||held(GLFW_KEY_DOWN)?1.:0.);
         if(smokeFly){f=smokeF;r=smokeR;up=smokeUp;}
@@ -140,7 +141,7 @@ double World::Impl::updatePlayer(float delta) {
         lon=plane.lon;lat=plane.lat;alt=plane.alt;yaw=plane.yaw;
         moving=std::abs(plane.speed)>.2||plane.airborne;
         request(lon,lat);
-    } else if(swimming) {
+    } else if(swimming()) {
         swimTime+=dt;
         if(smokeSwimming){f=1.;r=0.;length=1.;}
         if(smokeWaterSpawn){f=1.;r=0.;length=1.;smokeWalk+=dt;}
@@ -155,7 +156,7 @@ double World::Impl::updatePlayer(float delta) {
                     swimHeading=wrap(std::atan2(east,north)/rad);
                 } else if(!obstructed(next.x,next.y,alt)) {
                     const bool wading=onWater(next.x,next.y);
-                    lon=next.x;lat=next.y;alt=height(lon,lat,alt);swimming=false;moving=true;
+                    lon=next.x;lat=next.y;alt=height(lon,lat,alt);transitionTravel(TravelMode::Foot);moving=true;
                     text("stream-status",wading?"You can stand.":"Ashore.");
                     if(wading)saida::Log::info("[World swim] standing at ",lon,", ",lat," in ",waterLevel(lon,lat)-alt," m of water");
                     else saida::Log::info("[World swim] ashore at ",lon,", ",lat);
@@ -179,7 +180,7 @@ double World::Impl::updatePlayer(float delta) {
             const double support=std::max(height(next.x,next.y,alt),next.z);
             if(deepWater(next.x,next.y,support)) {
                 lon=next.x;lat=next.y;alt=waterLevel(lon,lat);
-                swimming=true;swimTime=0;swimLean=0;
+                transitionTravel(TravelMode::Swim);
                 swimHeading=wrap(std::atan2(east,north)/rad);
                 jumpOffset=jumpVelocity=0;moving=true;
                 text("stream-status","In the water — swim for the shore.");
@@ -210,8 +211,8 @@ double World::Impl::updatePlayer(float delta) {
     // Not while he lies in the ragdoll: its bodies follow his node, which
     // the rebase does not carry. He is up again in a few seconds.
     if(!playerDown&&glm::length(origin.local(ecef(lon,lat,alt)))>kRebaseDistance)rebaseOrigin();
-    if(!playerDown&&!driving&&!sailing&&!piloting&&!dropFlying()) {
-        if(swimming) {
+    if(!playerDown&&!driving()&&!sailing()&&!piloting()&&!dropFlying()) {
+        if(swimming()) {
             jumpOffset=jumpVelocity=0;wasJump=false;
             swimLean+=(double(moving)-swimLean)*(1-std::exp(-5*dt));
             const double lean=35.*rad*swimLean;
@@ -232,7 +233,7 @@ double World::Impl::updatePlayer(float delta) {
             if(jumpOffset<=0) {
                 // Come down on water, from an aircraft: he swims.
                 if(jumpVelocity<-5.&&tile(lon,lat)&&deepWater(lon,lat,alt)) {
-                    swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);
+                    transitionTravel(TravelMode::Swim);swimHeading=yaw;alt=waterLevel(lon,lat);
                     text("stream-status","In the water — swim for the shore.");
                 } else if(jumpVelocity<0)landed(-jumpVelocity);
                 jumpOffset=0;jumpVelocity=0;

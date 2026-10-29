@@ -3,6 +3,7 @@
 #include "net.hpp"
 #include "relief.hpp"
 #include "seaice.hpp"
+#include "../atomic_file.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -31,9 +32,12 @@ nlohmann::json readJson(const std::string& path) {
     // Whole file, then parse: nlohmann reading a stream is several times slower.
     std::ifstream f(path, std::ios::binary | std::ios::ate);
     if (!f) throw std::runtime_error("cannot read " + path);
-    std::string text(size_t(f.tellg()), ' ');
+    const auto size = f.tellg();
+    if (size < 0) throw std::runtime_error("cannot size " + path);
+    std::string text(size_t(size), ' ');
     f.seekg(0);
     f.read(text.data(), std::streamsize(text.size()));
+    if (!f) throw std::runtime_error("cannot read complete file " + path);
     return nlohmann::json::parse(text);
 }
 
@@ -41,12 +45,7 @@ namespace {
 
 // Written whole, then moved into place: a reader never sees half a file.
 void writeJson(const std::string& path, const nlohmann::json& value) {
-    fs::create_directories(fs::path(path).parent_path());
-    const std::string tmp = path + ".tmp" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
-    { std::ofstream f(tmp, std::ios::binary); f << value.dump() << "\n"; }
-    std::error_code ec;
-    fs::rename(tmp, path, ec);
-    if (ec) { fs::remove(path, ec); fs::rename(tmp, path); }
+    atomicWrite(path, value.dump() + "\n");
 }
 
 // Python's repr of a float: the shortest text that reads back the same.
@@ -65,8 +64,16 @@ ElevationGrid gridFrom(const nlohmann::json& doc, const Bounds& b) {
     ElevationGrid g;
     g.bounds = b;
     g.size = doc.at("size").get<int>();
-    for (const auto& row : doc.at("values")) for (const auto& v : row) g.values.push_back(v.get<double>());
-    if (int(g.values.size()) != g.size * g.size) throw std::runtime_error("elevation grid of the wrong size");
+    if (g.size < 2 || g.size > 4096 || !doc.at("values").is_array() || doc.at("values").size() != size_t(g.size))
+        throw std::runtime_error("elevation grid of the wrong size");
+    for (const auto& row : doc.at("values")) {
+        if (!row.is_array() || row.size() != size_t(g.size)) throw std::runtime_error("invalid elevation row");
+        for (const auto& v : row) {
+            const double h = v.get<double>();
+            if (!std::isfinite(h)) throw std::runtime_error("non-finite elevation");
+            g.values.push_back(h);
+        }
+    }
     return g;
 }
 
@@ -242,29 +249,43 @@ std::function<double(double, double)> imageSampler(const std::string& root, int 
 
 std::optional<std::pair<ElevationGrid, std::string>> ObservationStore::ground(const Tile& tile) const {
     const Bounds b = tile.bounds();
-    if (auto path = find(tile, "ground-elevation.json")) {
-        const auto doc = readJson(*path);
-        if (!sameBounds(doc.at("bounds"), b)) throw std::runtime_error("Ground elevation cache bounds mismatch");
-        auto grid = gridFrom(doc, b);
-        auto source = doc.at("source").get<std::string>();
-        // Read before the ground was read finely: seven samples a side, each
-        // the nearest pixel. The images it was read from are on disk, and the
-        // finer read needs nothing else -- no network for a place visited.
-        if (source.rfind("Mapzen", 0) == 0 && grid.size < kTerrainMeshSize) {
+    for (const char* name : {"ground-elevation.json", "elevation.json"}) {
+        for (int version = kVersion; version >= kFirstVersion; --version) {
+            const std::string path = root_ + "/cache/world/" + tile.key(version) + "/" + name;
+            std::error_code ec;
+            if (!fs::exists(path, ec)) continue;
+            std::optional<std::pair<ElevationGrid, std::string>> result;
             try {
-                std::tie(grid, source) = terrainTiles(b, root_, false);
-                writeGround(tileFolder(tile) + "/ground-elevation.json", grid, source);
-            } catch (const SourceUnavailable& e) {
-                if (log_) log_("GROUND-COARSE " + tile.key() + " kept: " + e.what());
+                const auto doc = readJson(path);
+                if (!sameBounds(doc.at("bounds"), b)) throw std::runtime_error("elevation cache bounds mismatch");
+                auto grid = gridFrom(doc, b);
+                auto source = std::string(name) == "elevation.json"
+                    ? std::string("Copernicus DEM GLO-90 via Open-Meteo (fallback)")
+                    : doc.at("source").get<std::string>();
+                result = std::make_pair(std::move(grid), std::move(source));
+            } catch (const std::bad_alloc&) { throw; }
+              catch (const std::exception& e) {
+                // Only regenerable observations are quarantined. A refused
+                // quarantine is diagnosed but does not prevent older reads.
+                auto quarantine = path + ".corrupt-" + std::to_string(
+                    std::chrono::system_clock::now().time_since_epoch().count());
+                fs::rename(path, quarantine, ec);
+                if (log_) log_("GROUND-CACHE-CORRUPT " + path + ": " + e.what() +
+                    (ec ? " (quarantine failed: " + ec.message() + ")" : " -> " + quarantine));
+                continue;
             }
+            auto& [grid, source] = *result;
+            if (source.rfind("Mapzen", 0) == 0 && grid.size < kTerrainMeshSize) {
+                try {
+                    auto upgraded = terrainTiles(b, root_, false);
+                    writeGround(tileFolder(tile) + "/ground-elevation.json", upgraded.first, upgraded.second);
+                    result = std::move(upgraded);
+                } catch (const std::exception& e) {
+                    if (log_) log_("GROUND-COARSE " + tile.key() + " kept: " + e.what());
+                }
+            }
+            return result;
         }
-        return std::make_pair(std::move(grid), std::move(source));
-    }
-    // The GLO-90 grid an older worker fetched and never converted.
-    if (auto path = find(tile, "elevation.json")) {
-        const auto doc = readJson(*path);
-        if (sameBounds(doc.at("bounds"), b))
-            return std::make_pair(gridFrom(doc, b), std::string("Copernicus DEM GLO-90 via Open-Meteo (fallback)"));
     }
     return std::nullopt;
 }

@@ -184,3 +184,15 @@ game/generated/world-windows/R1World.exe --geo-contract
 
 Les journaux de cette session et l'audit de déplacement sont conservés localement
 dans `game/generated/world-refactor/` (répertoire généré, non versionné).
+
+
+## Possession — suivi du 29 octobre 2026
+
+Le correctif A8 de l'audit extrait `TravelState` : un seul mode Foot, Swim, Car,
+Boat ou Aircraft, lu par les domaines. Les anciens booléens modifiables sont
+supprimés. `transitionTravel` détache le personnage de la moto avant de changer
+le propriétaire, puis applique activation, position et caméra. Les entrées,
+sorties, éjections, transitions dans l'eau et téléportations passent par cette
+opération. Validation : matrice console des modes, smoke complet voiture/moto
+et smoke roquette avec éjection avion/voiture. Le reste des acteurs continue à
+partager la session privée ; ce suivi ne clôt pas tout le découplage envisagé.

@@ -30,6 +30,7 @@ set(world_runtime
     native/world/distant.cpp
     native/world/environment.cpp
     native/world/interiors.cpp
+    native/world/travel.cpp
     native/world/vehicles.cpp
     native/world/boats.cpp
     native/world/aircraft.cpp
@@ -40,6 +41,7 @@ set(world_runtime
     native/world/fauna.cpp
     native/world/bird.cpp
     native/world/animal_remains.cpp
+    native/world/remains_store.cpp
     native/world/combat.cpp
     native/world/rocket.cpp
     native/world/police.cpp
@@ -127,8 +129,12 @@ add_executable(r1_world_options_store_test EXCLUDE_FROM_ALL
     native/tests_engine/world_options_store_test.cpp native/world/options_store.cpp)
 target_include_directories(r1_world_options_store_test PRIVATE "${SaidaEngine_SOURCE_DIR}/third_party/json")
 
+add_executable(r1_world_runtime_contract_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_runtime_contract_test.cpp native/world/remains_store.cpp)
+target_include_directories(r1_world_runtime_contract_test PRIVATE "${SaidaEngine_SOURCE_DIR}/third_party/json")
+
 enable_testing()
-foreach(check geography tile_preparation menu_tile_cache options_store)
+foreach(check geography tile_preparation menu_tile_cache options_store runtime_contract)
     target_compile_features(r1_world_${check}_test PRIVATE cxx_std_17)
     target_compile_options(r1_world_${check}_test PRIVATE -UNDEBUG)
     target_include_directories(r1_world_${check}_test PRIVATE native)
@@ -138,4 +144,20 @@ foreach(check geography tile_preparation menu_tile_cache options_store)
     set_tests_properties(world_${check} PROPERTIES LABELS "headless;world" TIMEOUT 30)
 endforeach()
 add_custom_target(r1_world_headless_tests DEPENDS
-    r1_world_geography_test r1_world_tile_preparation_test r1_world_menu_tile_cache_test r1_world_options_store_test)
+    r1_world_geography_test r1_world_tile_preparation_test r1_world_menu_tile_cache_test r1_world_options_store_test r1_world_runtime_contract_test)
+
+# The same generator/service tests as build_tools.sh, now compiled by CMake
+# so a headless run cannot silently exercise an old standalone binary.
+file(GLOB generator_checks CONFIGURE_DEPENDS "native/tests/*.cpp")
+add_executable(r1_generator_test EXCLUDE_FROM_ALL ${generator_checks} ${generator} ${clipper} native/minimap.cpp)
+target_compile_features(r1_generator_test PRIVATE cxx_std_17)
+target_compile_options(r1_generator_test PRIVATE -ffp-contract=off)
+target_include_directories(r1_generator_test PRIVATE native native/third_party/clipper2/include
+    native/third_party/earcut "${SaidaEngine_SOURCE_DIR}/third_party/json")
+target_link_libraries(r1_generator_test PRIVATE winhttp)
+add_dependencies(r1_world_headless_tests r1_generator_test)
+foreach(suite Service Sources Seams)
+    add_test(NAME generator_${suite} COMMAND r1_generator_test --game "${CMAKE_CURRENT_SOURCE_DIR}" "${suite}.")
+    set_tests_properties(generator_${suite} PROPERTIES LABELS "headless;generator" TIMEOUT 180
+        ENVIRONMENT "HTTP_PROXY=http://127.0.0.1:9;HTTPS_PROXY=http://127.0.0.1:9")
+endforeach()

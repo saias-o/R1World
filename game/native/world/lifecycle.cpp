@@ -108,6 +108,7 @@ World::Impl::Impl(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest ca
     // Nine visible tiles plus three forecast tiles. The former 36-tile
     // cache retained gigabytes of prepared Paris geometry off screen.
     options.keep=12;
+    options.requestLimit=kStreamRequestLimit;
     options.availableMemory=[] { return saida::MemoryProfiler::availableHostBytes(); };
     // Nine tiles can be resident together. Leave 5% of their share for
     // landmarks that remain visible across a tile boundary.
@@ -123,7 +124,8 @@ World::Impl::Impl(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest ca
     e.window().setCursorCaptured(false);
 }
 
-World::Impl::~Impl(){saveAnimalRemains();clearPolice();for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
+World::Impl::~Impl(){saveAnimalRemains(true);animalWriter.flush();saveAnimalRemains(true);animalWriter.flush();
+    if(!animalWriter.error().empty())animalSaveError(animalWriter.error());clearPolice();for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
     for(const char* type:{"click","mousedown","mouseup","mousemove","mousescroll","dblclick"})e->RemoveEventListener(type,this);}}
 
 void World::Impl::setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model) {

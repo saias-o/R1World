@@ -246,7 +246,7 @@ void World::Impl::updateCrowd(float delta) {
         const glm::dvec3 look=glm::transpose(l.frame.basis)*origin.basis*glm::dvec3(ahead.x,ahead.y,ahead.z);
         const double flat=std::hypot(look.x,look.z);
         if(flat>1e-6){scene.faceX=look.x/flat;scene.faceZ=look.z/flat;}
-        if(driving) {
+        if(driving()) {
             const glm::dvec3 p=l.frame.local(ecef(carLon,carLat,carAlt));
             scene.carX=p.x;scene.carZ=p.z;scene.carSpeed=std::abs(carSpeed);
         }
@@ -254,15 +254,15 @@ void World::Impl::updateCrowd(float delta) {
         // is east and its z south, near enough across one tile), and his
         // eyes, which is what people look at.
         glm::dvec3 head(0);
-        const bool onFoot=!driving&&!sailing&&!piloting&&!swimming;
+        const bool onFoot=!driving()&&!sailing()&&!piloting()&&!swimming();
         if(onFoot) {
             const glm::dvec3 p=l.frame.local(ecef(lon,lat,alt));
             scene.playerX=p.x;scene.playerZ=p.z;
             scene.playerVX=footEast;scene.playerVZ=-footNorth;
             head=l.frame.local(ecef(lon,lat,alt+jumpOffset+playerHeight*.93));
         }
-        l.crowd.update(std::min(.05,double(delta)),scene);
-        syncPeople(l,eye,std::min(.05,double(delta)),onFoot?&head:nullptr);
+        l.crowd.update(double(delta),scene);
+        syncPeople(l,eye,double(delta),onFoot?&head:nullptr);
     }
 }
 

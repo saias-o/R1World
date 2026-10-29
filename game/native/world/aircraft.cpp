@@ -154,7 +154,7 @@ bool World::Impl::nearestAircraft(PlaneReach& out,double& distance) {
 }
 
 bool World::Impl::enterAircraft() {
-    if(piloting||driving||sailing)return false;
+    if(piloting()||driving()||sailing())return false;
     PlaneReach target;double distance=0;
     if(!nearestAircraft(target,distance))return false;
     Aircraft a;
@@ -178,13 +178,11 @@ bool World::Impl::enterAircraft() {
     }
     a.speed=0;a.climb=0;a.lever=0;a.thrust=0;a.airborne=false;a.pitch=0;a.roll=0;
     collectAircraftParts(a);
-    plane=std::move(a);piloting=true;swimming=false;planeStopped=false;
+    plane=std::move(a);planeStopped=false;
     if(plane.helicopter())selectWeapon(r1::combat::Weapon::RocketLauncher);
     lookYaw=0;lookIdle=0;
     lon=plane.lon;lat=plane.lat;alt=plane.alt;yaw=plane.yaw;
-    player->setEnabled(false);
-    for(auto* anim:animators)anim->play("idle");
-    jumpOffset=jumpVelocity=0;
+    transitionTravel(TravelMode::Aircraft,false);
     text("stream-status",plane.helicopter()
         ?"Flying. Click: rocket · 3: launcher · E: reload · Space/Shift: climb/descend · F: get out."
         :"Flying. W/S: throttle · A/D: bank · Space/Shift: pitch up/down · F: get out.");
@@ -203,7 +201,7 @@ void World::Impl::keepAircraft(Aircraft a) {
 }
 
 bool World::Impl::leaveAircraft() {
-    if(!piloting)return false;
+    if(!piloting())return false;
     const auto& t=*plane.type;
     const double s=std::sin(plane.yaw*rad),c=std::cos(plane.yaw*rad),half=fuselageHalf(t);
     std::optional<glm::dvec2> dry,wet;
@@ -229,8 +227,7 @@ bool World::Impl::leaveAircraft() {
     }
     const glm::dvec2 at=dry?*dry:*wet;
     const double from=plane.alt,climb=plane.climb;
-    piloting=false;keepAircraft(plane);plane=Aircraft{};
-    yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
+    keepAircraft(plane);plane=Aircraft{};
     lon=at.x;lat=at.y;
     swimTime=0;swimHeading=yaw;swimLean=0;
     alt=dry?height(lon,lat):waterLevel(lon,lat);
@@ -238,13 +235,10 @@ bool World::Impl::leaveAircraft() {
     // he is in it (the landing, in the frame's walk).
     const double drop=from-alt;
     const bool falls=drop>.5;
-    swimming=!dry&&!falls;
     jumpOffset=falls?drop:0.;
     jumpVelocity=falls?std::clamp(climb,-kFallTerminal,15.):0.;
-    player->setEnabled(true);
-    player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
-    followDistance=std::min(followDistance,kOnFootFollow);
-    text("stream-status",falls?"Jump!":swimming?"In the water. F: climb back aboard.":"On foot. F: take the aircraft again.");
+    transitionTravel(!dry&&!falls?TravelMode::Swim:TravelMode::Foot);
+    text("stream-status",falls?"Jump!":swimming()?"In the water. F: climb back aboard.":"On foot. F: take the aircraft again.");
     saida::Log::info("[World aircraft] ",falls?"jumped":"stepped down"," at ",lon,", ",lat,
                      falls?", falling "+std::to_string(int(drop))+" m":"",!dry?" into the water":"");
     request(lon,lat);
@@ -267,7 +261,8 @@ void World::Impl::clearAircraft() {
     for(auto& a:leftAircraft)if(a.node)a.node->queueFree();
     leftAircraft.clear();
     if(plane.node)plane.node->queueFree();
-    plane=Aircraft{};piloting=false;
+    if(piloting())transitionTravel(TravelMode::Foot);
+    plane=Aircraft{};
 }
 
 bool World::Impl::moveAircraft(double dt,double horizontal) {
@@ -420,7 +415,7 @@ void World::Impl::placeAircraft(double dt) {
         for(auto* m:a.mainRotors)m->transform().rotation=glm::angleAxis(float(a.mainSpin),glm::vec3(0,1,0));
         for(auto* m:a.tailRotors)m->transform().rotation=glm::angleAxis(float(a.tailSpin),glm::vec3(1,0,0));
     };
-    if(piloting)place(plane);
+    if(piloting())place(plane);
     for(auto& a:leftAircraft) {
         // A helicopter left behind winds down rather than stopping dead.
         a.rotor=std::max(0.,a.rotor-dt/8.);

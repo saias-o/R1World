@@ -33,7 +33,8 @@ public:
         int threads = 0;  // 0: up to two cooks, keeping room for the frame
         std::function<void(ServedTile&)> prepare;
         std::function<void(const std::string&)> log;
-        size_t keep = 36;  // hard cache/request limit; priority beyond it waits for the next want()
+        size_t keep = 36;  // cache target; accepted requests remain pinned
+        size_t requestLimit = 36; // independent hard bound on accepted requests
         size_t tileVertexTarget = kTileVertexBudget;
         // Explicit feature migration: supplement old observations without
         // re-downloading them. Cached retail layers never revalidate.
@@ -44,6 +45,8 @@ public:
         // Optional source overrides for deterministic streaming tests.
         std::function<void(const Bounds&, const std::string&)> fetchOsm;
         std::function<void(const Bounds&, const std::string&)> fetchAero;
+        std::function<void(const Bounds&, const std::string&)> fetchRetail;
+        std::function<std::vector<std::pair<Tile, Canopy>>(const Tile&)> fetchCanopyBand;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> quickGround;
         std::function<std::pair<ElevationGrid, std::string>(const Tile&)> fetchGround;
         // Host headroom supplied by the runtime (no engine dependency here).
@@ -58,7 +61,8 @@ public:
     WorldService& operator=(const WorldService&) = delete;
 
     // The tiles wanted, most urgent first, and the neighbourhoods they form.
-    void want(std::vector<Tile> priority, std::vector<std::vector<Tile>> groups);
+    struct Admission { std::vector<Tile> accepted, refused; };
+    Admission want(std::vector<Tile> priority, std::vector<std::vector<Tile>> groups);
     // The cooked tile, or null while it is not ready.
     std::shared_ptr<const ServedTile> find(const Tile& tile) const;
 

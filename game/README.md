@@ -2754,21 +2754,32 @@ retain texture detail, normal maps and alpha cutouts on both LODs; shared
 materials on living animals remain unchanged. A later bullet or rocket can
 move an existing corpse again.
 
-Bodies belong to independent geographic anchors in the world, outside living
-population slots and room/tile ownership. They have no lifetime, distance
-retirement or corpse-count eviction. Once settled, their exact fallen pose
-is retained, animation stops and a compound static collider replaces the
-dynamic joints until another weapon impact. A tumble leaving resident terrain
-is paused with its velocity and resumes when that terrain is resident again;
-its node remains present. Floating-origin rebases carry bodies and colliders.
+Bodies belong to independent geographic anchors outside living population slots
+and room/tile ownership. Deaths and poses persist indefinitely; at most 32
+bodies mount within 2 km, with at most eight articulated simulations. Distant
+bodies are snapshotted and unmounted, including their colliders, and restored
+on return. At the simulation cap an older tumble freezes at its current pose.
+Settled bodies retain a compound static collider until another weapon impact.
+The physics budget includes these bodies and up to 64 joints per live animal.
+Floating-origin rebases carry the mounted bodies and colliders.
 
-`cache/fauna-remains.json` stores stable resident/member IDs, model, charred
-state, geographic frame, transforms, bone names, local pose and pending
-motion. Death IDs prevent wildlife respawns and are replayed after a tile's
-population resets. Saved bodies mount on approach (within 2 km, once terrain
-is available), then remain mounted. Writes use an atomic Windows replacement;
-invalid saves are reported and preserved rather than overwritten. Missing or
-changed skeletons are reported explicitly. Deleting this save resets deaths.
+`cache/fauna-remains/<resident-sha256>.json` stores independent records with
+stable resident/member ID, model, charred state, geographic frame, transforms,
+bone names, pose and pending motion. Startup retains a geographic metadata
+index and death IDs; historical skeleton poses stay on disk. Death IDs prevent
+wildlife respawns after tile resets. Legacy `cache/fauna-remains.json` is read
+and migrated, with the original retained as a recovery copy. Existing per-body
+records win when a migration is resumed. Invalid saves block writes and are
+reported; player saves are never quarantined or deleted automatically.
+
+Snapshots of mounted bodies are checked at most twice per second. A joined
+worker serializes and atomically replaces only changed records, coalescing
+pending changes per body in a 64-record queue. Unmount snapshots are enqueued
+before scene teardown; a full or failed queue retains the body and reports a
+refusal when no new slot can be made. Shutdown drains accepted snapshots. A
+crash can lose changes since the last completed write. Metadata and disk usage
+still grow with history; scene nodes, poses in memory, colliders and queued
+writes have explicit limits. Smoke saves use isolated generated directories.
 
 Verification is entirely headless: build `r1_animal_physics_test` through the
 game SDK, then run `generated/native-tests/r1_animal_physics_test.exe`.
@@ -2780,7 +2791,7 @@ member retirement; the five targeted engine physics/ragdoll CTest suites pass
 (106 ragdoll assertions). The optimized game builds. No game window, GPU
 capture or visual playtest was launched for this change, at the user's request.
 The final appearance and sustained frame cost on MX450 remain unqualified;
-retained scene/collider memory grows with the number of bodies encountered.
+the historical unbounded scene/collider residency was corrected on 29 October 2026.
 
 Every 20 s the log says what lives around the player (`[World fauna] around
 the player`): groups, out, spawned, alive, drawn and the nearest home.
@@ -3359,3 +3370,61 @@ Automated captures can set `R1WORLD_SMOKE_NO_UNDERSTORY=1` to omit this layer
 while retaining the same executable, observations, shaders and camera. This
 benchmark hook is absent from saved settings and the game UI. Compare warm
 profile tails with `tools/analyze_profile.py --tail 180 --skip-last 2`.
+
+
+### Audit contracts — 29 October 2026
+
+Ground stitching records the exact tiles read by `joinedGround`, including
+neighbour seams and longitude wrapping. Each source change advances dependent
+revisions even during a first cook; publication acknowledges only the revision
+that cook started with. Newer revisions schedule another cook. Ground cache
+reads quarantine malformed observations with a diagnostic and try older valid
+versions before installed/network fallback. Checked temporary writes preserve
+the last complete destination until replacement succeeds.
+
+Mesh proxies expose Pending/Ready/Failed plus a reason. Terrain and Far building
+failures reject arrival explicitly and fail a smoke immediately. A failed,
+timed-out or over-budget replacement retains its prior terrain; an incomplete
+replacement is never promoted by a timeout. A rejected serial is not retried
+on every frame; a newer source or leaving/revisiting the tile can retry.
+
+All local tiles precede up to three forecast tiles. The service's request bound
+(12 polar tiles + 3 forecasts) is separate from its cache target of 12. `want`
+returns accepted/refused tiles, and the runtime checks every local admission.
+Accepted tiles remain pinned; total cooked residency is bounded by the larger
+of the request limit and cache target. Host-memory admission still applies.
+
+Gameplay actors share one accepted frame duration, at most 250 ms, split into
+steps no longer than 50 ms. Player/combat, crowd, fauna, police, traffic and sea
+actors consume the same steps; mouse motion is sampled once per frame. Longer
+stalls discard time for all these actors together, reported in
+`World/DroppedSimulationMs`. World clock/UI retain frame time.
+
+`GenerationProfile` revision 1 identifies the geometry target independently of
+observations. Manifests, service logs, `r1cook` JSON and exported generation
+sidecars record it. To reproduce a runtime cook, pass its `targetVertices` as
+`r1cook --tile-target`; the generator remains v63 because geometry algorithms
+and defaults did not change.
+
+`TravelState` owns the exclusive Foot/Swim/Car/Boat/Aircraft mode. Entry, exit,
+ejection, water transitions and teleport use `transitionTravel`, which detaches
+the bike rider, updates possession, enables the character, projects its position
+and restores or resets its camera heading. Vehicle-specific validation and
+parking remain in their domains; the rest of World is still a shared session.
+
+`r1_world_headless_tests` also builds the generator tests through CMake and
+registers Service/Sources/Seams checks. This avoids testing an old standalone
+`r1test` binary after a runtime build. The runtime contract test covers the
+simulation clock, possession transition ordering and 2,048 geographically
+indexed persistence records with restart, coalescing and replacement refusal.
+
+Verification on 29 October 2026: RelWithDebInfo build, 8/8 headless suites,
+7/7 targeted engine console suites, 138 Python tests, 133 animal models (129 articulated), full
+offline Paris and rocket smokes, and 5/5 offline walk performance smokes pass.
+The general engine GPU streaming suite passes 21,608 checks after correcting
+its asynchronous LOD fixture. The complete generator run passes 479 checks;
+two fixture-dependent checks cannot run because cached observations for
+`v63_27038_26176` and `v63_27771_23987` are absent. Those checks remain enabled.
+These RTX 4070 runs do not qualify MX450 frame rates or close the intermittent
+walk issue in PLAN. The 2,048-record persistence test measures storage/indexing,
+not a long graphical session with thousands of bodies.

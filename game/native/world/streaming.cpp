@@ -10,9 +10,9 @@ double World::Impl::streamPriority(Tile t,double x,double y,double heading) cons
 }
 
 bool World::Impl::streamMotion(double& heading,double& speed) const {
-    const double velocity=driving?carSpeed:sailing?boat.speed:piloting?plane.speed:0.;
+    const double velocity=driving()?carSpeed:sailing()?boat.speed:piloting()?plane.speed:0.;
     if(!playing||pending||warming||std::abs(velocity)<kStreamAheadMinSpeed)return false;
-    heading=wrap((driving?carYaw:sailing?boat.yaw:plane.yaw)+(velocity<0?180.:0.));
+    heading=wrap((driving()?carYaw:sailing()?boat.yaw:plane.yaw)+(velocity<0?180.:0.));
     speed=std::abs(velocity);
     return true;
 }
@@ -60,10 +60,8 @@ void World::Impl::request(double x,double y) {
         if(priority.size()<kStreamRequestLimit&&
            std::find(priority.begin(),priority.end(),t)==priority.end())priority.push_back(t);
     };
-    for(size_t i=1;i<std::min(size_t(3),local.size());++i)append(local[i]);
-    for(size_t i=0;i<std::min(size_t(3),forecast.size());++i)append(forecast[i]);
-    for(size_t i=3;i<local.size();++i)append(local[i]);
-    for(size_t i=3;i<forecast.size();++i)append(forecast[i]);
+    for(size_t i=1;i<local.size();++i)append(local[i]);
+    for(size_t i=0;i<std::min(kStreamForecastTiles,forecast.size());++i)append(forecast[i]);
     json tiles=json::array(),sourceGroups=json::array();
     for(Tile t:priority)tiles.push_back({t.r,t.c});
     for(const auto& group:groups) {
@@ -75,7 +73,14 @@ void World::Impl::request(double x,double y) {
     std::vector<r1::Tile> genTiles;for(Tile t:priority)genTiles.push_back(t.gen());
     std::vector<std::vector<r1::Tile>> genGroups;
     for(const auto& group:groups){genGroups.emplace_back();for(Tile t:group)genGroups.back().push_back(t.gen());}
-    service->want(std::move(genTiles),std::move(genGroups));requested=signature;
+    const auto admission=service->want(std::move(genTiles),std::move(genGroups));
+    for(const auto t:local)if(std::find(admission.accepted.begin(),admission.accepted.end(),t.gen())==admission.accepted.end()) {
+        saida::Log::error("[World streaming] local tile request refused: ",t.key());
+        text("stream-status","Local terrain request exceeds streaming capacity.");
+        if(smoke){testFailed=true;engine.sceneTree().quit();}
+        return;
+    }
+    requested=signature;
 }
 
 bool World::Impl::go() {
@@ -237,6 +242,7 @@ void World::Impl::activate(const std::string& key,Loaded& tile) {
 }
 
 bool World::Impl::replacementReady(const std::string& key,const Loaded& next) {
+    if(!next.uploadError.empty())return false;
     const auto& parts=std::any_cast<const PreparedTile&>(next.served->prepared).parts;
     bool ready=(!next.geography||next.nextPart>=parts.size())&&buildingsReady(next);
     for(auto* mesh:next.partMeshes)ready=ready&&mesh->loaded();
@@ -255,22 +261,22 @@ bool World::Impl::replacementReady(const std::string& key,const Loaded& next) {
 }
 
 bool World::Impl::promoteIncoming() {
+    bool discarded=false;
+    for(auto it=incoming.begin();it!=incoming.end();) {
+        auto& next=it->second;
+        if(!next.uploadError.empty()||(!replacementReady(it->first,next)&&msSince(next.builtAt)>=kReplaceWaitMs)) {
+            failTileUpload(it->first,next,next.uploadError.empty()?"replacement readiness timeout; keeping previous terrain":next.uploadError);
+            if(auto old=loaded.find(it->first);old!=loaded.end())old->second.rejectedSerial=next.served->serial;
+            next.node->queueFree();it=incoming.erase(it);discarded=true;
+        } else ++it;
+    }
     std::vector<std::string> due;bool holding=false;double longest=0;
     for(const auto& [key,next]:incoming) {
         const double waited=msSince(next.builtAt);
         if(replacementReady(key,next)){due.push_back(key);longest=std::max(longest,waited);}
-        else if(waited>=kReplaceWaitMs) {
-            // A timed-out replacement is due too: otherwise a younger
-            // unready tile holds the batch forever and repeats this warning.
-            longest=std::max(longest,waited);
-            const auto& parts=std::any_cast<const PreparedTile&>(next.served->prepared).parts;
-            saida::Log::warn("[World streaming] ",key," replacement not draw-ready after ",
-                             int(waited)," ms (parts ",next.nextPart,"/",parts.size(),", props ",
-                             next.nextProp,"/",next.props.size(),"): shown as it is");
-            due.push_back(key);
-        } else holding=true;
+        else holding=true;
     }
-    if(due.empty()||(holding&&longest<kBatchWaitMs))return false;
+    if(due.empty()||(holding&&longest<kBatchWaitMs))return discarded;
     for(const auto& key:due) {
         const double waited=msSince(incoming.at(key).builtAt);
         auto old=loaded.extract(key);
@@ -338,6 +344,7 @@ void World::Impl::stream() {
         // its streets missing for the frames the new parts took to upload.
         if(!stale(it->second)||incoming.count(it->first)){++it;continue;}
         const auto current=service->find(it->second.served->cooked.tile);
+        if(current->serial==it->second.rejectedSerial){++it;continue;}
         const json& data=current->cooked.manifest;
         const size_t vertices=residentVertices(data),tileIndices=residentIndices(data);
         if(count+vertices<=residentVertexBudget&&indices+tileIndices<=residentIndexBudget) {
@@ -350,21 +357,21 @@ void World::Impl::stream() {
             } catch(const std::exception& e) {
                 // The mount below meets the same refusal and reports it.
                 saida::Log::warn("[World streaming] replacement of ",it->first," refused: ",e.what());
-                it->second.node->queueFree();it=loaded.erase(it);removed=true;
+                if(auto partial=incoming.find(it->first);partial!=incoming.end()) {
+                    partial->second.node->queueFree();incoming.erase(partial);removed=true;
+                }
+                it->second.rejectedSerial=current->serial;
+                text("stream-status",std::string("Terrain replacement refused: ")+e.what());
+                if(smoke){testFailed=true;engine.sceneTree().quit();return;}
+                ++it;
             }
         } else {
-            // Both versions do not fit side by side: the old one goes first
-            // and the tile is missing until the new one is up. Said, since
-            // it is seen.
-            saida::Log::info("[World streaming] ",it->first," replaced in place: ",count," + ",vertices,
-                             " of ",residentVertexBudget," resident vertices, ",indices," + ",tileIndices,
-                             " of ",residentIndexBudget," indices");
-            if(wanted.count(it->first)) {
-                const auto& old=it->second.data;
-                count-=residentVertices(old);indices-=residentIndices(old);
-            }
-            const auto [extraV,extraI]=buildingExtraGeometry(it->second);count-=extraV;indices-=extraI;
-            it->second.node->queueFree();it=loaded.erase(it);removed=true;
+            saida::Log::warn("[World streaming] ",it->first,
+                " replacement exceeds resident budget; keeping previous terrain");
+            text("stream-status","Terrain update exceeds available geometry memory; previous terrain retained.");
+            it->second.rejectedSerial=current->serial;
+            if(smoke){testFailed=true;engine.sceneTree().quit();return;}
+            ++it;
         }
     }
     if(removed){++minimapRevision;trim();}
@@ -425,7 +432,7 @@ void World::Impl::stream() {
         text("status","This neighbourhood exceeds the available geometry memory. Pick a nearby spot.");
         return;
     }
-    auto ready=[&](double x,double y){auto* t=tile(x,y);if(!t)return false;
+    auto ready=[&](double x,double y){auto* t=tile(x,y);if(!t||!t->uploadError.empty())return false;
         if(t->geography&&t->nextPart<std::any_cast<const PreparedTile&>(t->served->prepared).parts.size())return false;
         if(!buildingsReady(*t))return false;
         for(auto* mesh:t->partMeshes)if(!mesh->loaded())return false;
@@ -470,12 +477,9 @@ void World::Impl::stream() {
         // Carry the vehicle's view into the walking heading, just as a
         // normal exit does: the camera and movement must share one yaw.
         yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
-        dismountPlayerFromBike();
-        driving=false;swimming=waterSpawn;swimTime=0;swimLean=0;swimHeading=yaw;
+        transitionTravel(waterSpawn?TravelMode::Swim:TravelMode::Foot,false);
         clearBoats();
         clearAircraft();
-        player->setEnabled(true);
-        player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
         parkCar();
         clearPolice();playing=true;pending=false;warming=false;showMap(false);request(lon,lat);
         saida::Log::info("[World] spawned ",lon,", ",lat," altitude=",alt,

@@ -331,7 +331,7 @@ saida::QueryFilter World::Impl::obstacleFilter() const {
     saida::QueryFilter filter;filter.ignoreInner=feet->innerBodyId();
     if(ridingBike())if(auto* body=r1::VehicleRuntime::body(*car))filter.ignore=body->bodyId();
     if(car)if(auto* body=dynamic_cast<saida::CollisionObjectNode*>(car->findByPath("Vehicle collider")))filter.ignore=body->bodyId();
-    if(piloting&&plane.node)if(auto* hull=aircraftCollider(plane.node))filter.ignore=hull->bodyId();
+    if(piloting()&&plane.node)if(auto* hull=aircraftCollider(plane.node))filter.ignore=hull->bodyId();
     return filter;
 }
 

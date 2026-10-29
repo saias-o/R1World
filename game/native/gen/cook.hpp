@@ -21,6 +21,14 @@ namespace r1 {
 // Soft detail target and density trigger. The resident arena is the hard limit.
 constexpr size_t kTileVertexBudget = 120000;
 
+struct GenerationProfile {
+    static constexpr int kRevision=1;
+    size_t targetVertices=kTileVertexBudget;
+    nlohmann::json identity() const {
+        return {{"revision",kRevision},{"targetVertices",targetVertices}};
+    }
+};
+
 struct Observations {
     Tile tile;
     // Shared: one neighbourhood query is read once for its nine tiles.
@@ -38,7 +46,7 @@ struct Observations {
     SeamReport seams;
     bool offline = false;  // OSM missing: use Natural Earth's approximate coast
     bool groundPending = false;  // measured relief is still on its way
-    size_t targetVertices = kTileVertexBudget;  // softer LOD target from the resident arena
+    GenerationProfile profile; // part of deterministic geometry identity
     // Cooked from an answer older than the aero layer, which is on its way:
     // the manifest says so, and the service cooks the tile again when it lands.
     bool airportsPending = false;

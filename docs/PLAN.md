@@ -114,7 +114,10 @@ L'ENU est rigide. Aucune « correction de courbure » nulle part. Horizons :
 1,7 m → 4,7 km · 50 m → 25 km · 4 000 m → 226 km · 10 000 m → 357 km.
 
 ### I3 — Le déterminisme est un contrat versionné
-`géométrie = G(version_générateur, tuile, observations, atlas)`. Aucune
+`géométrie = G(version_générateur, profil_génération, tuile, observations, atlas)`.
+Le profil versionné contient notamment la cible de sommets ; le manifeste et
+`r1cook` la publient. Une clé de tuile identifie les observations, pas à elle
+seule une représentation géométrique. Aucune
 horloge, aucun aléa non seedé : les tirages d'un bâtiment dérivent de son
 identifiant OSM. Le générateur est compilé sans contraction flottante
 (`-ffp-contract=off`) pour donner la même ville sur toute machine. Changer un

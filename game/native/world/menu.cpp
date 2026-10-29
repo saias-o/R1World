@@ -54,7 +54,7 @@ void World::Impl::updateMinimap() {
         if(last!=roads&&minimapUi->setElementRml("mini-roads",roads))last=roads;
         minimapLon=lon;minimapLat=lat;minimapDrawnRevision=minimapRevision;
     }
-    const double heading=driving?carYaw:sailing?boat.yaw:piloting?plane.yaw:yaw;
+    const double heading=driving()?carYaw:sailing()?boat.yaw:piloting()?plane.yaw:yaw;
     const std::string rotation="rotate("+number(heading,0)+"deg)";
     auto& previous=written["mini:heading"];
     if(previous!=rotation)if(auto* marker=minimapUi->findElementById("mini-player")) {

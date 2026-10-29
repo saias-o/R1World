@@ -189,7 +189,7 @@ void World::Impl::personAttack(Loaded& tile,size_t slot,Person& p,const r1::Walk
     if(!p.struck&&p.punch>=r1::combat::Punch::kStrike) {
         p.struck=true;
         const glm::vec3 from=nodePosition(*p.node),to=player->transform().position;
-        const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown;
+        const bool onFoot=!driving()&&!sailing()&&!piloting()&&!swimming()&&!playerDown;
         if(onFoot&&glm::length(glm::vec2(to.x-from.x,to.z-from.z))<r1::Crowd::kFightReach+.45) {
             sounds.play(r1::CombatSounds::Punch,glm::length(camera->transform().position-to));
             hurtPlayer(r1::combat::kFists.damage*.65,glm::normalize(glm::vec3(to.x-from.x,0.f,to.z-from.z)+glm::vec3(0,.001f,0)),"a passer-by");
@@ -466,7 +466,7 @@ void World::Impl::landPunch() {
 
 bool World::Impl::evacuateVehicle(saida::CollisionObjectNode& hitBody) {
     auto* root=hitBody.parent();
-    if(!root||(root==car&&driving))return false;
+    if(!root||(root==car&&driving()))return false;
     for(const auto& unit:policeUnits)if(unit.car==root)return false;
     const auto& spec=vehicleSpec(*root);
     if(r1::motorcycle(spec.name))return false;
@@ -688,7 +688,7 @@ void World::Impl::poseArms(const glm::vec3* inspectionLook) {
 }
 
 void World::Impl::runOverPeople(double dt) {
-    if(!driving||!car||std::abs(carSpeed)<2.5)return;
+    if(!driving()||!car||std::abs(carSpeed)<2.5)return;
     auto* body=r1::VehicleRuntime::body(*car);
     if(!body||!body->physicsWorld())return;
     const glm::vec3 velocity=body->physicsWorld()->linearVelocity(body->bodyId());
@@ -739,9 +739,9 @@ void World::Impl::updateCombat(double dt) {
     updateRockets(dt);
     runOverPeople(dt);
     if(playerDown)updatePlayerDown(dt);
-    const bool onFoot=!driving&&!sailing&&!piloting&&!swimming&&!playerDown&&player->enabled();
+    const bool onFoot=!driving()&&!sailing()&&!piloting()&&!swimming()&&!playerDown&&player->enabled();
     const bool onBike=ridingBike()&&playerBikeRider&&!playerDown;
-    const bool inHelicopter=piloting&&plane.helicopter()&&!playerDown;
+    const bool inHelicopter=piloting()&&plane.helicopter()&&!playerDown;
     // In the air his arms are the arrival's (World::Impl::poseDrop): no fight.
     if((!onFoot&&!onBike&&!inHelicopter)||menu||smoke||dropFlying()) {
         if(aiming)setAiming(false);

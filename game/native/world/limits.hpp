@@ -44,7 +44,8 @@ constexpr double kRebaseDistance=350.;
 // model import cannot be split.
 constexpr double kPartUploadMs=3.,kPropImportMs=2.,kMountTickMs=4.;
 constexpr double kBuildingNearLoad=75.,kBuildingNearRelease=85.;
-constexpr size_t kStreamRequestLimit=25; // the world service's bounded priority list
+constexpr size_t kStreamForecastTiles=3;
+constexpr size_t kStreamRequestLimit=kPolarTiles+kStreamForecastTiles;
 constexpr double kOnFootFollow=3.8,kDrivingFollow=8.5;
 // Aiming, the camera closes in over the right shoulder: how far behind, and
 // how far to the side.
@@ -141,6 +142,10 @@ constexpr uint32_t kPlayerBodies=4+uint32_t(kAbandonedCars+kLeftAircraft);
 // (r1::rocketboxRagdoll), and the player's own.
 constexpr size_t kLiveRagdolls=8;
 constexpr uint32_t kCombatBodies=uint32_t(kLiveRagdolls+1)*11;
-constexpr uint32_t kPhysicsBodies=kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies+kCombatBodies+uint32_t(r1::police::kCars+r1::police::kOfficers);
+constexpr size_t kMountedAnimalRemains=32, kSimulatingAnimalRemains=8;
+constexpr size_t kAnimalRagdollParts=64;
+constexpr double kAnimalRemainsReach=2000.;
+constexpr uint32_t kAnimalRemainsBodies=uint32_t(kMountedAnimalRemains+kSimulatingAnimalRemains*kAnimalRagdollParts);
+constexpr uint32_t kPhysicsBodies=kAnimalRemainsBodies+kResidentTiles*(kTileStaticBodies+kTileMovingBodies)+kInteriorBodies+kPlayerBodies+kCombatBodies+uint32_t(r1::police::kCars+r1::police::kOfficers);
 
 } // namespace r1::world

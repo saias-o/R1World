@@ -31,6 +31,7 @@ TEST(Service, memory_pressure_pauses_before_allocating_and_cache_has_a_hard_limi
     options.gameRoot=r1test::gameRoot();
     options.threads=2;
     options.keep=1;
+    options.requestLimit=1;
     options.availableMemory=[headroom] { return std::optional<uint64_t>{headroom->load()}; };
     options.prepare=[prepared](ServedTile&) { ++*prepared; };
     WorldService service(std::move(options));
@@ -44,7 +45,7 @@ TEST(Service, memory_pressure_pauses_before_allocating_and_cache_has_a_hard_limi
     headroom->store(std::numeric_limits<uint64_t>::max());
     auto tile=waitMemoryTile(service,first);
     CHECK(tile);
-    CHECK(!service.find(second)); // beyond keep: no eviction/re-cook loop
+    CHECK(!service.find(second)); // beyond explicit admission limit: no eviction/re-cook loop
     std::weak_ptr<const ServedTile> released=tile;
     tile.reset();
     service.want({second},{});
@@ -104,4 +105,19 @@ TEST(Service, a_cook_out_of_memory_is_said_halves_the_cooks_and_is_served_again)
     bool told = false;
     for (const auto& s : said->lines) told |= s.rfind("OUT-OF-MEMORY " + t.key(), 0) == 0;
     CHECK(told);
+}
+
+TEST(Service, request_capacity_is_independent_of_the_cold_cache_target) {
+    WorldService::Options options;
+    options.gameRoot=r1test::gameRoot();options.keep=2;options.requestLimit=15;
+    options.availableMemory=[] {return std::optional<uint64_t>{0};};
+    WorldService service(std::move(options));
+    for(size_t locals:{9u,10u,12u}) {
+        std::vector<Tile> priority;
+        for(size_t i=0;i<locals+8;++i)priority.push_back(Tile{18000,int(i)});
+        const auto admission=service.want(priority,{});
+        CHECK(admission.accepted.size()==15);
+        CHECK(admission.refused.size()==priority.size()-15);
+        for(size_t i=0;i<locals;++i)CHECK(admission.accepted[i]==priority[i]);
+    }
 }

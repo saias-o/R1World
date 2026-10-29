@@ -506,7 +506,7 @@ saida::traffic::Obstacle World::Impl::vehicleTrafficObstacle(saida::Node& car,co
 void World::Impl::updateTraffic(float delta) {
     SAIDA_PROFILE_SCOPE("World/Traffic");
     if(!debugTraffic||fleet.empty())return;
-    const float trafficDelta=std::clamp(delta,0.f,.25f);
+    const float trafficDelta=delta;
     trafficTime_+=trafficDelta;
     auto promoteParked=[&](saida::Node* node) {
         if(!node||!node->enabled()||r1::VehicleRuntime::physical(*node))return;
@@ -550,7 +550,7 @@ void World::Impl::updateTraffic(float delta) {
             for(size_t other=0;other<otherRegion.cars.size();++other)
                 if(otherRegion.cars[other]&&trafficSlotLive(otherRegion,other))
                     roadObstacles.push_back(vehicleTrafficObstacle(*otherRegion.cars[other],l));
-        if(carParked&&car&&!driving)roadObstacles.push_back(vehicleTrafficObstacle(*car,l));
+        if(carParked&&car&&!driving())roadObstacles.push_back(vehicleTrafficObstacle(*car,l));
         for(auto& parkedCar:parked)roadObstacles.push_back(vehicleTrafficObstacle(*parkedCar.node,l));
         for(const auto& walker:l.crowd.walkers())if(walker.alive&&walker.link>=0&&walker.along>.75&&l.walks.links[walker.link].crossing)
             roadObstacles.push_back({{float(walker.x),float(walker.z)},float(r1::Crowd::kBodyRadius),true});
@@ -560,7 +560,7 @@ void World::Impl::updateTraffic(float delta) {
         // player" was eight metres behind the *camera* -- in shot, which is
         // half of why cars appeared in view.
         saida::traffic::Obstacle player;
-        if(driving)player=vehicleTrafficObstacle(*car,l);
+        if(driving())player=vehicleTrafficObstacle(*car,l);
         // Which way the camera is looking, in this tile's frame, so cars
         // may appear close behind it and never close in front.
         const glm::vec3 ahead=camera->transform().rotation*glm::vec3(0,0,-1);

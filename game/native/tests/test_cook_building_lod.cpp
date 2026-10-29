@@ -31,7 +31,7 @@ struct BuildingTile {
     CookedTile cook(size_t target = kTileVertexBudget) const {
         Observations in; in.tile = tile; in.osm = std::make_shared<const OsmData>(osm);
         in.elevations = {tile.bounds(), 2, {10, 10, 10, 10}};
-        in.elevationSource = "test:flat"; in.targetVertices = target;
+        in.elevationSource = "test:flat"; in.profile.targetVertices = target;
         return cookTile(in);
     }
 };

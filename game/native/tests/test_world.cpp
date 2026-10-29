@@ -1,5 +1,6 @@
 // The ground, the streets, the sea and what stands on them, then a whole tile.
 #include "check.hpp"
+#include "atomic_file.hpp"
 
 #include "gen/buildings.hpp"
 #include "gen/clip.hpp"
@@ -938,11 +939,13 @@ TEST(Cook, a_resident_target_uses_building_lod_without_losing_the_ground) {
     in.osm = osm;
     const CookedTile baseline = cookTile(in);
     CHECK(baseline.manifest["buildingGeometryLod"] == "full");
-    in.targetVertices = baseline.manifest["vertices"].get<size_t>() * 9 / 10;
+    in.profile.targetVertices = baseline.manifest["vertices"].get<size_t>() * 9 / 10;
     const CookedTile t = cookTile(in);
-    CHECK_MSG(t.manifest["vertices"].get<size_t>() <= in.targetVertices,
-              t.manifest["vertices"] << " > " << in.targetVertices);
+    CHECK_MSG(t.manifest["vertices"].get<size_t>() <= in.profile.targetVertices,
+              t.manifest["vertices"] << " > " << in.profile.targetVertices);
     CHECK(t.manifest["buildingGeometryLod"] != "full");
+    CHECK(t.manifest["generationProfile"] == in.profile.identity());
+    CHECK(t.manifest["generationProfile"] != baseline.manifest["generationProfile"]);
     CHECK(t.manifest["footprints"].size() == 121);
     CHECK(t.manifest["footprints"] == baseline.manifest["footprints"]);
     bool ground = false, roof = false;
@@ -1336,4 +1339,122 @@ TEST(Sources, the_overpass_question_is_well_formed) {
         CHECK(depth >= 0 && depth <= 2);
     }
     CHECK(depth == 0);
+}
+
+TEST(Sources, corrupt_relief_falls_back_to_an_older_valid_observation) {
+    const Tile tile = tileAt(5., 45.);
+    const auto root = placeVisitedAt(kOsmQueryVersion, tile, "-corrupt-relief");
+    const auto current = fs::path(root) / "cache/world" / tile.key() / "ground-elevation.json";
+    const auto older = fs::path(root) / "cache/world" / tile.key(kVersion - 1) / "ground-elevation.json";
+    fs::create_directories(older.parent_path());
+    fs::copy_file(current, older);
+    for (const auto& invalid : {std::string("{truncated"),
+            std::string(R"({"bounds":{"south":0,"west":0,"north":1,"east":1}})")}) {
+        atomicWrite(current, invalid);
+        std::vector<std::string> logs;
+        ObservationStore store(root, [&](const std::string& line) { logs.push_back(line); });
+        const auto ground = store.ground(tile);
+        CHECK(ground && ground->first.values.front() == 50.);
+        CHECK(!fs::exists(current) && fs::exists(older));
+        CHECK(logs.size() == 1 && logs[0].find("GROUND-CACHE-CORRUPT") == 0);
+        CHECK(ObservationStore(root).ground(tile).has_value());
+    }
+    fs::remove(older);
+    atomicWrite(current, "{}");
+    CHECK(!ObservationStore(root).ground(tile));
+}
+
+TEST(Sources, atomic_replacement_preserves_the_last_good_file_on_refusal) {
+    const auto root = fs::temp_directory_path() / "r1-atomic-audit";
+    fs::create_directories(root);
+    const auto path = root / "observation.json";
+    atomicWrite(path, "old");
+#ifdef _WIN32
+    auto handle = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+    CHECK(handle != INVALID_HANDLE_VALUE);
+    bool refused = false;
+    try { atomicWrite(path, "new"); } catch (const std::exception&) { refused = true; }
+    CloseHandle(handle);
+    CHECK(refused);
+    std::ifstream in(path); std::string bytes; in >> bytes;
+    CHECK(bytes == "old"); in.close();
+#endif
+    atomicWrite(path, "new");
+    std::ifstream finalFile(path); std::string updated; finalFile >> updated;
+    CHECK(updated == "new");
+}
+
+TEST(Service, first_cook_is_invalidated_when_a_read_neighbour_lands) {
+    // Also run across +180/-180. Gate the first prepared tile, then allow
+    // the neighbour's survey to land before that first version is published.
+    for (const double longitude : {5., 179.9999}) {
+        const Tile a = tileAt(longitude, 0.001);
+        const Tile b{a.row, (a.col + 1) % columns(a.row)};
+        const auto root = placeVisitedAt(kOsmQueryVersion, a, "-inflight-" + std::to_string(a.col));
+        const auto bfolder = fs::path(root) / "cache/world" / b.key();
+        fs::create_directories(bfolder);
+        fs::copy_file(fs::path(root) / "cache/world" / a.key() / "osm.json", bfolder / "osm.json");
+        struct Gates {
+            std::promise<void> prepared, release, landed;
+            std::shared_future<void> resume = release.get_future().share();
+            std::shared_future<void> snapshot = prepared.get_future().share();
+            std::atomic<bool> first{true};
+        };
+        auto gates = std::make_shared<Gates>();
+        auto landed = gates->landed.get_future();
+        WorldService::Options options;
+        options.gameRoot = root; options.threads = 2;
+        options.prepare = [gates, a](ServedTile& tile) {
+            if (tile.cooked.tile == a && gates->first.exchange(false)) {
+                gates->prepared.set_value();
+                gates->resume.wait_for(std::chrono::seconds(10));
+            }
+        };
+        options.quickGround = [](const Tile&) -> std::pair<ElevationGrid,std::string> { throw SourceUnavailable("test"); };
+        options.fetchGround = [gates, bfolder](const Tile& t) {
+            if (gates->snapshot.wait_for(std::chrono::seconds(10)) != std::future_status::ready)
+                throw SourceUnavailable("snapshot gate timed out");
+            const auto b = t.bounds();
+            atomicWrite(bfolder / "ground-elevation.json", nlohmann::json{
+                {"bounds", {{"south",b.south},{"west",b.west},{"north",b.north},{"east",b.east}}},
+                {"size",2},{"values",{{100.,100.},{100.,100.}}},{"source","test"}}.dump());
+            return std::pair{ElevationGrid{b,2,{100.,100.,100.,100.}},std::string("test")};
+        };
+        options.log = [gates, b](const std::string& line) {
+            if (line == "GROUND " + b.key() + " ready") gates->landed.set_value();
+        };
+        WorldService service(std::move(options));
+        service.want({a,b}, {});
+        const bool ready = landed.wait_for(std::chrono::seconds(10)) == std::future_status::ready;
+        gates->release.set_value();
+        CHECK(ready);
+        auto first = waitForTile(service, a);
+        CHECK(first);
+        auto upgraded = first->cooked.manifest.at("groundSeams").at("largestShiftM").get<double>() > 0.
+            ? first : waitForTile(service, a, first->serial);
+        CHECK(upgraded);
+        CHECK(upgraded->cooked.manifest.at("groundSeams").at("largestShiftM").get<double>() > 0.);
+
+    }
+}
+
+TEST(Service, current_runtime_observations_make_zero_source_requests) {
+    const Tile t=tileAt(5.,45.);
+    const auto root=placeVisitedAt(kOsmQueryVersion,t,"-zero-network");
+    Canopy canopy;canopy.bounds=t.bounds();canopy.noSource=true;storeCanopy(root,t,canopy);
+    auto calls=std::make_shared<std::atomic<int>>(0);
+    WorldService::Options options;options.gameRoot=root;options.threads=1;
+    options.enrichRetail=true;options.fetchCanopy=true;
+    auto reject=[calls](const Bounds&,const std::string&) {++*calls;throw SourceUnavailable("unexpected request");};
+    options.fetchOsm=reject;options.fetchAero=reject;options.fetchRetail=reject;
+    options.quickGround=options.fetchGround=[calls](const Tile&) -> std::pair<ElevationGrid,std::string> {
+        ++*calls;throw SourceUnavailable("unexpected ground request");
+    };
+    options.fetchCanopyBand=[calls](const Tile&) -> std::vector<std::pair<Tile,Canopy>> {
+        ++*calls;throw SourceUnavailable("unexpected canopy request");
+    };
+    WorldService service(std::move(options));service.want({t},{});
+    CHECK(waitForTile(service,t));
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    CHECK(*calls==0);
 }

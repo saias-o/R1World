@@ -105,14 +105,12 @@ void World::Impl::armDrop(double x,double y,bool water) {
     placeTiles();moveSun();
     jumpOffset=jumpVelocity=0;followDistance=kOnFootFollow;wasJump=false;
     yaw=0;lookYaw=0;lookIdle=0;pitch=-12;
-    dismountPlayerFromBike();
-    driving=false;swimming=water;swimTime=0;swimLean=0;swimHeading=yaw;
+    transitionTravel(TravelMode::Foot,false);
     clearBoats();clearAircraft();
     if(aiming)setAiming(false);
     player->setEnabled(true);
     player->transform().rotation=glm::quat(1,0,0,0);
     parkCar();
-    swimming=false;
     lon=start.x;lat=start.y;alt=drop.ground+fallHeight(drop.clock.seconds);
     // What the globe was flown to, against what is found.
     const double terrain=tile(start.x,start.y)?height(start.x,start.y):drop.ground;
@@ -444,7 +442,7 @@ void World::Impl::landDrop(bool wet,double ground) {
     pitch=-12;lookYaw=0;lookIdle=0;
     followDistance=std::min(kOnFootFollow,double(glm::length(camera->transform().position-player->transform().position)));
     jumpOffset=jumpVelocity=0;wasJump=false;
-    if(wet){swimming=true;swimTime=0;swimLean=0;swimHeading=yaw;alt=waterLevel(lon,lat);}
+    if(wet){alt=waterLevel(lon,lat);transitionTravel(TravelMode::Swim,false);}
     else alt=std::max(alt,ground);
     // A landing is not a fall (World::Impl::landed).
     arrivalClock=fightClock;

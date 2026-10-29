@@ -35,7 +35,7 @@ void World::Impl::runRocketSmoke(double dt) {
         const auto found=aircraftPrototypes.find("helicopter");if(found==aircraftPrototypes.end()){fail("helicopter asset missing");return;}
         plane.node=engine.sceneTree().world().addChild(clonePlant(*found->second));plane.type=r1::aircraftType("helicopter");
         plane.lon=lon;plane.lat=lat;plane.alt=alt+90;plane.airborne=true;plane.rotor=1;plane.yaw=yaw;
-        collectAircraftParts(plane);piloting=true;player->setEnabled(false);placeAircraft(0);next();
+        collectAircraftParts(plane);transitionTravel(TravelMode::Aircraft,false);placeAircraft(0);next();
     } else if(rocketSmokePhase==3&&rocketSmokeTime>.3) {
         arsenal.update(3);const int shots=rocketLaunches;fireRocket();
         auto r=std::find_if(rockets.begin(),rockets.end(),[](const auto& r){return r.life>0;});
@@ -45,7 +45,7 @@ void World::Impl::runRocketSmoke(double dt) {
         policeLastKnown=origin.origin+origin.basis*glm::dvec3(policePlayerPosition());
         rocketSmokeCount=rocketDestroyed;next();
     } else if(rocketSmokePhase==4) {
-        if(piloting)return;
+        if(piloting())return;
         if(plane.node||!player->enabled()||!playerDown||rocketDestroyed<=rocketSmokeCount){fail("police helicopter did not eject pilot and retire hull");return;}
         saida::Log::info("[World rocket E2E] PASS player helicopter shot and live police aerial rocket, pilot ejected");
         if(!policeHelicopter){fail("police helicopter missing before retaliation");return;}
@@ -67,7 +67,7 @@ void World::Impl::runRocketSmoke(double dt) {
     } else if(rocketSmokePhase==6&&rocketSmokeTime>.3) {
         if(!policeRocket(policePlayerPosition()+glm::vec3(0,40,0),nullptr,false)){fail("police vehicle shot refused");return;}
         next();
-    } else if(rocketSmokePhase==7&&!driving) {
+    } else if(rocketSmokePhase==7&&!driving()) {
         if(car||!player->enabled()||!playerDown||rocketDestroyed!=rocketSmokeCount+1){fail("car destruction not atomic");return;}
         saida::Log::info("[World rocket E2E] PASS car exploded once, driver ejected, ownership cleared");
         next();
@@ -75,7 +75,7 @@ void World::Impl::runRocketSmoke(double dt) {
         saida::CaptureRequest capture;capture.pngPath=std::getenv("R1WORLD_ROCKET_CAPTURE");capture.waitForAssets=false;
         engine.captureFrameThenExit(capture);rocketSmoke=false;
     } else if(rocketSmokePhase==8&&rocketSmokeTime>1) {
-        if(car||driving||rocketDestroyed!=rocketSmokeCount+1){fail("destroyed vehicle returned or duplicate impact");return;}
+        if(car||driving()||rocketDestroyed!=rocketSmokeCount+1){fail("destroyed vehicle returned or duplicate impact");return;}
         saida::Log::info("[World rocket E2E] PASS all Rocket Update scenarios");engine.sceneTree().quit();rocketSmoke=false;
     }
 }

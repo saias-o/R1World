@@ -134,6 +134,8 @@ struct Loaded {
     // The tile's own geometry goes up a few parts a frame (World::uploadParts).
     saida::Node* geography=nullptr; size_t nextPart=0;
     std::vector<saida::Mesh*> partMeshes;
+    std::string uploadError;
+    uint64_t rejectedSerial = 0;
     struct Building {
         saida::Node* node=nullptr;
         saida::LODGroupBehaviour* lod=nullptr;

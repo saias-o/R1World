@@ -83,7 +83,7 @@ bool World::Impl::roomBeside(double length,double width,bool ahead,bool wings,do
         const double level=height(x,y,alt+1.);
         return std::abs(level-alt)<2.*kStepUp&&!blocked(x,y,level);
     };
-    const double margin=driving?2.5:1.;
+    const double margin=driving()?2.5:1.;
     std::vector<glm::dvec2> spots;  // (along, across) from the player
     if(ahead)spots.push_back({length*.5+3.,0.});
     spots.push_back({0.,width*.5+2.5});spots.push_back({0.,-width*.5-2.5});
@@ -125,7 +125,7 @@ std::string World::Impl::spawnAircraft(const std::string& name) {
         saida::Log::error("[World cheat] the aircraft fleet has no ",name);
         return "This aircraft is not in the fleet.";
     }
-    if(piloting&&plane.airborne) {
+    if(piloting()&&plane.airborne) {
         saida::Log::info("[World cheat] no ",name," in flight");
         return "Not while flying — land first.";
     }
@@ -156,7 +156,7 @@ std::string World::Impl::spawnSportsCar() {
         saida::Log::error("[World cheat] the road vehicle fleet has no sport car");
         return "No sports car in the fleet.";
     }
-    if(piloting&&plane.airborne) {
+    if(piloting()&&plane.airborne) {
         saida::Log::info("[World cheat] no car in flight");
         return "Not while flying — land first.";
     }
@@ -187,7 +187,7 @@ std::string World::Impl::spawnParkedVehicle(const std::string& name) {
         saida::Log::error("[World cheat] the road vehicle fleet has no ",name);
         return name=="moto_cross"?"No dirt bike in the fleet.":"No city motorcycle in the fleet.";
     }
-    if(piloting&&plane.airborne) {
+    if(piloting()&&plane.airborne) {
         saida::Log::info("[World cheat] no ",name," while in flight");
         return "Not while flying — land first.";
     }

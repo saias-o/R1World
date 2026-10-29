@@ -12,7 +12,7 @@ void World::Impl::updateSmoke(float delta, double dt) {
     if(smokeWaterSpawn&&smokeWalk>1.5) {
         const double covered=glm::length(ecef(lon,lat,alt)-smokeStart);
         const double rootBelow=origin.local(ecef(lon,lat,alt)).y-player->transform().position.y;
-        testFailed=!swimming||!onWater(lon,lat)||carParked||covered<1.||rootBelow<playerHeight*.39||rootBelow>playerHeight*.78;
+        testFailed=!swimming()||!onWater(lon,lat)||carParked||covered<1.||rootBelow<playerHeight*.39||rootBelow>playerHeight*.78;
         saida::Log::info("[World E2E] ",testFailed?"FAIL":"PASS"," water spawn: swam ",covered,
                          "m, body depth=",rootBelow,"m, car parked=",carParked);
         engine.sceneTree().quit();return;
@@ -43,7 +43,7 @@ void World::Impl::updateSmoke(float delta, double dt) {
             if(!(in>>x>>y)||!std::isfinite(x)||!std::isfinite(y))return fail(std::string("R1WORLD_WADE_SMOKE '")+wadeSmoke+"' is not '<lon> <lat>'");
             wadeTo=glm::dvec2(x,y);
         }
-        if(swimming)return fail("swimming at "+number(lon,6)+", "+number(lat,6)+" after "+number(wadeOverWater,1)+
+        if(swimming())return fail("swimming at "+number(lon,6)+", "+number(lat,6)+" after "+number(wadeOverWater,1)+
                                 " m over water, feet at "+number(alt,2)+" m");
         if(onWater(lon,lat)) {
             wadeOverWater+=std::hypot(footEast,footNorth)*std::min(.05,double(delta));
@@ -119,7 +119,7 @@ void World::Impl::updateSmoke(float delta, double dt) {
         }
         smokeDriving=false;
         saida::Log::info("[World E2E] braked to ",std::abs(carSpeed)," m/s");
-        if(!leaveCar()||driving||!player->enabled()) {
+        if(!leaveCar()||driving()||!player->enabled()) {
             saida::Log::error("[World E2E] FAIL could not step out of the car at ",
                               std::abs(carSpeed)," m/s");
             testFailed=true;engine.sceneTree().quit();return;
@@ -174,7 +174,7 @@ void World::Impl::updateSmoke(float delta, double dt) {
         auto* body=r1::VehicleRuntime::body(*car);
         const auto velocity=body->physicsWorld()->linearVelocity(body->bodyId());
         const double exitSpeed=carSpeed;
-        if(!leaveCar()||driving||!player->enabled()||
+        if(!leaveCar()||driving()||!player->enabled()||
            glm::distance(velocity,body->physicsWorld()->linearVelocity(body->bodyId()))>.001f) {
             saida::Log::error("[World E2E] FAIL moving exit or vehicle momentum at ",exitSpeed," m/s");
             testFailed=true;engine.sceneTree().quit();return;

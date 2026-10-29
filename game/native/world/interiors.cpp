@@ -46,7 +46,7 @@ void World::Impl::updateInteriors(double dt) {
             updateRoomAnimals(room,t,dt);
             auto p=room.plan.local(at);
             // Sensor on both sides, with a hold time and a wide safety zone.
-            const bool sensor=!driving&&!sailing&&!piloting&&std::abs(p.x)<room.plan.width/2+1.5&&std::abs(p.y)<3.5;
+            const bool sensor=!driving()&&!sailing()&&!piloting()&&std::abs(p.x)<room.plan.width/2+1.5&&std::abs(p.y)<3.5;
             room.hold=sensor?1.5:std::max(0.,room.hold-dt);
             room.opening=r1::slideDoor(room.opening,room.hold>0,dt);
             for(int side=0;side<2;++side) {

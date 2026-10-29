@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
             in.seams = joined.seams;
             if (const auto path = store.osmPath(tile, shared)) in.osmExtent = store.regionOf(tile, shared, *path);
             in.elevationSource = ground->second;
-            in.targetVertices = tileTarget;
+            in.profile.targetVertices = tileTarget;
             r1::CookedTile cooked;
             double best = 1e300;
             for (int k = 0; k < repeat; ++k) {
@@ -131,6 +131,7 @@ int main(int argc, char** argv) {
                 best = std::min(best, cooked.cookMs);
             }
             line["cookMs"] = best;
+            line["generationProfile"] = cooked.manifest["generationProfile"];
             line["vertices"] = cooked.manifest["vertices"];
             line["buildingGeometryLod"] = cooked.manifest["buildingGeometryLod"];
             line["buildings"] = cooked.manifest["buildings"];
@@ -176,7 +177,9 @@ int main(int argc, char** argv) {
                 r << cooked.manifest["raised"].dump();
                 std::ofstream t(glb + "/" + tile.key() + ".traffic.json",std::ios::binary);
                 t << cooked.manifest["traffic"].dump();
-                if(!f || !s || !r || !t)throw std::runtime_error("Cannot write cooked geometry to "+glb);
+                std::ofstream identity(glb + "/" + tile.key() + ".generation.json",std::ios::binary);
+                identity << nlohmann::json{{"tile",tile.key()},{"generationProfile",in.profile.identity()}}.dump();
+                if(!f || !s || !r || !t || !identity)throw std::runtime_error("Cannot write cooked geometry to "+glb);
             }
         } catch (const std::exception& e) {
             line["error"] = e.what();

@@ -5,7 +5,7 @@ void World::Impl::updateRadio(double dt) {
     const bool keys[]={held(GLFW_KEY_B),held(GLFW_KEY_N),held(GLFW_KEY_PAGE_UP),held(GLFW_KEY_PAGE_DOWN)};
     bool pressed[4];
     for(int i=0;i<4;++i){pressed[i]=keys[i]&&!radioKeys[i]&&!menu&&!cheatOpen;radioKeys[i]=keys[i];}
-    const bool aboard=playing&&driving&&!pending&&!carSinking;
+    const bool aboard=playing&&driving()&&!pending&&!carSinking;
     const bool previous=held(GLFW_KEY_LEFT_SHIFT)||held(GLFW_KEY_RIGHT_SHIFT);
     radio.update(dt,lon,lat,aboard,pressed[0],pressed[1]&&!previous,pressed[1]&&previous,int(pressed[2])-int(pressed[3]));
     style("vehicle-radio","display",aboard?"block":"none");
@@ -108,7 +108,7 @@ double World::Impl::clearAhead(double x,double y,double level,double heading,dou
 }
 
 void World::Impl::reparkIfCovered(const std::string& key) {
-    if(!carParked||driving||!car)return;
+    if(!carParked||driving()||!car)return;
     parkingCar=true;
     const bool covered=blocked(carLon,carLat,carAlt);
     double x=carLon,y=carLat;
@@ -130,7 +130,7 @@ void World::Impl::parkCar() {
     r1::VehicleRuntime::reset(*car);
     if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=true;
     car->setEnabled(false);
-    if(swimming)return;
+    if(swimming())return;
     // No road has ever reached the pack ice: nobody drives to the Pole.
     if(onSeaIce(lon,lat)) {
         saida::Log::info("[World car] on the sea ice: the player arrives on foot, with no car");
@@ -264,7 +264,7 @@ void World::Impl::removeTrafficRider(saida::Node& vehicle) {
     if(auto* rider=owner->findByPath("Rider"))owner->removeChild(rider);
 }
 
-bool World::Impl::ridingBike() const {return driving&&car&&r1::motorcycle(vehicleSpec(*car).name);}
+bool World::Impl::ridingBike() const {return driving()&&car&&r1::motorcycle(vehicleSpec(*car).name);}
 
 glm::vec3 World::Impl::motorcycleContact(saida::Node& rider,const std::string& vehicle,int hand,bool grip) {
     const bool cross=vehicle=="moto_cross";
@@ -336,14 +336,13 @@ void World::Impl::dismountPlayerFromBike() {
 }
 
 bool World::Impl::enterCar() {
-    if(driving||swimming)return false;
+    if(driving()||swimming())return false;
     Reach target;double distance=0;
     if(!nearestCar(target,distance))return false;
     if(target.kind==2){if(!takeTrafficCar(target))return false;}
     else if(target.kind==1)takeAbandonedCar(target);
     if(!carParked||!car)return false;
     if(aiming)setAiming(false);
-    driving=true;lookYaw=0;lookIdle=0;
     if(auto* physics=engine.sceneTree().world().physics())r1::VehicleRuntime::activate(*car,*physics,glm::vec3(0));
     captureCarPose();
     if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=false;
@@ -351,17 +350,14 @@ bool World::Impl::enterCar() {
     // it from here: one position, one streamer, one sun. Nothing downstream
     // has to learn that the player is sitting down.
     lon=carLon;lat=carLat;alt=carAlt;yaw=carYaw;
-    player->setEnabled(false);
-    for(auto* a:animators)a->play("idle");
-    mountPlayerOnBike();
-    jumpOffset=jumpVelocity=0;
+    transitionTravel(TravelMode::Car,false);
     text("stream-status",ridingBike()?"Riding. F: get off · Space: rear brake · 2: pistol · Right click: aim.":"Driving. F: get out · Space: handbrake.");
     saida::Log::info("[World car] entered at ",carLon,", ",carLat);
     return true;
 }
 
 bool World::Impl::leaveCar() {
-    if(!driving)return false;
+    if(!driving())return false;
     captureCarPose();
     const auto& spec=vehicleSpec(*car);
     const r1::VehicleDimensions size{float(spec.length),float(spec.width),float(spec.height),float(spec.wheelbase),float(spec.wheelRadius)};
@@ -383,19 +379,13 @@ bool World::Impl::leaveCar() {
     float verticalVelocity=0;
     if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())
         verticalVelocity=body->physicsWorld()->linearVelocity(body->bodyId()).y;
-    driving=false;carSpeed=0;steerShown=0;
-    dismountPlayerFromBike();
+    carSpeed=0;steerShown=0;
     if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=true;
     // Step out looking where you were looking, not snapped back to the
     // bonnet: the offset becomes the walk's own yaw.
-    yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
     lon=geo.x;lat=geo.y;alt=groundAt(lon,lat,carAlt);
     jumpOffset=std::max(0.,geo.z-alt);jumpVelocity=std::clamp(double(verticalVelocity),-kFallTerminal,15.);
-    swimming=false;
-    player->transform().position=glm::vec3(origin.local(ecef(lon,lat,alt+jumpOffset+.06)));
-    player->setEnabled(true);
-    player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
-    followDistance=std::min(followDistance,kOnFootFollow);
+    transitionTravel(TravelMode::Foot);
     text("stream-status","On foot. F: get back in the vehicle.");
     saida::Log::info("[World car] left at ",lon,", ",lat," speed=",exitSpeed," m/s, fall=",jumpOffset," m");
     request(lon,lat);
@@ -409,13 +399,12 @@ void World::Impl::sinkCar(double x,double y) {
     carWaterLevel=waterLevel(x,y);carSinkDepth=0;carSinking=true;
     carLon=x;carLat=y;carAlt=carWaterLevel;carSpeed=0;steerShown=0;
     // The driver swims out only when the water is over half his height.
-    driving=false;swimming=deepWater(x,y);swimTime=0;swimLean=0;
-    dismountPlayerFromBike();
-    lon=x;lat=y;alt=swimming?carWaterLevel:height(x,y);yaw=wrap(carYaw+lookYaw);swimHeading=yaw;
+    const bool wet=deepWater(x,y);
+    lon=x;lat=y;alt=wet?carWaterLevel:height(x,y);yaw=wrap(carYaw+lookYaw);swimHeading=yaw;
     lookYaw=0;lookIdle=0;jumpOffset=jumpVelocity=0;
     followDistance=std::min(followDistance,kOnFootFollow);
-    player->setEnabled(true);
-    text("stream-status",swimming?"The vehicle is sinking — swim for the shore.":"The vehicle is bogged down — you can stand.");
+    transitionTravel(wet?TravelMode::Swim:TravelMode::Foot,false);
+    text("stream-status",swimming()?"The vehicle is sinking — swim for the shore.":"The vehicle is bogged down — you can stand.");
     saida::Log::info("[World car] sank at ",lon,", ",lat);
     request(lon,lat);
 }
@@ -435,11 +424,11 @@ void World::Impl::captureCarPose() {
     carYaw=std::atan2(double(forward.x),-double(forward.z))/rad;
     if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())
         carSpeed=glm::dot(body->physicsWorld()->linearVelocity(body->bodyId()),forward);
-    if(driving){lon=carLon;lat=carLat;alt=carAlt;yaw=carYaw;}
+    if(driving()){lon=carLon;lat=carLat;alt=carAlt;yaw=carYaw;}
 }
 
 bool World::Impl::needsAfterSimulation() const {
-    return driving&&car&&!pending&&playing&&(worldCapture.pngPath.empty()||!captureView.set);
+    return driving()&&car&&!pending&&playing&&(worldCapture.pngPath.empty()||!captureView.set);
 }
 
 void World::Impl::afterSimulation(float) {

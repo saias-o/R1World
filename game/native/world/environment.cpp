@@ -183,7 +183,7 @@ void World::Impl::updateRain(double dt) {
 
 void World::Impl::keepStanding() {
     checkStanding=false;
-    if(!playing||pending||driving||sailing||piloting||swimming||dropFlying()||!tile(lon,lat))return;
+    if(!playing||pending||driving()||sailing()||piloting()||swimming()||dropFlying()||!tile(lon,lat))return;
     // The finer survey (IGN) may have replaced the quick one under him.
     // A breakwater the feet stand on is not in the grid: keep what holds him.
     if(jumpOffset<=0) {

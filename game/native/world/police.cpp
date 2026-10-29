@@ -6,8 +6,8 @@ glm::vec3 World::Impl::policeVector(r1::police::Routes::Point p){return {p.x,p.y
 r1::police::Routes::Point World::Impl::policePoint(glm::vec3 p){return {p.x,p.y,p.z};}
 
 glm::vec3 World::Impl::policePlayerPosition()const {
-    if(driving&&car)return nodePosition(*car);
-    if(piloting&&plane.node)return nodePosition(*plane.node);
+    if(driving()&&car)return nodePosition(*car);
+    if(piloting()&&plane.node)return nodePosition(*plane.node);
     if(playerDown)return downAnchor();
     return player->transform().position;
 }
@@ -32,8 +32,8 @@ bool World::Impl::policeSight(glm::vec3 from,glm::vec3 to,saida::CollisionObject
     if(!hit.hit||hit.distance>=distance-.6f)return true;
     auto* node=static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body));
     if(node==feet)return true;
-    if(driving&&car&&node==r1::VehicleRuntime::body(*car))return true;
-    if(piloting&&plane.node&&node==aircraftCollider(plane.node))return true;
+    if(driving()&&car&&node==r1::VehicleRuntime::body(*car))return true;
+    if(piloting()&&plane.node&&node==aircraftCollider(plane.node))return true;
     return playerDown&&playerFall.ragdoll()&&playerFall.ragdoll()->ragdoll()&&
         playerFall.ragdoll()->ragdoll()->partOf(hit.body)>=0;
 }
@@ -244,7 +244,7 @@ void World::Impl::policeArrestPlayer() {
     glm::dvec3 destination=ecef(lon,lat,alt);double best=1e30;
     for(const auto& station:policeStations){const double d=glm::length(station.at-destination);if(d<best){best=d;policeLastKnown=station.at;}}
     if(best<1e29)destination=policeLastKnown;
-    if(driving)leaveCar();
+    if(driving())leaveCar();
     if(aiming)setAiming(false);
     clearPolice();
     const auto geo=r1::ecefToGeodetic(destination.x,destination.y,destination.z);
@@ -274,7 +274,7 @@ void World::Impl::policeFire(glm::vec3 muzzle,glm::vec3 target,saida::CollisionO
         hurtPlayer(12,direction,aerial?"the police helicopter":"the police");
         if(policeSmoke){if(aerial)policeSmokeAirHit=true;else policeSmokeGroundHit=true;}
     }
-    else if(driving&&victim==r1::VehicleRuntime::body(*car)) {
+    else if(driving()&&victim==r1::VehicleRuntime::body(*car)) {
         effects.burst(r1::CombatEffects::Sparks,hit.point);
         if(auto* dent=victim->getBehaviour<saida::DeformableMeshBehaviour>()) {
             const auto local=glm::inverse(victim->worldTransform());
@@ -352,7 +352,7 @@ void World::Impl::policeOfficer(PoliceUnit& unit,PoliceOfficer& officer,glm::vec
             officer.weapon.fired();
         }
     } else for(auto* arm:p.arms)if(arm)arm->release();
-    if(wanted.percent>0&&!wanted.lethal()&&officer.sees&&distance<1.9f&&(!driving||std::abs(carSpeed)<.5)&&!piloting&&!sailing&&!playerDown&&std::hypot(footEast,footNorth)<.8&&!aiming)
+    if(wanted.percent>0&&!wanted.lethal()&&officer.sees&&distance<1.9f&&(!driving()||std::abs(carSpeed)<.5)&&!piloting()&&!sailing()&&!playerDown&&std::hypot(footEast,footNorth)<.8&&!aiming)
         policeArrest=std::max(policeArrest,dt); // accumulated once per update below
 }
 
@@ -425,20 +425,20 @@ void World::Impl::policeAir(double dt,bool think) {
 
 void World::Impl::updatePolice(double elapsed) {
     SAIDA_PROFILE_SCOPE("World/Police");
-    const double dt=std::clamp(elapsed,0.,.1);policeClock+=dt;policeThink+=dt;policeSpawn+=dt;
+    const double dt=elapsed;policeClock+=dt;policeThink+=dt;policeSpawn+=dt;
     policeRocketSpacing=std::max(0.,policeRocketSpacing-dt);
     policeEscalation.update(dt,wanted.percent>0&&wanted.lethal()&&policeObserved&&!wasted);
     if(wanted.percent<=0)policeEscalation={};
-    auto* rocketTarget=driving?car:piloting?plane.node:nullptr;
+    auto* rocketTarget=driving()?car:piloting()?plane.node:nullptr;
     if(rocketTarget!=policeRocketTarget) {
         policeRocketTarget=rocketTarget;policeAirRocket.lock=0;policeAirWeapon.cancel();
         for(auto& u:policeUnits){u.rocket.lock=0;u.weapon.cancel();for(auto& o:u.officers){o.rocket.lock=0;o.weapon.cancel();}}
     }
-    auto* playerCarBody=driving&&car?r1::VehicleRuntime::body(*car):nullptr;
+    auto* playerCarBody=driving()&&car?r1::VehicleRuntime::body(*car):nullptr;
     if(playerCarBody!=policeImpactBody||(playerCarBody&&!policeCarImpact.connected())) {
         policeCarImpact.disconnect();policeImpactBody=playerCarBody;
         if(playerCarBody)policeCarImpact=playerCarBody->impacted.connect([this](const saida::CollisionObjectNode::Impact& impact) {
-            if(!driving||!car||!impact.other||impact.closingSpeed<3||std::abs(carSpeed)<3||policeClock-policeCollisionAt<2)return;
+            if(!driving()||!car||!impact.other||impact.closingSpeed<3||std::abs(carSpeed)<3||policeClock-policeCollisionAt<2)return;
             auto* body=r1::VehicleRuntime::body(*car);
             const auto velocity=body->physicsWorld()->linearVelocity(body->bodyId());
             if(glm::dot(velocity,-impact.direction)<2)return;
@@ -449,7 +449,7 @@ void World::Impl::updatePolice(double elapsed) {
     const bool think=policeThink>=.5;
     if(think){policeThink=0;policeBuildRoutes();policeObserved=false;}
     const auto suspect=policePlayerPosition();
-    if(driving&&playerCarBody&&std::abs(carSpeed)>3) {
+    if(driving()&&playerCarBody&&std::abs(carSpeed)>3) {
         const auto toCar=glm::inverse(car->worldTransform());const auto& spec=vehicleSpec(*car);
         const auto velocity=playerCarBody->physicsWorld()?playerCarBody->physicsWorld()->linearVelocity(playerCarBody->bodyId()):glm::vec3(0);
         for(auto& unit:policeUnits)if(unit.dismounted)for(auto& officer:unit.officers) {
@@ -483,7 +483,7 @@ void World::Impl::updatePolice(double elapsed) {
         // The approach route ends at the closest reachable roadside: past it
         // is on foot, however far the suspect stands from the road.
         const bool roadside=!unit.path.empty()&&glm::distance(at,policeVector(unit.path.back()))<7;
-        const bool stop=active&&(distance<22||roadside)&&(!driving||std::abs(carSpeed)<2.5);
+        const bool stop=active&&(distance<22||roadside)&&(!driving()||std::abs(carSpeed)<2.5);
         const bool noCrew=std::all_of(unit.officers.begin(),unit.officers.end(),[](const auto& o){return o.health<=0;});
         const bool disabled=noCrew||drive->damage>=r1::VehicleRuntime::kMaximumBodyworkPowerLoss;
         const auto rocketMuzzle=at+glm::vec3(0,float(vehicleSpec(*unit.car).height+.3),0);
@@ -523,7 +523,7 @@ void World::Impl::updatePolice(double elapsed) {
         // target has moved well beyond where they got out (a foot patrol
         // called to a pursuit): the car covers that distance, not their feet.
         unit.returning=unit.dismounted&&!disabled&&((!active&&(std::fmod(unit.age,60.)<30||std::fmod(unit.age,60.)>=50))||
-            (driving&&distance>95)||(active&&distance>unit.reach+40));
+            (driving()&&distance>95)||(active&&distance>unit.reach+40));
         if(unit.returning) {
             bool aboard=true;
             for(auto& officer:unit.officers)if(officer.health>0) {
@@ -576,8 +576,8 @@ void World::Impl::updatePolice(double elapsed) {
     if(policeArrest>=2.5){policeArrestPlayer();return;}
     policeAir(dt,think);
     wanted.update(dt,policeObserved||wasted);
-    if(think&&driving&&std::abs(carSpeed)>25){policeDriving+=.5;if(policeDriving>=5){reportCrime(r1::police::Crime::RecklessDriving,suspect);policeDriving=0;}}
-    else if(!driving||std::abs(carSpeed)<20)policeDriving=0;
+    if(think&&driving()&&std::abs(carSpeed)>25){policeDriving+=.5;if(policeDriving>=5){reportCrime(r1::police::Crime::RecklessDriving,suspect);policeDriving=0;}}
+    else if(!driving()||std::abs(carSpeed)<20)policeDriving=0;
     if(think&&policeSpawn>4&&live<wanted.cars()&&!policeRoads.points.empty()&&!dropFlying()) {
         const PoliceStation* station=nullptr;float best=700;
         for(const auto& entry:policeStations){const float d=glm::distance(glm::vec3(origin.local(entry.at)),suspect);if(d<best){best=d;station=&entry;}}

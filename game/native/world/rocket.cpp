@@ -66,14 +66,14 @@ void World::Impl::fireRocket() {
     auto filter=combatFilter();
     const auto chest=player->transform().position+glm::vec3(0,float(playerHeight*.8),0);
     auto muzzle=launcher?glm::vec3(launcher->worldTransform()*glm::vec4(r1::kLauncherMuzzle,1)):chest+look*.7f;
-    if(piloting&&plane.node) {
+    if(piloting()&&plane.node) {
         // Belly launch avoids the rotor and keeps the launch visible from the chase camera.
         muzzle=nodePosition(*plane.node)+plane.node->transform().rotation*glm::vec3(1.6f,.1f,-1.5f);
         if(auto* hull=aircraftCollider(plane.node))filter.ignore=hull->bodyId();
     }
     auto target=eye+look*float(r1::combat::kRocket.range);
     if(auto* physics=engine.sceneTree().world().physics()) {
-        const auto start=piloting?nodePosition(*plane.node):chest;
+        const auto start=piloting()?nodePosition(*plane.node):chest;
         const auto barrel=muzzle-start;const float reach=glm::length(barrel);
         if(reach>.01f) {
             const auto obstruction=physics->raycast(start,barrel/reach,reach,filter);
@@ -89,8 +89,8 @@ void World::Impl::fireRocket() {
 
 glm::vec3 World::Impl::rocketTarget()const {
     glm::vec3 velocity(0);
-    if(driving&&car)if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())velocity=body->physicsWorld()->linearVelocity(body->bodyId());
-    if(piloting&&plane.node)velocity=plane.node->transform().rotation*glm::vec3(0,0,float(-plane.speed))+glm::vec3(0,float(plane.climb),0);
+    if(driving()&&car)if(auto* body=r1::VehicleRuntime::body(*car);body&&body->physicsWorld())velocity=body->physicsWorld()->linearVelocity(body->bodyId());
+    if(piloting()&&plane.node)velocity=plane.node->transform().rotation*glm::vec3(0,0,float(-plane.speed))+glm::vec3(0,float(plane.climb),0);
     return velocity;
 }
 
@@ -121,7 +121,7 @@ void World::Impl::retireRocketVehicle(saida::Node* node) {
 
 void World::Impl::destroyRocketCar(saida::Node* node) {
     if(node==car) {
-        if(driving)leaveCar();
+        if(driving())leaveCar();
         policeCarImpact.disconnect();policeImpactBody=nullptr;
         car=nullptr;carParked=carSinking=false;carSinkDepth=0;carSpeed=0;frontWheels.clear();rearWheels.clear();
     }
@@ -136,14 +136,14 @@ void World::Impl::destroyRocketCar(saida::Node* node) {
 }
 
 void World::Impl::destroyRocketAircraft(saida::Node* node) {
-    if(piloting&&plane.node==node) {
+    if(piloting()&&plane.node==node) {
         // Forced ejection cannot fail because the ground is not streamed.
         const auto at=nodePosition(*node)+glm::vec3(0,2,0);
-        piloting=false;plane=Aircraft{};player->setEnabled(true);player->transform().position=at;
+        plane=Aircraft{};
         const auto geo=sceneToGeo(at);lon=geo.x;lat=geo.y;
         const double ground=height(lon,lat);alt=std::isfinite(ground)?ground:geo.z;
         jumpOffset=std::max(0.,geo.z-alt);jumpVelocity=0;lookYaw=lookIdle=0;
-        followDistance=kOnFootFollow;
+        transitionTravel(TravelMode::Foot,false);
     }
     leftAircraft.erase(std::remove_if(leftAircraft.begin(),leftAircraft.end(),[&](const auto& a){return a.node==node;}),leftAircraft.end());
     if(node==policeHelicopter) {
@@ -200,8 +200,8 @@ void World::Impl::explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,
         }
     }
     const auto playerAt=policePlayerPosition()+glm::vec3(0,.8f,0);
-    const bool ejected=(driving&&std::find(cars.begin(),cars.end(),car)!=cars.end())||
-        (piloting&&std::find(aircraft.begin(),aircraft.end(),plane.node)!=aircraft.end());
+    const bool ejected=(driving()&&std::find(cars.begin(),cars.end(),car)!=cars.end())||
+        (piloting()&&std::find(aircraft.begin(),aircraft.end(),plane.node)!=aircraft.end());
     const double playerDamage=r1::rocket::damage(glm::distance(playerAt,at));
     const bool playerExposed=ejected||exposed(playerAt,feet);
     std::sort(cars.begin(),cars.end(),std::less<saida::Node*>());cars.erase(std::unique(cars.begin(),cars.end()),cars.end());

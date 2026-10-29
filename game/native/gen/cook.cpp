@@ -480,7 +480,7 @@ CookedTile cookTile(const Observations& in) {
         return parts;
     };
     std::vector<MeshPart> parts = assemble(works.parts);
-    const size_t target = std::min(in.targetVertices, kTileVertexBudget);
+    const size_t target = std::min(in.profile.targetVertices, kTileVertexBudget);
     // The target is a soft share of the resident neighbourhood, capped at the
     // density trigger. Rebuild only the building meshes: their
     // footprints, street cut-outs and continuous terrain stay the same.
@@ -700,6 +700,7 @@ CookedTile cookTile(const Observations& in) {
     buildingLods["reducedNear"] = {{"vertices", reducedVertices}, {"indices", reducedIndices},
                                   {"triangles", reducedIndices / 3}};
     out.manifest = {
+        {"generationProfile", in.profile.identity()},
         {"key", tile.key()}, {"row", tile.row}, {"col", tile.col}, {"lon", center.x}, {"lat", center.y},
         {"bounds", {{"south", bounds.south}, {"west", bounds.west}, {"north", bounds.north}, {"east", bounds.east}}},
         {"elevations", elevationRows}, {"footprints", footprintJson}, {"footprintTops", topJson},

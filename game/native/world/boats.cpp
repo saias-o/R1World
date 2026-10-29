@@ -44,7 +44,7 @@ bool World::Impl::nearestBoat(BoatReach& out,double& distance,double extra) {
 }
 
 bool World::Impl::enterBoat() {
-    if(sailing||driving)return false;
+    if(sailing()||driving())return false;
     BoatReach target;double distance=0;
     if(!nearestBoat(target,distance))return false;
     return board(target);
@@ -76,11 +76,8 @@ bool World::Impl::board(const BoatReach& target) {
         boat.lon=where.x;boat.lat=where.y;boat.yaw=m.heading;
         boat.alt=waterLevel(boat.lon,boat.lat);
     }
-    sailing=true;swimming=false;lookYaw=0;lookIdle=0;
     lon=boat.lon;lat=boat.lat;alt=boat.alt;yaw=boat.yaw;
-    player->setEnabled(false);
-    for(auto* a:animators)a->play("idle");
-    jumpOffset=jumpVelocity=0;
+    transitionTravel(TravelMode::Boat,false);
     text("stream-status","At the helm. F: disembark near a quay · S: reverse.");
     saida::Log::info("[World boat] took the helm of a ",boat.kind," (",boat.length," m) at ",lon,", ",lat);
     return true;
@@ -112,7 +109,7 @@ std::optional<World::Impl::BoatExit> World::Impl::boatExit() {
 }
 
 bool World::Impl::leaveBoat() {
-    if(!sailing)return false;
+    if(!sailing())return false;
     if(std::abs(boat.speed)>kBoatExitSpeed) {
         text("stream-status","Too fast to disembark — slow down.");
         saida::Log::info("[World boat] landing refused at ",std::abs(boat.speed)," m/s");
@@ -124,23 +121,20 @@ bool World::Impl::leaveBoat() {
         saida::Log::info("[World boat] no loaded exit beside ",boat.lon,", ",boat.lat);
         return false;
     }
-    sailing=false;keepBoat(boat);boat=Vessel{};
-    yaw=wrap(yaw+lookYaw);lookYaw=0;lookIdle=0;
-    lon=exit->where.x;lat=exit->where.y;swimming=exit->swimming;
+    keepBoat(boat);boat=Vessel{};
+    lon=exit->where.x;lat=exit->where.y;
     swimTime=0;swimHeading=yaw;swimLean=0;
-    alt=swimming?waterLevel(lon,lat):height(lon,lat);
-    player->setEnabled(true);
-    player->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0));
-    followDistance=std::min(followDistance,kOnFootFollow);
-    text("stream-status",swimming?"In the water. WASD/ZQSD: swim · F: climb back aboard."
+    alt=exit->swimming?waterLevel(lon,lat):height(lon,lat);
+    transitionTravel(exit->swimming?TravelMode::Swim:TravelMode::Foot);
+    text("stream-status",swimming()?"In the water. WASD/ZQSD: swim · F: climb back aboard."
                                  :"Ashore. F: take the boat again.");
-    saida::Log::info(swimming?"[World boat] swimming at ":"[World boat] ashore at ",lon,", ",lat);
+    saida::Log::info(swimming()?"[World boat] swimming at ":"[World boat] ashore at ",lon,", ",lat);
     request(lon,lat);
     return true;
 }
 
 World::Impl::HopResult World::Impl::hopAboard() {
-    if(!sailing)return HopResult::NoTarget;
+    if(!sailing())return HopResult::NoTarget;
     BoatReach target;double distance=0;
     if(!nearestBoat(target,distance,boat.beam*.5))return HopResult::NoTarget;
     const Vessel* other=target.source==BoatSource::Sea?&seaShips[target.index].v
@@ -155,8 +149,8 @@ World::Impl::HopResult World::Impl::hopAboard() {
         return HopResult::Refused;
     }
     Vessel left=boat;left.speed=0;
-    sailing=false;boat=Vessel{};
-    if(!board(target)) {boat=left;sailing=true;return HopResult::Refused;}
+    boat=Vessel{};
+    if(!board(target)) {boat=left;return HopResult::Refused;}
     keepBoat(std::move(left));
     saida::Log::info("[World boat] stepped across to a ",boat.kind," (",boat.length," m)");
     return HopResult::Boarded;
@@ -168,7 +162,8 @@ void World::Impl::clearBoats() {
     for(auto& s:seaShips)if(s.v.node)s.v.node->queueFree();
     seaShips.clear();seaTaken.clear();seaFirst=true;seaAsk=5.;
     if(boat.node)boat.node->queueFree();
-    boat=Vessel{};sailing=false;
+    if(sailing())transitionTravel(TravelMode::Foot);
+    boat=Vessel{};
 }
 
 void World::Impl::sailBoat(double dt,double throttle,double rudder) {
@@ -223,7 +218,7 @@ void World::Impl::placeBoats() {
         v.node->transform().position=glm::vec3(origin.local(ecef(v.lon,v.lat,v.alt+heave)));
         v.node->transform().rotation=sway;
     };
-    if(sailing)place(boat,0.);
+    if(sailing())place(boat,0.);
     for(size_t i=0;i<leftBoats.size();++i)place(leftBoats[i],double(i+1)*1.9);
     for(auto& s:seaShips)place(s.v,s.phase);
 }
