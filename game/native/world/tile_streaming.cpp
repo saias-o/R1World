@@ -98,8 +98,10 @@ void World::Impl::failTileUpload(const std::string& key, Loaded& tile, const std
 
 void World::Impl::uploadParts() {
     for(auto* tiles:{&loaded,&incoming})for(auto& [key,t]:*tiles)
-        for(auto* mesh:t.partMeshes)if(mesh->uploadState()==saida::Mesh::UploadState::Failed)
-            failTileUpload(key,t,mesh->uploadError());
+        // These are queueMemoryMesh proxies: once neither queued nor awaiting
+        // a GPU completion, an empty proxy is a failed upload in the SDK.
+        for(auto* mesh:t.partMeshes)if(!mesh->loaded()&&!engine.resources().meshUpdatePending(mesh))
+            failTileUpload(key,t,"procedural geometry upload ended without becoming ready (see MeshCache log)");
     const auto start=std::chrono::steady_clock::now();
     const auto anchor=streamAnchor();
     const auto priority=orderedNearby(anchor.x,anchor.y);
@@ -195,7 +197,7 @@ void World::Impl::updateBuildingLods() {
                 bool ready=state.started&&state.nextPart==parts.size();
                 for(size_t n=0;n<state.meshes.size();++n) {
                     auto* mesh=state.meshes[n];ready=ready&&mesh->loaded();
-                    failedUpload|=mesh->uploadState()==saida::Mesh::UploadState::Failed;
+                    failedUpload|=!mesh->loaded()&&!engine.resources().meshUpdatePending(mesh);
                     if(!mesh->loaded()) {pendingV+=parts[n].prepared->geometry.vertices.size();pendingI+=parts[n].prepared->geometry.indices.size();}
                 }
                 b.lod->setLevelReady(level,ready);

@@ -9,6 +9,8 @@ is also shown in Settings → Credits in the game.
 
 ## Features
 
+- Photograph the world and keep a persistent portfolio; open the player menu
+  with M to view photos, money, inventory and ammunition.
 - Buildings placed at their real-world locations.
 - Explorable building interiors.
 - Drive cars and motorcycles, sail boats, and fly planes and helicopters.

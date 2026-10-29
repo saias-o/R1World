@@ -3,6 +3,7 @@
 namespace r1::world {
 
 void World::Impl::updateSmoke(float delta, double dt) {
+    if(smoke&&std::getenv("R1WORLD_PHOTO_SMOKE"))return;
     if(smoke&&std::getenv("R1WORLD_TEST_VEHICLE_ESCAPE")&&smokeWalk>2){runVehicleEscapeSmoke(delta);return;}
     if(rocketSmoke){runRocketSmoke(delta);return;}
     if(policeSmoke){runPoliceSmoke(delta);return;}

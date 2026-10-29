@@ -54,7 +54,7 @@ void World::Impl::handlePerformanceKeys(const bool (&keys)[5]) {
     bool pressed[5];
     for(size_t i=0;i<5;++i){pressed[i]=keys[i]&&!performanceKeys[i];performanceKeys[i]=keys[i];}
     // Latch even in menus so typing, holding a key, or resuming cannot toggle.
-    if(!playing||menu)return;
+    if(!playing||menu||playerMenu||photoMode||photoResult)return;
     bool changed=pressed[0];
     if(pressed[0]) {
         performanceDebug=!performanceDebug;

@@ -48,6 +48,8 @@ void World::Impl::update(float delta) {
     }
     const double dt=simulation.seconds;
     updateCamera(dt);
+    // Photo detection and exposure run after scene transforms/physics, against
+    // the same animal poses and occluders that the renderer will draw.
     if(!updateCapture(dt))return;
     if(!updateHud(delta))return;
     updateSmoke(delta,dt);
@@ -93,10 +95,21 @@ bool World::Impl::updateSession(float delta, double frameSeconds) {
             saida::Log::info("[World E2E] teleporting to ",hopLon,", ",hopLat);
         }
     }
-    // Escape closes an open cheat line rather than opening the map
-    // (World::Impl::updateCheats); M is a letter typed in it.
-    bool key=(!performanceDebug&&held(GLFW_KEY_M))||engine.window().keyDown(GLFW_KEY_ESCAPE);
-    if(key&&!wasMenuKey&&!cheatOpen){if(optionsOpen)showOptions(false);else if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}else showMap(true);}wasMenuKey=key;
+    updatePhotography(delta);
+    if(smoke&&std::getenv("R1WORLD_PHOTO_SMOKE"))runPhotoSmoke(delta);
+    bool key=engine.window().keyDown(GLFW_KEY_ESCAPE);
+    if(key&&!wasMenuKey&&!cheatOpen&&!photoResult) {
+        if(playerMenu) {
+            auto* viewer=ui->findElementById("portfolio-viewer");
+            if(viewer&&viewer->IsClassSet("open"))ui->executeJS("closePortfolioViewer();");
+            else showPlayerMenu(false);
+        }
+        else if(photoMode)setPhotoMode(false);
+        else if(optionsOpen)showOptions(false);
+        else if(menu&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
+        else showMap(true);
+    }
+    wasMenuKey=key;
     const bool f11Key=engine.window().keyDown(GLFW_KEY_F11);
     if(f11Key&&!wasF11Key){toggleFullscreenMode();}
     wasF11Key=f11Key;
@@ -127,7 +140,7 @@ bool World::Impl::updateSession(float delta, double frameSeconds) {
 #endif
     // A drop not yet armed: the world under the globe is still the one
     // left, or none; nothing of it plays.
-    if(!playing||menu||(drop.phase!=Drop::None&&!drop.armed)){updateRain(delta);return false;}
+    if(!playing||menu||playerMenu||(drop.phase!=Drop::None&&!drop.armed)){updateRain(delta);return false;}
     return true;
 }
 

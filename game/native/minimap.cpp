@@ -1,6 +1,8 @@
 #include "minimap.hpp"
+#include "minimap_view.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iomanip>
 #include <set>
@@ -9,9 +11,9 @@
 namespace r1 {
 namespace {
 constexpr double kEarthMetres = 6371008.8;
-constexpr double kMapWidth = 296.0, kMapHeight = 256.0;
-constexpr double kViewWidthMetres = 900.0, kViewHeightMetres = 900.0 * kMapHeight / kMapWidth;
-constexpr size_t kRoadBudget = 240;
+constexpr double kMapWidth = kMiniMapWidth, kMapHeight = kMiniMapHeight;
+constexpr double kViewWidthMetres = kMiniMapViewMetres, kViewHeightMetres = kViewWidthMetres * kMapHeight / kMapWidth;
+constexpr size_t kRoadBudget = 1200;
 constexpr size_t kLabelBudget = 4;
 
 bool inside(P2 p, const Bounds& b) {
@@ -90,8 +92,10 @@ MiniMapTile makeMiniMapTile(const std::vector<OsmWay>& roads, const OsmData& osm
     out.bounds = bounds;
     out.roads.reserve(roads.size());
     for (const OsmWay& road : roads) {
-        if (road.points.size() != 2) continue;
-        out.roads.push_back({road.points[0], road.points[1], tagOr(road.tags, "name"), roadRank(road.tags)});
+        // Keep the observed neighbourhood, not only the part whose 3D tile
+        // is resident. A polyline has one drawable segment per pair of nodes.
+        for (size_t i = 1; i < road.points.size(); ++i)
+            out.roads.push_back({road.points[i-1], road.points[i], tagOr(road.tags, "name"), roadRank(road.tags)});
     }
     auto collect = [&](P2 position, const Tags& tags) {
         if (!inside(position, bounds)) return;
@@ -106,6 +110,7 @@ MiniMapTile makeMiniMapTile(const std::vector<OsmWay>& roads, const OsmData& osm
 
 std::string miniMapRoadRml(const std::vector<const MiniMapTile*>& tiles, double lon, double lat) {
     std::vector<DrawRoad> candidates;
+    std::set<std::array<long long, 4>> seenSegments;
     const double cosLat = std::max(0.00001, std::cos(lat * 3.141592653589793 / 180.0));
     for (const MiniMapTile* tile : tiles) for (const MiniRoad& road : tile->roads) {
         double x0 = kMapWidth * (0.5 + kEarthMetres * cosLat * wrappedDegrees(road.a.x - lon)
@@ -117,6 +122,12 @@ std::string miniMapRoadRml(const std::vector<const MiniMapTile*>& tiles, double 
         double y1 = kMapHeight * (0.5 - kEarthMetres * (road.b.y - lat)
                                          * 3.141592653589793 / 180.0 / kViewHeightMetres);
         if (!clip(x0, y0, x1, y1) || std::hypot(x1 - x0, y1 - y0) < 1.0) continue;
+        // Several cooked tiles share an OSM answer. Draw each segment once,
+        // including reversed copies, before applying the display budget.
+        std::array<long long, 2> a{std::llround(x0*10), std::llround(y0*10)};
+        std::array<long long, 2> b{std::llround(x1*10), std::llround(y1*10)};
+        if (b < a) std::swap(a,b);
+        if (!seenSegments.insert({a[0],a[1],b[0],b[1]}).second) continue;
         const double distance = std::hypot((x0 + x1) * 0.5 - kMapWidth * 0.5,
                                            (y0 + y1) * 0.5 - kMapHeight * 0.5);
         candidates.push_back({x0, y0, x1, y1, distance, road.rank, road.name});
@@ -125,7 +136,25 @@ std::string miniMapRoadRml(const std::vector<const MiniMapTile*>& tiles, double 
         const double sa = a.distance - a.rank * 24.0, sb = b.distance - b.rank * 24.0;
         return sa < sb;
     });
-    if (candidates.size() > kRoadBudget) candidates.resize(kRoadBudget);
+    if (candidates.size() > kRoadBudget) {
+        // A distance-only cap erased the outskirts of dense neighbourhoods.
+        // Share the budget across the whole viewport, then fill spare slots.
+        constexpr size_t columns=8, rows=6, perCell=kRoadBudget/(columns*rows);
+        std::array<size_t, columns*rows> counts{};
+        std::vector<DrawRoad> selected, overflow;
+        selected.reserve(kRoadBudget);
+        for (const auto& road : candidates) {
+            const size_t x=std::min(columns-1,size_t(std::max(0.,(road.x0+road.x1)*.5/kMapWidth)*columns));
+            const size_t y=std::min(rows-1,size_t(std::max(0.,(road.y0+road.y1)*.5/kMapHeight)*rows));
+            if (counts[y*columns+x]++ < perCell) selected.push_back(road);
+            else overflow.push_back(road);
+        }
+        for (const auto& road : overflow) {
+            if (selected.size() == kRoadBudget) break;
+            selected.push_back(road);
+        }
+        candidates=std::move(selected);
+    }
     std::stable_sort(candidates.begin(), candidates.end(), [](const DrawRoad& a, const DrawRoad& b) {
         return a.rank < b.rank;
     });

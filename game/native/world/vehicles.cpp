@@ -4,7 +4,7 @@ namespace r1::world {
 void World::Impl::updateRadio(double dt) {
     const bool keys[]={held(GLFW_KEY_B),held(GLFW_KEY_N),held(GLFW_KEY_PAGE_UP),held(GLFW_KEY_PAGE_DOWN)};
     bool pressed[4];
-    for(int i=0;i<4;++i){pressed[i]=keys[i]&&!radioKeys[i]&&!menu&&!cheatOpen;radioKeys[i]=keys[i];}
+    for(int i=0;i<4;++i){pressed[i]=keys[i]&&!radioKeys[i]&&!menu&&!playerMenu&&!cheatOpen;radioKeys[i]=keys[i];}
     const bool aboard=playing&&driving()&&!pending&&!carSinking;
     const bool previous=held(GLFW_KEY_LEFT_SHIFT)||held(GLFW_KEY_RIGHT_SHIFT);
     radio.update(dt,lon,lat,aboard,pressed[0],pressed[1]&&!previous,pressed[1]&&previous,int(pressed[2])-int(pressed[3]));
@@ -428,10 +428,11 @@ void World::Impl::captureCarPose() {
 }
 
 bool World::Impl::needsAfterSimulation() const {
-    return driving()&&car&&!pending&&playing&&(worldCapture.pngPath.empty()||!captureView.set);
+    return photoShutterRequested||(driving()&&car&&!pending&&playing&&(worldCapture.pngPath.empty()||!captureView.set));
 }
 
 void World::Impl::afterSimulation(float) {
+    if(photoShutterRequested){photoShutterRequested=false;takePhotograph();return;}
     if(!needsAfterSimulation())return;
     auto* body=r1::VehicleRuntime::body(*car);
     if(!body||!body->physicsWorld()||body->kinematic)return;

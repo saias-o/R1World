@@ -44,6 +44,7 @@ World::Impl::Impl(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest ca
         countryNames=places.at("countries").get<std::map<std::string,std::string>>();
     }
     loadOptions();
+    loadPlayerProfile();
     if(const char* requested=std::getenv("R1WORLD_GI_QUALITY")) {
         const auto end=std::end(giQualityKeys);
         const auto found=std::find(std::begin(giQualityKeys),end,std::string(requested));
@@ -124,9 +125,9 @@ World::Impl::Impl(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest ca
     e.window().setCursorCaptured(false);
 }
 
-World::Impl::~Impl(){saveAnimalRemains(true);animalWriter.flush();saveAnimalRemains(true);animalWriter.flush();
+World::Impl::~Impl(){finishPhotograph();savePlayerProfile();saveAnimalRemains(true);animalWriter.flush();saveAnimalRemains(true);animalWriter.flush();
     if(!animalWriter.error().empty())animalSaveError(animalWriter.error());clearPolice();for(auto* e:listeners)if(ui->isLiveElement(e,generation)){
-    for(const char* type:{"click","mousedown","mouseup","mousemove","mousescroll","dblclick"})e->RemoveEventListener(type,this);}}
+    for(const char* type:{"click","mousedown","mouseup","mousemove","mousescroll","dblclick","change"})e->RemoveEventListener(type,this);}}
 
 void World::Impl::setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model) {
     globe=std::move(model);globeTarget=globe->view;globe->toaster=toasterMode;

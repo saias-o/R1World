@@ -114,7 +114,7 @@ int main(int argc,char** argv) {
         const saida::Engine::FrameFn followPhysics=[&](float dt){world.afterSimulation(dt);};
         engine.setOnFrame([&](float dt){
             world.update(dt);
-            // Only driving changes the pose after physics. An empty hook also
+            // Driving and a photo exposure need the pose after physics. An empty hook also
             // skips the engine's full transform propagation for that stage.
             engine.setAfterSimulation(world.needsAfterSimulation()?followPhysics:saida::Engine::FrameFn{});
         });

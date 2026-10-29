@@ -29,3 +29,57 @@ body { margin: 0; font-family: NextSans; font-size: 18px; color: #edf3ee; }
 #wanted-track { width: 246px; height: 9px; background-color: #2a3f48; margin-top: 4px; }
 #wanted-fill { width: 0px; height: 9px; background-color: #d65c47; }
 #wanted-state { margin-top: 4px; font-size: 12px; color: #b3c8d2; }
+
+#player-menu { display: none; position: absolute; left: 0; top: 0; width: 1440px; height: 900px; background-color: rgba(3,10,17,0.86); }
+#player-card { position: absolute; left: 100px; top: 35px; width: 1180px; height: 790px; padding: 20px 30px; background-color: #101e2b; border: 1px solid #314656; border-radius: 18px; }
+#player-header { position: relative; height: 110px; }
+.player-eyebrow { margin: 0; color: #a4c5b0; font-size: 13px; letter-spacing: 3px; }
+#player-header h2 { margin: 6px 0; font-size: 34px; }
+#player-money-label { position: absolute; right: 210px; top: 15px; font-size: 14px; color: #b1c3d1; }
+#player-money { display: block; margin-top: 5px; font-size: 26px; color: #d5f5a4; }
+#player-close { position: absolute; right: 0; top: 20px; }
+#player-tabs { height: 62px; border-bottom: 1px solid #314656; }
+#player-tabs button { margin-right: 12px; }
+#player-tabs button.selected, #portfolio-filters button.selected { color: #10251e; background-color: #c7e6bc; border-color: #c7e6bc; }
+#portfolio-filters { height: 48px; padding-top: 12px; }
+#portfolio-filters button { padding: 7px 18px; margin-right: 8px; font-size: 15px; }
+#portfolio-species { display: none; width: 300px; height: 34px; padding: 6px 12px; font-family: NextSans; font-size: 15px; color: #e4edf6; background-color: #20313e; border: 1px solid #486172; border-radius: 8px; }
+#portfolio-filters button, #portfolio-species { vertical-align: middle; }
+#portfolio-stage { position: relative; height: 470px; width: 1180px; }
+#portfolio-grid { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 16px; width: 1180px; height: 460px; }
+.portfolio-card { display: none; width: 283px; height: 222px; padding: 0; overflow: hidden; text-align: left; border-radius: 12px; }
+.portfolio-card:hover { border-color: #c7e6bc; }
+.portfolio-thumbnail { display: flex; justify-content: center; align-items: center; width: 281px; height: 176px; background-color: #071018; }
+.portfolio-thumbnail img { display: none; }
+.portfolio-card-title { display: block; height: 44px; box-sizing: border-box; padding: 5px 10px; line-height: 17px; font-size: 14px; overflow: hidden; }
+.portfolio-missing { display: none; font-size: 14px; color: #a8bdcb; }
+#portfolio-empty { position: absolute; left: 180px; top: 155px; width: 820px; line-height: 30px; text-align: center; color: #a8bdcb; }
+#portfolio-navigation { text-align: center; height: 50px; margin-top: 6px; }
+#portfolio-count { display: inline-block; min-width: 240px; color: #b1c3d1; }
+#portfolio-navigation button:disabled { opacity: 0.4; cursor: default; }
+#portfolio-viewer { display: none; position: absolute; left: 0; top: 0; width: 1440px; height: 900px; background-color: #050b10; z-index: 20; }
+#portfolio-viewer.open { display: block; }
+#portfolio-viewer-toolbar { position: absolute; left: 30px; top: 16px; width: 1380px; height: 52px; z-index: 2; }
+#portfolio-viewer-title { display: inline-block; width: 1000px; height: 45px; overflow: hidden; font-size: 22px; line-height: 45px; }
+#portfolio-viewer-tools { position: absolute; top: 0; right: 0; }
+#portfolio-viewer-tools button { padding: 8px 16px; margin-left: 8px; font-size: 21px; }
+#portfolio-viewer-close { color: #ffffff; }
+#portfolio-viewer-viewport { position: absolute; left: 0; top: 76px; width: 1440px; height: 710px; display: flex; align-items: center; justify-content: center; overflow: hidden; clip: always; cursor: move; z-index: 0; }
+#portfolio-viewer-image { display: block; transform-origin: 50% 50%; }
+#portfolio-viewer-error { display: none; color: #a8bdcb; }
+#portfolio-viewer-caption { position: absolute; left: 60px; bottom: 15px; width: 1320px; height: 85px; background-color: #050b10; z-index: 2; }
+#portfolio-viewer-details { margin: 4px 0; max-height: 46px; overflow-y: auto; white-space: pre-wrap; font-size: 14px; color: #b1c3d1; }
+#portfolio-viewer-help { margin: 8px 0; font-size: 13px; color: #86a193; }
+#player-panel-inventory, #player-panel-ammo { display: none; padding-top: 20px; height: 565px; }
+#player-items { white-space: pre-wrap; line-height: 30px; color: #d3e2eb; }
+#player-panel-inventory h3, #player-panel-ammo h3 { margin: 24px 0 12px; font-size: 25px; }
+.player-equipment button { margin: 12px 12px 0 0; }
+.player-hint { margin-top: 45px; color: #a8bdcb; }
+#player-save-status { position: absolute; left: 30px; bottom: 15px; width: 1180px; font-size: 12px; color: #91a9b9; }
+#photo-viewfinder { display: none; position: absolute; width: 1440px; height: 900px; pointer-events: none; }
+#photo-frame { position: absolute; left: 110px; top: 65px; width: 1216px; height: 650px; border: 2px solid rgba(255,255,255,0.6); border-radius: 14px; }
+#photo-reticle { position: absolute; left: 710px; top: 432px; font-size: 28px; color: #ffffff; }
+#photo-instructions { position: absolute; left: 170px; bottom: 45px; width: 1100px; text-align: center; background-color: rgba(7,16,24,0.85); border-radius: 14px; padding: 15px 0; }
+#photo-instructions p { margin: 6px; font-size: 16px; }
+#photo-category { font-size: 25px; color: #d5f5a4; }
+#photo-notice { display: none; position: absolute; top: 30px; left: 320px; width: 760px; padding: 14px 20px; text-align: center; background-color: #183c36; color: #ecffd9; border-radius: 12px; font-size: 16px; }

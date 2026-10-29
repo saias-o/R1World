@@ -63,7 +63,28 @@ inline const WeaponSpec& spec(Weapon w) {
 // the next attack and of a reload under way.
 class Arsenal {
 public:
+    struct Snapshot {
+        Weapon held = Weapon::Fists;
+        std::array<int,2> loaded{{kPistol.magazine,1}}, reserve{{kPistol.magazine*4,12}};
+        bool operator==(const Snapshot& other) const {
+            return held==other.held&&loaded==other.loaded&&reserve==other.reserve;
+        }
+        bool operator!=(const Snapshot& other) const { return !(*this==other); }
+    };
     enum class Trigger { None, Fired, Empty, Reloading };
+
+    Snapshot snapshot() const { return {held_,loaded_,reserve_}; }
+    static bool valid(const Snapshot& s) {
+        return unsigned(s.held)<=unsigned(Weapon::RocketLauncher)&&
+            s.loaded[0]>=0&&s.loaded[0]<=kPistol.magazine&&s.loaded[1]>=0&&s.loaded[1]<=kRocket.magazine&&
+            s.reserve[0]>=0&&s.reserve[0]<=kMostReserve&&s.reserve[1]>=0&&s.reserve[1]<=kMostReserve;
+    }
+    bool restore(const Snapshot& s) {
+        if(!valid(s))return false;
+        held_=s.held;loaded_=s.loaded;reserve_=s.reserve;cooldown_=reloading_=0;return true;
+    }
+    int loaded(Weapon weapon) const { return weapon==Weapon::Fists?0:loaded_[weapon==Weapon::RocketLauncher?1:0]; }
+    int reserve(Weapon weapon) const { return weapon==Weapon::Fists?0:reserve_[weapon==Weapon::RocketLauncher?1:0]; }
 
     Weapon held() const { return held_; }
     int loaded() const { return loaded_[ammoSlot()]; }

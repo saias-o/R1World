@@ -2,6 +2,7 @@
 #include "world.hpp"
 #include "travel_state.hpp"
 #include "remains_store.hpp"
+#include "player_profile.hpp"
 // Game-side integration with Saida's public C++ API.
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -555,6 +556,35 @@ class World::Impl : public Rml::EventListener {
     // native/combat.hpp; the engine gives the falls (RagdollBehaviour), the
     // arms (TwoBoneIKModifier) and the pistol in the hand (BoneAttachment).
     r1::combat::Arsenal arsenal; r1::combat::Health health; r1::combat::Punch punch;
+    std::unique_ptr<PlayerProfileStore> profileStore;
+    PlayerProfile profile;
+    bool playerMenu=false,photoMode=false,wasPlayerMenuKey=false,wasPhotoKey=false,wasPhotoShutter=false,wasPhotoCategory=false;
+    bool profileDirty=false;
+    bool photoShutterRequested=false;
+    double profileSaveAge=0,photoNoticeAge=0;
+    PhotoCategory photoCategory=PhotoCategory::World;
+    int portfolioFilter=-1;
+    size_t portfolioIndex=0;
+    std::string playerTab="portfolio",profileError;
+    std::string portfolioSpecies;
+    struct PhotoResult { bool done=false,success=false;std::string error;Photograph photo; };
+    std::shared_ptr<PhotoResult> photoResult;
+    void loadPlayerProfile();
+    bool savePlayerProfile();
+    void updatePhotography(double dt);
+    void finishPhotograph();
+    bool setPhotoMode(bool show);
+    void takePhotograph();
+    std::vector<PhotoAnimal> photographedAnimals();
+    bool framePhotoSmokeAnimal();
+    void showPlayerMenu(bool show);
+    void refreshPlayerMenu();
+    void refreshPortfolio();
+    bool playerMenuAction(const std::string& id);
+    void photoNotice(const std::string& message);
+    int photoSmokePhase=0;
+    double photoSmokeAge=0;
+    void runPhotoSmoke(double dt);
     r1::CombatEffects effects; r1::CombatSounds sounds;
     saida::RagdollProfile ragdollProfile=r1::rocketboxRagdoll();
     saida::Node* playerBody=nullptr; saida::Transform playerBodyRest;

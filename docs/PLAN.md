@@ -1,7 +1,7 @@
 ﻿# R1World
 
-**Explorer la Terre entière à l'échelle 1:1 et, à terme, photographier tous
-les animaux du jeu.**
+**Explorer la Terre entière à l'échelle 1:1 en photographiant le monde :
+monuments, animaux, paysages et événements insolites.**
 
 ## À traiter en premier (28 octobre 2026)
 
@@ -20,17 +20,18 @@ les animaux du jeu.**
   Il faut des assets CC0 du même grade que les existants, choisis par
   l'utilisateur (CLAUDE.md §1).
 
-Mis à jour le 23 octobre 2026. Ce plan conserve la direction du jeu, ses
+Mis à jour le 29 octobre 2026. Ce plan conserve la direction du jeu, ses
 contraintes durables et les travaux restant à faire. Les fonctionnalités
 livrées, leur fonctionnement et leurs mesures sont documentés dans
 `game/README.md` ; leur historique reste dans Git.
 
 **La version actuelle du jeu est la 0.1. Sa sortie est prévue prochainement.**
-Le catalogue animalier et la collection photo sont un objectif à terme,
-pas une fonctionnalité annoncée comme disponible dans cette version.
+Le catalogue de découvertes animalières reste un objectif à terme. La prise de
+photo libre, le portfolio persistant et le menu du joueur sont décrits dans
+`game/README.md` (29 octobre 2026).
 
-**Le but du jeu est l'exploration.** La collection photo donnera une raison
-concrète de voyager : les animaux apparaîtront selon l'endroit du monde où
+**Le but du jeu est l'exploration par la photographie.** La collection donnera
+une raison concrète de voyager : les animaux apparaîtront selon l'endroit du monde où
 se trouve le joueur. Compléter la collection imposera de découvrir des pays,
 des régions et des milieux différents.
 
@@ -263,10 +264,14 @@ vont dans `game/README.md`. Une validation non réalisée reste ouverte.
 Le catalogue devra dépasser **5 000 animaux différents**. Ce nombre est
 une cible de contenu à construire progressivement.
 
-- Concevoir la boucle de jeu : rechercher un animal, l'observer, le
-  photographier et enregistrer la découverte dans une collection persistante.
-  Le joueur doit pouvoir consulter ses photos et les animaux qui lui restent
-  à trouver, avec une progression vers la collection complète.
+- Étendre la détection des espèces et les catégories du portfolio existantes :
+  montrer les animaux qui restent à trouver, avec une progression vers la
+  collection complète. Les nouveaux clichés enregistrent déjà les espèces
+  cadrées et visibles selon les tests géométriques/collisions du jeu. Affiner
+  la visibilité des silhouettes animées et du feuillage sans collision si les
+  captures de référence montrent des faux positifs. Étendre ensuite cette
+  reconnaissance aux monuments et événements, dont les catégories restent
+  manuelles.
 - Faire dépendre les apparitions de l'endroit réel du monde : répartition
   géographique, région, biome, climat et habitat/usage du sol. Une espèce
   n'apparaît que dans les lieux qui lui conviennent ; tout le catalogue ne

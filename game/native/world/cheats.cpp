@@ -52,7 +52,7 @@ void World::Impl::updateCheats(double dt) {
         else if(engine.uiInteraction().focusedWebCanvas()!=ui)engine.uiInteraction().focusWebCanvas(ui);
     }
     // With the debug panel open, T is its trees (ui/performance.html).
-    else if(key&&!wasCheatKey&&!performanceDebug&&!wasted&&!smoke)openCheat();
+    else if(key&&!wasCheatKey&&!performanceDebug&&!photoMode&&!playerMenu&&!wasted&&!smoke)openCheat();
     wasCheatKey=key;wasCheatEnter=enter;wasCheatEscape=escape;
     style("cheat-said","display",!cheatOpen&&clock-cheatSaidAt<4.?"block":"none");
 }

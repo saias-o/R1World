@@ -1,4 +1,5 @@
 #include "session.hpp"
+#include "minimap_view.hpp"
 
 namespace r1::world {
 glm::vec3 World::Impl::policeVector(r1::police::Routes::Point p){return {p.x,p.y,p.z};}
@@ -656,8 +657,10 @@ void World::Impl::updatePolice(double elapsed) {
 std::string World::Impl::policeMapRml() {
     std::string markup;const Frame here(lon,lat,alt);
     auto marker=[&](glm::dvec3 ecef,const char* kind) {
-        const auto at=here.local(ecef);const double x=148+at.x*296/900,z=128+at.z*296/900;
-        if(x<3||x>290||z<3||z>250)return;
+        const auto at=here.local(ecef);
+        const double pixelsPerMetre=r1::kMiniMapWidth/r1::kMiniMapViewMetres;
+        const double x=r1::kMiniMapWidth*.5+at.x*pixelsPerMetre,z=r1::kMiniMapHeight*.5+at.z*pixelsPerMetre;
+        if(x<3||x>r1::kMiniMapWidth-6||z<3||z>r1::kMiniMapHeight-6)return;
         markup+="<div class='mini-police "+std::string(kind)+"' style='left:"+number(x,0)+"px;top:"+number(z,0)+"px;'></div>";
     };
     for(const auto& station:policeStations)marker(station.at,"station");

@@ -1,8 +1,16 @@
 #include "session.hpp"
+#include "photo_detection.hpp"
 
 namespace r1::world {
 
 void World::Impl::updateCamera(double dt) {
+    if(photoMode) {
+        if(!photoResult)camera->fovDegrees=zoomPhotoFov(sceneFov,camera->fovDegrees,saida::Input::scrollDelta().y);
+        text("photo-zoom",number(photoZoom(sceneFov,camera->fovDegrees),1)+"×");
+        camera->transform().position=player->transform().position+glm::vec3(0,float(playerHeight*.89),0);
+        camera->transform().rotation=glm::angleAxis(float(-yaw*rad),glm::vec3(0,1,0))*glm::angleAxis(float(pitch*rad),glm::vec3(1,0,0));
+        return;
+    }
     // In the air the arrival flies its own camera (World::Impl::placeDropCamera).
     if(dropFlying())placeDropCamera(dt);
     else {

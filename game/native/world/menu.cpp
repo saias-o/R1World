@@ -32,7 +32,7 @@ void World::Impl::miniText(const std::string& id,const std::string& s) {
 void World::Impl::layoutMinimap() {
     const float scale=ui->screenSize().x/1440.f;
     const glm::vec2 edge=ui->screenPosition();
-    const glm::vec3 position(edge.x+32.f*scale,edge.y+(900.f-28.f-344.f)*scale,0.f);
+    const glm::vec3 position(edge.x+32.f*scale,edge.y+(900.f-28.f-float(minimapUi->height()))*scale,0.f);
     auto& transform=minimapUi->transform();
     if(glm::distance(transform.position,position)>.1f)transform.position=position;
     if(std::abs(transform.scale.x-scale)>.001f)transform.scale=glm::vec3(scale);
@@ -46,7 +46,7 @@ void World::Impl::updateMinimap() {
     const std::string zone=localConditions()?conditions.value("timezone",std::string()):"";
     const auto policeMarkers=policeMapRml();
     if(written["mini:police"]!=policeMarkers&&minimapUi->setElementRml("mini-police",policeMarkers))written["mini:police"]=policeMarkers;
-    miniText("mini-time",localClock());
+    miniText("mini-time",localClock().substr(0,5));
     miniText("mini-place",r1::miniMapPlace(tiles,zoneCountries,countryNames,zone,lon,lat));
     if(minimapDrawnRevision!=minimapRevision||metresBetween(minimapLon,minimapLat,lon,lat)>8.) {
         const std::string roads=r1::miniMapRoadRml(tiles,lon,lat);
@@ -236,6 +236,8 @@ void World::Impl::updateGlobe(double dt) {
 }
 
 void World::Impl::showMap(bool show) {
+    if(show&&playerMenu)showPlayerMenu(false);
+    if(show&&photoMode)setPhotoMode(false);
     if(show&&cheatOpen)closeCheat();
     // The map opened while the globe still flies to a place not yet
     // ready calls the arrival off; once he is in the air it waits there
@@ -365,6 +367,7 @@ void World::Impl::zoomMap(double z) {
 void World::Impl::ProcessEvent(Rml::Event& event) {
     auto id=event.GetCurrentElement()->GetId();
     const auto type=event.GetType();
+    if(id=="portfolio-species") {if(type=="change")playerMenuAction(id);return;}
     if(type=="mousedown"||type=="mousescroll"||type=="dblclick")touchGlobe();
     if(id=="map"||id=="menu") {
         if(!globe||optionsOpen||!menu)return;
@@ -405,6 +408,7 @@ void World::Impl::ProcessEvent(Rml::Event& event) {
     const bool press=event.GetType()=="mousedown";
     if(!press&&id==pressedId){pressedId.clear();return;}
     if(press)pressedId=id;
+    if(playerMenuAction(id))return;
     if(id=="go")go();
     else if(id=="options")showOptions(true);
     else if(id=="options-back")showOptions(false);
@@ -452,7 +456,11 @@ bool World::Impl::refreshInterface() {
     if(generation!=ui->documentGeneration()||listeners.empty()) {
         generation=ui->documentGeneration();listeners.clear();
         written.clear();
+        if(auto* element=ui->findElementById("portfolio-species")){element->AddEventListener("change",this);listeners.push_back(element);}
         for(auto id:{"go","destination-go","resume","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
+                     "player-close","player-map","player-photo","player-tab-portfolio","player-tab-inventory","player-tab-ammo",
+                     "player-equip-fists","player-equip-pistol","player-equip-rocket","portfolio-prev","portfolio-next",
+                     "portfolio-filter-all","portfolio-filter-world","portfolio-filter-animal","portfolio-filter-monument","portfolio-filter-event",
                      "city-choice-0","city-choice-1","city-choice-2","city-choice-3","city-choice-4",
                      "options","options-back","forced-apply","forced-clear",
                      "weather-real","weather-clear","weather-light-rain","weather-storm",

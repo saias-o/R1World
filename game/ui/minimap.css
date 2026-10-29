@@ -1,19 +1,19 @@
-body { margin: 0; font-family: NextSans; color: #f3f4f0; }
-#mini-panel { position: absolute; left: 0; top: 0; width: 324px; height: 340px; background-color: #13232b; border: 2px #b5c5c4; }
-#mini-time { position: absolute; left: 14px; top: 8px; width: 294px; height: 21px; font-size: 16px; font-weight: bold; color: #d4f2ad; }
-#mini-place { position: absolute; left: 14px; top: 32px; width: 294px; height: 22px; font-size: 14px; color: #ecf0ed; }
-#mini-map { position: absolute; left: 12px; top: 65px; width: 296px; height: 256px; overflow: hidden; background-color: #33454a; border: 1px #648089; }
-#mini-roads { position: absolute; left: 0; top: 0; width: 296px; height: 256px; }
-.mini-road { position: absolute; background-color: #8da5a2; }
-.rank-0 { background-color: #69827f; }
-.rank-1 { background-color: #a4b6b0; }
-.rank-2 { background-color: #d6d9c6; }
-.rank-3 { background-color: #eee0aa; }
-.mini-street { position: absolute; width: 110px; height: 20px; font-size: 12px; text-align: center; color: #faf8e9; background-color: #273940; }
-#mini-player { position: absolute; left: 136px; top: 116px; width: 24px; height: 24px; font-size: 28px; font-weight: bold; text-align: center; color: #d4f2ad; background-color: #142934; border-radius: 12px; }
-#mini-north { position: absolute; right: 8px; top: 5px; font-size: 12px; font-weight: bold; color: #d4f2ad; }
+body { margin: 0; font-family: NextSans; color: #e5eef1; }
+#mini-panel { position: absolute; left: 0; top: 0; box-sizing: border-box; width: 244px; height: 218px; background-color: rgba(11,23,33,0.80); border: 1px solid rgba(205,226,235,0.18); border-radius: 15px; }
+#mini-time { position: absolute; right: 10px; top: 6px; width: 48px; height: 18px; line-height: 18px; text-align: right; font-size: 12px; font-weight: bold; letter-spacing: 1px; color: #c5e7d4; }
+#mini-place { position: absolute; left: 11px; top: 6px; width: 156px; height: 18px; line-height: 18px; font-size: 12px; color: #e0ebef; white-space: nowrap; overflow: hidden; }
+#mini-map { position: absolute; left: 4px; top: 30px; width: 232px; height: 180px; overflow: hidden; clip: always; background-color: rgba(49,73,84,0.32); border: 1px solid rgba(191,216,227,0.13); border-radius: 10px; }
+#mini-roads { position: absolute; left: 0; top: 0; width: 232px; height: 180px; }
+.mini-road { position: absolute; background-color: #8fa9ac; }
+.rank-0 { background-color: #647d85; }
+.rank-1 { background-color: #9eb5bc; }
+.rank-2 { background-color: #c7d5d3; }
+.rank-3 { background-color: #e7d6a7; }
+.mini-street { position: absolute; width: 110px; height: 18px; line-height: 18px; font-size: 11px; text-align: center; color: #edf4f1; background-color: rgba(10,25,34,0.78); border-radius: 5px; white-space: nowrap; overflow: hidden; }
+#mini-player { position: absolute; left: 104px; top: 78px; box-sizing: border-box; width: 24px; height: 24px; line-height: 24px; font-size: 24px; font-weight: bold; text-align: center; color: #bfe9d1; background-color: rgba(10,27,36,0.94); border: 1px solid rgba(191,233,209,0.42); border-radius: 12px; }
+#mini-north { position: absolute; right: 6px; top: 5px; padding: 2px 5px; font-size: 10px; font-weight: bold; color: #c5e7d4; background-color: rgba(10,25,34,0.72); border-radius: 5px; }
 
-.mini-police { position: absolute; width: 6px; height: 6px; background-color: #4d9ee8; border: 1px #d5efff; }
-.mini-police.station { width: 8px; height: 8px; background-color: #315580; }
-.mini-police.air { background-color: #df704c; }
-.mini-police.search { width: 14px; height: 14px; border-radius: 7px; background-color: #ab7640; }
+.mini-police { position: absolute; width: 6px; height: 6px; background-color: #75b6ed; border: 1px solid #d5efff; border-radius: 3px; }
+.mini-police.station { width: 8px; height: 8px; background-color: #426e96; }
+.mini-police.air { background-color: #e68e68; }
+.mini-police.search { width: 14px; height: 14px; border-radius: 7px; background-color: rgba(195,145,83,0.78); }

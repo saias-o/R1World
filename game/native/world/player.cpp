@@ -1,10 +1,16 @@
 #include "session.hpp"
+#include "photo_detection.hpp"
 
 namespace r1::world {
 
 double World::Impl::updatePlayer(float delta, bool sampleMouse) {
     auto mouse=saida::Input::mouseDelta();
     if(!sampleMouse)mouse={0,0};
+    if(photoMode) {
+        const double sensitivity=.12/photoZoom(sceneFov,camera->fovDegrees);
+        yaw=wrap(yaw+mouse.x*sensitivity);pitch=std::clamp(pitch-mouse.y*sensitivity,-80.,80.);
+        updateCombat(std::min(double(delta),.1));return delta;
+    }
     // At the wheel the mouse does not steer -- the car does -- so it turns
     // the head instead: a free yaw around the car, which is what you want
     // at a junction and what the first drive was missing entirely. It
@@ -67,7 +73,7 @@ double World::Impl::updatePlayer(float delta, bool sampleMouse) {
     if(retailTest())f=r=0;
     if(performanceSmoke){f=r=0;smokeStarted=false;}
     if(trafficValidation_){f=r=0;smokeStarted=false;}
-    if(policeSmoke||rocketSmoke){f=r=0;smokeStarted=false;}
+    if(policeSmoke||rocketSmoke||(smoke&&std::getenv("R1WORLD_PHOTO_SMOKE"))){f=r=0;smokeStarted=false;}
     if(smokeApproach) {
         auto to=origin.local(ecef(carLon,carLat,carAlt))-origin.local(ecef(lon,lat,alt));
         yaw=std::atan2(to.x,-to.z)/rad;f=1;r=0;

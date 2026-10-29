@@ -66,6 +66,7 @@ void World::Impl::setupCombat() {
         if(!saida::AudioManager::get().preload(path))
             saida::Log::error("[World arrival] missing sound ",path," (python -m r1.arrival_sounds): the fall will be silent");
     buildRockets();
+    showHeldPistol();
     saida::Log::info("[World combat] ready: ",ragdollProfile.parts.size()," bodies per ragdoll, ",kLiveRagdolls,
                      " tumbling at once; arm ",playerReach," m");
 }
@@ -743,7 +744,7 @@ void World::Impl::updateCombat(double dt) {
     const bool onBike=ridingBike()&&playerBikeRider&&!playerDown;
     const bool inHelicopter=piloting()&&plane.helicopter()&&!playerDown;
     // In the air his arms are the arrival's (World::Impl::poseDrop): no fight.
-    if((!onFoot&&!onBike&&!inHelicopter)||menu||smoke||dropFlying()) {
+    if((!onFoot&&!onBike&&!inHelicopter)||menu||playerMenu||photoMode||smoke||dropFlying()) {
         if(aiming)setAiming(false);
         wasFire=clicked(GLFW_MOUSE_BUTTON_LEFT);
         if(!onFoot)for(auto* arm:playerArms)if(arm&&arm->weight()>0&&!playerDown)arm->release();

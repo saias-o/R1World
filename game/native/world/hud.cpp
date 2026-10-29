@@ -25,7 +25,7 @@ bool World::Impl::updateHud(float delta) {
             :swimming()?" · In the water · WASD/ZQSD: swim · F: climb back aboard"
             :nearestAircraft(standing,planeFar)?" · F: take the aircraft"
             :nearestBoat(moored,boatFar)?" · F: take the boat"
-            :(nearestCar(within,howFar)?" · F: get in the vehicle":performanceDebug?" · Esc: map":" · M: map");
+            :(nearestCar(within,howFar)?" · F: get in the vehicle":performanceDebug?" · Esc: map":" · P: photo · M: portfolio / inventory");
         const auto* currentTile=tile(lon,lat);
         // A cook that ran out of memory is said where the player looks,
         // and fails the smoke on that reason (World service, OUT-OF-MEMORY).

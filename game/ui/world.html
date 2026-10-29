@@ -70,12 +70,45 @@
   </div>
  </section>
  <div id="hud"><div id="coordinates"></div><div id="stream-status"></div><div id="local-conditions"></div><div id="vehicle-radio"></div>
-  <div id="controls">WASD / ZQSD: walk or drive · Shift: run · F: get in / out (car, boat, plane, helicopter) · Space: jump, handbrake, pitch up or climb · Mouse: camera · Click: punch / shoot / helicopter rocket · Right click: aim · 1 / 2 / 3: fists / pistol / rocket launcher · E: reload · B: radio · N: station · T: cheat code · R: FPS / debug · F11: full screen · M / Esc: map</div>
+  <div id="controls">WASD / ZQSD: walk or drive · Shift: run · F: get in / out · Space: jump / handbrake / climb · Mouse: camera · Click: punch / shoot · Right click: aim · 1 / 2 / 3: weapons · E: reload · B / N: radio · T: cheat · R: debug · F11: full screen · P: photo · M: portfolio / inventory · Esc: map</div>
   <div id="combat"><div id="weapon-name">Fists</div><div id="weapon-ammo"></div><div id="health-row"><div id="health-bar"><div id="health-fill"></div></div><span id="health-value">100</span></div><div id="shield"></div><div id="wanted-label">Recherche · 0%</div><div id="wanted-track"><div id="wanted-fill"></div></div><div id="wanted-state"></div></div>
   <div id="cheat"><span id="cheat-label">CODE</span><input id="cheat-input" type="text" maxlength="24"/><span id="cheat-help">Enter: confirm · Esc: close</span></div>
   <div id="cheat-said"></div>
   <div id="crosshair">+</div>
   <div id="hurt"></div>
   <div id="wasted"><div id="wasted-title">WASTED</div><div id="wasted-detail"></div></div></div>
+ <section id="player-menu" class="ui-hit">
+  <div id="player-card">
+   <header id="player-header"><p class="player-eyebrow">R1WORLD · CARNET D’EXPLORATION</p><h2>Votre voyage</h2><p id="player-money-label">Argent disponible <span id="player-money">0,00 €</span></p><button id="player-close">Reprendre · M</button></header>
+   <nav id="player-tabs"><button id="player-tab-portfolio">Portfolio</button><button id="player-tab-inventory">Objets et armes</button><button id="player-tab-ammo">Munitions</button><button id="player-map">Carte du monde</button></nav>
+   <section id="player-panel-portfolio">
+    <div id="portfolio-filters"><button id="portfolio-filter-all">Tout</button><button id="portfolio-filter-world">Monde</button><button id="portfolio-filter-animal">Animaux</button><button id="portfolio-filter-monument">Monuments</button><button id="portfolio-filter-event">Insolite</button><select id="portfolio-species" aria-label="Espèce photographiée"><option value="">Toutes les espèces</option></select></div>
+    <div id="portfolio-stage"><div id="portfolio-grid">
+     <button id="portfolio-card-0" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-0" alt="Photo du portfolio"><span id="portfolio-missing-0" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-0" class="portfolio-card-title"></span></button>
+     <button id="portfolio-card-1" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-1" alt="Photo du portfolio"><span id="portfolio-missing-1" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-1" class="portfolio-card-title"></span></button>
+     <button id="portfolio-card-2" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-2" alt="Photo du portfolio"><span id="portfolio-missing-2" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-2" class="portfolio-card-title"></span></button>
+     <button id="portfolio-card-3" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-3" alt="Photo du portfolio"><span id="portfolio-missing-3" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-3" class="portfolio-card-title"></span></button>
+     <button id="portfolio-card-4" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-4" alt="Photo du portfolio"><span id="portfolio-missing-4" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-4" class="portfolio-card-title"></span></button>
+     <button id="portfolio-card-5" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-5" alt="Photo du portfolio"><span id="portfolio-missing-5" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-5" class="portfolio-card-title"></span></button>
+     <button id="portfolio-card-6" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-6" alt="Photo du portfolio"><span id="portfolio-missing-6" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-6" class="portfolio-card-title"></span></button>
+     <button id="portfolio-card-7" class="portfolio-card" aria-label="Ouvrir la photo"><span class="portfolio-thumbnail"><img id="portfolio-thumb-7" alt="Photo du portfolio"><span id="portfolio-missing-7" class="portfolio-missing">Image absente</span></span><span id="portfolio-card-title-7" class="portfolio-card-title"></span></button>
+    </div><p id="portfolio-empty">Votre portfolio attend ses premières découvertes. Appuyez sur P pour prendre une photo.</p></div>
+    <div id="portfolio-navigation"><button id="portfolio-prev">Page précédente</button><span id="portfolio-count">0 photos</span><button id="portfolio-next">Page suivante</button></div>
+   </section>
+   <section id="player-panel-inventory">
+    <h3>Objets</h3><p id="player-items">Appareil photo numérique × 1</p><button id="player-photo">Sortir l’appareil · P</button>
+    <h3>Armes possédées</h3><p id="player-equipped"></p><div class="player-equipment"><button id="player-equip-fists">Poings · 1</button><button id="player-equip-pistol">Équiper le pistolet · 2</button><button id="player-equip-rocket">Équiper le lance-roquettes · 3</button></div>
+   </section>
+   <section id="player-panel-ammo"><h3>Pistolet · 9 mm</h3><p id="player-ammo-pistol"></p><h3>Lance-roquettes</h3><p id="player-ammo-rocket"></p><p class="player-hint">E recharge l’arme équipée pendant la partie. Les stocks sont distincts.</p></section>
+   <footer id="player-save-status"></footer>
+  </div>
+ </section>
+ <section id="portfolio-viewer" class="ui-hit" role="dialog" aria-modal="true" aria-label="Photo en plein écran">
+  <div id="portfolio-viewer-toolbar"><span id="portfolio-viewer-title"></span><div id="portfolio-viewer-tools"><button id="portfolio-zoom-out" aria-label="Dézoomer">−</button><button id="portfolio-zoom-reset">100 %</button><button id="portfolio-zoom-in" aria-label="Zoomer">+</button><button id="portfolio-viewer-close" aria-label="Fermer la photo">×</button></div></div>
+  <div id="portfolio-viewer-viewport"><img id="portfolio-viewer-image" alt="Photo agrandie" draggable="false"><p id="portfolio-viewer-error">Image absente du disque.</p></div>
+  <div id="portfolio-viewer-caption"><p id="portfolio-viewer-details"></p><p id="portfolio-viewer-help">Molette : zoom · Glisser : déplacer · 100 % : réinitialiser · Croix / Échap : fermer · F11 : plein écran</p></div>
+ </section>
+ <div id="photo-viewfinder"><div id="photo-frame"></div><div id="photo-reticle">+</div><div id="photo-instructions"><span class="player-eyebrow">DÉCOUVREZ LE MONDE</span><p><span id="photo-category">Monde</span> · <span id="photo-zoom">1.0×</span></p><p>Souris : cadrer · Molette : zoom · Clic gauche / Entrée : photo · Tab : catégorie · P / Échap : ranger · M : portfolio</p><p>Les animaux visibles sont identifiés et classés automatiquement par espèce.</p></div></div>
+ <div id="photo-notice" role="status"></div>
 </body>
 </html>

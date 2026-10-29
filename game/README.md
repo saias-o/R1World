@@ -30,8 +30,112 @@ how it works and what was measured.
 The current game version is **0.1**. Its release is being prepared; the in-game
 Settings → Graphics panel provides quality presets and full screen mode (also
 toggled with F11 at any time), while Settings → Credits displays the version.
-The long-term animal photography collection is planned in `docs/PLAN.md` and
-is not part of the current version.
+Photography and a persistent portfolio are available through the in-game player
+menu. The long-term animal discovery catalogue remains planned in `docs/PLAN.md`.
+
+### Photography and player menu — 29 October 2026
+
+Exploration means photographing the world: monuments, animals, landscapes and
+unusual events. On foot, standing on the ground, **P** equips the camera. Move
+the mouse to frame the scene, then **left click** or press **Enter** to take a
+photo. **Mouse wheel** zooms optically from **1× to 8×** by changing the lens;
+mouse aiming slows with zoom, and leaving the camera restores the gameplay lens.
+**Tab** cycles the fallback category: World, Animals, Monuments, Unusual.
+Visible animals override this choice and classify the shot automatically by
+species. Monuments/events are still selected manually; photos do not award
+discovery money. **P / Escape** puts the
+camera away. The camera hides the avatar and captures the scene without HUD,
+minimap or viewfinder. Player movement and weapons are held while framing;
+wildlife, traffic and the rest of the world continue. Photography currently
+requires desktop mode, on foot, outside a fall, swim or vehicle.
+
+**M** opens/closes the player menu (except in the existing performance debug
+mode, where it retains the water toggle). It contains:
+
+- The player's money, initially **€0.00**. `Wallet` uses integer cents and
+  checked credit/debit operations; there is no photo reward or shop yet.
+- The portfolio, with a photo grid (eight thumbnails per page), category and
+  species filters and page navigation. Click a thumbnail for a viewer filling
+  the game window, with location, coordinates, altitude and capture time in UTC.
+  The wheel and +/− controls zoom from the fitted size to 8×; drag to pan,
+  **100%** resets the view, and the **× / Escape** returns to the grid. F11
+  retains the game's full-monitor shortcut.
+- Owned objects and quantities, initially the digital camera, plus the existing
+  fists, pistol and rocket launcher. Weapon buttons equip the real arsenal.
+- Pistol and rocket ammunition, with loaded and reserve counts read directly
+  from combat, including reloads, shots and police confiscation.
+
+The menu releases the mouse and holds gameplay updates; **Resume / M / Escape**
+returns to play. **World map** opens the destination globe; Escape also retains
+its map shortcut during ordinary play.
+
+`native/world/player_profile.*` owns the engine-independent profile rules and
+versioned persistence. `native/world/photography.cpp` connects them to the camera,
+input and UI. `photo_animals.cpp` collects active, visible, loaded wildlife
+meshes outdoors and in interiors; `photo_detection.*` applies the exposure's
+actual projection and resolution, rejects off-frame/sub-pixel subjects and tests
+sampled lines of sight against the engine's physics colliders. Detection runs
+after scene transforms/physics in the exposure frame. Hidden animals are not
+counted merely because their species is resident nearby. It uses mesh bounds
+and sampled collider visibility, not image segmentation: animated silhouettes
+and foliage without collision remain approximations.
+
+Each distinct visible species is stored once in the photo's metadata; the
+largest projected subject names the shot. A mixed-species image belongs to
+every detected species' portfolio category, without duplicating the PNG.
+Select **Animals**, then the species dropdown, to browse one animal's photos.
+Original PNGs live in `saves/photos/`; `saves/player.json` holds
+the portfolio metadata, detected species, exposure FOV, wallet, item quantities,
+weapon selection and ammunition. The version-2 profile loader also reads
+version 1 and preserves its existing photos and progress; older images are not
+retroactively labeled with species that were never recorded.
+They survive restarts and clearing the geographic cache. The profile is saved
+after each photo, menu/equipment action, ammunition change (at most every two
+seconds) and clean shutdown. Replacement is atomic; a corrupt or future profile
+is reported and protected against replacement. An image missing from disk is
+reported in its portfolio entry. If metadata cannot be saved, the original PNG
+is retained and opening M retries the profile save. Test/capture runs ignore the
+real profile; `R1WORLD_PHOTO_SMOKE=1` under `--smoke` uses `generated/photo-smoke/`.
+
+The headless `world_player_profile` check exercises wallet/item rules, shared
+combat ammunition, photo metadata round trips, invalid paths, corrupt/future
+save protection and write failures. The photo smoke takes two PNGs without
+exiting, opens the menu through its UI listeners, equips a pistol, checks real
+ammo, filters the gallery and reloads the saved profile. An optional
+`R1WORLD_PHOTO_MENU_SHOT=<png>` captures the final portfolio screen.
+The smoke also clicks a thumbnail, zooms with the wheel, drags the photo,
+resets it and closes it with the cross. `R1WORLD_PHOTO_VIEWER_SHOT=<png>`
+captures the enlarged viewer instead of the grid at the end of the run.
+`R1WORLD_PHOTO_ANIMAL_SMOKE=1` additionally frames a real live resident using the
+production visibility detector and checks its saved species and dropdown filter.
+`world_photo_detection` checks framing, zoom limits, aspect ratio, near/far
+clipping, simulated full/partial occlusion, duplicates and multiple species;
+`world_player_profile` also checks species/FOV persistence and v1 migration.
+
+Initial verification on 29 October 2026, before automatic species detection:
+engine and game build in RelWithDebInfo;
+**9/9 headless CTests**, **9 Combat + 5 Rocket cases** and **4/4 engine capture
+checks** pass. `validate-ui ui/world.html` reports zero issues. The photo smoke
+passes offline at Paris, including two captures, actual menu clicks, equipment,
+unchanged ammunition, category filters and profile reload. The final visual
+check uses `R1WORLD_SMOKE_HOUR=12:00` and GI off, with the saved PNG and portfolio
+screen inspected. These initial checks do not qualify whole-world frame rates.
+
+Zoom/species follow-up verified on the same date: game compilation succeeds,
+**10/10 headless CTests** pass, and UI validation reports zero issues. The
+offline Paris animal-photo smoke captures real resident pigeons with a zoomed
+lens, saves `rock_pigeon` once despite multiple individuals, reloads version-2
+metadata and selects **Pigeon biset** through the native species-filter change
+listener. The original PNG and portfolio screen were inspected. Headless checks
+also cover mixed species and full/partial simulated occlusion; this does not
+claim pixel-perfect image segmentation or a complete discovery checklist.
+
+Grid/viewer follow-up on the same date: game build succeeds and UI validation
+reports zero issues. Two offline UI smokes pass with the ordinary gallery and
+the species filter, exercising thumbnail click, wheel zoom, drag, fit reset and
+cross-close back to the grid. Both the grid and 200% full-screen animal viewer
+were captured and visually inspected. The viewer clips the transformed image
+explicitly so zoom cannot cover its toolbar or close button.
 
 Documentation reviewed on 19 October 2026. The current generator is v56;
 the validation records below are dated observations, not a claim that every
@@ -323,7 +427,9 @@ each second, thirty times, instead of being dropped from the tile.
 | Space | jump | handbrake in cars / rear brake on motorcycles | pull up / climb |
 | F | take the nearest car, motorcycle, boat or aircraft | get out at any speed | get out, at any moment |
 | Mouse | orbit the camera | turn the head | |
-| M / Échap | the map; **Reprendre** returns (M toggles water in debug) | | |
+| M | portfolio, money, inventory and ammunition (water toggle in debug) | same | same |
+| Échap | close camera/player menu, or open the map; **Resume** returns | same | same |
+| P / click or Enter / Tab / mouse wheel | camera / photo / fallback category / zoom 1×–8× | | |
 | T | type a cheat code (T toggles trees in debug) | | |
 | 2 / right mouse / left mouse | pistol / aim / shoot | same on motorcycles; left hand stays on the bar | |
 | E | reload | reload the motorcycle pistol | |
@@ -452,11 +558,23 @@ the dry-leaf adjustment were visually checked in
 Engine pixel checks distinguish sRGB specular color from linear alpha strength;
 environment/HDR and double-sided material regressions pass.
 
-A north-up minimap (about 900 m) sits at the bottom left, with a few named
-streets from the cached OSM observations. Above it: the destination's local
-time, city and country. City names come from OSM address tags; the country
+A north-up minimap (600 m across) sits at the bottom left, with a few named
+streets from the cached OSM observations. Its compact 244 × 218 px frame has
+rounded corners, thin borders and a slightly translucent background; the map
+inside measures 232 × 180 px. A single header row
+shows the destination's local time (HH:MM), city and country. The frame stays
+28 px above the bottom edge at the reference 1440 × 900 resolution and scales
+with the HUD. City names come from OSM address tags; the country
 from those tags or the weather time zone and the bundled IANA table. Missing
 place data is labelled as such.
+
+Roads come from the full observed OSM neighbourhood, including polyline nodes,
+rather than the clipped streets of resident 3D tiles. Partial terrain loading
+therefore does not cut holes in an already observed street map. Shared segments
+are deduplicated before rendering; the bounded 1,200-segment display budget is
+distributed across the viewport so a dense centre cannot erase the edges.
+Police markers and roads use the same pixel dimensions and geographic scale.
+Areas without observed roads remain empty.
 
 ## Building and testing
 

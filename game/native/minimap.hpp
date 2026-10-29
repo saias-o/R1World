@@ -21,10 +21,10 @@ struct MiniMapTile {
     std::map<std::string, int> countries;
 };
 
-// Called on the tile cooker thread, from its already clipped road list.
+// Called on the tile cooker thread, from the full observed road polylines.
 MiniMapTile makeMiniMapTile(const std::vector<OsmWay>& roads, const OsmData& osm, const Bounds& bounds);
 
-// North-up, 900 m across. Returns decorative RML for the small HUD canvas.
+// North-up. View dimensions are shared with live markers in minimap_view.hpp.
 std::string miniMapRoadRml(const std::vector<const MiniMapTile*>& tiles, double lon, double lat);
 std::string miniMapPlace(const std::vector<const MiniMapTile*>& tiles,
                          const std::map<std::string, std::string>& zoneCountries,

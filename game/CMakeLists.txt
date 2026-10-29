@@ -17,6 +17,10 @@ set(world_runtime
     native/world/player.cpp
     native/world/camera.cpp
     native/world/capture.cpp
+    native/world/photography.cpp
+    native/world/photo_animals.cpp
+    native/world/photo_detection.cpp
+    native/world/player_profile.cpp
     native/world/hud.cpp
     native/world/smoke_update.cpp
     native/world/menu.cpp
@@ -134,7 +138,13 @@ add_executable(r1_world_runtime_contract_test EXCLUDE_FROM_ALL
 target_include_directories(r1_world_runtime_contract_test PRIVATE "${SaidaEngine_SOURCE_DIR}/third_party/json")
 
 enable_testing()
-foreach(check geography tile_preparation menu_tile_cache options_store runtime_contract)
+add_executable(r1_world_player_profile_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_player_profile_test.cpp native/world/player_profile.cpp)
+target_include_directories(r1_world_player_profile_test PRIVATE "${SaidaEngine_SOURCE_DIR}/third_party/json")
+add_executable(r1_world_photo_detection_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_photo_detection_test.cpp native/world/photo_detection.cpp)
+target_link_libraries(r1_world_photo_detection_test PRIVATE Saida::Engine)
+foreach(check geography tile_preparation menu_tile_cache options_store runtime_contract player_profile photo_detection)
     target_compile_features(r1_world_${check}_test PRIVATE cxx_std_17)
     target_compile_options(r1_world_${check}_test PRIVATE -UNDEBUG)
     target_include_directories(r1_world_${check}_test PRIVATE native)
@@ -144,7 +154,7 @@ foreach(check geography tile_preparation menu_tile_cache options_store runtime_c
     set_tests_properties(world_${check} PROPERTIES LABELS "headless;world" TIMEOUT 30)
 endforeach()
 add_custom_target(r1_world_headless_tests DEPENDS
-    r1_world_geography_test r1_world_tile_preparation_test r1_world_menu_tile_cache_test r1_world_options_store_test r1_world_runtime_contract_test)
+    r1_world_geography_test r1_world_tile_preparation_test r1_world_menu_tile_cache_test r1_world_options_store_test r1_world_runtime_contract_test r1_world_player_profile_test r1_world_photo_detection_test)
 
 # The same generator/service tests as build_tools.sh, now compiled by CMake
 # so a headless run cannot silently exercise an old standalone binary.
