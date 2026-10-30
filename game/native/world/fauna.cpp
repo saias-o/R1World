@@ -499,7 +499,7 @@ void World::Impl::syncBeasts(Loaded& tile,const glm::dvec3& eye,double dt) {
         // Animation LOD, as the crowd's: every frame close by, then 15, 8, 4 Hz held.
         const double d=std::hypot(x-eye.x,z-eye.z);
         const float poseRate=bird?(d<40.?0.f:d<100.?20.f:12.f):(d<15.?0.f:d<40.?15.f:d<80.?8.f:4.f);
-        if(poseRate!=b.poseRate){b.animator->setPoseRate(poseRate,saida::Animator::PoseRateMode::Hold);b.poseRate=poseRate;}
+        if(poseRate!=b.poseRate){b.animator->setPoseRate(poseRate,bird?saida::Animator::PoseRateMode::Interpolate:saida::Animator::PoseRateMode::Hold);b.poseRate=poseRate;}
     }
 }
 
