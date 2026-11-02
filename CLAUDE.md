@@ -130,3 +130,12 @@ sinon le lien échoue avec un `ld returned 116` sans autre message
 
 Un test de fumée qui passe, proxys fermés, sur un lieu déjà visité est ce qui
 prouve la promesse ; son journal est dans `cache/sessions/<id>/game.log`.
+
+## 8. Jamais de branche
+
+Le 2 novembre 2026, le netcode a été commité sur deux branches créées pour
+l'occasion, dans le moteur et dans le jeu. **Il est interdit de créer une
+branche**, dans ce dépôt comme dans `engine/` : on travaille et on commite sur
+`main`, déjà extrait. Pas de changement de branche, pas de worktree, pas de
+réécriture de l'historique de `main`.
+
