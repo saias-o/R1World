@@ -297,6 +297,16 @@ les sessions sont fournis par le moteur ; le découpage géographique et les
 règles de synchronisation appartiennent au jeu. Ce chantier est à réaliser,
 pas une fonctionnalité annoncée comme disponible dans la 0.1.
 
+**Étape 1 faite (2 novembre 2026) : la couche rollback générique du moteur**,
+`engine/plugins/netcode` (SPEC §11.6). Elle couvre prédiction et rollback
+bornés, adhésion déterministe portée par les entrées (arrivée par snapshot
+confirmé, départ, abandon d'un pair perdu, relais d'entrées), détection de
+désynchronisation et resynchronisation, ainsi que le registre effets/écritures
+persistantes qui empêche le rejeu de doubler sons et sauvegardes. Elle n'a
+aucun transport : restent **l'étape 2**, le transport UDP pair à pair du moteur
+(ROADMAP moteur §5 : sockets, sessions, fiabilité, NAT), puis **l'étape 3**,
+le multijoueur de R1World par tuile décrit ci-dessous.
+
 - À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
   UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit
   permettre à un autre joueur de rejoindre ensuite. Aucun serveur central
