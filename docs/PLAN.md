@@ -302,10 +302,21 @@ pas une fonctionnalité annoncée comme disponible dans la 0.1.
 bornés, adhésion déterministe portée par les entrées (arrivée par snapshot
 confirmé, départ, abandon d'un pair perdu, relais d'entrées), détection de
 désynchronisation et resynchronisation, ainsi que le registre effets/écritures
-persistantes qui empêche le rejeu de doubler sons et sauvegardes. Elle n'a
-aucun transport : restent **l'étape 2**, le transport UDP pair à pair du moteur
-(ROADMAP moteur §5 : sockets, sessions, fiabilité, NAT), puis **l'étape 3**,
-le multijoueur de R1World par tuile décrit ci-dessous.
+persistantes qui empêche le rejeu de doubler sons et sauvegardes.
+
+**Étape 2 faite (2 novembre 2026) : le transport pair à pair du moteur**,
+`engine/plugins/p2p` (SPEC §11.7). Liens UDP chiffrés et authentifiés (Noise
+XX sur le mbedTLS du moteur), canaux fiable et non fiable, perforation des NAT
+et présentations entre pairs, découverte sans serveur par la DHT Mainline de
+BitTorrent et par balises sur le réseau local. Un `Topic` par tuile suffit :
+les joueurs qui rejoignent le même se trouvent, se connectent en maillage et
+reçoivent `PeerJoined`/`PeerLeft` ; quitter un sujet déconnecte ses pairs
+après un délai. Vérifié en simulation (8 joueurs, 2 cellules, NAT mêlés :
+un maillage par cellule en ~3 s, rien entre elles) et sur la vraie DHT.
+Limites : pas de relais pour NAT symétrique contre NAT restreint en port ou
+symétrique ; DHT en IPv4 seulement. Reste **l'étape 3**, le multijoueur de
+R1World par tuile décrit ci-dessous : clé de sujet par tuile et voisines,
+session `netcode` par tuile, transfert à la frontière.
 
 - À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
   UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit
