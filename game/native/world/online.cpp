@@ -24,6 +24,9 @@ struct World::Impl::Online {
     std::map<o::Cell, p2p::Topic> cells;
     double now = 0, nextCells = 0, nextNodes = 600, lastOwn = -1, nextTiers = 0, nextSummary = 60;
     bool fresh = false;  // his own avatar is current: the thread sends it
+    // The minute's frames, for the summary: what playing online costs here.
+    std::vector<float> frames;
+    double lastFrame = -1;
     nc::History<o::Avatar> history{o::kHistorySeconds};
     o::Avatar own;
     bool ownKnown = false;
@@ -105,6 +108,20 @@ struct World::Impl::Online {
         for (const auto& [peer, same] : sameVersion) n += !same;
         return n;
     }
+    // Joining a friend (online_rules.hpp): our own code's topic, always
+    // joined, and the friend's while we look for him. He is the member of
+    // that topic who welcomed us.
+    p2p::Topic invite, joinTopic;
+    std::string joinCode;  // the friend's code whose topic we are in, "" for none
+    double joinSince = 0;
+    std::set<p2p::PeerHandle> welcomedBy;
+    p2p::PeerHandle friendPeer = p2p::kNoPeer;
+    bool went = false;
+    double nextGo = 0;     // a Go refused is tried again this late
+    std::string joinSaid;  // what the panel says of the join, "" when none is under way
+    size_t welcomed = 0;   // players who joined us with our code
+    double joinedAt = -1;
+    std::string passed;    // the smoke's verdict, said once the other has seen it too
     // What this machine saw each player do (online_rules.hpp, Witness).
     o::Witness witness;
     std::map<std::string, double> refusedSaid;
@@ -155,6 +172,32 @@ struct World::Impl::Online {
     void contact(uint64_t id) {
         if (Remote* r = byId(id)) r->lastContact = now, r->nextSend = std::min(r->nextSend, now);
     }
+    // Every minute, and once more at the end: the links, the crowd, what
+    // was sent, and what playing online cost this machine's frames.
+    void summary(const char* when) {
+        const auto status = meet->status();
+        const auto network = thread->stats();
+        size_t relayed = 0;
+        for (p2p::PeerHandle p : host->peers())
+            if (const auto* info = host->peer(p); info && info->via != p2p::kNoPeer) ++relayed;
+        auto& f = frames;
+        auto at = [&](double q) {
+            if (f.empty()) return 0;
+            auto it = f.begin() + std::ptrdiff_t(std::min(f.size() - 1, size_t(q * double(f.size()))));
+            std::nth_element(f.begin(), it, f.end());
+            return int(std::lround(*it));
+    };
+    const std::string frameLine = std::to_string(f.size()) + " frames, median/p95/p99/worst " + std::to_string(at(.5)) +
+                                  "/" + std::to_string(at(.95)) + "/" + std::to_string(at(.99)) + "/" + std::to_string(at(1)) + " ms";
+    f.clear();
+    saida::Log::info("[World online] ", when, host->peers().size(), " linked (", relayed, " relayed), ", remotes.size(),
+                     " followed, ", foreign(), " on another version, ", status.candidates,
+                     " heard of, crowd about ", int(std::lround(status.population)), "; snapshots sent near/middle/far ", sentByTier[0], "/",
+                     sentByTier[1], "/", sentByTier[2], "; ", status.introductionsAsked, " introductions asked, ",
+                     status.pruned, " links dropped; announcing in ", status.announcing, " of ", topics().size(),
+                     " topics (", cells.size(), " cells); network thread worst poll ", int(network.worstStep * 1000), " ms, worst lateness ",
+                     int(network.worstLate * 1000), " ms; ", frameLine);
+    }
     // His body goes back to the spares: built once, reused by the next one drawn.
     void releaseBody(Remote& r) {
         if (!r.root) return;
@@ -167,15 +210,29 @@ struct World::Impl::Online {
         r.fall = r1::Knockdown{};
         r.visible = r.placed = false;
     }
+    // The topics we hear and are heard in: the cells, our code's, the friend's.
+    std::vector<p2p::Topic> topics() const {
+        std::vector<p2p::Topic> out{invite};
+        for (const auto& [cell, topic] : cells) out.push_back(topic);
+        if (!joinCode.empty()) out.push_back(joinTopic);
+        return out;
+    }
     std::set<p2p::PeerHandle> audience() {
         std::set<p2p::PeerHandle> out;
-        for (const auto& [cell, topic] : cells)
+        for (const auto& topic : topics())
             for (p2p::PeerHandle p : meet->peers(topic))
                 if (speaks(p)) out.insert(p);
         return out;
     }
-    bool shares(p2p::PeerHandle peer) const {
-        for (const auto& [cell, topic] : cells) {
+    bool shares(p2p::PeerHandle peer, bool cellsOnly = false) const {
+        if (cellsOnly) {
+            for (const auto& [cell, topic] : cells) {
+                const auto peers = meet->peers(topic);
+                if (std::find(peers.begin(), peers.end(), peer) != peers.end()) return true;
+            }
+            return false;
+        }
+        for (const auto& topic : topics()) {
             const auto peers = meet->peers(topic);
             if (std::find(peers.begin(), peers.end(), peer) != peers.end()) return true;
         }
@@ -207,6 +264,7 @@ struct World::Impl::Online {
 void World::Impl::OnlineDeleter::operator()(Online* online) const {
     if (!online) return;
     if (online->thread) online->thread->stop();
+    if (online->host && online->meet && online->thread) online->summary("at the end: ");
     if (online->meet && !online->nodesFile.empty()) {
         if (auto* dht = online->meet->dht()) {
             std::ofstream out(online->nodesFile, std::ios::trunc);
@@ -241,9 +299,8 @@ const char* clipOf(o::Motion m) {
 void World::Impl::startOnline() {
     const bool wanted = smoke ? onlineSmoke != nullptr : onlineWanted;
     if (!wanted) return;
-    if (onlineSmoke && std::string(onlineSmoke) != "target" && std::string(onlineSmoke) != "shooter" &&
-        std::string(onlineSmoke) != "versions")
-        throw std::runtime_error("R1WORLD_ONLINE_SMOKE must be target, shooter or versions");
+    if (onlineSmoke && !std::set<std::string>{"target", "shooter", "versions", "host", "joiner"}.count(onlineSmoke))
+        throw std::runtime_error("R1WORLD_ONLINE_SMOKE must be target, shooter, versions, host or joiner");
     std::unique_ptr<Online, OnlineDeleter> n(new Online);
     // The versions smoke plays one of its two instances as another build.
     if (const char* other = std::getenv("R1WORLD_ONLINE_PROTOCOL"); other && smoke) n->protocol = other;
@@ -291,6 +348,8 @@ void World::Impl::startOnline() {
     rc.keepRatio = 1.5;
     rc.pruneSeconds = 8;
     n->meet = std::make_unique<p2p::Rendezvous>(*n->host, rc);
+    n->invite = p2p::arenaTopic(o::kApplication, invite());
+    n->meet->join(n->invite);
     if (p2p::openLanSocket(n->lan, rc)) n->meet->setLanSocket(&n->lan);
     else saida::Log::info("[World online] no LAN beacons (", n->lan.error(), "): players behind this router meet through the DHT only");
     Online* self = n.get();
@@ -299,6 +358,10 @@ void World::Impl::startOnline() {
         const p2p::PeerInfo* info = self->host->peer(from);
         if (!info || !self->speaks(from)) return;  // another version: said once, then ignored
         if (!o::decode(data, size, m)) return self->refuse("a message from " + o::playerName(info->id), "malformed");
+        if (m.kind == o::Kind::Welcome) {
+            self->welcomedBy.insert(from);
+            return;
+        }
         if (m.kind != o::Kind::State) {
             if (self->inbox.size() < 512) self->inbox.push_back({from, m});
             else self->refuse("a message from " + o::playerName(info->id), "too many at once");
@@ -327,7 +390,7 @@ void World::Impl::startOnline() {
         if (self->fresh) self->sendState();
     });
     saida::Log::info("[World online] ", o::playerName(identity.id()), " on UDP ", n->socket.local().toString(),
-                     ", ", rc.knownNodes.size(), " DHT nodes remembered");
+                     ", ", rc.knownNodes.size(), " DHT nodes remembered, invite code ", invite());
     online = std::move(n);
 }
 
@@ -336,8 +399,12 @@ void World::Impl::pumpOnline() {
     // Go starts the meeting: the globe's ten seconds of flight are spent
     // finding whoever stands where he will land.
     const bool arriving = drop.phase != Drop::None;
+    // --join, said like a typed code; the smoke's joiner plays where it
+    // spawned first, as a player already in the world does.
+    if (!joinArgument.empty() && (!smoke || smokeStarted)) joinFriend(std::exchange(joinArgument, std::string()));
     if (!online) {
-        if ((!playing && !arriving) || onlineStarted) return;
+        // A friend to join starts it from the menu: he is found before Go.
+        if ((!playing && !arriving && friendCode.empty()) || onlineStarted) return;
         onlineStarted = true;
         startOnline();
         if (!online) return;
@@ -345,6 +412,8 @@ void World::Impl::pumpOnline() {
     Online& n = *online;
     const auto held = n.hold();
     n.now = n.thread->now();
+    if (n.lastFrame >= 0 && n.frames.size() < 100000) n.frames.push_back(float((n.now - n.lastFrame) * 1000));
+    n.lastFrame = n.now;
     auto forget = [&](p2p::PeerHandle peer, const char* why) {
         auto found = n.remotes.find(peer);
         if (found == n.remotes.end()) return;
@@ -357,10 +426,25 @@ void World::Impl::pumpOnline() {
     };
     for (const auto& e : n.host->takeEvents()) {
         if (e.type == p2p::HostEventType::Connected) n.speaks(e.peer);  // another version is said at once
-        if (e.type == p2p::HostEventType::Disconnected) forget(e.peer, p2p::reasonName(e.reason)), n.sameVersion.erase(e.peer);
+        if (e.type == p2p::HostEventType::Disconnected) {
+            forget(e.peer, p2p::reasonName(e.reason));
+            n.sameVersion.erase(e.peer), n.welcomedBy.erase(e.peer);
+            if (n.friendPeer == e.peer) n.friendPeer = p2p::kNoPeer, n.went = false;
+        }
     }
-    for (const auto& e : n.meet->takeEvents())
+    for (const auto& e : n.meet->takeEvents()) {
         if (e.type == p2p::RendezvousEventType::PeerLeft && !n.shares(e.peer)) forget(e.peer, "no longer near");
+        // A friend with our code: we tell him it is ours, so he knows whom to join.
+        if (e.type == p2p::RendezvousEventType::PeerJoined && e.topic == n.invite && n.speaks(e.peer)) {
+            o::Message m;
+            m.kind = o::Kind::Welcome, m.sent = n.now;
+            n.send(m, p2p::Channel::Reliable, e.peer);
+            ++n.welcomed;
+            const p2p::PeerInfo* info = n.host->peer(e.peer);
+            saida::Log::info("[World online] ", info ? o::playerName(info->id) : "a player", " joins us with our invite code");
+        }
+    }
+    seekFriend();
     // The cells around him: joined within kMeetRadius, left beyond kLeaveRadius.
     if (n.now >= n.nextCells) {
         n.nextCells = n.now + .5;
@@ -442,18 +526,7 @@ void World::Impl::pumpOnline() {
     }
     if (n.now >= n.nextSummary) {
         n.nextSummary = n.now + 60;
-        const auto status = n.meet->status();
-        const auto thread = n.thread->stats();
-        size_t relayed = 0;
-        for (p2p::PeerHandle p : n.host->peers())
-            if (const auto* info = n.host->peer(p); info && info->via != p2p::kNoPeer) ++relayed;
-        saida::Log::info("[World online] ", n.host->peers().size(), " linked (", relayed, " relayed), ", n.remotes.size(),
-                         " followed, ", n.foreign(), " on another version, ", status.candidates,
-                         " heard of, crowd about ", int(std::lround(status.population)), "; snapshots sent near/middle/far ", n.sentByTier[0], "/",
-                         n.sentByTier[1], "/", n.sentByTier[2], "; ", status.introductionsAsked, " introductions asked, ",
-                         status.pruned, " links dropped; announcing in ", status.announcing, " of ", n.cells.size(),
-                         " cells; network thread worst poll ", int(thread.worstStep * 1000), " ms, worst lateness ",
-                         int(thread.worstLate * 1000), " ms");
+        n.summary("");
     }
     onlineHud();
 }
@@ -465,7 +538,8 @@ void World::Impl::onlineHud() {
     size_t near = 0;
     for (const auto& [peer, r] : n.remotes) near += r.visible;
     const auto status = n.meet->status();
-    const std::string line = o::panelLine(near, n.foreign(), status.population, status.dhtReady, status.problem);
+    const std::string line = n.joinSaid.empty() ? o::panelLine(near, n.foreign(), status.population, status.dhtReady, status.problem)
+                                                : "Online · " + n.joinSaid;
     if (line == n.hud) return;
     n.hud = line;
     text("online", line);
@@ -625,6 +699,7 @@ void World::Impl::showOnline(double dt) {
         const bool away = kind == nc::ReplicaSample::Empty || n.now - r.replica.lastArrival() > o::kAwaySeconds;
         d.show = !away && d.a.pose != o::Pose::Vehicle && playing && !n.witness.suspected(r.id);
         r.distance = d.show ? metresBetween(lon, lat, d.a.lon, d.a.lat) : 1e18;
+        if (r.distance > o::kDrawnMetres) d.show = false, r.distance = 1e18;  // a friend far away, before we go to him
         if (d.show) nearest.push_back({r.distance * (r.visible ? .85 : 1.), peer});
     }
     std::sort(nearest.begin(), nearest.end());
@@ -866,6 +941,90 @@ void World::Impl::sendRocket(const glm::vec3& muzzle, const glm::vec3& target) {
 // Two instances at one spot (tools/online_smoke.py): each must draw the other;
 // the shooter fires at the body he draws until the target's machine says it
 // was hit; the target passes once hit by the other player.
+const std::string& World::Impl::invite() {
+    if (inviteCode.empty()) {
+        // The smoke's host is given his, so that its joiner can be given it too.
+        const char* given = smoke ? std::getenv("R1WORLD_INVITE_CODE") : nullptr;
+        if (given && !p2p::normalizeArenaCode(given, inviteCode))
+            throw std::runtime_error(std::string("R1WORLD_INVITE_CODE is not an invite code: ") + given);
+        if (!given) inviteCode = p2p::newArenaCode();
+    }
+    return inviteCode;
+}
+
+void World::Impl::sayInvite() {
+    text("invite-code", onlineWanted ? invite() : "—");
+    if (!onlineWanted) text("join-status", "Online play is off (--offline): no code, nobody to join.");
+    else if (online && !online->joinSaid.empty()) text("join-status", online->joinSaid);
+}
+
+void World::Impl::joinFriend(const std::string& typed) {
+    std::string code, refusal;
+    if (!onlineWanted) refusal = "Online play is off (--offline): nobody can be joined.";
+    else if (!p2p::normalizeArenaCode(typed, code))
+        refusal = "\"" + typed + "\" is not an invite code: eight letters and digits, like K7QM-2XPA.";
+    else if (code == invite()) refusal = "That is your own code: give it to a friend, who types it here.";
+    if (!refusal.empty()) {
+        saida::Log::info("[World online] join refused: ", refusal);
+        text("join-status", refusal);
+        return;
+    }
+    friendCode = code;
+    saida::Log::info("[World online] joining the player with code ", code);
+    text("join-status", o::joinLine(o::Join::Looking, code, ""));
+}
+
+void World::Impl::seekFriend() {
+    Online& n = *online;
+    if (n.joinCode != friendCode) {  // a new code, or none any more
+        if (!n.joinCode.empty()) n.meet->leave(n.joinTopic);
+        n.joinCode = friendCode, n.joinSince = n.now, n.friendPeer = p2p::kNoPeer, n.went = false;
+        if (!friendCode.empty()) n.joinTopic = p2p::arenaTopic(o::kApplication, friendCode), n.meet->join(n.joinTopic);
+    }
+    if (friendCode.empty()) return;
+    const auto members = n.meet->peers(n.joinTopic);
+    bool foreign = false;
+    for (p2p::PeerHandle p : members) {
+        if (!n.speaks(p)) foreign = true;
+        else if (n.friendPeer == p2p::kNoPeer && n.welcomedBy.count(p)) n.friendPeer = p;
+    }
+    const p2p::PeerInfo* info = n.friendPeer != p2p::kNoPeer ? n.host->peer(n.friendPeer) : nullptr;
+    const std::string name = info ? o::playerName(info->id) : "";
+    const auto found = n.remotes.find(n.friendPeer);
+    const o::Avatar* him = info && found != n.remotes.end() ? found->second.replica.newest() : nullptr;
+    o::Join state = o::Join::Looking;
+    if (!info) state = foreign ? o::Join::Foreign : n.now - n.joinSince > o::kJoinQuietSeconds ? o::Join::Quiet : o::Join::Looking;
+    else if (!him || (!n.went && (o::notYet(*him) || n.now < n.nextGo))) state = o::Join::Waiting;
+    else if (!n.went) {
+        // Go, as the Destination tab goes: the typed place is beside him.
+        const auto at = o::besideFriend(*him);
+        field("latitude", number(at[1], 7)), field("longitude", number(at[0], 7));
+        field("city-query", name), cityInput = citySubmitted = name;
+        saida::Log::info("[World online] going to ", name, " at ", at[0], ", ", at[1],
+                         ", ", int(metresBetween(lon, lat, him->lon, him->lat)), " m away");
+        n.went = go();  // a refusal is said by go(), and tried again
+        if (n.went) showOptions(false);
+        else n.nextGo = n.now + 5;
+        state = n.went ? o::Join::Going : o::Join::Waiting;
+    } else if (playing && drop.phase == Drop::None && metresBetween(lon, lat, him->lon, him->lat) < o::kMeetRadius &&
+               n.shares(n.friendPeer, true)) {
+        // Arrived, and in a cell with him: the cells hold us together from
+        // now on (leaving his code's topic sooner would drop him a moment).
+        saida::Log::info("[World online] joined ", name, ": ", number(metresBetween(lon, lat, him->lon, him->lat), 1), " m from him");
+        text("stream-status", o::joinLine(o::Join::Joined, friendCode, name) + ".");
+        text("join-status", o::joinLine(o::Join::Joined, friendCode, name) + ".");
+        n.joinedAt = n.now, n.joinSaid.clear(), n.hudAt = -1;
+        friendCode.clear();
+        return;
+    } else state = o::Join::Going;
+    const std::string line = o::joinLine(state, friendCode, name);
+    if (line == n.joinSaid) return;
+    if (state == o::Join::Waiting && him && o::notYet(*him)) saida::Log::info("[World online] ", name, " is ", o::notYet(*him), ": waiting");
+    else saida::Log::info("[World online] join: ", line);
+    n.joinSaid = line, n.hudAt = -1;
+    text("join-status", line);
+}
+
 void World::Impl::runOnlineSmoke(double dt) {
     auto fail = [&](const std::string& why) {
         saida::Log::error("[World E2E] FAIL online ", onlineSmoke, ": ", why);
@@ -897,6 +1056,34 @@ void World::Impl::runOnlineSmoke(double dt) {
         }
         if (n.hud.find("on another version") != std::string::npos) n.passedAt = n.now;
         else if (n.now > 200) fail("never said the other version (panel: \"" + n.hud + "\", " + std::to_string(n.host->peers().size()) + " linked)");
+        return;
+    }
+    // A friend joined by his code: the joiner starts kilometres away with
+    // --join, the host gives him his code; each must end up drawing the
+    // other a few metres away, the joiner having been taken there.
+    if (std::string(onlineSmoke) == "host" || std::string(onlineSmoke) == "joiner") {
+        const bool host = std::string(onlineSmoke) == "host";
+        if (n.passedAt >= 1e17) return;
+        Online::Remote* beside = nullptr;
+        for (auto& [peer, r] : n.remotes)
+            if (r.visible && r.root && glm::distance(r.root->transform().position, player->transform().position) < 30) beside = &r;
+        if (n.passedAt >= 0) {
+            if (n.now - n.passedAt > 3) {  // lingers, so the other one sees him too
+                saida::Log::info("[World E2E] PASS online ", onlineSmoke, ": ", n.passed);
+                n.passedAt = 1e18;
+                engine.sceneTree().quit();
+            }
+            return;
+        }
+        if (beside && (host ? n.welcomed > 0 : n.joinedAt >= 0)) {
+            n.passedAt = n.now;
+            n.passed = (host ? std::to_string(n.welcomed) + " welcomed" : "joined after " + number(n.joinedAt, 1) + " s") +
+                       ", drawing " + beside->name + " at " +
+                       number(glm::distance(beside->root->transform().position, player->transform().position), 1) + " m";
+        }
+        else if (n.now > 240)
+            fail(host ? "the joiner never came (" + std::to_string(n.welcomed) + " welcomed, " + std::to_string(n.host->peers().size()) + " linked)"
+                      : "never joined (" + (n.joinSaid.empty() ? std::string("nothing said") : n.joinSaid) + ")");
         return;
     }
     if (other && n.sawAt < 0) {

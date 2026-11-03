@@ -126,6 +126,7 @@ std::vector<uint8_t> encode(const Message& m) {
     case Kind::Punch: w.u64(m.punch.victim), w.f64(m.punch.seen), w.u8(m.punch.hook ? 1 : 0); break;
     case Kind::Rocket: writePoint(w, m.rocket.muzzle), writePoint(w, m.rocket.target); break;
     case Kind::Hit: w.u64(m.hit.victim), w.u64(m.hit.shooter), w.f32(m.hit.damage), w.u8(m.hit.killed ? 1 : 0); break;
+    case Kind::Welcome: break;  // the kind says it all
     default: break;
     }
     return out;
@@ -195,6 +196,7 @@ bool decode(const uint8_t* data, size_t size, Message& out) {
         sane = sane && finite(m.hit.damage) && m.hit.damage >= 0 && m.hit.damage <= 1000 && killed <= 1;
         break;
     }
+    case Kind::Welcome: break;
     default: return false;
     }
     if (!r.ok() || !r.done() || !sane) return false;
@@ -410,6 +412,31 @@ std::string panelLine(size_t near, size_t foreign, double population, bool ready
     if (crowd > near + foreign) line += " · about " + players(crowd) + " in this area";
     if (foreign) line += " · " + players(foreign) + " on another version";
     return line;
+}
+
+std::string joinLine(Join state, const std::string& code, const std::string& name) {
+    switch (state) {
+    case Join::Looking: return "Looking for the player with code " + code + "…";
+    case Join::Quiet:
+        return "Nobody found with code " + code + " yet: check the code, and that your friend is online (still looking)";
+    case Join::Foreign: return "The player with code " + code + " is on another version of R1World: you cannot meet";
+    case Join::Waiting: return "Found " + name + ": waiting for " + name + " to be on the ground";
+    case Join::Going: return "Going to " + name;
+    case Join::Joined: return "Beside " + name;
+    }
+    return "";
+}
+
+std::array<double, 2> besideFriend(const Avatar& him) {
+    const double right = (him.heading + 90) * rad;
+    const auto at = world::advance(him.lon, him.lat, kBesideMetres * std::sin(right), kBesideMetres * std::cos(right));
+    return {at.x, at.y};
+}
+
+const char* notYet(const Avatar& him) {
+    if (him.pose == Pose::Air) return "in the air";
+    if (him.pose == Pose::Dead) return "between lives";
+    return nullptr;
 }
 
 } // namespace r1::online

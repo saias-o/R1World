@@ -243,7 +243,14 @@ prochainement. La collection animalière à terme ne conditionne pas cette
 première sortie.
 
 - Préparer la distribution de la 0.1 et vérifier l'installation et le
-  lancement du paquet sur une machine propre.
+  lancement du paquet sur une machine propre. Le paquet existe
+  (`game/tools/package_world.py`, l'export du moteur) et démarre hors du
+  dépôt, PATH réduit à Windows. Deux constats en le vérifiant : le relief
+  lointain (Mapzen z3 à z6) n'est lu que sur le disque et n'y est pas, sur ce
+  poste non plus, si bien que les anneaux lointains 3 à 8 sont refusés à
+  Paris (dit dans le journal) ; et sur une machine neuve une tuile peut rester
+  en « sol plat provisoire » à côté d'un voisin en relief (le smoke du paquet
+  échoue sur ce raccord, trois fois de suite à Paris).
 - Vérifier les parcours essentiels, les lieux déjà visités hors ligne et
   les limites annoncées sur la machine de référence.
 - Documenter les prérequis, commandes et limites du paquet distribué.
@@ -323,7 +330,11 @@ Mainline et le réseau local. Étape 3 (3 novembre) : les autres joueurs dans
 R1World, tirs, coups et roquettes jugés par la cible, smoke à deux instances
 réussi. Étape 4 (3 novembre) : la foule (voisinage par proximité, relais par
 un pair, DHT IPv6, thread réseau, instantanés de 32 octets par attention,
-témoins). Mesures et vérifications : `game/README.md` et CHANGELOG du moteur.
+témoins). Rejoindre un ami (3 novembre) : un code d'invitation par session
+(onglet *Online* des réglages, ou `--join CODE`), le sujet `arenaTopic` du
+moteur, puis le Go ordinaire jusqu'à quatre mètres de l'ami ; smoke à deux
+instances à cinq kilomètres l'une de l'autre réussi. Mesures et vérifications :
+`game/README.md` et CHANGELOG du moteur.
 
 **Étape 5 en cours (3 novembre 2026) : les points chauds** (150 000 joueurs à
 la tour Eiffel). Fait dans le moteur et vérifié en simulation et par les tests
@@ -354,15 +365,17 @@ ordre :
   même endroit : décision de conception, à prendre avec l'utilisateur ;
   reportée tant qu'aucune foule réelle ne l'exige.
 
-**À qualifier** (une validation non réalisée reste ouverte) :
+**À qualifier** (une validation non réalisée reste ouverte). La marche à
+suivre, le paquet pour le second poste (`game/tools/package_world.py`) et la
+lecture des journaux sont dans `docs/QUALIFICATION_MULTIJOUEUR.md`.
 
 - Deux réseaux domestiques, puis un réseau mobile, puis deux joueurs derrière
   un même routeur sans multicast ni hairpinning ; de jour comme de nuit.
 - Une session longue (30 min) : liens, relais, débit, pire attente du thread
   réseau (journal `[World online] N linked`), déconnexions et retour hors
   ligne.
-- p95/p99 des images sur la MX450 avec 1 à 3 pairs, puis le coût des
-  imposteurs une fois branchés.
+- p95/p99 des images sur la MX450 avec 1 à 3 pairs (le résumé par minute les
+  donne), puis le coût des imposteurs une fois branchés.
 - Une vraie foule, et le coût par pair (débit, CPU, mémoire) selon I4.
 
 **À décider avec l'utilisateur**
@@ -370,10 +383,12 @@ ordre :
 - **0.1** : le jeu en ligne est actif par défaut (`--offline` le coupe) et
   publie l'adresse du joueur dans la DHT publique. Pour une version qui
   n'annonce pas le multijoueur : coupé par défaut, option, ou retiré.
-- **Rejoindre un ami** où qu'il soit : sur une Terre entière, deux joueurs
-  peu nombreux ne se croisent presque jamais. Le moteur a déjà les codes
-  d'arène (`arenaTopic`) ; il manque le code d'invitation et l'arrivée auprès
-  de l'ami dans le jeu.
+- **Un ami gardé quoi qu'il arrive** : le moteur ne garde que les liens vers
+  les 48 plus proches ; un ami rejoint est tout près, mais une foule plus
+  proche que lui ferait tomber son lien. Un sujet « groupe » dont les membres
+  ne sont jamais élagués serait une brique générique du moteur. À faire
+  quand une foule réelle le montrera, ou avant si les amis restent ensemble
+  en se dispersant.
 - **Véhicule du joueur partagé** (autorité du conducteur, comme l'avatar,
   sans rollback), ou rien pour l'instant.
 

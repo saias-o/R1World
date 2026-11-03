@@ -90,7 +90,7 @@ static void codec() {
         accepted += o::decode(noise.data(), noise.size(), back);
     }
     assert(accepted < 10);  // only by chance: every refusal is a check, not a crash
-    for (o::Kind k : {o::Kind::Shot, o::Kind::Punch, o::Kind::Rocket, o::Kind::Hit}) {
+    for (o::Kind k : {o::Kind::Shot, o::Kind::Punch, o::Kind::Rocket, o::Kind::Hit, o::Kind::Welcome}) {
         o::Message e;
         e.kind = k;
         e.shot.direction = {1, 0, 0}, e.shot.length = 10, e.shot.muzzle = o::feetEcef(walker(0));
@@ -379,6 +379,38 @@ static void versions() {
     std::printf("versions: %s\n", o::panelLine(16, 1, 150, true, "").c_str());
 }
 
+// Joining a friend: where he lands, when he may go, what he is told.
+static void joining() {
+    o::Avatar him;
+    him.lon = 2.3522, him.lat = 48.8566, him.heading = 0;  // facing north: his right is east
+    const auto at = o::besideFriend(him);
+    const auto east = w::advance(him.lon, him.lat, o::kBesideMetres, 0);
+    assert(std::abs(at[0] - east.x) < 1e-9 && std::abs(at[1] - east.y) < 1e-9);
+    for (float heading : {0.f, 73.f, 181.f, -120.f}) {
+        him.heading = heading;
+        const auto b = o::besideFriend(him);
+        const double d = std::hypot((b[0] - him.lon) * w::kMetresPerDegree * std::cos(him.lat * w::rad),
+                                    (b[1] - him.lat) * w::kMetresPerDegree);
+        assert(std::abs(d - o::kBesideMetres) < .05);
+    }
+    assert(!o::notYet(him));
+    him.pose = o::Pose::Vehicle;
+    assert(!o::notYet(him));  // at the wheel: beside the car
+    him.pose = o::Pose::Air;
+    assert(o::notYet(him) == std::string("in the air"));
+    him.pose = o::Pose::Dead;
+    assert(o::notYet(him) == std::string("between lives"));
+    assert(o::joinLine(o::Join::Looking, "K7QM-2XPA", "") == "Looking for the player with code K7QM-2XPA…");
+    assert(o::joinLine(o::Join::Going, "K7QM-2XPA", "Player 3F2A") == "Going to Player 3F2A");
+    assert(o::joinLine(o::Join::Foreign, "K7QM-2XPA", "").find("another version") != std::string::npos);
+    // The welcome is the kind alone, with the clock.
+    o::Message m, back;
+    m.kind = o::Kind::Welcome, m.sent = 12.5;
+    const auto b = o::encode(m);
+    assert(b.size() == 9 && o::decode(b.data(), b.size(), back) && back.kind == o::Kind::Welcome && back.sent == 12.5);
+    assert(!o::decode(b.data(), b.size() - 1, back));
+}
+
 int main() {
     cells();
     codec();
@@ -386,6 +418,7 @@ int main() {
     tiers();
     witnesses();
     versions();
+    joining();
     assert(o::playerName(0x3f2a000000000000ull) == "Player 3F2A");
     std::printf("PASS online rules\n");
     return 0;

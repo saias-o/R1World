@@ -301,11 +301,26 @@ rocket at you, as you can them. There is no server of R1World's anywhere:
 
 - **Another version.** The meeting places and the handshake carry only the
   application (`r1world/online`), never the version, so every R1World finds
-  every other. What a build speaks (`kProtocol`, `r1world/online-3`) rides in
+  every other. What a build speaks (`kProtocol`, `r1world/online-4`) rides in
   the engine's `hello`, shown once linked: a player on another version stays
   linked, is never drawn, and nothing is sent to him or read from him. The
   log says it once (`Player 3F2A is on another version (...): linked, not
   drawn`), and so does the panel, instead of a silent "nobody here".
+- **Joining a friend.** On a whole Earth, a few players almost never cross.
+  Each player has an invite code for the session (the engine's arena code,
+  `K7QM-2XPA`), shown in *Settings > Online*, and is always in its topic
+  (`p2p::arenaTopic`). A friend types it there, or starts with `--join
+  K7QM-2XPA`: he joins that topic, which links the two wherever they stand,
+  and the owner of the code answers with a `Welcome`, so the friend knows
+  which member of the topic is him. Once his snapshots say where he stands
+  (not in the air, not between lives), the ordinary Go takes the friend
+  there -- the globe, the fall -- and lands him four metres to his right.
+  Once they share a cell, the friend leaves the code's topic. A code that is
+  none, one's own, or the network off is refused in the tab, saying why;
+  nobody found after 30 s is said and the search goes on; a friend on
+  another version is said. A linked player farther than 3 km is never drawn.
+  A Go away from a tile being re-cooked no longer times out on it: the
+  replacement of a tile only kept while he leaves is dropped.
 
 The combat panel says `Online · 2 players nearby`, `Online · nobody else here
 yet`, the crowd beyond those drawn as the engine estimates it (`· about 149
@@ -324,8 +339,14 @@ five snapshots a second or more; a cheat it cannot see (a wall-hack, an
 aimbot that hits only where the target is) is beyond it. Every minute the log
 says how many players are linked and relayed, the snapshots sent by tier, the
 introductions asked, the links dropped, the players on another version, the
-crowd's estimated size, the cells announced in and the network thread's worst
-poll (`[World online] N linked`).
+crowd's estimated size, the cells announced in, the network thread's worst
+poll and the minute's frames, median, p95, p99 and worst (`[World online] N
+linked`).
+
+To try it on two machines, `tools/package_world.py` packs the game as the
+engine's export does (`saida_tool export-game`, R1World.exe stripped, a
+`Jouer.cmd` that keeps the journal in `logs\`), and
+`docs/QUALIFICATION_MULTIJOUEUR.md` says what to run and what to read.
 
 Verified on 3 November 2026. `r1_world_online_rules_test` (headless):
 everyone within 700 m shares a cell over 20 000 random places, poles and the
@@ -372,6 +393,29 @@ and the next ten runs in a row, twenty instances, exited cleanly. `r1_world_onli
 protocol, and the panel's line from a lone player to a crowd of 150 with
 players on another version. Not yet run: two homes on different networks, a
 mobile network, and a real crowd.
+
+Verified on 3 November 2026 (joining a friend). `tools/online_smoke.py
+--join`: the host at Paris with a code, the joiner 5 km east with `--join`,
+too far to share a cell. Over three runs the joiner found him over the LAN
+beacons, went there and logged `joined Player X: 4.0 m from him` 15-21 s
+after its session opened; each drew the other 4-6 m away. The first run
+showed the friend dropped for a moment when the joiner left the code's topic
+before their cells linked them, and the second a Go called off by a tile
+being re-cooked where the joiner stood (`replacement readiness timeout`):
+both fixed, three clean runs after, one of them slow: 88 s, the Go to Paris
+taking 79 s with the joiner under one frame a second while both instances
+shared the laptop (the host was found at once). The session's last summary
+is now said at its end too (`[World online] at the end: …`), with the
+frames: 609 for the host, median 48 ms, p99 97 ms. The combat and versions smokes pass on this
+build, and so does the solo smoke with the proxies closed, which now types a
+code too short and one's own code in the Online tab and reads the refusals.
+`r1_world_online_rules_test`: where a friend lands for four headings, when he
+may not be joined, the panel's lines, and the 9-byte `Welcome`. The package:
+635 MB (435 MB zipped), started from its own folder with a PATH holding
+Windows alone, fonts, interface, Online tab and fauna working; its solo smoke
+fails on a first visit's terrain seam (see PLAN §7), not on the package; and
+the far relief rings 3-8 are refused on this laptop too (`Mapzen terrain tile
+z6 is not on disk`), at Paris as 5 km east.
 
 ### The arrival: from Go to the ground (20 October 2026)
 

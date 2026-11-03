@@ -31,7 +31,7 @@ constexpr const char* kApplication = "r1world/online";
 // What this build speaks, shown to every peer once linked (p2p
 // HostConfig::hello). Change it with the messages' format: two builds that
 // differ stay linked, ignore each other's messages and send none.
-constexpr const char* kProtocol = "r1world/online-3";
+constexpr const char* kProtocol = "r1world/online-4";
 // The protocol a peer's hello names, printable, or "" when it names none.
 std::string protocolOf(const std::vector<uint8_t>& hello);
 // Meeting cells: rows of 0.02 degrees (2.2 km), each cut into as many columns
@@ -103,7 +103,8 @@ constexpr double kNearMetres = 40, kViewMetres = 150, kMiddleMetres = 400, kCont
 // place among the players nearest us (0: the nearest).
 Tier tierFor(const Avatar& me, const Avatar& him, double sinceContact, size_t rank);
 
-enum class Kind : uint8_t { State = 1, Shot, Punch, Rocket, Hit, Count };
+// Welcome: the owner of an invite code, to whoever joins its topic (below).
+enum class Kind : uint8_t { State = 1, Shot, Punch, Rocket, Hit, Welcome, Count };
 // A pistol round: from the muzzle along `direction` (Earth-centred, unit) for
 // `length` metres, and the player it hit on the shooter's screen, if any, as
 // he drew him at `seen` -- the victim's own clock (Replica::playback).
@@ -225,6 +226,27 @@ private:
     std::vector<Claim> claims_;
     std::vector<Strike> strikes_;
 };
+
+// ── Joining a friend ──────────────────────────────────────────────────────
+// Each player has an invite code for the session (the engine's arena code,
+// "K7QM-2XPA", shown in the Online settings) and is always in its topic. A
+// friend who types it joins that topic too, which links the two wherever
+// they stand; the owner says so (Kind::Welcome), so the friend knows which
+// of the topic's members is him. Once his snapshots say where he stands, Go
+// takes the friend there as it goes anywhere -- the globe, the fall -- and
+// lands him beside him. Then the friend leaves the topic: the cells hold
+// them together as they hold everyone near.
+constexpr double kBesideMetres = 4;       // lands this far to his right
+constexpr double kJoinQuietSeconds = 30;  // nobody with that code this long: said, still looking
+constexpr double kDrawnMetres = 3000;     // a linked player farther than this is not drawn (a friend far away)
+enum class Join : uint8_t { Looking, Quiet, Foreign, Waiting, Going, Joined };
+// What the panel and the Online settings say of a join under way. `name`
+// is the friend's once found.
+std::string joinLine(Join state, const std::string& code, const std::string& name);
+// Where his friend lands.
+std::array<double, 2> besideFriend(const Avatar& him);
+// Why nobody can go to him yet -- in the air, between lives -- or nullptr.
+const char* notYet(const Avatar& him);
 
 // "Player 3F2A": the first four hex digits of the identity.
 std::string playerName(uint64_t id);

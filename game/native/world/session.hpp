@@ -743,6 +743,14 @@ class World::Impl : public Rml::EventListener {
     void sendRocket(const glm::vec3& muzzle,const glm::vec3& target);
     void onlineHud();
     void runOnlineSmoke(double dt);
+    // Joining a friend (online_rules.hpp): our invite code, made once and
+    // shown in the Online settings, and the friend's, typed there or given
+    // by --join, while we look for him.
+    std::string inviteCode,friendCode,joinArgument;
+    const std::string& invite();
+    void sayInvite();
+    void joinFriend(const std::string& typed);
+    void seekFriend();
     uint64_t punchRemote=0; double punchRemoteSeen=0;
 
     // World-owned gameplay. Saida owns collision queries, GPU particles and meshes.
@@ -1878,6 +1886,7 @@ public:
     ~Impl();
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model);
     void setOnline(bool on) { onlineWanted=on; }
+    void setJoin(const std::string& code) { joinArgument=code; }
     bool failed() const;
     void diveSmoke();
     void inspectInstant(double unixSeconds);

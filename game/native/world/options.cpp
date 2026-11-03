@@ -188,6 +188,7 @@ void World::Impl::showOptions(bool show) {
     sayForcedTime();
     sayForcedWeather();
     sayToasterMode();
+    sayInvite();
 }
 
 void World::Impl::forceTime(std::optional<int> minutes) {

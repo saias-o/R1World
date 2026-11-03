@@ -98,11 +98,23 @@ bool World::Impl::smokeOptions() {
         if(auto* status=ui->findElementById("destination-status");!status||status->GetInnerRML().find("Latitude -91")==std::string::npos)
             return fail("Go refused latitude -91 without naming the field and the range");
         field("latitude",latitude);field("longitude",longitude);
+        // The Online tab shows his invite code and refuses, saying why, a
+        // code that is none and his own (a real one would start the network).
+        ui->executeJS("showSettingsTab('online');");
+        auto said=[&](const char* id){auto* e=ui->findElementById(id);return e?e->GetInnerRML():std::string();};
+        if(said("invite-code")!=invite())return fail("the Online tab does not show the invite code ("+said("invite-code")+")");
+        field("friend-code","K7QM 2XP");testClick("join-friend",false);
+        if(!friendCode.empty()||said("join-status").find("is not an invite code")==std::string::npos)
+            return fail("a code too short was not refused in place: "+said("join-status"));
+        field("friend-code",invite());testClick("join-friend",false);
+        if(!friendCode.empty()||said("join-status").find("your own code")==std::string::npos)
+            return fail("his own code was not refused in place: "+said("join-status"));
+        field("friend-code",std::string());
         ui->executeJS("showSettingsTab('time');");
     }
     testClick("options-back",false);
     if(optionsOpen)return fail("Retour did not close the screen");
-    saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, full screen toggled, negative coordinates typed, bad destination refused in place)");
+    saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, full screen toggled, negative coordinates typed, bad destination refused in place, bad and own invite codes refused)");
     forceTime(savedTime);
     forceWeather(savedWeather);
     // Testing both buttons must not silently change the measured preset.

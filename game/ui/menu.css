@@ -51,6 +51,9 @@ label { display: block; margin-bottom: 12px; font-size: 14px; color: #a9bbcf; }
 .form-row input { width: 210px; height: 49px; }
 #settings-destination .form-row { align-items: flex-end; }
 #destination-go { height: 49px; min-width: 96px; }
+#settings-online .form-row { align-items: flex-end; margin-top: 26px; }
+#invite-code { margin: 0; font-size: 34px; letter-spacing: 4px; color: #f0f7ff; }
+#join-friend { height: 49px; min-width: 96px; }
 #forced-time { width: 140px; }
 .primary { background-color: #d4eaff; color: #172331; border-color: #d4eaff; }
 .primary:hover { background-color: #ffffff; }

@@ -323,7 +323,11 @@ void World::Impl::stream() {
     };
     for(auto* tiles:{&loaded,&incoming})for(auto it=tiles->begin();it!=tiles->end();) {
         // A replacement cooked over again is dropped and started anew below.
-        if(!keep.count(it->first)||(tiles==&incoming&&stale(it->second)))
+        // So is the replacement of a tile only kept while he leaves it: its
+        // objects stream no more, so it could never be ready, and nobody
+        // would see it -- a Go away from a tile being re-cooked timed out
+        // on it and called the trip off.
+        if(!keep.count(it->first)||(tiles==&incoming&&(stale(it->second)||!wanted.count(it->first))))
             {it->second.node->queueFree();it=tiles->erase(it);removed=true;}else ++it;
     }
     if(promoteIncoming())removed=true;
@@ -342,7 +346,7 @@ void World::Impl::stream() {
         // observations -- is replaced. Its new version goes up hidden while
         // the old one is still drawn: taking the old one down first left
         // its streets missing for the frames the new parts took to upload.
-        if(!stale(it->second)||incoming.count(it->first)){++it;continue;}
+        if(!stale(it->second)||incoming.count(it->first)||!wanted.count(it->first)){++it;continue;}
         const auto current=service->find(it->second.served->cooked.tile);
         if(current->serial==it->second.rejectedSerial){++it;continue;}
         const json& data=current->cooked.manifest;

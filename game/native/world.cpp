@@ -5,6 +5,7 @@
 #include "Engine.hpp"
 #include "core/CrashReporter.hpp"
 #include "core/Log.hpp"
+#include "core/Paths.hpp"
 #include "core/Time.hpp"
 #include "scene/SceneSerializer.hpp"
 #include "graphics/ResourceManager.hpp"
@@ -46,7 +47,14 @@ int main(int argc,char** argv) {
         for(int i=1;i<argc;++i){std::string a=argv[i];if(a=="--project"&&i+1<argc)game=fs::absolute(argv[++i]);else if(a=="--smoke")smoke=true;else if(a=="--sail")sail=true;else if(a=="--fly")fly=true;else if(a=="--vr")vr=true;else if(a=="--spawn"&&i+2<argc){startLon=std::stod(argv[++i]);startLat=std::stod(argv[++i]);}else if(a=="--spawn2"&&i+2<argc){hop=true;hopLon=std::stod(argv[++i]);hopLat=std::stod(argv[++i]);}}
         if(!std::isfinite(startLon)||!std::isfinite(startLat)||std::abs(startLat)>90||std::abs(startLon)>180)throw std::runtime_error("Invalid --spawn coordinate");
         // This development executable uses the existing engine's baked paths
-        // for shaders/fonts, and the project's root for content.
+        // for shaders/fonts, and the project's root for content. Exported
+        // (saida_tool export-game, tools/package_world.py), it is beside its
+        // boot manifest, the project and the engine's shaders and fonts,
+        // as the engine's own runtime is.
+        const fs::path beside=saida::executableDirectory();
+        if(fs::exists(beside/"game.saida")&&std::find_if(argv+1,argv+argc,[](const char* a){return std::string(a)=="--project";})==argv+argc) {
+            game=beside;saida::setRuntimeRoot(beside.string());
+        }
         saida::PhysicsCapacity physics;physics.bodies=kPhysicsBodies;
         auto menuGlobe=r1::registerMenuGlobe();
         #ifndef SAIDA_ENABLE_XR
@@ -77,6 +85,7 @@ int main(int argc,char** argv) {
 #endif
         world.setMenuGlobe(menuGlobe);
         for(int i=1;i<argc;++i)if(std::string(argv[i])=="--offline")world.setOnline(false);
+        for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--join")world.setJoin(argv[i+1]);
         for(int i=1;i<argc;++i)if(std::string(argv[i])=="--dive")world.diveSmoke();
         for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--at") {
             const double at=std::stod(argv[i+1]);

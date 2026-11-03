@@ -428,6 +428,7 @@ void World::Impl::ProcessEvent(Rml::Event& event) {
     else if(id=="fullscreen-on")setFullscreenMode(true);
     else if(id=="fullscreen")toggleFullscreenMode();
     else if(id=="resume"&&playing){pending=false;warming=false;request(lon,lat);showMap(false);}
+    else if(id=="join-friend")joinFriend(value("friend-code"));
     else if(id=="destination-go") {
         // The typed coordinates, from the Destination tab: leave the
         // settings only when they hold; go() says why when they do not.
@@ -457,7 +458,7 @@ bool World::Impl::refreshInterface() {
         generation=ui->documentGeneration();listeners.clear();
         written.clear();
         if(auto* element=ui->findElementById("portfolio-species")){element->AddEventListener("change",this);listeners.push_back(element);}
-        for(auto id:{"go","destination-go","resume","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
+        for(auto id:{"go","destination-go","join-friend","resume","street-map","reset-map","paris","tokyo","newyork","lawrence","cape","sydney","pole",
                      "player-close","player-map","player-photo","player-tab-portfolio","player-tab-inventory","player-tab-ammo",
                      "player-equip-fists","player-equip-pistol","player-equip-rocket","portfolio-prev","portfolio-next",
                      "portfolio-filter-all","portfolio-filter-world","portfolio-filter-animal","portfolio-filter-monument","portfolio-filter-event",

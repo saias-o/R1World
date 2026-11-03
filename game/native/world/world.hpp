@@ -35,6 +35,8 @@ public:
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model);
     // Online play (on by default; a test run only with R1WORLD_ONLINE_SMOKE).
     void setOnline(bool on);
+    // --join CODE: the friend whose invite code it is is joined from the menu.
+    void setJoin(const std::string& code);
 #ifdef SAIDA_ENABLE_XR
     void setXrGestureInput(const saida::xrgesture::RuntimeInputState& state);
 #endif

@@ -36,6 +36,7 @@
     <button class="settings-tab" data-tab="weather">Weather</button>
     <button class="settings-tab" data-tab="graphics">Graphics</button>
     <button class="settings-tab" data-tab="destination">Destination</button>
+    <button class="settings-tab" data-tab="online">Online</button>
     <button class="settings-tab" data-tab="credits">Credits</button>
    </nav>
    <section id="settings-time" class="settings-panel active">
@@ -61,6 +62,13 @@
     <p id="destination-status" class="feedback"></p>
     <div class="chips"><button id="street-map">Street view</button><button id="reset-map">Whole Earth</button><button id="resume">Resume</button></div>
     <div id="places" class="chips"><button id="paris">Paris</button><button id="tokyo">Tokyo</button><button id="newyork">New York</button><button id="lawrence">Lawrence</button><button id="cape">Cape Town</button><button id="sydney">Sydney</button><button id="pole">North Pole</button></div>
+   </section>
+   <section id="settings-online" class="settings-panel">
+    <label>Your invite code</label><p id="invite-code">—</p>
+    <p class="hint">Give it to a friend: typed below on their machine, it takes them to you, wherever you are.</p>
+    <div class="form-row"><div><label for="friend-code">A friend's code</label><input id="friend-code" type="text" maxlength="12" placeholder="K7QM-2XPA"></div><button id="join-friend" class="primary">Join</button></div>
+    <p id="join-status" class="feedback"></p>
+    <p class="hint">Online play shows your network address to the players you meet.</p>
    </section>
    <section id="settings-credits" class="settings-panel">
     <p id="game-version" class="description">R1World · Version 0.1 · Saida Engine</p>
