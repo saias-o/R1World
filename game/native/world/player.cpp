@@ -70,6 +70,9 @@ double World::Impl::updatePlayer(float delta, bool sampleMouse) {
         if(!idleSmokeStopped){idleSmokeStopped=true;idleSmokeStart=ecef(lon,lat,alt);}
     }
     if(playerDown){f=r=0;}  // on the ground, he does not walk
+    // Two instances meet (World::runOnlineSmoke): the target paces two
+    // seconds forth and two back, jumping once each way; the shooter stands.
+    if(onlineSmoke){r=0;f=std::string(onlineSmoke)=="target"&&smokeStarted?(std::fmod(smokeWalk,4.)<2.?1.:-1.):0.;}
     if(retailTest())f=r=0;
     if(performanceSmoke){f=r=0;smokeStarted=false;}
     if(trafficValidation_){f=r=0;smokeStarted=false;}
@@ -231,6 +234,7 @@ double World::Impl::updatePlayer(float delta, bool sampleMouse) {
         } else {
             bool jump=held(GLFW_KEY_SPACE);
             if(!idleSmoke&&smokeStarted&&worldCapture.pngPath.empty()&&smokeWalk>.6&&smokeWalk<.8)jump=true;
+            if(onlineSmoke&&smokeStarted&&std::fmod(smokeWalk,2.)>1.&&std::fmod(smokeWalk,2.)<1.1)jump=true;
             if(jump&&!wasJump&&jumpOffset<=0)jumpVelocity=std::sqrt(2*22.*1.5);
             wasJump=jump;
             const double previous=jumpOffset;

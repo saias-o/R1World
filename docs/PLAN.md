@@ -314,9 +314,31 @@ reçoivent `PeerJoined`/`PeerLeft` ; quitter un sujet déconnecte ses pairs
 après un délai. Vérifié en simulation (8 joueurs, 2 cellules, NAT mêlés :
 un maillage par cellule en ~3 s, rien entre elles) et sur la vraie DHT.
 Limites : pas de relais pour NAT symétrique contre NAT restreint en port ou
-symétrique ; DHT en IPv4 seulement. Reste **l'étape 3**, le multijoueur de
-R1World par tuile décrit ci-dessous : clé de sujet par tuile et voisines,
-session `netcode` par tuile, transfert à la frontière.
+symétrique ; DHT en IPv4 seulement.
+
+**Étape 3 faite (3 novembre 2026) : les autres joueurs dans R1World**
+(`game/README.md`, *Other players*). Toute personne proche, n'importe où sur
+Terre, est visible et peut tirer, frapper ou lancer une roquette, sans aucun
+serveur. **Décision : pas de rollback pour les personnes.** Le rollback exige
+que chaque machine calcule la même chose ; ici chaque machine diffuse sa
+propre collision, ses foules et sa physique, ce n'est donc pas une simulation
+déterministe commune. Chaque joueur fait donc autorité sur son avatar
+(20 instantanés/s, 59 octets), les autres le dessinent par
+`netcode::Replica` (nouvelle brique générique du moteur, SPEC §11.6) et un
+coup est jugé par sa cible sur son propre historique, à l'instant que le
+tireur voyait, dans l'horloge de la cible (compensation de latence sans
+synchronisation d'horloge ni arbitre). Rencontre : cellules de 0,02° (2,2 km),
+chaque joueur rejoint celles à moins de 700 m et quitte au-delà de 900 m, un
+sujet `p2p` par cellule ; la frontière se traverse sans transfert ni pause,
+puisque les deux cellules sont tenues pendant la traversée. Voitures,
+animaux, foules, police et météo restent propres à chaque machine, comme
+demandé. Vérifié : règles (cellules sur 20 000 tirages, codec, 100 000 paquets
+aléatoires, tirs vrais acceptés et tirs décalés d'un pas refusés sur une
+ligne de 80 ms avec gigue) et deux instances sur cette machine
+(`tools/online_smoke.py`) qui se trouvent, se dessinent et se tirent dessus.
+Reste : relais pour les NAT impossibles, DHT IPv6, qualification entre deux
+réseaux domestiques et sur réseau mobile, et le partage des véhicules si on
+le décide un jour.
 
 - À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
   UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit

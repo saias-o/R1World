@@ -43,10 +43,10 @@ bool World::Impl::rocketRoom()const {
     return std::any_of(rockets.begin(),rockets.end(),[](const auto& r){return r.life<=0&&r.rest<=0;});
 }
 
-bool World::Impl::launchRocket(glm::vec3 muzzle,glm::vec3 target,saida::QueryFilter filter,bool police) {
+bool World::Impl::launchRocket(glm::vec3 muzzle,glm::vec3 target,saida::QueryFilter filter,bool police,uint64_t owner) {
     if(glm::length(target-muzzle)<.01f)return false;
     for(auto& r:rockets)if(r.life<=0&&r.rest<=0) {
-        r.position=muzzle;r.direction=glm::normalize(target-muzzle);r.filter=filter;r.police=police;r.life=r1::rocket::kLifetime;
+        r.position=muzzle;r.direction=glm::normalize(target-muzzle);r.filter=filter;r.police=police;r.owner=owner;r.life=r1::rocket::kLifetime;
         r.mesh->transform().position=muzzle;r.mesh->transform().rotation=glm::quat(glm::vec3(0,0,1),r.direction);
         r.mesh->setEnabled(true);r.trail->transform().position=muzzle;r.trail->initialVelocity=-r.direction*5.f;r.trail->play();
         r.flame->transform().position=muzzle-r.direction*.7f;r.flame->initialVelocity=-r.direction*14.f;r.flame->play();
@@ -83,7 +83,8 @@ void World::Impl::fireRocket() {
     }
     // Do not send a shot backwards when the chase camera is behind cover.
     if(glm::dot(target-muzzle,look)<1)target=muzzle+look*2.f;
-    launchRocket(muzzle,target,filter,false);recoil=.6;
+    if(launchRocket(muzzle,target,filter,false))sendRocket(muzzle,target);
+    recoil=.6;
     alarm(muzzle,120,12);reportCrime(r1::police::Crime::Gunshot,policePlayerPosition());
 }
 
@@ -165,7 +166,7 @@ bool World::Impl::rocketExposed(glm::vec3 at,glm::vec3 point,saida::CollisionObj
         (ragdoll&&ragdoll->partOf(hit.body)>=0);
 }
 
-void World::Impl::explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police) {
+void World::Impl::explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police,uint64_t owner) {
     ++rocketImpacts;rocketPoliceDamage=police;rocketEffects.explode(at);
     sounds.play(r1::CombatSounds::RocketExplosion,glm::distance(at,camera->transform().position),1.4f);
     blastShake=std::max(blastShake,.55*std::max(0.,1.-glm::distance(at,camera->transform().position)/65.));
@@ -211,7 +212,9 @@ void World::Impl::explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,
     if(playerExposed&&(playerDamage>0||ejected)) {
         const auto push=glm::normalize(playerAt-at+glm::vec3(0,.3f,0));
         // An occupied vehicle absorbs part of the blast, leaving a recoverable ejection.
-        hurtPlayer(ejected?55:playerDamage,push,police?"a police rocket":"a rocket explosion");
+        // Another player's rocket is judged here, by the one it lands on.
+        if(owner)onlineBlame="a rocket from "+r1::online::playerName(owner);
+        hurtPlayer(ejected?55:playerDamage,push,owner?onlineBlame.c_str():police?"a police rocket":"a rocket explosion");
         if(ejected&&!playerDown)knockPlayerDown(push*7.f+glm::vec3(0,4,0),{0,2,0},false);
         if(ejected)text("stream-status","Véhicule détruit — vous avez été éjecté !");
     }
@@ -231,7 +234,7 @@ void World::Impl::updateRockets(double elapsed) {
         r.life-=dt;
         if(hit.hit||r.life<=0) {
             r.life=0;r.rest=1.3f;r.mesh->setEnabled(false);r.trail->stop();r.flame->stop();
-            if(hit.hit)explodeRocket(hit.point+hit.normal*.15f,static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body)),r.police);
+            if(hit.hit)explodeRocket(hit.point+hit.normal*.15f,static_cast<saida::CollisionObjectNode*>(physics->bodyUserData(hit.body)),r.police,r.owner);
             continue; // expiry in the sky is harmless
         }
         r.position+=r.direction*distance;r.mesh->transform().position=r.position;

@@ -223,6 +223,78 @@ menu zoom smoke, Saida's input/UI tests and native runtime contract. Native CTes
 The Web player and authoring WASM builds also pass, as does the authoring
 Node smoke; these build checks do not claim browser menu interaction coverage.
 
+### Other players: online with no server (3 November 2026)
+
+Whoever stands near you, wherever on Earth, is in your world: you see them
+walk, run, jump, swim and fall, and they can shoot you, punch you or fire a
+rocket at you, as you can them. There is no server of R1World's anywhere:
+
+- **Meeting.** The Earth is cut into cells of 0.02° of latitude (2.2 km), each
+  row into as many columns as keep them square (`world/online_rules.hpp`).
+  You join every cell within 700 m of you and leave one once it is 900 m
+  away, so two players that near always share a cell, and walking along a
+  border does not churn. Each cell is a topic of the engine's `plugins/p2p`:
+  your address is announced in BitTorrent's Mainline DHT under a key derived
+  from the cell, the others are found there and on the local network by
+  multicast beacons, and links are encrypted (Noise XX) and punched through
+  NATs. The DHT nodes met are kept in `cache/online-nodes.txt` for the next
+  start; your identity is `saves/online-identity.key`.
+- **Seeing.** Each player is the authority on his own body: twenty snapshots
+  a second (59 bytes: position, heading, aim, velocity, pose, clip, weapon,
+  health, and a life counter that turns a respawn or a teleport into a jump
+  rather than a glide). Every other machine draws him through the engine's
+  `netcode::Replica`, a little in the past, between two snapshots he really
+  had; the delay follows the line, a silent player is carried on for a
+  quarter of a second and then held, and one silent for 3 s disappears. His
+  body is the player's own scan, rig and clips, with a pistol or a launcher
+  in his hands along his aim, a punch thrown, and a ragdoll when he goes
+  down. A capsule like a passer-by's stops your feet, your rounds and your
+  rockets.
+- **Shooting.** Your shot is sent to everyone near (they see the muzzle flash
+  and hear it); if it hit someone's body on your screen, the claim names him
+  and the instant of his you drew, in his own clock. **He judges it**, on his
+  own history: it counts only if he really was where you saw him then, you
+  fired from where you are, within the pistol's range and rate. The damage is
+  his to compute (a head shot is decided by where on his body the round
+  passed). Your HUD says `Hit Player 3F2A (34)`, `Player 3F2A is down.` or
+  `No hit on Player 3F2A: his screen disagrees.` Punches are judged the same
+  way; a rocket is flown on every machine, and each player judges his own
+  blast. Every refusal is logged with its reason (`[World online] refused`).
+- **What is not shared.** Cars, traffic, animals, passers-by, police and the
+  weather stay each machine's own, as asked: a player at the wheel is not
+  drawn until he steps out. A remote rocket destroys cars only in your own
+  world, and never adds to your wanted level.
+
+The combat panel says `Online · 2 players nearby`, `Online · nobody else here
+yet`, or why nobody can be found. `--offline` plays alone; the game is
+unchanged without a network (the cache promise holds: no world data crosses
+these links).
+
+Limits: the engine has no relay yet, so a symmetric NAT facing a
+port-restricted or symmetric NAT cannot link (ROADMAP §5); the DHT is IPv4
+only; two players behind one router meet through the LAN beacons. Your
+address is published in the DHT under your cell's key, as BitTorrent
+publishes a downloader's. At most 16 others are drawn at once.
+
+Verified on 3 November 2026. `r1_world_online_rules_test` (headless):
+everyone within 700 m shares a cell over 20 000 random places, poles and the
+date line included, never more than 4 cells joined at once; 100 000 random
+packets refused without a crash; on an 80 ms line with jitter, every shot at
+the drawn body believed and every claim one step off refused. Two instances
+on the reference laptop (`tools/online_smoke.py`, Paris, the target pacing and
+jumping): the DHT ready in 0.06-0.19 s from the remembered nodes with the
+public address learned, the two linked over the LAN beacons and drawing each
+other within a second of play, the shooter's round confirmed by the target's
+own machine (34 damage, or 108.8 and a kill for a head shot; no refusal), a
+clean `left: closed` on exit. With two copies of the game sharing the laptop
+at 5-7 frames a second each, 83-95 % of frames are drawn between real
+snapshots, the rest carried on; at a normal frame rate the engine's tests
+measure 93-98 % on a line losing 10 % of its packets. Two copies cooking the
+same uncached tile at once exhaust the laptop's 7.5 GB (`FAIL out of memory
+cooking`), hence the visit first. Not yet tried: two homes on different
+networks, a mobile network; nor looked at in daylight (every run was at
+night, the hour the test ran).
+
 ### The arrival: from Go to the ground (20 October 2026)
 
 **Go** no longer cuts to the street. For ten seconds the globe flies down to the
@@ -698,6 +770,7 @@ in the log whose path is printed at the end.
 | `--temperature <C>` | inspection temperature, with `--at` and `--screenshot`; finite range −100..65 °C |
 | `R1WORLD_RETAIL_SMOKE=1` | enter a shop, walk an aisle, leave, close, evict, regenerate |
 | `R1WORLD_WADE_SMOKE="<lon> <lat>"` | walk from the spawn to that point over water cells; fail the moment he swims (Penvins groyne: spawn `-2.681180 47.493875`, target `-2.681700 47.493785`) |
+| `R1WORLD_ONLINE_SMOKE=target\|shooter` | online play between two instances on this machine: `python tools\online_smoke.py [lon lat]` starts both 6 m apart; the target paces and jumps, the shooter fires at the body it draws until the target's machine confirms a hit; both must log `PASS online` (visit the spot once first) |
 | `R1WORLD_INTERIOR_SMOKE=home\|school\|office\|police\|garage` | the same for one ordinary-building recipe |
 | `R1WORLD_RETAIL_SHOT=<png>`, `R1WORLD_RETAIL_SHOT_AT=outside\|inside\|anchor\|room` | photograph a store or a room and end the run |
 | `R1WORLD_FLY_SHOT=<png>`, `R1WORLD_FLY_SHOT_AT=stand\|climb\|stop\|heli-stand\|heli\|jump` | photograph that moment of `--fly` |

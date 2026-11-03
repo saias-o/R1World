@@ -15,6 +15,7 @@ bool World::needsAfterSimulation() const { return impl_->needsAfterSimulation();
 void World::afterSimulation(float delta) { impl_->afterSimulation(delta); }
 bool World::failed() const { return impl_->failed(); }
 void World::setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model) { impl_->setMenuGlobe(std::move(model)); }
+void World::setOnline(bool on) { impl_->setOnline(on); }
 #ifdef SAIDA_ENABLE_XR
 void World::setXrGestureInput(const saida::xrgesture::RuntimeInputState& state) { impl_->setXrGestureInput(state); }
 #endif

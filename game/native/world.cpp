@@ -72,6 +72,7 @@ int main(int argc,char** argv) {
         if(gestureInput)world.setXrGestureInput(gestureInput->state());
 #endif
         world.setMenuGlobe(menuGlobe);
+        for(int i=1;i<argc;++i)if(std::string(argv[i])=="--offline")world.setOnline(false);
         for(int i=1;i<argc;++i)if(std::string(argv[i])=="--dive")world.diveSmoke();
         for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--at") {
             const double at=std::stod(argv[i+1]);

@@ -33,6 +33,8 @@ public:
     void afterSimulation(float delta);
     bool failed() const;
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model);
+    // Online play (on by default; a test run only with R1WORLD_ONLINE_SMOKE).
+    void setOnline(bool on);
 #ifdef SAIDA_ENABLE_XR
     void setXrGestureInput(const saida::xrgesture::RuntimeInputState& state);
 #endif

@@ -435,6 +435,12 @@ void World::Impl::throwPunch() {
         auto d=nodePosition(*officer.person.node)-me;d.y=0;const float length=glm::length(d);
         if(length>.01f&&length<best&&glm::dot(d/length,ahead)>.45f){best=length;punchPolice=int(u*2+i);punchAimed=false;}
     }
+    // Another player: his own machine judges whether it lands (online.cpp).
+    double remoteAway=0;punchRemote=0;
+    if(const uint64_t other=remoteInFront(me,ahead,best,remoteAway,punchRemoteSeen)) {
+        punchRemote=other;punchAimed=false;punchPolice=-1;
+        const glm::vec3 d=remotePosition(other)-me;yaw=wrap(std::atan2(d.x,-d.z)/rad);
+    }
     // Squared up to whom he hits.
     if(punchAimed)if(auto* t=tileByKey(punchTileKey)) {
         const glm::vec3 d=nodePosition(*t->people[punchSlot].node)-me;
@@ -443,6 +449,15 @@ void World::Impl::throwPunch() {
 }
 
 void World::Impl::landPunch() {
+    if(punchRemote) {
+        glm::vec3 d=remotePosition(punchRemote)-player->transform().position;d.y=0;
+        if(glm::length(d)<=r1::combat::kFists.range*kPeopleVehicleResize+.4) {
+            sendPunch(punchRemote,punchRemoteSeen,punch.hook());
+            sounds.play(r1::CombatSounds::Punch,followDistance);
+        }
+        punchRemote=0;return;
+    }
+    sendPunch(0,0,punch.hook());
     if(punchPolice>=0) {
         auto& officer=policeUnits[size_t(punchPolice)/2].officers[size_t(punchPolice)%2];
         if(!officer.person.node||!officer.person.node->enabled())return;
@@ -582,11 +597,16 @@ void World::Impl::fire() {
     pitch=std::clamp(pitch+1.1,-65.,25.);
     alarm(ridingBike()?car->transform().position:player->transform().position,r1::combat::kGunshotHeard,10.);
     reportCrime(r1::police::Crime::Gunshot,policePlayerPosition());
-    if(!physics||length<1e-3)return;
+    if(!physics||length<1e-3){sendShot(muzzle,glm::normalize(look),range,0,0);return;}
     const glm::vec3 dir=path/length;
     const auto hit=physics->raycast(muzzle,dir,length+.05f,combatFilter());
+    // Everyone near sees the round; a player it hit judges it himself.
+    double seen=0;
+    const uint64_t victim=hit.hit?remoteByBody(hit,seen):0;
+    sendShot(muzzle,dir,hit.hit?hit.distance:length,victim,seen);
     if(!hit.hit)return;
     const double heard=glm::length(eye-hit.point);
+    if(victim){sounds.play(r1::CombatSounds::Impact,heard,.5f);return;}
     if(hitAnimal(hit,dir,float(r1::combat::kPistol.impulse))) {
         sounds.play(r1::CombatSounds::Impact,heard,.5f);return;
     }
@@ -633,42 +653,7 @@ void World::Impl::poseArms(const glm::vec3* inspectionLook) {
         const glm::vec3 look=inspectionLook?*inspectionLook:camera->transform().rotation*glm::vec3(0,0,-1);
         glm::vec3 aim=glm::normalize(glm::vec3(toObject*glm::vec4(look,0.f)));
         if(ridingBike()){playerBikeAim->lookAt(aim);playerBikeLook->lookAt(shoulder[1]+aim*100.f);}
-        const glm::vec3 up(0,1,0);
-        // Out in front at eye height, the arm nearly straight.
-        const float overShoulder=ridingBike()?.18f*std::clamp(-aim.z*2.f,0.f,1.f):0.f;
-        const glm::vec3 grip=shoulder[1]+aim*(playerReach*.9f)+glm::vec3(-.05f,overShoulder,0.f);
-        glm::vec3 side=glm::cross(up,aim);if(glm::dot(side,side)<1e-6f)side=glm::vec3(1,0,0);
-        side=glm::normalize(side);
-        const glm::vec3 top=glm::cross(aim,side);
-        glm::mat3 gun;gun[0]=side;gun[1]=top;gun[2]=aim;
-        const glm::quat hand=glm::normalize(glm::quat_cast(gun)*glm::inverse(pistolGrip.rotation));
-        if(arsenal.held()==r1::combat::Weapon::RocketLauncher) {
-            // Shoulder-fired stance: solve palm contacts, not wrist points.
-            // Keeping both hands within reach prevents IK clamping from
-            // pulling the foregrip out of the support hand when aiming down.
-            glm::vec3 origin=shoulder[1]+aim*(playerReach*.38f)-top*.12f-side*.025f;
-            const auto supportRotation=glm::normalize(glm::quat_cast(gun)*glm::inverse(launcherSupportGrip.rotation));
-            if(!ridingBike()) {
-                const auto left=origin+gun*r1::kLauncherSupport-supportRotation*launcherSupportGrip.position;
-                const auto delta=left-shoulder[0];
-                const float reach=playerReach*.94f,distance=glm::length(delta);
-                if(distance>reach)origin-=delta*((distance-reach)/distance);
-            }
-            playerArms[1]->reach(origin-hand*pistolGrip.position);
-            playerArms[1]->setTipRotation(hand);
-            playerArms[1]->setPole(shoulder[1]-side*.35f-top*.55f);
-            if(ridingBike())return;
-            playerArms[0]->reach(origin+gun*r1::kLauncherSupport-supportRotation*launcherSupportGrip.position);
-            playerArms[0]->setTipRotation(supportRotation);
-            playerArms[0]->setPole(shoulder[0]+side*.25f-top*.6f);
-            return;
-        }
-        playerArms[1]->reach(grip);playerArms[1]->setTipRotation(hand);
-        playerArms[1]->setPole(shoulder[1]-side*.4f-top*.5f+aim*.12f);
-        // Riders keep their left hand on the handlebar.
-        if(ridingBike())return;
-        playerArms[0]->reach(grip+side*.035f-top*.045f-aim*.02f);playerArms[0]->clearTipRotation();
-        playerArms[0]->setPole(shoulder[0]+glm::vec3(.4f,-.6f,-.1f));
+        holdWeapon(playerArms,shoulder,aim,arsenal.held(),playerReach,ridingBike());
         return;
     }
     for(int h=0;h<2;++h) {
@@ -682,10 +667,51 @@ void World::Impl::poseArms(const glm::vec3* inspectionLook) {
         }
         if(punchPolice>=0)if(auto* node=policeUnits[size_t(punchPolice)/2].officers[size_t(punchPolice)%2].person.node)
             target=glm::vec3(toObject*glm::vec4(nodePosition(*node)+glm::vec3(0,float(playerHeight*.85),0),1));
+        if(punchRemote)target=glm::vec3(toObject*glm::vec4(remotePosition(punchRemote)+glm::vec3(0,float(playerHeight*(punch.hook()?.8:.88)),0),1));
         const float w=float(punch.extension());
         arm->clearTipRotation();arm->reach(target,w);arm->setWeightNow(w);
         arm->setPole(shoulder[h]+glm::vec3(h?-.45f:.45f,-.35f,-.25f));
     }
+}
+
+void World::Impl::holdWeapon(saida::TwoBoneIKModifier* const arms[2],const glm::vec3 shoulder[2],const glm::vec3& aim,
+                             r1::combat::Weapon weapon,float reach,bool riding) {
+    const glm::vec3 up(0,1,0);
+    // Out in front at eye height, the arm nearly straight.
+    const float overShoulder=riding?.18f*std::clamp(-aim.z*2.f,0.f,1.f):0.f;
+    const glm::vec3 grip=shoulder[1]+aim*(reach*.9f)+glm::vec3(-.05f,overShoulder,0.f);
+    glm::vec3 side=glm::cross(up,aim);if(glm::dot(side,side)<1e-6f)side=glm::vec3(1,0,0);
+    side=glm::normalize(side);
+    const glm::vec3 top=glm::cross(aim,side);
+    glm::mat3 gun;gun[0]=side;gun[1]=top;gun[2]=aim;
+    const glm::quat hand=glm::normalize(glm::quat_cast(gun)*glm::inverse(pistolGrip.rotation));
+    if(weapon==r1::combat::Weapon::RocketLauncher) {
+        // Shoulder-fired stance: solve palm contacts, not wrist points.
+        // Keeping both hands within reach prevents IK clamping from
+        // pulling the foregrip out of the support hand when aiming down.
+        glm::vec3 origin=shoulder[1]+aim*(reach*.38f)-top*.12f-side*.025f;
+        const auto supportRotation=glm::normalize(glm::quat_cast(gun)*glm::inverse(launcherSupportGrip.rotation));
+        if(!riding) {
+            const auto left=origin+gun*r1::kLauncherSupport-supportRotation*launcherSupportGrip.position;
+            const auto delta=left-shoulder[0];
+            const float most=reach*.94f,distance=glm::length(delta);
+            if(distance>most)origin-=delta*((distance-most)/distance);
+        }
+        arms[1]->reach(origin-hand*pistolGrip.position);
+        arms[1]->setTipRotation(hand);
+        arms[1]->setPole(shoulder[1]-side*.35f-top*.55f);
+        if(riding)return;
+        arms[0]->reach(origin+gun*r1::kLauncherSupport-supportRotation*launcherSupportGrip.position);
+        arms[0]->setTipRotation(supportRotation);
+        arms[0]->setPole(shoulder[0]+side*.25f-top*.6f);
+        return;
+    }
+    arms[1]->reach(grip);arms[1]->setTipRotation(hand);
+    arms[1]->setPole(shoulder[1]-side*.4f-top*.5f+aim*.12f);
+    // Riders keep their left hand on the handlebar.
+    if(riding)return;
+    arms[0]->reach(grip+side*.035f-top*.045f-aim*.02f);arms[0]->clearTipRotation();
+    arms[0]->setPole(shoulder[0]+glm::vec3(.4f,-.6f,-.1f));
 }
 
 void World::Impl::runOverPeople(double dt) {

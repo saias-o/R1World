@@ -4,6 +4,11 @@ find_package(SaidaEngine CONFIG REQUIRED)
 
 add_subdirectory("${SaidaEngine_SOURCE_DIR}/plugins/xrgesture"
     "${CMAKE_CURRENT_BINARY_DIR}/xrgesture")
+# Online play: peer links and discovery with no server (plugins/p2p), avatar
+# replication (plugins/netcode, header-only, on the p2p target's include path).
+set(SAIDA_P2P_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory("${SaidaEngine_SOURCE_DIR}/plugins/p2p"
+    "${CMAKE_CURRENT_BINARY_DIR}/p2p")
 
 file(GLOB generator CONFIGURE_DEPENDS "native/gen/*.cpp")
 file(GLOB clipper CONFIGURE_DEPENDS "native/third_party/clipper2/src/*.cpp")
@@ -49,6 +54,8 @@ set(world_runtime
     native/world/combat.cpp
     native/world/rocket.cpp
     native/world/police.cpp
+    native/world/online.cpp
+    native/world/online_rules.cpp
     native/world/cheats.cpp
     native/world/performance.cpp
     native/world/smoke.cpp
@@ -60,7 +67,7 @@ target_include_directories(R1World PRIVATE native
     native/third_party/clipper2/include native/third_party/earcut
     "${SaidaEngine_SOURCE_DIR}/plugins/traffic/include"
     "${SaidaEngine_SOURCE_DIR}/plugins/wildlife/include")
-target_link_libraries(R1World PRIVATE winhttp Saida::XRGesture)
+target_link_libraries(R1World PRIVATE winhttp Saida::XRGesture Saida::P2P)
 find_program(R1_GLSLC glslc REQUIRED)
 set(menu_shader_dir "${CMAKE_CURRENT_SOURCE_DIR}/generated/world-windows/menu-shaders")
 foreach(stage vert frag)
@@ -141,10 +148,14 @@ enable_testing()
 add_executable(r1_world_player_profile_test EXCLUDE_FROM_ALL
     native/tests_engine/world_player_profile_test.cpp native/world/player_profile.cpp)
 target_include_directories(r1_world_player_profile_test PRIVATE "${SaidaEngine_SOURCE_DIR}/third_party/json")
+add_executable(r1_world_online_rules_test EXCLUDE_FROM_ALL
+    native/tests_engine/world_online_rules_test.cpp native/world/online_rules.cpp native/world/geography.cpp)
+target_link_libraries(r1_world_online_rules_test PRIVATE glm::glm)
+target_include_directories(r1_world_online_rules_test PRIVATE "${SaidaEngine_SOURCE_DIR}/plugins/netcode/include")
 add_executable(r1_world_photo_detection_test EXCLUDE_FROM_ALL
     native/tests_engine/world_photo_detection_test.cpp native/world/photo_detection.cpp)
 target_link_libraries(r1_world_photo_detection_test PRIVATE Saida::Engine)
-foreach(check geography tile_preparation menu_tile_cache options_store runtime_contract player_profile photo_detection)
+foreach(check geography tile_preparation menu_tile_cache options_store runtime_contract player_profile photo_detection online_rules)
     target_compile_features(r1_world_${check}_test PRIVATE cxx_std_17)
     target_compile_options(r1_world_${check}_test PRIVATE -UNDEBUG)
     target_include_directories(r1_world_${check}_test PRIVATE native)
@@ -154,7 +165,7 @@ foreach(check geography tile_preparation menu_tile_cache options_store runtime_c
     set_tests_properties(world_${check} PROPERTIES LABELS "headless;world" TIMEOUT 30)
 endforeach()
 add_custom_target(r1_world_headless_tests DEPENDS
-    r1_world_geography_test r1_world_tile_preparation_test r1_world_menu_tile_cache_test r1_world_options_store_test r1_world_runtime_contract_test r1_world_player_profile_test r1_world_photo_detection_test)
+    r1_world_geography_test r1_world_tile_preparation_test r1_world_menu_tile_cache_test r1_world_options_store_test r1_world_runtime_contract_test r1_world_player_profile_test r1_world_photo_detection_test r1_world_online_rules_test)
 
 # The same generator/service tests as build_tools.sh, now compiled by CMake
 # so a headless run cannot silently exercise an old standalone binary.

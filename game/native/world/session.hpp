@@ -121,6 +121,7 @@
 #include "loaded_tile.hpp"
 #include "menu_tile_cache.hpp"
 #include "options_store.hpp"
+#include "online_rules.hpp"
 
 namespace r1::world {
 namespace fs = std::filesystem;
@@ -697,6 +698,10 @@ class World::Impl : public Rml::EventListener {
     // The arms each frame: the aim holds the pistol on the crosshair, a punch
     // reaches for its target, and both ease out when done.
     void poseArms(const glm::vec3* inspectionLook=nullptr);
+    // A pistol or a launcher held along `aim` (the body's object frame), from
+    // the shoulders of the last pose: the player's arms, and another player's.
+    void holdWeapon(saida::TwoBoneIKModifier* const arms[2],const glm::vec3 shoulder[2],const glm::vec3& aim,
+                    r1::combat::Weapon weapon,float reach,bool riding);
 
     // A car driven into people: whoever stands in its path is thrown over
     // the bonnet, harder the faster it goes.
@@ -708,6 +713,38 @@ class World::Impl : public Rml::EventListener {
     // interface is rasterised whole on every change, WebCanvasNode).
     void combatHud();
 
+    // ── online play ─────────────────────────────────────────────────────────
+    //
+    // Everyone standing near him, wherever on Earth, with no server: the
+    // engine's p2p add-on finds them (one DHT topic per meeting cell) and
+    // links them; each player sends his own avatar and draws the others'
+    // through netcode's Replica; a shot, a punch or a rocket is judged by the
+    // one it is aimed at (online_rules.hpp). Only people are shared: cars,
+    // animals and the weather stay each machine's own. online.cpp.
+    struct Online;
+    struct OnlineDeleter { void operator()(Online* online) const; };
+    std::unique_ptr<Online,OnlineDeleter> online;
+    bool onlineWanted=true,onlineStarted=false;
+    const char* onlineSmoke=std::getenv("R1WORLD_ONLINE_SMOKE");  // "target" or "shooter"
+    std::string onlineBlame;  // who hurt him, for hurtPlayer's log line
+    void startOnline();
+    // Every frame, menu or not: the links, the topics, our own snapshot.
+    void pumpOnline();
+    // The others drawn, and what they did, once the world is live.
+    void showOnline(double dt);
+    // Another player's body, by the capsule or ragdoll part a query hit:
+    // his identity, and the instant of his drawn there (his clock).
+    uint64_t remoteByBody(const saida::RaycastHit& hit,double& seen);
+    // The nearest other player in front within `reach`, for a punch.
+    uint64_t remoteInFront(const glm::vec3& from,const glm::vec3& ahead,double reach,double& distance,double& seen);
+    glm::vec3 remotePosition(uint64_t id) const;
+    void sendShot(const glm::vec3& muzzle,const glm::vec3& direction,float length,uint64_t victim,double seen);
+    void sendPunch(uint64_t victim,double seen,bool hook);
+    void sendRocket(const glm::vec3& muzzle,const glm::vec3& target);
+    void onlineHud();
+    void runOnlineSmoke(double dt);
+    uint64_t punchRemote=0; double punchRemoteSeen=0;
+
     // World-owned gameplay. Saida owns collision queries, GPU particles and meshes.
     struct RocketFlight {
         saida::Node* mesh=nullptr;
@@ -717,6 +754,7 @@ class World::Impl : public Rml::EventListener {
         saida::QueryFilter filter;
         float life=0,rest=0;
         bool police=false;
+        uint64_t owner=0;  // another player's identity: his rocket, flown here too (online.cpp)
     };
     std::array<RocketFlight,r1::rocket::kProjectiles> rockets;
     r1::RocketEffects rocketEffects;
@@ -730,7 +768,7 @@ class World::Impl : public Rml::EventListener {
     void buildRockets();
     void clearRockets();
     bool rocketRoom()const;
-    bool launchRocket(glm::vec3 muzzle,glm::vec3 target,saida::QueryFilter filter,bool police);
+    bool launchRocket(glm::vec3 muzzle,glm::vec3 target,saida::QueryFilter filter,bool police,uint64_t owner=0);
     void fireRocket();
     glm::vec3 rocketTarget()const;
     bool policeRocket(glm::vec3 muzzle,saida::CollisionObjectNode* shooter,bool aerial);
@@ -740,7 +778,7 @@ class World::Impl : public Rml::EventListener {
     void destroyRocketCar(saida::Node* node);
     void destroyRocketAircraft(saida::Node* node);
     bool rocketExposed(glm::vec3 at,glm::vec3 point,saida::CollisionObjectNode* body=nullptr,const saida::Ragdoll* ragdoll=nullptr);
-    void explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police);
+    void explodeRocket(glm::vec3 at,saida::CollisionObjectNode* direct,bool police,uint64_t owner=0);
     void updateRockets(double elapsed);
     // Opt-in end-to-end checks against the real World, physics and SaidaFX.
     bool rocketSmoke=std::getenv("R1WORLD_ROCKET_SMOKE")!=nullptr;
@@ -1839,6 +1877,7 @@ public:
     Impl(saida::Engine& e,fs::path g,bool test,saida::CaptureRequest capture,double startLon,double startLat,bool hop,double hopX,double hopY,saida::runtime::CaptureViewpoint view,bool sail=false,bool fly=false,bool headset=false);
     ~Impl();
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model);
+    void setOnline(bool on) { onlineWanted=on; }
     bool failed() const;
     void diveSmoke();
     void inspectInstant(double unixSeconds);

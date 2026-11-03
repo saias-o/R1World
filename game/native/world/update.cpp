@@ -31,6 +31,7 @@ void World::Impl::update(float delta) {
     const bool debugKeys[]={held(GLFW_KEY_R),held(GLFW_KEY_V),held(GLFW_KEY_Y),held(GLFW_KEY_M),held(GLFW_KEY_T)};
     samplePerformance(frameSeconds);handlePerformanceKeys(debugKeys);placePerformanceCanvas();
     cost=FrameCost{};
+    pumpOnline();
     if(checkPhysics())return;
     if(!refreshInterface())return;
     if(!updateSession(delta,frameSeconds))return;
@@ -47,6 +48,7 @@ void World::Impl::update(float delta) {
         updatePlayer(float(simulation.step),step==0);
     }
     const double dt=simulation.seconds;
+    showOnline(dt);
     updateCamera(dt);
     // Photo detection and exposure run after scene transforms/physics, against
     // the same animal poses and occluders that the renderer will draw.
@@ -72,7 +74,7 @@ bool World::Impl::updateSession(float delta, double frameSeconds) {
         saida::Log::error("[World E2E] FAIL ",refused," did not fit the resident vertex budget");
         testFailed=true;engine.sceneTree().quit();return false;
     }
-    if(smoke){testElapsed+=delta;if(testElapsed>(trafficValidation_?trafficValidationSeconds_*3.+120.:hopWanted?420:smokeFly?300:smokeDive?240:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return false;}}
+    if(smoke){testElapsed+=delta;if(testElapsed>(onlineSmoke?300.:trafficValidation_?trafficValidationSeconds_*3.+120.:hopWanted?420:smokeFly?300:smokeDive?240:180)){saida::Log::error("[World E2E] FAIL data timeout");testFailed=true;engine.sceneTree().quit();return false;}}
     if(testResume){
         resumeWait+=delta;
         if(resumeWait>.25){
