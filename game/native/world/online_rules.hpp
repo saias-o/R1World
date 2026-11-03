@@ -23,8 +23,17 @@
 
 namespace r1::online {
 
-// Hashed into every handshake: another protocol version never connects.
-constexpr const char* kApplication = "r1world/online-2";
+// Hashed into every handshake and every meeting place, and never changed:
+// every R1World finds and links every other, whatever its version, so a
+// player of another version is said ("on another version"), never silently
+// missing (CLAUDE.md §3).
+constexpr const char* kApplication = "r1world/online";
+// What this build speaks, shown to every peer once linked (p2p
+// HostConfig::hello). Change it with the messages' format: two builds that
+// differ stay linked, ignore each other's messages and send none.
+constexpr const char* kProtocol = "r1world/online-3";
+// The protocol a peer's hello names, printable, or "" when it names none.
+std::string protocolOf(const std::vector<uint8_t>& hello);
 // Meeting cells: rows of 0.02 degrees (2.2 km), each cut into as many columns
 // as keep them about square. A player joins every cell within kMeetRadius of
 // him, so two players that near always share one; he leaves a cell once it is
@@ -219,5 +228,11 @@ private:
 
 // "Player 3F2A": the first four hex digits of the identity.
 std::string playerName(uint64_t id);
+
+// The online panel's line. `near` players drawn, `foreign` linked players on
+// another version (never drawn), `population` the crowd's size as the
+// engine's sketch estimates it, us included (0: not known), `problem` why
+// nobody can be found, if anything stops it.
+std::string panelLine(size_t near, size_t foreign, double population, bool ready, const std::string& problem);
 
 } // namespace r1::online

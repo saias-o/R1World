@@ -299,8 +299,19 @@ rocket at you, as you can them. There is no server of R1World's anywhere:
   drawn until he steps out. A remote rocket destroys cars only in your own
   world, and never adds to your wanted level.
 
+- **Another version.** The meeting places and the handshake carry only the
+  application (`r1world/online`), never the version, so every R1World finds
+  every other. What a build speaks (`kProtocol`, `r1world/online-3`) rides in
+  the engine's `hello`, shown once linked: a player on another version stays
+  linked, is never drawn, and nothing is sent to him or read from him. The
+  log says it once (`Player 3F2A is on another version (...): linked, not
+  drawn`), and so does the panel, instead of a silent "nobody here".
+
 The combat panel says `Online · 2 players nearby`, `Online · nobody else here
-yet`, or why nobody can be found. `--offline` plays alone; the game is
+yet`, the crowd beyond those drawn as the engine estimates it (`· about 149
+players in this area`, `RendezvousStatus::population`), the players on
+another version (`· 1 player on another version`), or why nobody can be
+found. `--offline` plays alone; the game is
 unchanged without a network (the cache promise holds: no world data crosses
 these links).
 
@@ -312,8 +323,9 @@ eight players per cell once it has more). A witness judges only what it saw at
 five snapshots a second or more; a cheat it cannot see (a wall-hack, an
 aimbot that hits only where the target is) is beyond it. Every minute the log
 says how many players are linked and relayed, the snapshots sent by tier, the
-introductions asked, the links dropped, the cells announced in and the
-network thread's worst poll (`[World online] N linked`).
+introductions asked, the links dropped, the players on another version, the
+crowd's estimated size, the cells announced in and the network thread's worst
+poll (`[World online] N linked`).
 
 Verified on 3 November 2026. `r1_world_online_rules_test` (headless):
 everyone within 700 m shares a cell over 20 000 random places, poles and the
@@ -343,8 +355,23 @@ shows it and a claim a step off not. `plugins/p2p`'s `crowd`: 150 players in a
 cell, one in ten behind a symmetric NAT, 98 % of each one's 32 nearest linked
 6-9 s after the last arrived, 42 links each, 6 KB/s of overlay a player, 1.9
 DHT queries a second at the busiest node (48 before). The game builds and its
-headless tests pass. Not yet run: the two-instance smoke on this version, two
-homes on different networks, a mobile network, and a real crowd.
+headless tests pass.
+
+Verified on 3 November 2026 (versions and the panel). The two-instance smoke
+on the crowd version, then on this one: linked over the LAN beacons, each
+drawing the other within 0.3 s of play, the round confirmed by the target's
+machine (34), no refusal. `tools/online_smoke.py --versions` (the second
+instance on another protocol): each linked the other, logged him `on another
+version`, drew nothing and said `Online · nobody on this version · 1 player on
+another version`. One early run crashed on exit (0xC0000005, after `QuickJS
+runtime destroyed`), with the laptop short of memory and disk; R1World left no
+report, since its own `main` never installed the engine's crash reporter. It
+does now (`saida::crash::install("R1World")`: a report and a minidump, in
+the session folder under `online_smoke.py`, which prints where it crashed),
+and the next ten runs in a row, twenty instances, exited cleanly. `r1_world_online_rules_test`: the hello's
+protocol, and the panel's line from a lone player to a crowd of 150 with
+players on another version. Not yet run: two homes on different networks, a
+mobile network, and a real crowd.
 
 ### The arrival: from Go to the ground (20 October 2026)
 

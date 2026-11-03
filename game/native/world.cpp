@@ -3,6 +3,7 @@
 #include "world/geography.hpp"
 #include "world/limits.hpp"
 #include "Engine.hpp"
+#include "core/CrashReporter.hpp"
 #include "core/Log.hpp"
 #include "core/Time.hpp"
 #include "scene/SceneSerializer.hpp"
@@ -26,6 +27,9 @@ using json = nlohmann::json;
 using namespace r1::world;
 
 int main(int argc,char** argv) {
+    // A crash leaves a report and a minidump (SAIDA_CRASH_DIR, or the
+    // per-user SaidaEngine/CrashReports/R1World), never only an exit code.
+    saida::crash::install("R1World");
     try {
         if(argc>1&&std::string(argv[1])=="--geo-contract") {
             json result=json::array();

@@ -82,6 +82,29 @@ struct World::Impl::Online {
     };
     std::vector<Pending> inbox;
     std::map<std::string, uint64_t> refused;
+    // Whether each linked player speaks our protocol (o::kProtocol, in his
+    // hello). One who does not stays linked -- he is a neighbour like any
+    // other to the engine -- but nothing is sent to him or read from him.
+    std::string protocol = o::kProtocol;
+    std::map<p2p::PeerHandle, bool> sameVersion;
+    bool speaks(p2p::PeerHandle peer) {
+        const auto known = sameVersion.find(peer);
+        if (known != sameVersion.end()) return known->second;
+        const p2p::PeerInfo* info = host->peer(peer);
+        if (!info) return false;
+        const std::string his = o::protocolOf(info->hello);
+        const bool same = his == protocol;
+        sameVersion[peer] = same;
+        if (!same)
+            saida::Log::info("[World online] ", o::playerName(info->id), " is on another version (",
+                             his.empty() ? "unnamed" : his, ", ours ", protocol, "): linked, not drawn");
+        return same;
+    }
+    size_t foreign() const {
+        size_t n = 0;
+        for (const auto& [peer, same] : sameVersion) n += !same;
+        return n;
+    }
     // What this machine saw each player do (online_rules.hpp, Witness).
     o::Witness witness;
     std::map<std::string, double> refusedSaid;
@@ -144,10 +167,11 @@ struct World::Impl::Online {
         r.fall = r1::Knockdown{};
         r.visible = r.placed = false;
     }
-    std::set<p2p::PeerHandle> audience() const {
+    std::set<p2p::PeerHandle> audience() {
         std::set<p2p::PeerHandle> out;
         for (const auto& [cell, topic] : cells)
-            for (p2p::PeerHandle p : meet->peers(topic)) out.insert(p);
+            for (p2p::PeerHandle p : meet->peers(topic))
+                if (speaks(p)) out.insert(p);
         return out;
     }
     bool shares(p2p::PeerHandle peer) const {
@@ -217,9 +241,12 @@ const char* clipOf(o::Motion m) {
 void World::Impl::startOnline() {
     const bool wanted = smoke ? onlineSmoke != nullptr : onlineWanted;
     if (!wanted) return;
-    if (onlineSmoke && std::string(onlineSmoke) != "target" && std::string(onlineSmoke) != "shooter")
-        throw std::runtime_error("R1WORLD_ONLINE_SMOKE must be target or shooter");
+    if (onlineSmoke && std::string(onlineSmoke) != "target" && std::string(onlineSmoke) != "shooter" &&
+        std::string(onlineSmoke) != "versions")
+        throw std::runtime_error("R1WORLD_ONLINE_SMOKE must be target, shooter or versions");
     std::unique_ptr<Online, OnlineDeleter> n(new Online);
+    // The versions smoke plays one of its two instances as another build.
+    if (const char* other = std::getenv("R1WORLD_ONLINE_PROTOCOL"); other && smoke) n->protocol = other;
     if (!n->socket.open()) {
         saida::Log::error("[World online] no UDP socket (", n->socket.error(), "): playing alone");
         text("online", "Online unavailable: no network socket.");
@@ -244,6 +271,7 @@ void World::Impl::startOnline() {
     }
     p2p::HostConfig hc;
     hc.application = o::kApplication;
+    hc.hello.assign(n->protocol.begin(), n->protocol.end());
     // Room above the neighbours kept (a quarter more, and those who keep
     // us) so a newcomer can always be let in and placed.
     hc.maxPeers = o::kNeighbours * 3;  // 48 kept at most (keepRatio), the rest for newcomers and those who keep us
@@ -269,7 +297,7 @@ void World::Impl::startOnline() {
     n->host->setReceiver([self](p2p::PeerHandle from, const uint8_t* data, size_t size, p2p::Channel) {
         o::Message m;
         const p2p::PeerInfo* info = self->host->peer(from);
-        if (!info) return;
+        if (!info || !self->speaks(from)) return;  // another version: said once, then ignored
         if (!o::decode(data, size, m)) return self->refuse("a message from " + o::playerName(info->id), "malformed");
         if (m.kind != o::Kind::State) {
             if (self->inbox.size() < 512) self->inbox.push_back({from, m});
@@ -327,8 +355,10 @@ void World::Impl::pumpOnline() {
         if (punchRemote == r.id) punchRemote = 0;
         n.remotes.erase(found);
     };
-    for (const auto& e : n.host->takeEvents())
-        if (e.type == p2p::HostEventType::Disconnected) forget(e.peer, p2p::reasonName(e.reason));
+    for (const auto& e : n.host->takeEvents()) {
+        if (e.type == p2p::HostEventType::Connected) n.speaks(e.peer);  // another version is said at once
+        if (e.type == p2p::HostEventType::Disconnected) forget(e.peer, p2p::reasonName(e.reason)), n.sameVersion.erase(e.peer);
+    }
     for (const auto& e : n.meet->takeEvents())
         if (e.type == p2p::RendezvousEventType::PeerLeft && !n.shares(e.peer)) forget(e.peer, "no longer near");
     // The cells around him: joined within kMeetRadius, left beyond kLeaveRadius.
@@ -418,7 +448,8 @@ void World::Impl::pumpOnline() {
         for (p2p::PeerHandle p : n.host->peers())
             if (const auto* info = n.host->peer(p); info && info->via != p2p::kNoPeer) ++relayed;
         saida::Log::info("[World online] ", n.host->peers().size(), " linked (", relayed, " relayed), ", n.remotes.size(),
-                         " followed, ", status.candidates, " heard of; snapshots sent near/middle/far ", n.sentByTier[0], "/",
+                         " followed, ", n.foreign(), " on another version, ", status.candidates,
+                         " heard of, crowd about ", int(std::lround(status.population)), "; snapshots sent near/middle/far ", n.sentByTier[0], "/",
                          n.sentByTier[1], "/", n.sentByTier[2], "; ", status.introductionsAsked, " introductions asked, ",
                          status.pruned, " links dropped; announcing in ", status.announcing, " of ", n.cells.size(),
                          " cells; network thread worst poll ", int(thread.worstStep * 1000), " ms, worst lateness ",
@@ -434,10 +465,7 @@ void World::Impl::onlineHud() {
     size_t near = 0;
     for (const auto& [peer, r] : n.remotes) near += r.visible;
     const auto status = n.meet->status();
-    std::string line;
-    if (!status.problem.empty() && n.remotes.empty()) line = "Online: " + status.problem;
-    else if (near) line = "Online · " + std::to_string(near) + (near == 1 ? " player nearby" : " players nearby");
-    else line = status.dhtReady ? "Online · nobody else here yet" : "Online · looking for players…";
+    const std::string line = o::panelLine(near, n.foreign(), status.population, status.dhtReady, status.problem);
     if (line == n.hud) return;
     n.hud = line;
     text("online", line);
@@ -854,6 +882,23 @@ void World::Impl::runOnlineSmoke(double dt) {
     Online::Remote* other = nullptr;
     for (auto& [peer, r] : n.remotes)
         if (r.visible && r.root) other = &r;
+    // Two builds that differ: each must link the other, say it on the panel,
+    // and never draw him.
+    if (std::string(onlineSmoke) == "versions") {
+        if (other) return fail("drew " + other->name + ", who is on another version");
+        if (n.passedAt >= 1e17) return;
+        if (n.passedAt >= 0) {
+            if (n.now - n.passedAt > 3) {  // lingers, so the other one says it too
+                saida::Log::info("[World E2E] PASS online versions: \"", n.hud, "\", nothing drawn, refusals ", n.refused.size());
+                n.passedAt = 1e18;
+                engine.sceneTree().quit();
+            }
+            return;
+        }
+        if (n.hud.find("on another version") != std::string::npos) n.passedAt = n.now;
+        else if (n.now > 200) fail("never said the other version (panel: \"" + n.hud + "\", " + std::to_string(n.host->peers().size()) + " linked)");
+        return;
+    }
     if (other && n.sawAt < 0) {
         n.sawAt = n.now;
         saida::Log::info("[World online] smoke: drawing ", other->name, " at ",

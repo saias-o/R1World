@@ -20,7 +20,7 @@ monuments, animaux, paysages et événements insolites.**
   Il faut des assets CC0 du même grade que les existants, choisis par
   l'utilisateur (CLAUDE.md §1).
 
-Mis à jour le 29 octobre 2026. Ce plan conserve la direction du jeu, ses
+Mis à jour le 3 novembre 2026. Ce plan conserve la direction du jeu, ses
 contraintes durables et les travaux restant à faire. Les fonctionnalités
 livrées, leur fonctionnement et leurs mesures sont documentés dans
 `game/README.md` ; leur historique reste dans Git.
@@ -288,153 +288,94 @@ une cible de contenu à construire progressivement.
   un budget local de population et aucune simulation détaillée hors du rayon
   utile. Les 5 000 animaux du catalogue ne sont pas simultanément chargés.
 
-### MULTIPLAYER UPDATE — pair à pair par tuile, UDP, rollback et prédiction
+### MULTIPLAYER UPDATE — pair à pair, sans serveur
 
-**Objectif : rencontrer les autres joueurs présents sur sa tuile, en P2P
-direct et sans aucun serveur central.** Cette update utilisera la brique
-network UDP générique prévue dans `engine/ROADMAP.md` (§5). Le transport et
-les sessions sont fournis par le moteur ; le découpage géographique et les
-règles de synchronisation appartiennent au jeu. Ce chantier est à réaliser,
-pas une fonctionnalité annoncée comme disponible dans la 0.1.
+**Objectif : rencontrer les autres joueurs là où l'on se trouve, en P2P direct
+et sans aucun serveur central** — ni présence, ni matchmaking, ni simulation.
+Le transport, la découverte et la réplication sont des briques génériques du
+moteur (`engine/plugins/p2p` et `engine/plugins/netcode`, SPEC §11.6–11.7) ;
+le découpage géographique et les règles de jeu appartiennent au jeu
+(`game/native/world/online*.cpp`). Le fonctionnement livré est décrit dans
+`game/README.md`, *Other players*. Ce chantier n'est pas annoncé dans la 0.1.
 
-**Étape 1 faite (2 novembre 2026) : la couche rollback générique du moteur**,
-`engine/plugins/netcode` (SPEC §11.6). Elle couvre prédiction et rollback
-bornés, adhésion déterministe portée par les entrées (arrivée par snapshot
-confirmé, départ, abandon d'un pair perdu, relais d'entrées), détection de
-désynchronisation et resynchronisation, ainsi que le registre effets/écritures
-persistantes qui empêche le rejeu de doubler sons et sauvegardes.
+**Décisions prises (3 novembre 2026)**
 
-**Étape 2 faite (2 novembre 2026) : le transport pair à pair du moteur**,
-`engine/plugins/p2p` (SPEC §11.7). Liens UDP chiffrés et authentifiés (Noise
-XX sur le mbedTLS du moteur), canaux fiable et non fiable, perforation des NAT
-et présentations entre pairs, découverte sans serveur par la DHT Mainline de
-BitTorrent et par balises sur le réseau local. Un `Topic` par tuile suffit :
-les joueurs qui rejoignent le même se trouvent, se connectent en maillage et
-reçoivent `PeerJoined`/`PeerLeft` ; quitter un sujet déconnecte ses pairs
-après un délai. Vérifié en simulation (8 joueurs, 2 cellules, NAT mêlés :
-un maillage par cellule en ~3 s, rien entre elles) et sur la vraie DHT.
-Limites : pas de relais pour NAT symétrique contre NAT restreint en port ou
-symétrique ; DHT en IPv4 seulement.
+- **Pas de rollback pour les personnes.** Le rollback exige que chaque machine
+  calcule la même chose ; ici chaque machine a sa propre collision, ses foules
+  et sa physique. Chaque joueur fait donc autorité sur son avatar, les autres
+  le dessinent un peu dans le passé (`netcode::Replica`), et un coup est jugé
+  par sa cible sur son propre historique (compensation de latence sans
+  synchronisation d'horloge ni arbitre). Le rollback générique du moteur
+  (`netcode::Session`) reste disponible pour un état partagé déterministe à
+  venir ; il ne sert pas au monde.
+- **Rencontre par proximité, pas par tuile.** Cellules de 0,02° (2,2 km)
+  rejointes à moins de 700 m et quittées au-delà de 900 m, chaque joueur lié à
+  ses 32 plus proches ; la frontière se traverse sans transfert ni pause.
+- **Rien du monde n'est partagé** : voitures, trafic, animaux, passants,
+  police et météo restent propres à chaque machine. Un joueur au volant n'est
+  pas dessiné.
+- **La triche se juge localement** (`Witness`) : chaque machine écarte ce
+  qu'elle a vu, rien n'est voté.
 
-**Étape 3 faite (3 novembre 2026) : les autres joueurs dans R1World**
-(`game/README.md`, *Other players*). Toute personne proche, n'importe où sur
-Terre, est visible et peut tirer, frapper ou lancer une roquette, sans aucun
-serveur. **Décision : pas de rollback pour les personnes.** Le rollback exige
-que chaque machine calcule la même chose ; ici chaque machine diffuse sa
-propre collision, ses foules et sa physique, ce n'est donc pas une simulation
-déterministe commune. Chaque joueur fait donc autorité sur son avatar
-(20 instantanés/s, 59 octets), les autres le dessinent par
-`netcode::Replica` (nouvelle brique générique du moteur, SPEC §11.6) et un
-coup est jugé par sa cible sur son propre historique, à l'instant que le
-tireur voyait, dans l'horloge de la cible (compensation de latence sans
-synchronisation d'horloge ni arbitre). Rencontre : cellules de 0,02° (2,2 km),
-chaque joueur rejoint celles à moins de 700 m et quitte au-delà de 900 m, un
-sujet `p2p` par cellule ; la frontière se traverse sans transfert ni pause,
-puisque les deux cellules sont tenues pendant la traversée. Voitures,
-animaux, foules, police et météo restent propres à chaque machine, comme
-demandé. Vérifié : règles (cellules sur 20 000 tirages, codec, 100 000 paquets
-aléatoires, tirs vrais acceptés et tirs décalés d'un pas refusés sur une
-ligne de 80 ms avec gigue) et deux instances sur cette machine
-(`tools/online_smoke.py`) qui se trouvent, se dessinent et se tirent dessus.
+**Fait.** Étape 1 (2 novembre) : rollback générique du moteur. Étape 2
+(2 novembre) : transport chiffré, perforation des NAT, découverte par la DHT
+Mainline et le réseau local. Étape 3 (3 novembre) : les autres joueurs dans
+R1World, tirs, coups et roquettes jugés par la cible, smoke à deux instances
+réussi. Étape 4 (3 novembre) : la foule (voisinage par proximité, relais par
+un pair, DHT IPv6, thread réseau, instantanés de 32 octets par attention,
+témoins). Mesures et vérifications : `game/README.md` et CHANGELOG du moteur.
 
+**Étape 5 en cours (3 novembre 2026) : les points chauds** (150 000 joueurs à
+la tour Eiffel). Fait dans le moteur et vérifié en simulation et par les tests
+(SPEC §4.4, §11.7, CHANGELOG) : DHT réduite à la porte même pour une foule
+immense (16 clés par cellule, membres silencieux, 8 annonceurs élus par un
+résumé circulant, taille de la foule estimée), vue lointaine de la foule
+(`sightings`), liens gardés plus longtemps (`keepRatio`, réglé dans le jeu),
+AutoLOD sur les maillages animés (et `MSFT_lod` de nouveau écrit), atlas de
+billboards animés dont la marche suit la distance parcourue. Reste, dans cet
+ordre :
 
-**Étape 4 faite (3 novembre 2026) : la foule** (`game/README.md`, *Other
-players*). Objectif : 100 joueurs par tuile, sans coupure entre tuiles, sans
-serveur. Dans le moteur (`plugins/p2p`, SPEC §11.7) : voisinage par proximité
-(chaque joueur lié à ses 32 plus proches, trouvés par ceux qu'il a déjà, plus
-de maillage complet ni de bord de cellule), la DHT réduite à la porte (une
-requête par minute, huit annonceurs par cellule peuplée), relais par un pair
-pour les NAT impossibles, DHT IPv6 (BEP 32) et un thread réseau à pas fixe.
-Dans le jeu : instantanés de 32 octets au lieu de 59, envoyés par attention
-(20, 5 ou 1 par seconde), les 16 plus proches dessinés en entier et jusqu'à 48
-comme la foule, l'arrivée qui cherche les joueurs dès Go, et des témoins qui
-écartent localement un tricheur. Mesuré en simulation : 150 joueurs dans une
-cellule, 98 % des 32 plus proches liés, 42 liens chacun au lieu de 149, la DHT
-interrogée 26 fois moins au nœud le plus chargé ; 43 Ko/s émis par joueur pour
-99 voisins au lieu de 176. Reste : le test de fumée à deux instances sur cette
-version, la qualification entre deux réseaux domestiques, sur réseau mobile et
-avec une vraie foule, deux joueurs derrière un même routeur sans multicast ni
-hairpinning, et le partage des véhicules si on le décide un jour.
-
-**Étape 5 en cours (4 novembre 2026) : les points chauds** (150 000 joueurs à
-la tour Eiffel). Fait dans le moteur et vérifié en simulation et par les
-tests (SPEC §4.4, §11.7, CHANGELOG) : DHT réduite à la porte même pour une
-foule immense (16 clés par cellule, membres silencieux, 8 annonceurs élus par
-un résumé circulant, taille de la foule estimée), vue lointaine de la foule
-(`sightings`), liens gardés plus longtemps (`keepRatio`, déjà réglé dans le
-jeu), AutoLOD sur les maillages animés (et `MSFT_lod` de nouveau écrit),
-atlas de billboards animés dont la marche suit la distance parcourue.
-Reste à faire, dans cet ordre :
-
-- **Cuire les imposteurs de personnes** depuis les scans Rocketbox déjà sur
-  le disque (`assets/models/humans`, CLAUDE.md §1 : pas d'autre source) :
-  8 azimuts × une rangée × 8 à 12 poses de `walk` (foulée mesurée du clip) et
-  d'`idle`, albédo et normales/visibilité comme `tree_impostor.py`, en NumPy
-  ou moderngl. Inscrire le résultat dans `assets/THIRD_PARTY_ASSETS.json`.
-  Validation visuelle par l'utilisateur sur capture avant tout branchement.
 - **Générer les LOD animés** du joueur et des passants avec AutoLOD et les
-  charger ; copier la chaîne de LOD (`MeshNode::setLods`) quand le jeu
-  recopie un corps (`combat.cpp` pour le joueur, `online.cpp` pour les
-  autres joueurs). Seuils de couverture validés à l'œil.
-- **Dessiner la foule lointaine dans le jeu** : `rc.sightings` (256),
-  `setLook` (cap et allure sur 16 bits), un budget fixe d'imposteurs
-  (environ 200, moins en mode toaster) placés aux positions vues, prolongées
-  par cap et allure selon leur âge, et fondus avec les 48 corps proches.
-- **Afficher l'estimation de population** (`RendezvousStatus::population`)
-  dans le panneau en ligne.
+  charger ; copier la chaîne de LOD (`MeshNode::setLods`) quand le jeu recopie
+  un corps (`combat.cpp` pour le joueur, `online.cpp` pour les autres
+  joueurs). Seuils de couverture validés à l'œil. Profite aussi au jeu seul.
+- **Cuire les imposteurs de personnes** depuis les scans Rocketbox déjà sur le
+  disque (`assets/models/humans`, CLAUDE.md §1 : pas d'autre source) :
+  8 azimuts × une rangée × 8 à 12 poses de `walk` (foulée mesurée du clip) et
+  d'`idle`, albédo et normales/visibilité comme `tree_impostor.py`. Inscrire
+  le résultat dans `assets/THIRD_PARTY_ASSETS.json`. Validation visuelle par
+  l'utilisateur sur capture avant tout branchement.
+- **Dessiner la foule lointaine** : `rc.sightings` (256), `setLook` (cap et
+  allure sur 16 bits), un budget fixe d'imposteurs (environ 200, moins en mode
+  toaster) placés aux positions vues, prolongées par cap et allure selon leur
+  âge, et fondus avec les 48 corps proches. À faire quand une vraie foule
+  aura été observée.
 - **Couches à la manière des MMO** au-delà de quelques milliers de joueurs au
-  même endroit (le numéro de couche dans le nom de la cellule, amis
-  ensemble) : décision de conception du jeu, à prendre avec l'utilisateur.
-- **Qualifier** : test de fumée à deux instances, deux réseaux domestiques,
-  réseau mobile, et mesure du coût par image des imposteurs sur la MX450.
+  même endroit : décision de conception, à prendre avec l'utilisateur ;
+  reportée tant qu'aucune foule réelle ne l'exige.
 
-- À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
-  UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit
-  permettre à un autre joueur de rejoindre ensuite. Aucun serveur central
-  de présence, de matchmaking ou de simulation ne doit être nécessaire.
-- Concevoir la découverte et l'amorçage décentralisés : comment un premier
-  joueur obtient un pair joignable, comment retrouver les joueurs d'une clé
-  de tuile et comment expirer les annonces périmées. Définir aussi la
-  traversée des NAT et pare-feu et les cas de connectivité impossibles sans
-  relais ; ne pas supposer qu'UDP rend tous les pairs directement joignables.
-  Une éventuelle entraide entre pairs doit conserver l'absence de serveur central.
-- Au changement de tuile, quitter les sessions de l'ancienne et rejoindre
-  les joueurs de la nouvelle automatiquement. Préparer la découverte de la
-  destination à l'approche de la frontière, puis transférer l'état à un tick
-  défini, sans pause du jeu ni apparition en double. Définir la visibilité et
-  les interactions aux frontières, y compris pour deux joueurs de part et
-  d'autre, sans conserver indéfiniment les connexions de la tuile quittée.
-- Conserver une identité de joueur stable entre tuiles, avec identifiants de
-  session et générations de transfert pour rejeter les paquets tardifs de
-  l'ancienne tuile. Gérer arrivées simultanées, départs brusques, reconnexions,
-  changements rapides de tuile et tuiles momentanément injoignables.
-- Mettre en place un netcode moderne à pas de simulation fixe : entrées
-  horodatées par tick, prédiction immédiate des actions locales et prédiction
-  bornée des entrées distantes manquantes. À réception d'une entrée divergente,
-  restaurer un état historique puis rejouer les ticks concernés (**rollback**).
-  Lisser les corrections visuelles et interpoler les états distants sans
-  retarder les commandes locales ; borner historique et travail de rattrapage.
-- Définir l'autorité des joueurs et objets partagés, les conflits simultanés
-  et le transfert d'autorité quand un pair part ou franchit une frontière,
-  sans arbitre central permanent. Prévoir l'état initial d'un nouvel arrivant,
-  la détection des désynchronisations et une resynchronisation bornée lorsque
-  le retard dépasse la fenêtre de rollback.
-- Qualifier le déterminisme de la simulation physique à rejouer : I3 garantit
-  la génération du monde, pas le déterminisme de toute la simulation réseau.
-  Synchroniser versions du protocole, générateur, observations et atlas utiles ;
-  conserver les positions géodésiques et rendre les états restaurés compatibles
-  avec les rebasages ENU. Le rejeu ne doit pas doubler sons, effets, dégâts ni
-  écritures persistantes.
-- Définir le périmètre des états partagés : déplacements à pied et en véhicule,
-  collisions, interactions et conséquences persistantes. Séparer les messages
-  de contrôle fiables des entrées/états fréquents, et valider les messages reçus
-  avec budgets par pair. Mesurer le coût du maillage P2P quand une tuile se remplit
-  et définir ses limites de population, débit, CPU et mémoire selon I4.
-- Valider à plusieurs joueurs sur LAN puis Internet, sous latence, gigue,
-  pertes, duplication et désordre des paquets. Couvrir les frontières à pied
-  et en véhicule, le rollback pendant streaming/rebasage, les déconnexions et
-  le retour hors ligne. Mesurer fluidité, corrections, bande passante et
-  p95/p99 des frames sur la machine de référence, y compris pendant un transfert.
+**À qualifier** (une validation non réalisée reste ouverte) :
+
+- Deux réseaux domestiques, puis un réseau mobile, puis deux joueurs derrière
+  un même routeur sans multicast ni hairpinning ; de jour comme de nuit.
+- Une session longue (30 min) : liens, relais, débit, pire attente du thread
+  réseau (journal `[World online] N linked`), déconnexions et retour hors
+  ligne.
+- p95/p99 des images sur la MX450 avec 1 à 3 pairs, puis le coût des
+  imposteurs une fois branchés.
+- Une vraie foule, et le coût par pair (débit, CPU, mémoire) selon I4.
+
+**À décider avec l'utilisateur**
+
+- **0.1** : le jeu en ligne est actif par défaut (`--offline` le coupe) et
+  publie l'adresse du joueur dans la DHT publique. Pour une version qui
+  n'annonce pas le multijoueur : coupé par défaut, option, ou retiré.
+- **Rejoindre un ami** où qu'il soit : sur une Terre entière, deux joueurs
+  peu nombreux ne se croisent presque jamais. Le moteur a déjà les codes
+  d'arène (`arenaTopic`) ; il manque le code d'invitation et l'arrivée auprès
+  de l'ami dans le jeu.
+- **Véhicule du joueur partagé** (autorité du conducteur, comme l'avatar,
+  sans rollback), ou rien pour l'instant.
 
 ### Detail update — couche de détails manuels
 

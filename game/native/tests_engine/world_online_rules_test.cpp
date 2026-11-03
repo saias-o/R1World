@@ -356,12 +356,36 @@ static void witnesses() {
     std::printf("witnesses: honest players never suspected; speed, teleports, refused, ignored and painless hits are\n");
 }
 
+// Another version is found and said; the panel says who is here and how many.
+static void versions() {
+    const std::string ours = o::kProtocol;
+    assert(o::protocolOf(std::vector<uint8_t>(ours.begin(), ours.end())) == ours);
+    assert(o::protocolOf({}).empty());                    // a build before hellos
+    assert(o::protocolOf({'r', '1', 0x07, 'x'}).empty());  // not printable: names nothing
+    assert(o::protocolOf(std::vector<uint8_t>(120, 'a')).size() == 48);
+    assert(std::string(o::kApplication).find("online-") == std::string::npos);  // the meeting never moves with the version
+
+    assert(o::panelLine(0, 0, 0, false, "") == "Online · looking for players…");
+    assert(o::panelLine(0, 0, 1, true, "") == "Online · nobody else here yet");
+    assert(o::panelLine(0, 0, 0, false, "UDP is blocked") == "Online: UDP is blocked");
+    assert(o::panelLine(1, 0, 2, true, "UDP is blocked") == "Online · 1 player nearby");
+    assert(o::panelLine(2, 0, 3, true, "") == "Online · 2 players nearby");
+    // The sketch counts us: 150 is 149 others, 16 of them drawn.
+    assert(o::panelLine(16, 0, 150.4, true, "") == "Online · 16 players nearby · about 149 players in this area");
+    assert(o::panelLine(0, 0, 40, true, "") == "Online · nobody in sight · about 39 players in this area");
+    assert(o::panelLine(0, 1, 2, true, "") == "Online · nobody on this version · 1 player on another version");
+    assert(o::panelLine(3, 2, 6, true, "") == "Online · 3 players nearby · 2 players on another version");
+    assert(o::panelLine(0, 1, 0, false, "UDP is blocked") == "Online · nobody on this version · 1 player on another version");
+    std::printf("versions: %s\n", o::panelLine(16, 1, 150, true, "").c_str());
+}
+
 int main() {
     cells();
     codec();
     claims();
     tiers();
     witnesses();
+    versions();
     assert(o::playerName(0x3f2a000000000000ull) == "Player 3F2A");
     std::printf("PASS online rules\n");
     return 0;

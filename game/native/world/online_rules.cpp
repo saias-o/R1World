@@ -388,4 +388,28 @@ std::string playerName(uint64_t id) {
     return text;
 }
 
+std::string protocolOf(const std::vector<uint8_t>& hello) {
+    std::string out;
+    for (size_t i = 0; i < hello.size() && i < 48; ++i) {
+        if (hello[i] < 0x20 || hello[i] > 0x7e) return "";
+        out += char(hello[i]);
+    }
+    return out;
+}
+
+std::string panelLine(size_t near, size_t foreign, double population, bool ready, const std::string& problem) {
+    if (!problem.empty() && !near && !foreign) return "Online: " + problem;
+    auto players = [](size_t n) { return std::to_string(n) + (n == 1 ? " player" : " players"); };
+    // The sketch counts us, and everyone of the crowd's cell we do not draw.
+    const size_t crowd = population >= 1.5 ? size_t(std::lround(population)) - 1 : 0;
+    std::string line = "Online · ";
+    if (near) line += players(near) + " nearby";
+    else if (foreign) line += "nobody on this version";
+    else if (crowd) line += "nobody in sight";
+    else line += ready || foreign ? "nobody else here yet" : "looking for players…";
+    if (crowd > near + foreign) line += " · about " + players(crowd) + " in this area";
+    if (foreign) line += " · " + players(foreign) + " on another version";
+    return line;
+}
+
 } // namespace r1::online
