@@ -336,9 +336,25 @@ demandé. Vérifié : règles (cellules sur 20 000 tirages, codec, 100 000 paque
 aléatoires, tirs vrais acceptés et tirs décalés d'un pas refusés sur une
 ligne de 80 ms avec gigue) et deux instances sur cette machine
 (`tools/online_smoke.py`) qui se trouvent, se dessinent et se tirent dessus.
-Reste : relais pour les NAT impossibles, DHT IPv6, qualification entre deux
-réseaux domestiques et sur réseau mobile, et le partage des véhicules si on
-le décide un jour.
+
+
+**Étape 4 faite (3 novembre 2026) : la foule** (`game/README.md`, *Other
+players*). Objectif : 100 joueurs par tuile, sans coupure entre tuiles, sans
+serveur. Dans le moteur (`plugins/p2p`, SPEC §11.7) : voisinage par proximité
+(chaque joueur lié à ses 32 plus proches, trouvés par ceux qu'il a déjà, plus
+de maillage complet ni de bord de cellule), la DHT réduite à la porte (une
+requête par minute, huit annonceurs par cellule peuplée), relais par un pair
+pour les NAT impossibles, DHT IPv6 (BEP 32) et un thread réseau à pas fixe.
+Dans le jeu : instantanés de 32 octets au lieu de 59, envoyés par attention
+(20, 5 ou 1 par seconde), les 16 plus proches dessinés en entier et jusqu'à 48
+comme la foule, l'arrivée qui cherche les joueurs dès Go, et des témoins qui
+écartent localement un tricheur. Mesuré en simulation : 150 joueurs dans une
+cellule, 98 % des 32 plus proches liés, 42 liens chacun au lieu de 149, la DHT
+interrogée 26 fois moins au nœud le plus chargé ; 43 Ko/s émis par joueur pour
+99 voisins au lieu de 176. Reste : le test de fumée à deux instances sur cette
+version, la qualification entre deux réseaux domestiques, sur réseau mobile et
+avec une vraie foule, deux joueurs derrière un même routeur sans multicast ni
+hairpinning, et le partage des véhicules si on le décide un jour.
 
 - À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
   UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit

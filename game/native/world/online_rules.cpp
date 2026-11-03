@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <set>
+#include <utility>
 
 namespace r1::online {
 using saida::netcode::Reader;
@@ -31,6 +33,20 @@ bool onEarth(const std::array<double, 3>& p) {
 double angleLerp(double a, double b, double t) { return a + world::wrap(b - a) * t; }
 
 void writePoint(Writer& w, const std::array<double, 3>& p) { for (double v : p) w.f64(v); }
+// Quantization of a snapshot (kStateBytes): every field rounds to its step
+// and saturates at its range instead of wrapping.
+template <class T>
+T quantize(double v, double step) {
+    const double q = std::round(v / step);
+    return T(std::clamp(q, double(std::numeric_limits<T>::min()), double(std::numeric_limits<T>::max())));
+}
+void put24(Writer& w, uint32_t v) { w.u8(uint8_t(v)), w.u8(uint8_t(v >> 8)), w.u8(uint8_t(v >> 16)); }
+uint32_t get24(Reader& r) {
+    const uint32_t a = r.u8(), b = r.u8(), c = r.u8();
+    return a | b << 8 | c << 16;
+}
+constexpr double kDegreeStep = 1e-7, kAltitudeFloor = -1000, kAltitudeStep = .01, kSpeedStep = .01;
+constexpr double kTurn = 65536. / 360.;
 std::array<double, 3> readPoint(Reader& r) { return {r.f64(), r.f64(), r.f64()}; }
 } // namespace
 
@@ -82,16 +98,26 @@ std::vector<uint8_t> encode(const Message& m) {
     std::vector<uint8_t> out;
     Writer w(out);
     w.u8(uint8_t(m.kind));
+    if (m.kind == Kind::State) {
+        // Twenty a second to everyone near: every byte counts (kStateBytes).
+        const Avatar& a = m.avatar;
+        w.u32(uint32_t(std::clamp(std::round(m.sent * 1000.), 0., 4294967295.)));
+        w.u32(uint32_t(quantize<int32_t>(world::wrap(a.lon), kDegreeStep)));
+        w.u32(uint32_t(quantize<int32_t>(std::clamp(a.lat, -90., 90.), kDegreeStep)));
+        put24(w, uint32_t(std::clamp(std::round((a.alt - kAltitudeFloor) / kAltitudeStep), 0., 16777215.)));
+        w.u16(uint16_t(int(std::round((world::wrap(a.heading) + 180.) * kTurn)) & 0xffff));
+        w.u16(uint16_t(int(std::round((world::wrap(a.aimYaw) + 180.) * kTurn)) & 0xffff));
+        w.u16(uint16_t(quantize<int16_t>(std::clamp(double(a.aimPitch), -90., 90.), 90. / 32767.)));
+        w.u16(uint16_t(quantize<int16_t>(a.east, kSpeedStep)));
+        w.u16(uint16_t(quantize<int16_t>(a.north, kSpeedStep)));
+        w.u16(uint16_t(quantize<int16_t>(a.up, kSpeedStep)));
+        w.u8(uint8_t(uint8_t(a.pose) | uint8_t(a.motion) << 3 | uint8_t(a.weapon) << 5 | (a.aiming ? 0x80 : 0)));
+        w.u8(uint8_t((a.busy ? 1 : 0) | (a.invincible ? 2 : 0)));
+        w.u8(a.health), w.u8(a.life);
+        return out;
+    }
     w.f64(m.sent);
     switch (m.kind) {
-    case Kind::State: {
-        const Avatar& a = m.avatar;
-        w.f64(a.lon), w.f64(a.lat), w.f32(a.alt), w.f32(a.heading), w.f32(a.aimYaw), w.f32(a.aimPitch);
-        w.f32(a.east), w.f32(a.north), w.f32(a.up);
-        w.u8(uint8_t(a.pose)), w.u8(uint8_t(a.motion)), w.u8(uint8_t(a.weapon)), w.u8(a.aiming ? 1 : 0);
-        w.u8(a.health), w.u8(a.life);
-        break;
-    }
     case Kind::Shot:
         writePoint(w, m.shot.muzzle);
         for (float v : m.shot.direction) w.f32(v);
@@ -99,7 +125,7 @@ std::vector<uint8_t> encode(const Message& m) {
         break;
     case Kind::Punch: w.u64(m.punch.victim), w.f64(m.punch.seen), w.u8(m.punch.hook ? 1 : 0); break;
     case Kind::Rocket: writePoint(w, m.rocket.muzzle), writePoint(w, m.rocket.target); break;
-    case Kind::Hit: w.u64(m.hit.victim), w.f32(m.hit.damage), w.u8(m.hit.killed ? 1 : 0); break;
+    case Kind::Hit: w.u64(m.hit.victim), w.u64(m.hit.shooter), w.f32(m.hit.damage), w.u8(m.hit.killed ? 1 : 0); break;
     default: break;
     }
     return out;
@@ -112,24 +138,34 @@ bool decode(const uint8_t* data, size_t size, Message& out) {
     const uint8_t kind = r.u8();
     if (kind < uint8_t(Kind::State) || kind >= uint8_t(Kind::Count)) return false;
     m.kind = Kind(kind);
+    if (m.kind == Kind::State) {
+        if (size != kStateBytes) return false;
+        Avatar& a = m.avatar;
+        m.sent = r.u32() / 1000.;
+        const int32_t lon = int32_t(r.u32()), lat = int32_t(r.u32());
+        a.lon = lon * kDegreeStep, a.lat = lat * kDegreeStep;
+        a.alt = float(kAltitudeFloor + get24(r) * kAltitudeStep);
+        a.heading = float(world::wrap(r.u16() / kTurn - 180.));
+        a.aimYaw = float(world::wrap(r.u16() / kTurn - 180.));
+        a.aimPitch = float(int16_t(r.u16()) * (90. / 32767.));
+        a.east = float(int16_t(r.u16()) * kSpeedStep);
+        a.north = float(int16_t(r.u16()) * kSpeedStep);
+        a.up = float(int16_t(r.u16()) * kSpeedStep);
+        const uint8_t packed = r.u8(), flags = r.u8();
+        a.health = r.u8(), a.life = r.u8();
+        const uint8_t pose = packed & 7, motion = packed >> 3 & 3, weapon = packed >> 5 & 3;
+        if (!r.ok() || !r.done() || std::abs(a.lon) > 180 || std::abs(a.lat) > 90 || a.alt >= 20000 ||
+            std::abs(a.aimPitch) > 90 || pose >= uint8_t(Pose::Count) || weapon > uint8_t(combat::Weapon::RocketLauncher) ||
+            flags > 3 || a.health > 100)
+            return false;
+        a.pose = Pose(pose), a.motion = Motion(motion), a.weapon = combat::Weapon(weapon);
+        a.aiming = packed & 0x80, a.busy = flags & 1, a.invincible = flags & 2;
+        out = m;
+        return true;
+    }
     m.sent = r.f64();
     bool sane = finite(m.sent);
     switch (m.kind) {
-    case Kind::State: {
-        Avatar& a = m.avatar;
-        a.lon = r.f64(), a.lat = r.f64(), a.alt = r.f32(), a.heading = r.f32(), a.aimYaw = r.f32(), a.aimPitch = r.f32();
-        a.east = r.f32(), a.north = r.f32(), a.up = r.f32();
-        const uint8_t pose = r.u8(), motion = r.u8(), weapon = r.u8(), flags = r.u8();
-        a.health = r.u8(), a.life = r.u8();
-        sane = sane && finite(a.lon) && finite(a.lat) && std::abs(a.lon) <= 180 && std::abs(a.lat) <= 90 &&
-               finite(a.alt) && a.alt > -1000 && a.alt < 20000 && finite(a.heading) && finite(a.aimYaw) &&
-               finite(a.aimPitch) && std::abs(a.aimPitch) <= 90 && pose < uint8_t(Pose::Count) &&
-               motion < uint8_t(Motion::Count) && weapon <= uint8_t(combat::Weapon::RocketLauncher) && flags <= 1 &&
-               a.health <= 100;
-        sane = sane && finite(a.east) && finite(a.north) && finite(a.up) && speedOf(a) < 400;
-        a.pose = Pose(pose), a.motion = Motion(motion), a.weapon = combat::Weapon(weapon), a.aiming = flags == 1;
-        break;
-    }
     case Kind::Shot: {
         Shot& s = m.shot;
         s.muzzle = readPoint(r);
@@ -153,7 +189,7 @@ bool decode(const uint8_t* data, size_t size, Message& out) {
         sane = sane && onEarth(m.rocket.muzzle) && onEarth(m.rocket.target);
         break;
     case Kind::Hit: {
-        m.hit.victim = r.u64(), m.hit.damage = r.f32();
+        m.hit.victim = r.u64(), m.hit.shooter = r.u64(), m.hit.damage = r.f32();
         const uint8_t killed = r.u8();
         m.hit.killed = killed == 1;
         sane = sane && finite(m.hit.damage) && m.hit.damage >= 0 && m.hit.damage <= 1000 && killed <= 1;
@@ -205,6 +241,145 @@ const char* judgeRocket(const Rocket& rocket, const Avatar& shooter, double sinc
     if (distance(rocket.muzzle, feetEcef(shooter)) > slack) return "launched from where the shooter is not";
     if (distance(rocket.muzzle, rocket.target) > combat::kRocket.range + 5) return "aimed beyond a launcher's range";
     return nullptr;
+}
+
+Tier tierFor(const Avatar& me, const Avatar& him, double sinceContact, size_t rank) {
+    const double d = world::metresBetween(him.lon, him.lat, me.lon, me.lat) + std::abs(double(me.alt) - him.alt) * .5;
+    if (d < kNearMetres || rank < 6 || sinceContact < kContactSeconds) return Tier::Near;
+    // Where we are, seen from him: in front of his eyes, or on his sights.
+    const auto there = world::Frame(him.lon, him.lat, him.alt).local(world::ecef(me.lon, me.lat, me.alt));
+    const double bearing = std::atan2(there.x, -there.z) / rad;
+    const double off = std::abs(world::wrap(bearing - him.aimYaw));
+    if (d < kViewMetres && off < 50) return Tier::Near;
+    if (him.aiming && him.weapon != combat::Weapon::Fists && d < combat::kRocket.range &&
+        off < 8 + std::atan2(2., d) / rad)
+        return Tier::Near;
+    return d < kMiddleMetres ? Tier::Middle : Tier::Far;
+}
+
+// ── Witnesses ─────────────────────────────────────────────────────────────
+
+void Witness::strike(uint64_t id, Conduct& c, double weight, const std::string& why, double now) {
+    c.suspicion = suspicion(id, now) + weight, c.at = now, c.reason = why;
+    const bool fresh = !c.suspected && c.suspicion >= kSuspectAt;
+    c.suspected = c.suspected || fresh;
+    strikes_.push_back({id, why, c.suspicion, fresh});
+}
+
+double Witness::suspicion(uint64_t id, double now) const {
+    const auto it = conduct_.find(id);
+    if (it == conduct_.end()) return 0;
+    return std::max(0., it->second.suspicion - (now - it->second.at) * kForgivePerSecond);
+}
+
+bool Witness::suspected(uint64_t id) const {
+    const auto it = conduct_.find(id);
+    return it != conduct_.end() && it->second.suspected;
+}
+
+std::string Witness::reason(uint64_t id) const {
+    const auto it = conduct_.find(id);
+    return it == conduct_.end() ? std::string() : it->second.reason;
+}
+
+std::vector<Witness::Strike> Witness::takeStrikes() { return std::exchange(strikes_, {}); }
+
+void Witness::forget(uint64_t id) {
+    conduct_.erase(id);
+    claims_.erase(std::remove_if(claims_.begin(), claims_.end(), [&](const Claim& c) { return c.shooter == id || c.victim == id; }),
+                  claims_.end());
+}
+
+void Witness::snapshot(uint64_t id, double sent, const Avatar& a, double now) {
+    Conduct& c = conduct_[id];
+    if (c.known && sent <= c.lastSent) return;  // late or repeated: the history has it
+    c.seen.record(sent, a);
+    // A health that fell as a hit said it would.
+    for (Claim& k : claims_)
+        if (k.victim == id && k.expectHealth && (a.health <= k.below || a.life != k.life)) k.expectHealth = false;
+    if (c.known && a.life != c.last.life) {
+        c.lives.push_back(now);
+        while (!c.lives.empty() && c.lives.front() < now - 60) c.lives.pop_front();
+        if (c.lives.size() > kLivesPerMinute) strike(id, c, 1, "a new life every few seconds", now);
+        c.anchored = false;
+    }
+    // Speed over half a second at least, on foot or swimming all along: no
+    // body goes faster than the game moves it (a margin for the snapshots).
+    const bool measured = a.pose == Pose::Stand || a.pose == Pose::Swim;
+    if (!measured || !c.anchored || c.anchor.pose != a.pose || c.anchor.life != a.life) {
+        c.anchored = measured, c.anchor = a, c.anchorSent = sent;
+    } else if (sent - c.anchorSent >= .5) {
+        const double dt = sent - c.anchorSent;
+        const double speed = world::metresBetween(c.anchor.lon, c.anchor.lat, a.lon, a.lat) / dt;
+        const double top = a.pose == Pose::Swim ? kSwimTopSpeed : kFootTopSpeed;
+        if (speed > top * 1.5 + 1.5)
+            strike(id, c, 1, (a.pose == Pose::Swim ? "swims at " : "runs at ") + std::to_string(std::lround(speed)) + " m/s", now);
+        else if (a.busy && c.anchor.busy && speed > 1.5)
+            strike(id, c, .5, "moves while in a menu", now);
+        c.anchor = a, c.anchorSent = sent;
+    }
+    if (c.known) c.gap = sent - c.lastSent;
+    c.known = true, c.last = a, c.lastSent = sent;
+}
+
+void Witness::shot(uint64_t shooter, const Shot& s, double sent, double height, double now) {
+    Conduct& by = conduct_[shooter];
+    const bool fromMenu = by.known && by.last.busy;
+    if (fromMenu) strike(shooter, by, 1, "shoots from a menu", now);
+    const bool tooFast = sent - by.lastShot < combat::kPistol.interval * .75;
+    if (tooFast) strike(shooter, by, .5, "fires faster than a pistol", now);
+    by.lastShot = sent;
+    const auto v = conduct_.find(s.victim);
+    if (fromMenu || tooFast || v == conduct_.end() || !v->second.known || !by.known) return;
+    Conduct& victim = v->second;
+    // Judged as the victim judges it, but tighter: a witness draws him from
+    // fewer snapshots, so only a clear hit, at an instant the victim can
+    // still judge, seen at five snapshots a second or more, is held against him.
+    Avatar then;
+    if (victim.gap > .21 || victim.lastSent - s.seen > .5 || !victim.seen.at(s.seen, then, lerp)) return;
+    if (then.busy) return;
+    const Verdict verdict = judgeShot(s, by.last, then, height, 1e9);
+    if (verdict.refusal) return;
+    const glm::dvec3 end(s.muzzle[0] + double(s.direction[0]) * s.length, s.muzzle[1] + double(s.direction[1]) * s.length,
+                         s.muzzle[2] + double(s.direction[2]) * s.length);
+    const auto local = world::Frame(then.lon, then.lat, then.alt).local(end);
+    if (std::hypot(local.x, local.z) > kBodyRadius) return;
+    if (claims_.size() >= 64) claims_.erase(claims_.begin());
+    claims_.push_back({shooter, s.victim, now, verdict.damage, victim.last.health, victim.last.life});
+}
+
+void Witness::verdict(uint64_t victim, const Hit& h, double now) {
+    for (Claim& k : claims_) {
+        if (k.answered || k.victim != victim || k.shooter != h.shooter) continue;
+        k.answered = true, k.answeredAt = now;
+        Conduct& c = conduct_[victim];
+        if (h.damage <= 0) {
+            strike(victim, c, 2, "refuses a hit his own snapshots show", now);
+        } else if (!(c.known && c.last.invincible) && k.health > 0) {
+            // The damage he named should show in his health.
+            k.expectHealth = true;
+            k.below = uint8_t(std::max(0., std::floor(k.health - h.damage * .9)));
+        }
+        return;
+    }
+}
+
+void Witness::tick(double now) {
+    for (size_t i = 0; i < claims_.size();) {
+        Claim& k = claims_[i];
+        Conduct& c = conduct_[k.victim];
+        if (!k.answered && now - k.at > kAnswerSeconds) {
+            strike(k.victim, c, 2, "ignores a hit his own snapshots show", now);
+        } else if (k.answered && k.expectHealth && now - k.answeredAt > kHealthSeconds) {
+            if (!(c.known && c.last.invincible)) strike(k.victim, c, 2, "takes hits and loses no health", now);
+        } else if (!k.answered || k.expectHealth) {
+            ++i;
+            continue;
+        }
+        claims_.erase(claims_.begin() + long(i));
+    }
+    for (auto& [id, c] : conduct_)
+        if (c.suspected && suspicion(id, now) < kForgiveBelow) c.suspected = false;
 }
 
 std::string playerName(uint64_t id) {

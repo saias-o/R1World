@@ -3,6 +3,7 @@
 #include "saida/netcode/Clock.hpp"
 #include "saida/netcode/Replica.hpp"
 #include "saida/p2p/Host.hpp"
+#include "saida/p2p/NetworkThread.hpp"
 #include "saida/p2p/Rendezvous.hpp"
 #include "saida/p2p/Socket.hpp"
 
@@ -15,9 +16,14 @@ struct World::Impl::Online {
     p2p::UdpSocket socket, lan;
     std::unique_ptr<p2p::Host> host;
     std::unique_ptr<p2p::Rendezvous> meet;
+    // The network runs on its own thread (engine plugins/p2p): datagrams are
+    // read and stamped as they land and snapshots leave at an even rate
+    // whatever the frame does. Everything below is touched under hold().
+    std::unique_ptr<p2p::NetworkThread> thread;
+    p2p::NetworkThread::Lock hold() { return thread->lock(); }
     std::map<o::Cell, p2p::Topic> cells;
-    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-    double now = 0, nextSend = 0, nextCells = 0, nextNodes = 600, lastOwn = -1;
+    double now = 0, nextCells = 0, nextNodes = 600, lastOwn = -1, nextTiers = 0, nextSummary = 60;
+    bool fresh = false;  // his own avatar is current: the thread sends it
     nc::History<o::Avatar> history{o::kHistorySeconds};
     o::Avatar own;
     bool ownKnown = false;
@@ -49,8 +55,15 @@ struct World::Impl::Online {
         uint64_t samples[4] = {};  // by ReplicaSample: how he was drawn
         double travelled = 0;      // metres drawn, for the smoke's measure
         bool placed = false;
+        double distance = 1e18;    // metres from us, as drawn this frame
+        float poseRate = -1;       // animation LOD applied to his body
+        // What he hears of us (o::tierFor): how often, and when next.
+        o::Tier tier = o::Tier::Near;
+        double nextSend = 0, lastContact = -1e9;
     };
     std::map<p2p::PeerHandle, Remote> remotes;
+    std::map<p2p::PeerHandle, double> arriving;          // linked, no snapshot of his yet: when we send next
+    uint64_t sentByTier[size_t(o::Tier::Count)] = {};    // snapshots sent, for the log and the smoke
     // Bodies of players gone, kept for the next one: built once, reused.
     struct Body {
         saida::Node* root;
@@ -69,6 +82,8 @@ struct World::Impl::Online {
     };
     std::vector<Pending> inbox;
     std::map<std::string, uint64_t> refused;
+    // What this machine saw each player do (online_rules.hpp, Witness).
+    o::Witness witness;
     std::map<std::string, double> refusedSaid;
     std::string hud;
     double hudAt = -1;
@@ -78,7 +93,57 @@ struct World::Impl::Online {
     int hitsTaken = 0, hitsGiven = 0, hitsDenied = 0, rounds = 0;
     double sawAt = -1, smokeFired = 0, passedAt = -1;
 
-    double seconds() const { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); }
+    // Our snapshot to each player near, as often as his tier says. A player
+    // linked but not heard from yet gets every snapshot: he is arriving.
+    void sendState() {
+        if (now >= nextTiers) {
+            nextTiers = now + .25;
+            std::vector<std::pair<double, Remote*>> byDistance;
+            for (auto& [peer, r] : remotes) byDistance.push_back({r.replica.newest() ? r.distance : -1, &r});
+            std::sort(byDistance.begin(), byDistance.end(), [](auto& a, auto& b) { return a.first < b.first; });
+            size_t near = 0, rank = 0;
+            for (auto& [d, r] : byDistance) {
+                const o::Avatar* him = r->replica.newest();
+                o::Tier t = him ? o::tierFor(own, *him, now - r->lastContact, rank++) : o::Tier::Near;
+                if (t == o::Tier::Near && ++near > o::kMaxNear) t = o::Tier::Middle;
+                if (t < r->tier) r->nextSend = now;  // promoted: at once
+                r->tier = t;
+            }
+        }
+        // Stamped when it was true: a frame that stalls sends nothing new,
+        // and the others carry him on, then hold him, as they would a loss.
+        if (now - lastOwn > .25) return;
+        o::Message m;
+        m.kind = o::Kind::State, m.sent = lastOwn, m.avatar = own;
+        const auto bytes = o::encode(m);
+        const auto heard = audience();
+        for (p2p::PeerHandle p : heard) {
+            const auto found = remotes.find(p);
+            const double every = found == remotes.end() ? o::kSendSeconds : o::kTierSeconds[size_t(found->second.tier)];
+            double& next = found == remotes.end() ? arriving[p] : found->second.nextSend;
+            if (now < next) continue;
+            next = std::max(next + every, now - every);
+            host->send(p, bytes, p2p::Channel::Unreliable);
+            ++sentByTier[found == remotes.end() ? 0 : size_t(found->second.tier)];
+        }
+        for (auto it = arriving.begin(); it != arriving.end();)
+            it = remotes.count(it->first) || !heard.count(it->first) ? arriving.erase(it) : std::next(it);
+    }
+    void contact(uint64_t id) {
+        if (Remote* r = byId(id)) r->lastContact = now, r->nextSend = std::min(r->nextSend, now);
+    }
+    // His body goes back to the spares: built once, reused by the next one drawn.
+    void releaseBody(Remote& r) {
+        if (!r.root) return;
+        r.root->setEnabled(false);
+        if (r.fall.ragdoll()) r.fall.release();
+        spare.push_back({r.root, r.body, r.bodyRest, r.animator, {r.arms[0], r.arms[1]}, r.pistol, r.launcher, r.capsule,
+                         r.fall.ragdoll()});
+        r.root = r.body = nullptr, r.animator = nullptr, r.arms[0] = r.arms[1] = nullptr;
+        r.pistol = r.launcher = nullptr, r.capsule = nullptr;
+        r.fall = r1::Knockdown{};
+        r.visible = r.placed = false;
+    }
     std::set<p2p::PeerHandle> audience() const {
         std::set<p2p::PeerHandle> out;
         for (const auto& [cell, topic] : cells)
@@ -117,6 +182,7 @@ struct World::Impl::Online {
 
 void World::Impl::OnlineDeleter::operator()(Online* online) const {
     if (!online) return;
+    if (online->thread) online->thread->stop();
     if (online->meet && !online->nodesFile.empty()) {
         if (auto* dht = online->meet->dht()) {
             std::ofstream out(online->nodesFile, std::ios::trunc);
@@ -178,7 +244,9 @@ void World::Impl::startOnline() {
     }
     p2p::HostConfig hc;
     hc.application = o::kApplication;
-    hc.maxPeers = 48;
+    // Room above the neighbours kept (a quarter more, and those who keep
+    // us) so a newcomer can always be let in and placed.
+    hc.maxPeers = o::kNeighbours * 3;
     n->host = std::make_unique<p2p::Host>(n->socket, identity, hc);
     p2p::RendezvousConfig rc;
     n->nodesFile = game / "cache/online-nodes.txt";
@@ -188,7 +256,7 @@ void World::Impl::startOnline() {
         while (std::getline(nodes, line))
             if (p2p::Address::parse(line, a) && a.valid()) rc.knownNodes.push_back(a);
     }
-    rc.maxPeersPerTopic = 32;
+    rc.neighbours = o::kNeighbours;
     n->meet = std::make_unique<p2p::Rendezvous>(*n->host, rc);
     if (p2p::openLanSocket(n->lan, rc)) n->meet->setLanSocket(&n->lan);
     else saida::Log::info("[World online] no LAN beacons (", n->lan.error(), "): players behind this router meet through the DHT only");
@@ -205,15 +273,25 @@ void World::Impl::startOnline() {
         }
         auto found = self->remotes.find(from);
         if (found == self->remotes.end()) {
-            if (self->remotes.size() >= o::kMaxPlayers)
-                return self->refuse("the avatar of " + o::playerName(info->id), "already drawing the most players");
+            // Every linked player is followed (a replica is a few hundred
+            // bytes); only the nearest are drawn (showOnline).
+            if (self->remotes.size() >= o::kMaxTracked)
+                return self->refuse("the avatar of " + o::playerName(info->id), "already following the most players");
             Online::Remote r;
             r.peer = from, r.id = info->id, r.name = o::playerName(info->id);
             found = self->remotes.emplace(from, std::move(r)).first;
-            saida::Log::info("[World online] ", found->second.name, " is here, from ", info->address.toString(),
+            const p2p::PeerInfo* relay = info->via != p2p::kNoPeer ? self->host->peer(info->via) : nullptr;
+            saida::Log::info("[World online] ", found->second.name, " is here, ",
+                             relay ? "relayed by " + o::playerName(relay->id) : "from " + info->address.toString(),
                              ", round trip ", int(info->rtt * 1000), " ms");
         }
-        found->second.replica.push(m.sent, self->now, m.avatar);
+        found->second.replica.push(m.sent, self->thread->now(), m.avatar);
+        self->witness.snapshot(info->id, m.sent, m.avatar, self->thread->now());
+    });
+    n->thread = std::make_unique<p2p::NetworkThread>(*n->host, n->meet.get(), n->socket);
+    n->thread->start([self](double now) {
+        self->now = now;
+        if (self->fresh) self->sendState();
     });
     saida::Log::info("[World online] ", o::playerName(identity.id()), " on UDP ", n->socket.local().toString(),
                      ", ", rc.knownNodes.size(), " DHT nodes remembered");
@@ -222,27 +300,25 @@ void World::Impl::startOnline() {
 
 void World::Impl::pumpOnline() {
     SAIDA_PROFILE_SCOPE("World/Online");
+    // Go starts the meeting: the globe's ten seconds of flight are spent
+    // finding whoever stands where he will land.
+    const bool arriving = drop.phase != Drop::None;
     if (!online) {
-        if (!playing || onlineStarted) return;
+        if ((!playing && !arriving) || onlineStarted) return;
         onlineStarted = true;
         startOnline();
         if (!online) return;
     }
     Online& n = *online;
-    n.now = n.seconds();
-    n.host->poll(n.now);
-    n.meet->poll(n.now);
+    const auto held = n.hold();
+    n.now = n.thread->now();
     auto forget = [&](p2p::PeerHandle peer, const char* why) {
         auto found = n.remotes.find(peer);
         if (found == n.remotes.end()) return;
         Online::Remote& r = found->second;
         saida::Log::info("[World online] ", r.name, " left: ", why);
-        if (r.root) {
-            r.root->setEnabled(false);
-            if (r.fall.ragdoll()) r.fall.release();
-            n.spare.push_back({r.root, r.body, r.bodyRest, r.animator, {r.arms[0], r.arms[1]}, r.pistol, r.launcher,
-                               r.capsule, r.fall.ragdoll()});
-        }
+        n.releaseBody(r);
+        n.witness.forget(r.id);
         if (punchRemote == r.id) punchRemote = 0;
         n.remotes.erase(found);
     };
@@ -254,9 +330,10 @@ void World::Impl::pumpOnline() {
     if (n.now >= n.nextCells) {
         n.nextCells = n.now + .5;
         std::set<o::Cell> keep;
-        if (playing) {
-            for (const auto& c : o::cellsWithin(lon, lat, o::kLeaveRadius)) keep.insert(c);
-            for (const auto& c : o::cellsWithin(lon, lat, o::kMeetRadius))
+        const double atLon = arriving ? drop.goalLon : lon, atLat = arriving ? drop.goalLat : lat;
+        if (playing || arriving) {
+            for (const auto& c : o::cellsWithin(atLon, atLat, o::kLeaveRadius)) keep.insert(c);
+            for (const auto& c : o::cellsWithin(atLon, atLat, o::kMeetRadius))
                 if (!n.cells.count(c)) {
                     const auto topic = p2p::Topic::named(o::kApplication, c.name());
                     n.meet->join(topic);
@@ -268,7 +345,12 @@ void World::Impl::pumpOnline() {
             else n.meet->leave(it->second), it = n.cells.erase(it);
     }
     // His own avatar: recorded every frame (the judge's history), sent at 20 Hz.
-    if (playing && player && feet) {
+    n.fresh = playing && player && feet && drop.phase != Drop::Zoom;
+    if (arriving && drop.phase == Drop::Zoom) {
+        const auto goal = ecef(drop.goalLon, drop.goalLat, 0.);
+        n.meet->setPosition(goal.x, goal.y, goal.z);
+    }
+    if (n.fresh) {
         o::Avatar a;
         glm::vec3 at = player->transform().position;
         if (driving() || sailing() || piloting()) a.pose = o::Pose::Vehicle;
@@ -297,16 +379,16 @@ void World::Impl::pumpOnline() {
         a.motion = clip == "jump" ? o::Motion::Jump : clip == "sprint" ? o::Motion::Sprint : clip == "run" ? o::Motion::Run : o::Motion::Idle;
         a.weapon = arsenal.held();
         a.aiming = aiming;
+        a.busy = menu || playerMenu;
+        a.invincible = health.invincible();
         a.health = uint8_t(std::clamp(std::ceil(health.hp), 0., 100.));
+        // Back from the dead is a new life, even where he fell.
+        if (n.ownKnown && n.own.health == 0 && a.health > 0) ++n.life;
         a.life = n.life;
         n.own = a, n.ownKnown = true, n.lastOwn = n.now;
         n.history.record(n.now, a);
-        if (n.now >= n.nextSend) {
-            n.nextSend = std::max(n.nextSend + o::kSendSeconds, n.now - o::kSendSeconds);
-            o::Message m;
-            m.kind = o::Kind::State, m.sent = n.now, m.avatar = a;
-            n.send(m, p2p::Channel::Unreliable);
-        }
+        const auto feetAt = o::feetEcef(a);
+        n.meet->setPosition(feetAt[0], feetAt[1], feetAt[2]);
     }
     if (n.now >= n.nextNodes) {
         n.nextNodes = n.now + 600;
@@ -323,7 +405,20 @@ void World::Impl::pumpOnline() {
                              status.dhtNodes, ", public address ", status.publicAddress.valid() ? status.publicAddress.toString() : "not known yet");
         }
     }
-    n.host->flush();
+    if (n.now >= n.nextSummary) {
+        n.nextSummary = n.now + 60;
+        const auto status = n.meet->status();
+        const auto thread = n.thread->stats();
+        size_t relayed = 0;
+        for (p2p::PeerHandle p : n.host->peers())
+            if (const auto* info = n.host->peer(p); info && info->via != p2p::kNoPeer) ++relayed;
+        saida::Log::info("[World online] ", n.host->peers().size(), " linked (", relayed, " relayed), ", n.remotes.size(),
+                         " followed, ", status.candidates, " heard of; snapshots sent near/middle/far ", n.sentByTier[0], "/",
+                         n.sentByTier[1], "/", n.sentByTier[2], "; ", status.introductionsAsked, " introductions asked, ",
+                         status.pruned, " links dropped; announcing in ", status.announcing, " of ", n.cells.size(),
+                         " cells; network thread worst poll ", int(thread.worstStep * 1000), " ms, worst lateness ",
+                         int(thread.worstLate * 1000), " ms");
+    }
     onlineHud();
 }
 
@@ -347,6 +442,7 @@ void World::Impl::showOnline(double dt) {
     if (!online) return;
     SAIDA_PROFILE_SCOPE("World/OnlinePlayers");
     Online& n = *online;
+    const auto held = n.hold();
     const uint64_t me = n.host->identity().id();
     auto local = [&](const std::array<double, 3>& p) { return glm::vec3(origin.local(glm::dvec3(p[0], p[1], p[2]))); };
     auto direction = [&](const std::array<float, 3>& d) {
@@ -363,6 +459,14 @@ void World::Impl::showOnline(double dt) {
         }
         Online::Remote& r = found->second;
         const o::Avatar& shooter = *r.replica.newest();
+        // A suspect's blows are not believed here, nor shown.
+        if (m.kind != o::Kind::Hit && n.witness.suspected(r.id)) {
+            n.refuse("a blow from " + r.name, "he is suspected: " + n.witness.reason(r.id));
+            continue;
+        }
+        if ((m.kind == o::Kind::Shot && m.shot.victim == me) || (m.kind == o::Kind::Punch && m.punch.victim == me) ||
+            (m.kind == o::Kind::Hit && m.hit.shooter == me))
+            r.lastContact = n.now;
         auto judged = [&](double seen, o::Avatar& then) {
             if (!live) return n.refuse("a blow from " + r.name, "he is in a menu"), false;
             if (!n.history.at(seen, then, o::lerp)) return n.refuse("a blow from " + r.name, "too old to judge"), false;
@@ -376,6 +480,7 @@ void World::Impl::showOnline(double dt) {
             sounds.play(r1::CombatSounds::Shot, heard);
             alarm(muzzle, r1::combat::kGunshotHeard, 10.);
             const glm::vec3 end = muzzle + dir * m.shot.length;
+            if (m.shot.victim && m.shot.victim != me) n.witness.shot(r.id, m.shot, m.sent, playerHeight, n.now);
             if (m.shot.victim != me) {
                 if (!m.shot.victim) effects.burst(r1::CombatEffects::Dust, end);
                 else effects.burst(r1::CombatEffects::Blood, end);
@@ -385,7 +490,7 @@ void World::Impl::showOnline(double dt) {
             if (!judged(m.shot.seen, then)) break;
             const auto verdict = o::judgeShot(m.shot, shooter, then, playerHeight, n.now - r.lastShot);
             o::Message reply;
-            reply.kind = o::Kind::Hit, reply.sent = n.now, reply.hit.victim = me;
+            reply.kind = o::Kind::Hit, reply.sent = n.now, reply.hit.victim = me, reply.hit.shooter = r.id;
             if (verdict.refusal) n.refuse("a shot from " + r.name, verdict.refusal), ++n.hitsDenied;
             else {
                 r.lastShot = n.now;
@@ -398,7 +503,7 @@ void World::Impl::showOnline(double dt) {
                 reply.hit.damage = float(verdict.damage), reply.hit.killed = killed;
                 ++n.hitsTaken;
             }
-            n.send(reply, p2p::Channel::Reliable, from);
+            n.send(reply, p2p::Channel::Reliable);  // to everyone near: the witnesses check our word
             break;
         }
         case o::Kind::Punch: {
@@ -409,7 +514,7 @@ void World::Impl::showOnline(double dt) {
             if (!judged(m.punch.seen, then)) break;
             const auto verdict = o::judgePunch(m.punch, shooter, then, n.now - r.lastPunch);
             o::Message reply;
-            reply.kind = o::Kind::Hit, reply.sent = n.now, reply.hit.victim = me;
+            reply.kind = o::Kind::Hit, reply.sent = n.now, reply.hit.victim = me, reply.hit.shooter = r.id;
             if (verdict.refusal) n.refuse("a punch from " + r.name, verdict.refusal), ++n.hitsDenied;
             else {
                 r.lastPunch = n.now;
@@ -423,7 +528,7 @@ void World::Impl::showOnline(double dt) {
                 reply.hit.damage = float(verdict.damage), reply.hit.killed = killed;
                 ++n.hitsTaken;
             }
-            n.send(reply, p2p::Channel::Reliable, from);
+            n.send(reply, p2p::Channel::Reliable);
             break;
         }
         case o::Kind::Rocket: {
@@ -440,6 +545,12 @@ void World::Impl::showOnline(double dt) {
             break;
         }
         case o::Kind::Hit:
+            // His word on another's claim: the witnesses' to weigh.
+            if (m.hit.victim != r.id) break;
+            if (m.hit.shooter != me) {
+                n.witness.verdict(r.id, m.hit, n.now);
+                break;
+            }
             if (m.hit.damage <= 0) {
                 text("stream-status", "No hit on " + r.name + ": his screen disagrees.");
                 saida::Log::info("[World online] ", r.name, " refused our hit");
@@ -452,14 +563,46 @@ void World::Impl::showOnline(double dt) {
         default: break;
         }
     }
-    // Their bodies, drawn where their owners were a moment ago.
+    // What the witness made of it: every strike said, a new suspect shown.
+    n.witness.tick(n.now);
+    for (const auto& s : n.witness.takeStrikes()) {
+        const std::string who = o::playerName(s.id);
+        saida::Log::info("[World online] witness: ", who, " ", s.why, " (suspicion ", number(s.suspicion, 1), ")");
+        if (s.suspectedNow) {
+            saida::Log::info("[World online] ", who, " is suspected of cheating and no longer drawn here: ", s.why);
+            text("stream-status", who + " hidden: " + s.why + ".");
+        }
+    }
+    // Their bodies, drawn where their owners were a moment ago: the nearest
+    // kMaxDrawn, the first kMaxPlayers of them in full, the others as the
+    // crowd is drawn (a pose at a lower rate, held between samples, no arms
+    // aimed). Those already drawn keep their place against a newcomer
+    // barely nearer, so the edges do not flicker.
     const glm::vec3 up(0, 1, 0);
-    for (auto& [peer, r] : n.remotes) {
+    struct Drawn {
         o::Avatar a;
-        const auto kind = r.replica.sample(n.now, a, o::lerp);
+        bool show = false, full = false;
+    };
+    std::map<p2p::PeerHandle, Drawn> plan;
+    std::vector<std::pair<double, p2p::PeerHandle>> nearest;
+    for (auto& [peer, r] : n.remotes) {
+        Drawn& d = plan[peer];
+        const auto kind = r.replica.sample(n.now, d.a, o::lerp);
         ++r.samples[size_t(kind)];
         const bool away = kind == nc::ReplicaSample::Empty || n.now - r.replica.lastArrival() > o::kAwaySeconds;
-        const bool show = !away && a.pose != o::Pose::Vehicle && playing;
+        d.show = !away && d.a.pose != o::Pose::Vehicle && playing && !n.witness.suspected(r.id);
+        r.distance = d.show ? metresBetween(lon, lat, d.a.lon, d.a.lat) : 1e18;
+        if (d.show) nearest.push_back({r.distance * (r.visible ? .85 : 1.), peer});
+    }
+    std::sort(nearest.begin(), nearest.end());
+    for (size_t i = 0; i < nearest.size(); ++i) {
+        plan[nearest[i].second].full = i < o::kMaxPlayers;
+        if (i >= o::kMaxDrawn) plan[nearest[i].second].show = false;
+    }
+    for (auto& [peer, r] : n.remotes) {
+        const o::Avatar& a = plan[peer].a;
+        const bool show = plan[peer].show;
+        if (!show && r.root) n.releaseBody(r);
         if (show && !r.root) {
             if (!n.spare.empty()) {
                 const auto b = n.spare.back();
@@ -468,6 +611,7 @@ void World::Impl::showOnline(double dt) {
                 r.arms[0] = b.arms[0], r.arms[1] = b.arms[1], r.pistol = b.pistol, r.launcher = b.launcher, r.capsule = b.capsule;
                 r.fall.bind(*b.ragdoll, *r.capsule, r1::combat::kLieSeconds);
                 r.clip.clear();
+                r.poseRate = -1;
             } else {
                 // His body is the player's own scan, rig and clips, shared.
                 auto root = std::make_unique<saida::Node>("online-" + r.name);
@@ -572,6 +716,19 @@ void World::Impl::showOnline(double dt) {
         }
         if (r.pistol) r.pistol->setVisible(a.weapon == r1::combat::Weapon::Pistol);
         if (r.launcher) r.launcher->setVisible(a.weapon == r1::combat::Weapon::RocketLauncher);
+        // Animation LOD, as for the crowd (people.cpp): every frame close by,
+        // 15, 8 and 4 Hz further out; a body drawn as the crowd never closer
+        // than 8 Hz, its arms left to the clip.
+        const bool full = plan[peer].full;
+        const float rate = r.distance < 12 && full ? 0.f : r.distance < 30 && full ? 15.f : r.distance < 60 ? 8.f : 4.f;
+        if (rate != r.poseRate) r.animator->setPoseRate(rate, saida::Animator::PoseRateMode::Hold), r.poseRate = rate;
+        if (!full) {
+            for (auto* arm : r.arms)
+                if (arm && arm->weight() > 0) arm->release(), arm->clearTipRotation();
+            r.punch = -1;
+            r.shown = a;
+            continue;
+        }
         // The arms: a weapon held along his aim, or a punch thrown.
         const auto& pose = r.animator->globalPose().globalMatrices;
         const saida::Rig& rig = *r.animator->rig();
@@ -602,6 +759,7 @@ void World::Impl::showOnline(double dt) {
 
 uint64_t World::Impl::remoteByBody(const saida::RaycastHit& hit, double& seen) {
     if (!online || !hit.hit) return 0;
+    const auto held = online->hold();
     for (auto& [peer, r] : online->remotes) {
         if (!r.visible || !r.capsule) continue;
         const auto* ragdoll = r.fall.ragdoll();
@@ -616,6 +774,7 @@ uint64_t World::Impl::remoteByBody(const saida::RaycastHit& hit, double& seen) {
 
 uint64_t World::Impl::remoteInFront(const glm::vec3& from, const glm::vec3& ahead, double reach, double& distance, double& seen) {
     if (!online) return 0;
+    const auto held = online->hold();
     uint64_t best = 0;
     for (auto& [peer, r] : online->remotes) {
         if (!r.visible || !r.root || (r.shown.pose != o::Pose::Stand && r.shown.pose != o::Pose::Air)) continue;
@@ -630,6 +789,7 @@ uint64_t World::Impl::remoteInFront(const glm::vec3& from, const glm::vec3& ahea
 
 glm::vec3 World::Impl::remotePosition(uint64_t id) const {
     if (!online) return player->transform().position;
+    const auto held = online->hold();
     for (const auto& [peer, r] : online->remotes)
         if (r.id == id && r.root) return r.root->transform().position;
     return player->transform().position;
@@ -637,6 +797,7 @@ glm::vec3 World::Impl::remotePosition(uint64_t id) const {
 
 void World::Impl::sendShot(const glm::vec3& muzzle, const glm::vec3& direction, float length, uint64_t victim, double seen) {
     if (!online) return;
+    const auto held = online->hold();
     o::Message m;
     m.kind = o::Kind::Shot, m.sent = online->now;
     const glm::dvec3 at = origin.origin + origin.basis * glm::dvec3(muzzle);
@@ -645,19 +806,23 @@ void World::Impl::sendShot(const glm::vec3& muzzle, const glm::vec3& direction, 
     m.shot.direction = {float(d.x), float(d.y), float(d.z)};
     m.shot.length = std::clamp(length, .01f, float(r1::combat::kPistol.range));
     m.shot.victim = victim, m.shot.seen = seen;
+    if (victim) online->contact(victim);
     online->send(m, p2p::Channel::Reliable);
 }
 
 void World::Impl::sendPunch(uint64_t victim, double seen, bool hook) {
     if (!online) return;
+    const auto held = online->hold();
     o::Message m;
     m.kind = o::Kind::Punch, m.sent = online->now;
     m.punch.victim = victim, m.punch.seen = seen, m.punch.hook = hook;
+    if (victim) online->contact(victim);
     online->send(m, p2p::Channel::Reliable);
 }
 
 void World::Impl::sendRocket(const glm::vec3& muzzle, const glm::vec3& target) {
     if (!online) return;
+    const auto held = online->hold();
     o::Message m;
     m.kind = o::Kind::Rocket, m.sent = online->now;
     const glm::dvec3 a = origin.origin + origin.basis * glm::dvec3(muzzle), b = origin.origin + origin.basis * glm::dvec3(target);
@@ -679,6 +844,7 @@ void World::Impl::runOnlineSmoke(double dt) {
         return;  // it opens on the next frame of play
     }
     Online& n = *online;
+    const auto held = n.hold();  // recursive: fire() below sends under it too
     const bool shooter = std::string(onlineSmoke) == "shooter";
     Online::Remote* other = nullptr;
     for (auto& [peer, r] : n.remotes)
@@ -700,7 +866,8 @@ void World::Impl::runOnlineSmoke(double dt) {
         }
         saida::Log::info("[World E2E] PASS online ", onlineSmoke, ": drew the other player, ",
                          shooter ? "hits confirmed " + std::to_string(n.hitsGiven) : "hits taken " + std::to_string(n.hitsTaken),
-                         ", refusals ", n.refused.size(), drawing);
+                         ", refusals ", n.refused.size(), drawing, ", snapshots sent near/middle/far ",
+                         n.sentByTier[0], "/", n.sentByTier[1], "/", n.sentByTier[2]);
         n.passedAt = 1e18;
         // The shooter's picture, taken while the other player still stands there.
         if (const char* png = std::getenv("R1WORLD_ONLINE_SHOT"); png && shooter) {

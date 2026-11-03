@@ -238,18 +238,39 @@ rocket at you, as you can them. There is no server of R1World's anywhere:
   from the cell, the others are found there and on the local network by
   multicast beacons, and links are encrypted (Noise XX) and punched through
   NATs. The DHT nodes met are kept in `cache/online-nodes.txt` for the next
-  start; your identity is `saves/online-identity.key`.
-- **Seeing.** Each player is the authority on his own body: twenty snapshots
-  a second (59 bytes: position, heading, aim, velocity, pose, clip, weapon,
-  health, and a life counter that turns a respawn or a teleport into a jump
-  rather than a glide). Every other machine draws him through the engine's
+  start; your identity is `saves/online-identity.key`. The meeting starts at
+  **Go**: the ten seconds of the globe's flight are spent finding whoever
+  stands where you will land.
+- **A crowd, not a mesh.** Within those cells you are linked to your 32
+  nearest players, wherever the cells' borders fall (`plugins/p2p`
+  proximity): your machine tells its peers where you stand and who stands
+  near them, asks them to introduce the nearer ones, and drops the links
+  neither side needs. A hundred players in a square cost each of them some 40
+  links, not 99, and whoever walks up to you is found through the players
+  already near you. Once a cell has players, the public DHT is only the door:
+  asked once a minute, announced by eight of them. Two players behind NATs no
+  punching opens (symmetric) are linked through a third that both reach,
+  sealed end to end; the IPv6 DHT finds those whose IPv4 is behind a mobile
+  carrier's NAT. The network runs on its own thread: what arrives is read when
+  it lands, and a frame that stalls while a tile cooks stalls nothing.
+- **Seeing.** Each player is the authority on his own body: snapshots of 32
+  bytes (position to the centimetre, heading, aim, velocity, pose, clip,
+  weapon, health, a menu and an invincibility flag, and a life counter that
+  turns a respawn or a teleport into a jump rather than a glide), sent by
+  attention: twenty a second to the 12 players that matter most (within
+  40 m, among your six nearest, facing you within 150 m, aiming at you, or in
+  a fight with you), five to the others within 400 m, one beyond. For 99
+  others that is about 43 KB/s up instead of 176. Every other machine draws him through the engine's
   `netcode::Replica`, a little in the past, between two snapshots he really
   had; the delay follows the line, a silent player is carried on for a
   quarter of a second and then held, and one silent for 3 s disappears. His
   body is the player's own scan, rig and clips, with a pistol or a launcher
   in his hands along his aim, a punch thrown, and a ragdoll when he goes
   down. A capsule like a passer-by's stops your feet, your rounds and your
-  rockets.
+  rockets. The 16 nearest are drawn so; up to 48 are drawn at all, the rest
+  as the crowd is (a pose sampled 15, 8 or 4 times a second by distance, arms
+  left to the clip). Every linked player is followed, drawn or not, so a shot
+  from one is judged like any other.
 - **Shooting.** Your shot is sent to everyone near (they see the muzzle flash
   and hear it); if it hit someone's body on your screen, the claim names him
   and the instant of his you drew, in his own clock. **He judges it**, on his
@@ -260,6 +281,19 @@ rocket at you, as you can them. There is no server of R1World's anywhere:
   `No hit on Player 3F2A: his screen disagrees.` Punches are judged the same
   way; a rocket is flown on every machine, and each player judges his own
   blast. Every refusal is logged with its reason (`[World online] refused`).
+  The verdict goes to everyone near, not only to the shooter.
+- **Witnesses.** No server can stop a player who rewrites his own game, but
+  every machine near him sees what he claims, in the same world, and checks
+  it (`online_rules.hpp`, `Witness`): a body faster than the game moves one
+  (over half a second, on foot or swimming), a new life every few seconds, a
+  move or a shot from a menu, a pistol faster than it fires, a hit his own
+  snapshots clearly show and he refuses or ignores, a hit he accepts and
+  loses no health to (unless the PAINKILLER code is on, which his snapshots
+  show). Each strike adds to his suspicion, which fades by 0.1 a second; at 3
+  he is no longer drawn on that machine and his blows are refused there
+  (`Player 3F2A hidden: ...`), until it falls below 1.5. Each machine believes
+  only what it saw: nothing is voted, so forged accounts cannot accuse an
+  honest player. Every strike is logged (`[World online] witness:`).
 - **What is not shared.** Cars, traffic, animals, passers-by, police and the
   weather stay each machine's own, as asked: a player at the wheel is not
   drawn until he steps out. A remote rocket destroys cars only in your own
@@ -270,11 +304,16 @@ yet`, or why nobody can be found. `--offline` plays alone; the game is
 unchanged without a network (the cache promise holds: no world data crosses
 these links).
 
-Limits: the engine has no relay yet, so a symmetric NAT facing a
-port-restricted or symmetric NAT cannot link (ROADMAP §5); the DHT is IPv4
-only; two players behind one router meet through the LAN beacons. Your
-address is published in the DHT under your cell's key, as BitTorrent
-publishes a downloader's. At most 16 others are drawn at once.
+Limits: two players behind NATs no punching opens are linked only through a
+third player both reach; two such players alone stay apart. Two players
+behind one router meet through the LAN beacons. Your address is published in
+the DHT under your cell's key, as BitTorrent publishes a downloader's (by
+eight players per cell once it has more). A witness judges only what it saw at
+five snapshots a second or more; a cheat it cannot see (a wall-hack, an
+aimbot that hits only where the target is) is beyond it. Every minute the log
+says how many players are linked and relayed, the snapshots sent by tier, the
+introductions asked, the links dropped, the cells announced in and the
+network thread's worst poll (`[World online] N linked`).
 
 Verified on 3 November 2026. `r1_world_online_rules_test` (headless):
 everyone within 700 m shares a cell over 20 000 random places, poles and the
@@ -294,6 +333,18 @@ same uncached tile at once exhaust the laptop's 7.5 GB (`FAIL out of memory
 cooking`), hence the visit first. Not yet tried: two homes on different
 networks, a mobile network; nor looked at in daylight (every run was at
 night, the hour the test ran).
+
+Verified on 3 November 2026 (the crowd). `r1_world_online_rules_test`: the
+32-byte snapshot within a centimetre and a hundredth of a degree, across the
+date line and at the poles; the tiers; an honest sprinter respawning never
+suspected, a 20 m/s speed hack suspected after 2 s, a new life every 4 s, a
+hit refused twice, ignored, or painless suspected, an invincible player who
+shows it and a claim a step off not. `plugins/p2p`'s `crowd`: 150 players in a
+cell, one in ten behind a symmetric NAT, 98 % of each one's 32 nearest linked
+6-9 s after the last arrived, 42 links each, 6 KB/s of overlay a player, 1.9
+DHT queries a second at the busiest node (48 before). The game builds and its
+headless tests pass. Not yet run: the two-instance smoke on this version, two
+homes on different networks, a mobile network, and a real crowd.
 
 ### The arrival: from Go to the ground (20 October 2026)
 
