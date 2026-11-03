@@ -356,6 +356,38 @@ version, la qualification entre deux réseaux domestiques, sur réseau mobile et
 avec une vraie foule, deux joueurs derrière un même routeur sans multicast ni
 hairpinning, et le partage des véhicules si on le décide un jour.
 
+**Étape 5 en cours (4 novembre 2026) : les points chauds** (150 000 joueurs à
+la tour Eiffel). Fait dans le moteur et vérifié en simulation et par les
+tests (SPEC §4.4, §11.7, CHANGELOG) : DHT réduite à la porte même pour une
+foule immense (16 clés par cellule, membres silencieux, 8 annonceurs élus par
+un résumé circulant, taille de la foule estimée), vue lointaine de la foule
+(`sightings`), liens gardés plus longtemps (`keepRatio`, déjà réglé dans le
+jeu), AutoLOD sur les maillages animés (et `MSFT_lod` de nouveau écrit),
+atlas de billboards animés dont la marche suit la distance parcourue.
+Reste à faire, dans cet ordre :
+
+- **Cuire les imposteurs de personnes** depuis les scans Rocketbox déjà sur
+  le disque (`assets/models/humans`, CLAUDE.md §1 : pas d'autre source) :
+  8 azimuts × une rangée × 8 à 12 poses de `walk` (foulée mesurée du clip) et
+  d'`idle`, albédo et normales/visibilité comme `tree_impostor.py`, en NumPy
+  ou moderngl. Inscrire le résultat dans `assets/THIRD_PARTY_ASSETS.json`.
+  Validation visuelle par l'utilisateur sur capture avant tout branchement.
+- **Générer les LOD animés** du joueur et des passants avec AutoLOD et les
+  charger ; copier la chaîne de LOD (`MeshNode::setLods`) quand le jeu
+  recopie un corps (`combat.cpp` pour le joueur, `online.cpp` pour les
+  autres joueurs). Seuils de couverture validés à l'œil.
+- **Dessiner la foule lointaine dans le jeu** : `rc.sightings` (256),
+  `setLook` (cap et allure sur 16 bits), un budget fixe d'imposteurs
+  (environ 200, moins en mode toaster) placés aux positions vues, prolongées
+  par cap et allure selon leur âge, et fondus avec les 48 corps proches.
+- **Afficher l'estimation de population** (`RendezvousStatus::population`)
+  dans le panneau en ligne.
+- **Couches à la manière des MMO** au-delà de quelques milliers de joueurs au
+  même endroit (le numéro de couche dans le nom de la cellule, amis
+  ensemble) : décision de conception du jeu, à prendre avec l'utilisateur.
+- **Qualifier** : test de fumée à deux instances, deux réseaux domestiques,
+  réseau mobile, et mesure du coût par image des imposteurs sur la MX450.
+
 - À l'arrivée sur une tuile, découvrir ses joueurs et établir une connexion
   UDP pair à pair avec chacun d'eux. Une tuile vide se joue seul et doit
   permettre à un autre joueur de rejoindre ensuite. Aucun serveur central

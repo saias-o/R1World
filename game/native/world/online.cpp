@@ -246,7 +246,7 @@ void World::Impl::startOnline() {
     hc.application = o::kApplication;
     // Room above the neighbours kept (a quarter more, and those who keep
     // us) so a newcomer can always be let in and placed.
-    hc.maxPeers = o::kNeighbours * 3;
+    hc.maxPeers = o::kNeighbours * 3;  // 48 kept at most (keepRatio), the rest for newcomers and those who keep us
     n->host = std::make_unique<p2p::Host>(n->socket, identity, hc);
     p2p::RendezvousConfig rc;
     n->nodesFile = game / "cache/online-nodes.txt";
@@ -257,6 +257,11 @@ void World::Impl::startOnline() {
             if (p2p::Address::parse(line, a) && a.valid()) rc.knownNodes.push_back(a);
     }
     rc.neighbours = o::kNeighbours;
+    // A crowd that walks reshuffles its nearest every few seconds: keep half
+    // as many again, and longer, so links are not torn down and punched anew
+    // as people pass (a link costs a handshake, sometimes a relay).
+    rc.keepRatio = 1.5;
+    rc.pruneSeconds = 8;
     n->meet = std::make_unique<p2p::Rendezvous>(*n->host, rc);
     if (p2p::openLanSocket(n->lan, rc)) n->meet->setLanSocket(&n->lan);
     else saida::Log::info("[World online] no LAN beacons (", n->lan.error(), "): players behind this router meet through the DHT only");
