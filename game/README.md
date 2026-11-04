@@ -2880,7 +2880,21 @@ levels on node Body`), the combat smoke passed with the two players 6, 20,
 40 and 70 m apart, and the solo smoke passed offline. Not measured: the frame
 time with many players, which one laptop cannot stage (a crowd of 48 players
 spread evenly over 150 m would draw about 54 k of the scan's triangles instead
-of 353 k). Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
+of 353 k).
+
+The player's walking and waiting impostors are baked, not drawn yet: the
+user validates them first. `python -m r1.human_impostor` poses his scan by
+its own walk and idle clips (`r1/human_views.py`, the skin as the game skins
+it) and bakes two animated atlases for the engine's billboard material
+(`SAIDA_billboard`: 8 azimuths, one row, 12 walk frames timed by a 1.214 m
+stride, 8 idle frames over 11.667 s), 128-pixel cells of scanned albedo,
+model-frame normals and hemisphere visibility, as the tree impostors are:
+`assets/models/humans/impostors/`, 2.6 MB, registered. Relit and beside the
+mesh at 23 and 12 pixels tall they are near identical
+(`generated/human-impostors/`, with three passers-by from `--sample`);
+`test_human_impostors.py` holds them to the engine loader's limits and to
+the scan they were baked from. With numpy (a venv under `generated/`), the
+143 Python tests pass. Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
 player stands 1.24 m at 0.68 runtime scale (the authored scale 0.8 multiplied
 by `kPeopleVehicleResize=0.85`). Run and sprint retain 2.8 and 7 m/s with
 faster playback through engine clip views, so the feet stay planted. Crowd

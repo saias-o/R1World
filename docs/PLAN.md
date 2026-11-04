@@ -389,12 +389,20 @@ ordre :
   niveaux Blender (2 400 et 500 triangles). Planche de validation :
   `python -m r1.human_views lods` (1,2 %, 2,7 % et 6,7 % des pixels changent
   aux bascules).
-- **Cuire les imposteurs de personnes** depuis les scans Rocketbox déjà sur le
-  disque (`assets/models/humans`, CLAUDE.md §1 : pas d'autre source) :
-  8 azimuts × une rangée × 8 à 12 poses de `walk` (foulée mesurée du clip) et
-  d'`idle`, albédo et normales/visibilité comme `tree_impostor.py`. Inscrire
-  le résultat dans `assets/THIRD_PARTY_ASSETS.json`. Validation visuelle par
-  l'utilisateur sur capture avant tout branchement.
+- **Imposteurs de personnes cuits (4 novembre), en attente de la validation
+  de l'utilisateur, non branchés.** `python -m r1.human_impostor` pose le scan
+  du joueur par ses propres clips (`r1/human_views.py`) : 8 azimuts × une
+  rangée × 12 poses de `walk` (foulée du clip, 1,214 m) et 8 d'`idle`
+  (11,667 s), cellules de 128 px, albédo, normales et visibilité comme
+  `tree_impostor.py` ; 2,6 Mo, inscrits dans `assets/THIRD_PARTY_ASSETS.json`
+  (`assets/models/humans/impostors/`). Seuls ceux du joueur sont dans le
+  dépôt : en ligne, tous les autres joueurs sont son scan ; les 19 passants
+  pèseraient environ 50 Mo de plus. Planches à valider dans
+  `game/generated/human-impostors/` : chaque cellule ré-éclairée
+  (`*_relit.png`) et l'imposteur à côté du maillage qu'il remplace à 23 et
+  12 pixels de haut (`*_beside_mesh.png`), pour le joueur et trois passants
+  d'échantillon (`--sample`). À valider : l'aspect, puis la distance où ils
+  prennent le relais.
 - **Dessiner la foule lointaine** : `rc.sightings` (256), `setLook` (cap et
   allure sur 16 bits), un budget fixe d'imposteurs (environ 200, moins en mode
   toaster) placés aux positions vues, prolongées par cap et allure selon leur

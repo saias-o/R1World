@@ -1439,6 +1439,20 @@
         "assets/animals/shrike.glb",
         "assets/animals/shrike-lod1.glb"
       ]
+    },
+    {
+      "name": "Microsoft Rocketbox Avatar Library - player impostors",
+      "author": "Microsoft (Rocketbox Studios)",
+      "source": "https://github.com/microsoft/Microsoft-Rocketbox/tree/0943055db6ec570bcef9f2c8b41c9e5467c808f9",
+      "license": "MIT",
+      "licenseFile": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
+      "generatedBy": "game/tools/r1/human_impostor.py",
+      "modifications": "multi-view animated billboard atlases baked from the player's scan posed by its walk and idle clips: albedo, alpha, model-frame normals and ambient visibility; awaiting visual validation, not drawn yet",
+      "files": [
+        "assets/models/humans/impostors/SOURCES.json",
+        "assets/models/humans/impostors/male_adult_08_idle.glb",
+        "assets/models/humans/impostors/male_adult_08_walk.glb"
+      ]
     }
   ]
 }

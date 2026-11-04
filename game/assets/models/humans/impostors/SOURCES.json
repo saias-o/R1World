@@ -1,0 +1,70 @@
+[
+  {
+    "output": "assets/models/humans/impostors/male_adult_08_walk.glb",
+    "person": "Male_Adult_08",
+    "clip": "walk",
+    "derivedFrom": "assets/models/humans/player.glb",
+    "mesh": "Body",
+    "sourceSha256": "55a6509751c8a0360f2ebba40c3f8c34e643bfa75eeb3aaf0760f2d5e5507961",
+    "columns": 8,
+    "rows": 1,
+    "frames": 12,
+    "resolution": 128,
+    "supersample": 2,
+    "extent": 2.0303,
+    "pivot": [
+      -0.0027,
+      0.9077,
+      0.1004
+    ],
+    "instants": [
+      0.0,
+      0.1028,
+      0.2056,
+      0.3083,
+      0.4111,
+      0.5139,
+      0.6167,
+      0.7194,
+      0.8222,
+      0.925,
+      1.0278,
+      1.1306
+    ],
+    "stride": 1.2144,
+    "bytes": 1579352,
+    "method": "posed by the clip's own channels, skinned as the game skins; scanned albedo/alpha, model-frame normals and cosine-weighted hemisphere visibility in normal alpha; no sun baked"
+  },
+  {
+    "output": "assets/models/humans/impostors/male_adult_08_idle.glb",
+    "person": "Male_Adult_08",
+    "clip": "idle",
+    "derivedFrom": "assets/models/humans/player.glb",
+    "mesh": "Body",
+    "sourceSha256": "55a6509751c8a0360f2ebba40c3f8c34e643bfa75eeb3aaf0760f2d5e5507961",
+    "columns": 8,
+    "rows": 1,
+    "frames": 8,
+    "resolution": 128,
+    "supersample": 2,
+    "extent": 1.976,
+    "pivot": [
+      -0.0001,
+      0.9131,
+      0.0502
+    ],
+    "instants": [
+      0.0,
+      1.4625,
+      2.925,
+      4.3875,
+      5.85,
+      7.3125,
+      8.775,
+      10.2375
+    ],
+    "loopSeconds": 11.667,
+    "bytes": 993544,
+    "method": "posed by the clip's own channels, skinned as the game skins; scanned albedo/alpha, model-frame normals and cosine-weighted hemisphere visibility in normal alpha; no sun baked"
+  }
+]
