@@ -2882,19 +2882,26 @@ time with many players, which one laptop cannot stage (a crowd of 48 players
 spread evenly over 150 m would draw about 54 k of the scan's triangles instead
 of 353 k).
 
-The player's walking and waiting impostors are baked, not drawn yet: the
-user validates them first. `python -m r1.human_impostor` poses his scan by
-its own walk and idle clips (`r1/human_views.py`, the skin as the game skins
-it) and bakes two animated atlases for the engine's billboard material
-(`SAIDA_billboard`: 8 azimuths, one row, 12 walk frames timed by a 1.214 m
-stride, 8 idle frames over 11.667 s), 128-pixel cells of scanned albedo,
-model-frame normals and hemisphere visibility, as the tree impostors are:
-`assets/models/humans/impostors/`, 2.6 MB, registered. Relit and beside the
-mesh at 23 and 12 pixels tall they are near identical
+Far away, another player on his feet is drawn as the impostor of his scan:
+from 60 m, where his body stands under 20 pixels tall, back to his body
+under 54 m (`o::drawnAsImpostor`); down, in the air or swimming he keeps his
+body. His body is hidden, posed twice a second, its arms at rest -- hidden,
+not disabled: disabling it left his capsule unhit, 24 rounds at 70 m and no
+hit -- so a shot at 70 m still meets him (the combat smoke at 70 m: drawn as
+his impostor, the hit confirmed). `python -m r1.human_impostor` poses his scan by its own walk
+and idle clips (`r1/human_views.py`, the skin as the game skins it), turns it
+to face -Z -- the engine's forward, along which `shader.vert` advances a walk
+by the ground covered; facing +Z the walk would play backwards -- and bakes
+two animated atlases for the engine's billboard material (`SAIDA_billboard`:
+8 azimuths, one row, 12 walk frames over a 0.826 m stride in world metres at
+the people's runtime size, 8 idle frames over 11.667 s), 128-pixel cells of
+scanned albedo, model-frame normals and hemisphere visibility, as the tree
+impostors are: `assets/models/humans/impostors/`, 2.6 MB, registered. Relit
+and beside the mesh at 23 and 12 pixels tall they are near identical
 (`generated/human-impostors/`, with three passers-by from `--sample`);
-`test_human_impostors.py` holds them to the engine loader's limits and to
-the scan they were baked from. With numpy (a venv under `generated/`), the
-143 Python tests pass. Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
+`test_human_impostors.py` holds them to the engine loader's limits, to the
+scan they were baked from and to their facing. With numpy (a venv under
+`generated/`), the Python tests pass. Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
 player stands 1.24 m at 0.68 runtime scale (the authored scale 0.8 multiplied
 by `kPeopleVehicleResize=0.85`). Run and sprint retain 2.8 and 7 m/s with
 faster playback through engine clip views, so the feet stay planted. Crowd

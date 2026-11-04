@@ -1447,7 +1447,7 @@
       "license": "MIT",
       "licenseFile": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
       "generatedBy": "game/tools/r1/human_impostor.py",
-      "modifications": "multi-view animated billboard atlases baked from the player's scan posed by its walk and idle clips: albedo, alpha, model-frame normals and ambient visibility; awaiting visual validation, not drawn yet",
+      "modifications": "multi-view animated billboard atlases baked from the player's scan posed by its walk and idle clips, turned to face -Z: albedo, alpha, model-frame normals and ambient visibility; drawn for other players beyond 60 m (native/world/online.cpp)",
       "files": [
         "assets/models/humans/impostors/SOURCES.json",
         "assets/models/humans/impostors/male_adult_08_idle.glb",

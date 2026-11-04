@@ -60,6 +60,11 @@ struct World::Impl::Online {
         bool placed = false;
         double distance = 1e18;    // metres from us, as drawn this frame
         float poseRate = -1;       // animation LOD applied to his body
+        // Far away, his impostor (walk, idle) instead of his body
+        // (o::drawnAsImpostor); children of his root, beside his capsule,
+        // which a shot still meets.
+        saida::Node* impostor[2]{nullptr, nullptr};
+        bool asImpostor = false;
         // What he hears of us (o::tierFor): how often, and when next.
         o::Tier tier = o::Tier::Near;
         double nextSend = 0, lastContact = -1e9;
@@ -77,6 +82,7 @@ struct World::Impl::Online {
         saida::Node *pistol, *launcher;
         saida::RigidBodyNode* capsule;
         saida::RagdollBehaviour* ragdoll;
+        saida::Node* impostor[2];
     };
     std::vector<Body> spare;
     struct Pending {
@@ -236,8 +242,13 @@ struct World::Impl::Online {
         if (!r.root) return;
         r.root->setEnabled(false);
         if (r.fall.ragdoll()) r.fall.release();
+        // Back to the spares whole: his body drawn, his impostors not.
+        if (r.body) r.body->setVisible(true);
+        for (auto* i : r.impostor)
+            if (i) i->setEnabled(false);
         spare.push_back({r.root, r.body, r.bodyRest, r.animator, {r.arms[0], r.arms[1]}, r.pistol, r.launcher, r.capsule,
-                         r.fall.ragdoll()});
+                         r.fall.ragdoll(), {r.impostor[0], r.impostor[1]}});
+        r.impostor[0] = r.impostor[1] = nullptr, r.asImpostor = false;
         r.root = r.body = nullptr, r.animator = nullptr, r.arms[0] = r.arms[1] = nullptr;
         r.pistol = r.launcher = nullptr, r.capsule = nullptr;
         r.fall = r1::Knockdown{};
@@ -752,6 +763,7 @@ void World::Impl::showOnline(double dt) {
                 r.root = b.root, r.body = b.body, r.bodyRest = b.bodyRest, r.animator = b.animator;
                 r.arms[0] = b.arms[0], r.arms[1] = b.arms[1], r.pistol = b.pistol, r.launcher = b.launcher, r.capsule = b.capsule;
                 r.fall.bind(*b.ragdoll, *r.capsule, r1::combat::kLieSeconds);
+                r.impostor[0] = b.impostor[0], r.impostor[1] = b.impostor[1];
                 r.clip.clear();
                 r.poseRate = -1;
             } else {
@@ -844,6 +856,38 @@ void World::Impl::showOnline(double dt) {
         glm::quat facing = glm::angleAxis(float(-a.heading * rad), up);
         if (a.pose == o::Pose::Swim && a.motion != o::Motion::Idle) facing = facing * glm::angleAxis(float(-35. * rad), glm::vec3(1, 0, 0));
         r.root->transform().rotation = facing;
+        // Far away on his feet: his impostor, and his body hidden, posed
+        // twice a second, its arms at rest (o::drawnAsImpostor). Hidden, not
+        // disabled: his ragdoll and the capsule a shot meets stay bound to it.
+        // The impostors face -Z, his root's forward; a walk's frames follow
+        // the ground he covers.
+        if (!r.impostor[0]) {
+            saida::Node *walk = nullptr, *idle = nullptr;
+            if (impostorPrototypes(walk, idle)) {
+                for (int i = 0; i < 2; ++i) {
+                    auto made = clonePlant(*(i == 0 ? walk : idle));
+                    made->transform().position = r.bodyRest.position;
+                    made->transform().scale = r.bodyRest.scale;
+                    made->setEnabled(false);
+                    r.impostor[i] = r.root->addChild(std::move(made));
+                }
+            }
+        }
+        const bool far = r.impostor[0] && o::drawnAsImpostor(r.asImpostor, r.distance, a.pose);
+        if (far != r.asImpostor) {
+            r.asImpostor = far;
+            r.body->setVisible(!far);
+            if (far) r.animator->setPoseRate(2.f, saida::Animator::PoseRateMode::Hold), r.poseRate = 2.f;
+            else r.impostor[0]->setEnabled(false), r.impostor[1]->setEnabled(false), r.poseRate = -1;
+        }
+        if (far) {
+            const bool walking = a.motion != o::Motion::Idle;
+            if (r.impostor[0]->enabled() != walking) r.impostor[0]->setEnabled(walking);
+            if (r.impostor[1]->enabled() == walking) r.impostor[1]->setEnabled(!walking);
+            r.punch = -1;
+            r.shown = a;
+            continue;
+        }
         const std::string clip = clipOf(a.pose == o::Pose::Air ? o::Motion::Jump : a.pose == o::Pose::Swim && a.motion != o::Motion::Idle ? o::Motion::Run : a.motion);
         if (clip != r.clip) {
             r.clip = clip;
@@ -895,6 +939,21 @@ void World::Impl::showOnline(double dt) {
         r.shown = a;
     }
     showSharedCars();
+}
+
+bool World::Impl::impostorPrototypes(saida::Node*& walk, saida::Node*& idle) {
+    if (playerImpostors[0].empty() || impostorsRefused) return false;
+    try {
+        walk = prototype(playerImpostors[0]);
+        idle = prototype(playerImpostors[1]);
+    } catch (const std::exception& e) {
+        // Refused for good (the decode budget, a broken file): said once, and
+        // far players keep their bodies.
+        impostorsRefused = true;
+        saida::Log::error("[World online] the impostors of the player's scan were refused (", e.what(), "): far players are drawn whole");
+        return false;
+    }
+    return walk && idle;
 }
 
 void World::Impl::showSharedCars() {
@@ -1411,11 +1470,17 @@ void World::Impl::runOnlineSmoke(double dt) {
                       "% extrapolated, " + number(other->travelled, 1) + " m travelled, delay " +
                       std::to_string(int(other->replica.targetDelay() * 1000)) + " ms";
         }
+        // Far away on his feet, he is his impostor (o::drawnAsImpostor).
+        if (other && other->distance > o::kImpostorMetres + 2 && other->shown.pose == o::Pose::Stand &&
+            !playerImpostors[0].empty() && !impostorsRefused && !other->asImpostor)
+            return fail("the other player is drawn whole " + number(other->distance, 1) + " m away, past the impostors' " +
+                        number(o::kImpostorMetres, 0) + " m");
         // Every other player is a copy of the scan: drawn in its levels of detail.
         if (other && other->root && detailLevels(*other->root) != playerLevels)
             return fail("the other player's body has " + std::to_string(detailLevels(*other->root)) + " levels of detail of the scan's " +
                         std::to_string(playerLevels));
-        saida::Log::info("[World E2E] PASS online ", onlineSmoke, ": drew the other player in ", playerLevels, " levels of detail, ",
+        saida::Log::info("[World E2E] PASS online ", onlineSmoke, ": drew the other player ",
+                         other && other->asImpostor ? "as his impostor, " : "", "in ", playerLevels, " levels of detail, ",
                          shooter ? "hits confirmed " + std::to_string(n.hitsGiven) : "hits taken " + std::to_string(n.hitsTaken),
                          ", refusals ", n.refused.size(), drawing, ", snapshots sent near/middle/far ",
                          n.sentByTier[0], "/", n.sentByTier[1], "/", n.sentByTier[2]);

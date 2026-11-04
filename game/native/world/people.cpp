@@ -8,6 +8,14 @@ void World::Impl::loadHumans() {
     humanScale=humans.at("scale").get<double>()*kPeopleVehicleResize;
     playerHeight=humans.at("player").at("height").get<double>()*humanScale;
     playerLevels=1+humans.at("player").value("autoLods",json::array()).size();
+    {
+        std::string stem=humans.at("player").at("name").get<std::string>();
+        std::transform(stem.begin(),stem.end(),stem.begin(),[](unsigned char c){return char(std::tolower(c));});
+        const std::string walk="assets/models/humans/impostors/"+stem+"_walk.glb",idle="assets/models/humans/impostors/"+stem+"_idle.glb";
+        if(fs::exists(game/walk)&&fs::exists(game/idle))playerImpostors[0]=walk,playerImpostors[1]=idle;
+        else saida::Log::warn("[World online] no impostors of the player's scan (",walk,"; python -m r1.human_impostor): "
+                              "far players are drawn whole");
+    }
     for(const auto& entry:humans.at("crowd")) {
         HumanKind kind;
         kind.name=entry.at("name");kind.model=entry.at("model");

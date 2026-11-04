@@ -481,6 +481,11 @@ std::array<double, 2> besideFriend(const Avatar& him) {
     return {at.x, at.y};
 }
 
+bool drawnAsImpostor(bool now, double metres, Pose pose) {
+    if (pose != Pose::Stand) return false;
+    return metres > (now ? kBodyMetres : kImpostorMetres);
+}
+
 const char* notYet(const Avatar& him) {
     if (him.pose == Pose::Air) return "in the air";
     if (him.pose == Pose::Dead) return "between lives";

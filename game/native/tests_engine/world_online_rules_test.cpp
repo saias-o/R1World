@@ -509,6 +509,12 @@ int main() {
     versions();
     joining();
     parking();
+    // Far away, on his feet: the impostor; nearer, down or swimming: the body.
+    assert(!o::drawnAsImpostor(false, 59, o::Pose::Stand) && o::drawnAsImpostor(false, 61, o::Pose::Stand));
+    assert(o::drawnAsImpostor(true, 55, o::Pose::Stand) && !o::drawnAsImpostor(true, 53, o::Pose::Stand));  // no flicker at the edge
+    assert(!o::drawnAsImpostor(false, 500, o::Pose::Down) && !o::drawnAsImpostor(true, 500, o::Pose::Swim) &&
+           !o::drawnAsImpostor(false, 500, o::Pose::Air));
+    assert(o::kBodyMetres < o::kImpostorMetres);
     assert(o::playerName(0x3f2a000000000000ull) == "Player 3F2A");
     std::printf("PASS online rules\n");
     return 0;

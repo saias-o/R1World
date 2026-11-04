@@ -13,9 +13,9 @@
     "supersample": 2,
     "extent": 2.0303,
     "pivot": [
-      -0.0027,
+      0.0027,
       0.9077,
-      0.1004
+      -0.1004
     ],
     "instants": [
       0.0,
@@ -31,8 +31,10 @@
       1.0278,
       1.1306
     ],
-    "stride": 1.2144,
-    "bytes": 1579352,
+    "stride": 0.8258,
+    "bytes": 1578960,
+    "facing": "-Z",
+    "runtimeScale": 0.68,
     "method": "posed by the clip's own channels, skinned as the game skins; scanned albedo/alpha, model-frame normals and cosine-weighted hemisphere visibility in normal alpha; no sun baked"
   },
   {
@@ -49,9 +51,9 @@
     "supersample": 2,
     "extent": 1.976,
     "pivot": [
-      -0.0001,
+      0.0001,
       0.9131,
-      0.0502
+      -0.0502
     ],
     "instants": [
       0.0,
@@ -64,7 +66,9 @@
       10.2375
     ],
     "loopSeconds": 11.667,
-    "bytes": 993544,
+    "bytes": 993724,
+    "facing": "-Z",
+    "runtimeScale": 0.68,
     "method": "posed by the clip's own channels, skinned as the game skins; scanned albedo/alpha, model-frame normals and cosine-weighted hemisphere visibility in normal alpha; no sun baked"
   }
 ]

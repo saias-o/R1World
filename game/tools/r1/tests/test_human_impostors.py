@@ -1,6 +1,6 @@
 """The player's impostors (r1.human_impostor): what the engine's loader accepts,
-from the scan they say they come from, registered. Not drawn by the game
-until the user validates them on the sheets (docs/PLAN.md)."""
+from the scan they say they come from, facing the engine's forward, registered.
+Drawn for other players beyond 60 m (native/world/online.cpp)."""
 import hashlib
 import io
 import json
@@ -53,7 +53,12 @@ class HumanImpostors(unittest.TestCase):
     def test_the_walk_loop_is_the_clip_s_stride(self):
         player = json.loads(humans.MANIFEST.read_text(encoding="utf-8"))["player"]
         walk = next(r for r in self.reports if r["clip"] == "walk")
-        self.assertAlmostEqual(walk["stride"], player["clips"]["walk"]["speed"] * player["clips"]["walk"]["seconds"], places=3)
+        # World metres at the people's runtime size: shader.vert measures the
+        # ground covered in the world (humans.json scale x kPeopleVehicleResize).
+        scale = json.loads(humans.MANIFEST.read_text(encoding="utf-8"))["scale"] * 0.85
+        self.assertAlmostEqual(walk["stride"], player["clips"]["walk"]["speed"] * player["clips"]["walk"]["seconds"] * scale, places=3)
+        for r in self.reports:
+            self.assertEqual(r["facing"], "-Z", "the engine's forward: a walk facing +Z would play backwards")
         self.assertTrue(8 <= walk["frames"] <= 12, "eight to twelve poses of the walk (docs/PLAN.md)")
 
     def test_they_are_registered(self):
@@ -62,7 +67,7 @@ class HumanImpostors(unittest.TestCase):
         self.assertEqual(entry["license"], "MIT")
         for r in self.reports:
             self.assertIn(r["output"], entry["files"])
-        self.assertIn("not drawn yet", entry["modifications"])
+        self.assertIn("face -Z", entry["modifications"])
 
 
 if __name__ == "__main__":

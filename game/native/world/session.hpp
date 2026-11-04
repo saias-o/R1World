@@ -1797,6 +1797,13 @@ private:
     // The player's scan in levels of detail (humans.json, autoLods): what a
     // copy of his body must keep, or every other player is drawn whole.
     size_t playerLevels=1;
+    // The player's scan as impostors, his walk and his idle
+    // (assets/models/humans/impostors, python -m r1.human_impostor): other
+    // players far away are drawn as them (online.cpp). Empty when not baked.
+    std::string playerImpostors[2];
+    bool impostorsRefused=false;
+    // Both prototypes, once loaded; null while loading or when refused (said).
+    bool impostorPrototypes(saida::Node*& walk,saida::Node*& idle);
     // A clone of a prototype with its empty nodes removed: every mesh it holds
     // comes back as one node carrying the transform it would have inherited.
     //

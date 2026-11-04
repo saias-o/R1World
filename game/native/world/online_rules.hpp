@@ -277,6 +277,14 @@ std::array<double, 2> besideFriend(const Avatar& him);
 // Why nobody can go to him yet -- in the air, between lives -- or nullptr.
 const char* notYet(const Avatar& him);
 
+// Far away, a player on his feet is drawn as the impostor of the scan every
+// player wears (assets/models/humans/impostors, r1.human_impostor: his walk
+// or his idle, by whether he moves): from kImpostorMetres, where his body
+// stands under 20 pixels tall, back to his body under kBodyMetres, so the
+// edge does not flicker. Down, in the air or swimming, he keeps his body.
+constexpr double kImpostorMetres = 60, kBodyMetres = 54;
+bool drawnAsImpostor(bool now, double metres, Pose pose);
+
 // "Player 3F2A": the first four hex digits of the identity.
 std::string playerName(uint64_t id);
 

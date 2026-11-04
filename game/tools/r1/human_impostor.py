@@ -13,7 +13,11 @@ the idle in IDLE_FRAMES poses over its seconds (`loopSeconds`). As the tree
 impostors (tree_impostor.py): scanned albedo and alpha, normals in the
 model's frame, cosine-weighted hemisphere visibility in the normal's alpha,
 no sun baked -- the game lights them. Every cell is posed by the clip itself
-(human_views.Character), the skin as the game skins it.
+(human_views.Character), the skin as the game skins it, and turned to face
+-Z, the engine's forward: shader.vert advances a walk by the ground its
+instance covers along -Z, so a scan facing +Z would walk backwards. The
+stride is world metres at the people's runtime size (humans.json scale x
+kPeopleVehicleResize), the ground one loop of the walk covers.
 
 Sheets for the validation: generated/human-impostors/ -- every cell relit by
 a sun, and the impostor beside the mesh it replaces at 23 and 12 pixels tall.
@@ -51,11 +55,22 @@ def png(array: np.ndarray) -> bytes:
     return stream.getvalue()
 
 
+def facing_minus_z(pose):
+    """Half a turn about Y: the scan faces +Z, the engine's forward is -Z."""
+    turned = []
+    for position, normal, prim in pose:
+        position, normal = position.copy(), normal.copy()
+        position[:, [0, 2]] *= -1
+        normal[:, [0, 2]] *= -1
+        turned.append((position, normal, prim))
+    return turned
+
+
 def bake_clip(character: Character, mesh: str, clip: str, frames: int):
     """The atlas of one clip: albedo+alpha and normal+visibility, rows of frames."""
     seconds = character.seconds(clip)
     instants = [seconds * f / frames for f in range(frames)]
-    poses = [character.posed(mesh, clip, t) for t in instants]
+    poses = [facing_minus_z(character.posed(mesh, clip, t)) for t in instants]
     points = np.concatenate([p[0] for pose in poses for p in pose])
     low, high = points.min(axis=0), points.max(axis=0)
     # One frame for every cell: the feet stay where they are from frame to frame.
@@ -134,17 +149,19 @@ def write_impostor(target: Path, name: str, albedo, normal, center, extent, fram
     return blobs
 
 
-def bake_person(entry: dict, mesh: str, out: Path) -> list[dict]:
+def bake_person(entry: dict, mesh: str, out: Path, scale: float) -> list[dict]:
     model = GAME / entry["model"]
     character = Character(model)
     reports = []
     for clip, frames in (("walk", WALK_FRAMES), ("idle", IDLE_FRAMES)):
         albedo, normal, center, extent, instants = bake_clip(character, mesh, clip, frames)
         info = entry["clips"][clip]
-        # The walk follows the ground covered: one loop is this many metres
-        # in the model's units (humans.json speed x seconds; the instance's
-        # scale applies on top, as to the mesh). The idle follows the clock.
-        timing = {"stride": round(info["speed"] * info["seconds"], 4)} if clip == "walk" else {"loopSeconds": info["seconds"]}
+        # The walk follows the ground covered: one loop of the clip is this many
+        # world metres at the people's runtime size (humans.json's speed is the
+        # scan's). The idle follows the clock.
+        runtime = scale * RUNTIME_RESIZE
+        timing = ({"stride": round(info["speed"] * info["seconds"] * runtime, 4)} if clip == "walk"
+                  else {"loopSeconds": info["seconds"]})
         if clip == "walk" and not 0 < timing["stride"] <= 20:
             raise SystemExit(f"{entry['name']}: walk stride {timing['stride']} m is outside the material's 0..20 m")
         target = out / f"{entry['name'].lower()}_{clip}.glb"
@@ -156,6 +173,7 @@ def bake_person(entry: dict, mesh: str, out: Path) -> list[dict]:
                         "columns": COLUMNS, "rows": 1, "frames": frames, "resolution": RESOLUTION, "supersample": SUPERSAMPLE,
                         "extent": round(extent, 4), "pivot": [round(float(v), 4) for v in center],
                         "instants": [round(t, 4) for t in instants], **timing, "bytes": target.stat().st_size,
+                        "facing": "-Z", "runtimeScale": round(runtime, 4),
                         "method": "posed by the clip's own channels, skinned as the game skins; scanned albedo/alpha, "
                                   "model-frame normals and cosine-weighted hemisphere visibility in normal alpha; no sun baked"})
         relit_sheet(albedo, normal, SHEETS / f"{target.stem}_relit.png")
@@ -190,7 +208,7 @@ def compare_sheet(character: Character, mesh: str, clip: str, instants, albedo, 
         side = max(8, int(round(pixels / height_fraction)))
         row = []
         for column in (0, 1, 3):
-            renderer.draw(character.posed(mesh, clip, instants[0]), view_projection(center, extent, column * 2 * math.pi / COLUMNS))
+            renderer.draw(facing_minus_z(character.posed(mesh, clip, instants[0])), view_projection(center, extent, column * 2 * math.pi / COLUMNS))
             mesh_view = Image.fromarray(np.uint8(np.clip(shaded(renderer.read(0), renderer.read(1)), 0, 1) * 255 + .5))
             cells = (slice(0, RESOLUTION), slice(column * RESOLUTION, (column + 1) * RESOLUTION))
             cell_view = Image.fromarray(np.uint8(np.clip(relit(albedo[cells], normal[cells]), 0, 1) * 255 + .5))
@@ -215,7 +233,8 @@ def register(reports: list[dict]) -> None:
         "license": "MIT", "licenseFile": "assets/licenses/Microsoft-Rocketbox-MIT.txt",
         "generatedBy": "game/tools/r1/human_impostor.py",
         "modifications": "multi-view animated billboard atlases baked from the player's scan posed by its walk and idle "
-                         "clips: albedo, alpha, model-frame normals and ambient visibility; awaiting visual validation, not drawn yet",
+                         "clips, turned to face -Z: albedo, alpha, model-frame normals and ambient visibility; drawn for "
+                         "other players beyond 60 m (native/world/online.cpp)",
         "files": sorted([r["output"] for r in reports] + [(OUT / "SOURCES.json").relative_to(GAME).as_posix()]),
     })
     path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -226,14 +245,14 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     SHEETS.mkdir(parents=True, exist_ok=True)
     player = manifest["player"]
-    reports = bake_person(player, player["lods"][0]["name"], OUT)
+    reports = bake_person(player, player["lods"][0]["name"], OUT, float(manifest["scale"]))
     (OUT / "SOURCES.json").write_text(json.dumps(reports, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     register(reports)
     if "--sample" in sys.argv:
         SAMPLE_OUT.mkdir(parents=True, exist_ok=True)
         for entry in manifest["crowd"]:
             if entry["name"] in SAMPLE:
-                bake_person(entry, "Near", SAMPLE_OUT)
+                bake_person(entry, "Near", SAMPLE_OUT, float(manifest["scale"]))
     for r in reports:
         print(f"{r['output']}: {r['frames']} frames x {r['columns']} azimuths, {r['bytes'] / 1e6:.2f} MB")
     print(f"sheets in {SHEETS}; runtime size x{RUNTIME_RESIZE} applies on top of humans.json's scale")
