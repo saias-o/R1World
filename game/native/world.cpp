@@ -84,6 +84,8 @@ int main(int argc,char** argv) {
         if(gestureInput)world.setXrGestureInput(gestureInput->state());
 #endif
         world.setMenuGlobe(menuGlobe);
+        // --online / --offline: multiplayer on or off for this session, whatever Settings say.
+        for(int i=1;i<argc;++i)if(std::string(argv[i])=="--online")world.setOnline(true);
         for(int i=1;i<argc;++i)if(std::string(argv[i])=="--offline")world.setOnline(false);
         for(int i=1;i+1<argc;++i)if(std::string(argv[i])=="--join")world.setJoin(argv[i+1]);
         for(int i=1;i<argc;++i)if(std::string(argv[i])=="--dive")world.diveSmoke();

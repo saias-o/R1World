@@ -294,10 +294,37 @@ rocket at you, as you can them. There is no server of R1World's anywhere:
   (`Player 3F2A hidden: ...`), until it falls below 1.5. Each machine believes
   only what it saw: nothing is voted, so forged accounts cannot accuse an
   honest player. Every strike is logged (`[World online] witness:`).
-- **What is not shared.** Cars, traffic, animals, passers-by, police and the
-  weather stay each machine's own, as asked: a player at the wheel is not
-  drawn until he steps out. A remote rocket destroys cars only in your own
-  world, and never adds to your wanted level.
+- **Off by default.** Multiplayer is off until the player turns it on in
+  *Settings > Online* (kept in `cache/options.json` as `online`); nothing
+  goes on the network before. `--online` and `--offline` force it for one
+  session, and `--join CODE` turns it on for that session. Off, a join is
+  refused in the tab, saying so.
+- **One world for everyone.** Multiplayer on, nothing that each machine
+  would invent for itself is in the world: no traffic, no passers-by, no
+  beach visitors, no police (and so no wanted level), and the vehicle cheats
+  are refused, saying why (`world/shared_cars.cpp`, `applySharedWorld`).
+  Instead there are parked cars, the same at the same places for everyone:
+  each machine reads them off the tile's own street graph by
+  `world/parking_rules` -- the kerb of the side the country drives on, in the
+  outermost lane of streets at 50 km/h or less, a place every 6.5 m, 12 m
+  clear of a junction or a dead end (not of a shape point, where a street
+  drawn in short pieces only bends), a car on 35 places in 100 by a hash of
+  the tile, the road and the place. A car's identity is its place, so an
+  edited street moves only its own cars. Each stands on the ground itself,
+  not on the street graph's cooked heights, which the seams moved (they
+  stood one 1.9 m above a Paris quay). Every place is known; the 96 nearest
+  within 130 m have a node, the rest wait in a pool of their own.
+- **A car someone takes.** He owns it, as he owns his avatar: he says where
+  it is ten times a second while he drives it and once a second once he has
+  left it (`o::Vehicle`, 44 bytes: place, paint, fleet model, take count,
+  position, attitude, speed), and the others draw it there and leave its
+  place empty for the session. Every take counts; two players taking one
+  car, the later take keeps it, then the lower identity, and the other is
+  put out of it and told. A car another player left can be taken. A car
+  whose driver is not heard for 30 s is forgotten, its place still empty.
+  Boats, aircraft, animals and the weather stay each machine's own (a player
+  aboard a boat or an aircraft is not drawn), and a remote rocket destroys
+  cars only in your own world.
 
 - **Another version.** The meeting places and the handshake carry only the
   application (`r1world/online`), never the version, so every R1World finds
@@ -2448,7 +2475,17 @@ zoom 7, the stored relief zoom 9, both with the same coastal-ringing correction
 as the runtime. The source images are discarded after each pack.
 
 The layer belongs under `assets/world/relief/`, is excluded from Git, and must
-be built before distributing the game. Engine exports copy unknown extensions:
+be built before distributing the game. Without it -- it was missing from the reference
+laptop on 3 November 2026 -- a tile whose survey has not landed stands on
+flat ground at sea level, two nodes a side, whose seam can follow a
+neighbour's edge only at the corners (a packaged first visit to Paris failed
+its smoke on an 18-53 m step), and the far relief past ring 2 is refused. The
+generator now says so once (`[World service] RELIEF-LAYER-MISSING`), a far
+ring refused names the missing layer, and `tools/package_world.py` refuses to
+pack fewer than the 648 packs (`--partial-relief` packs them anyway). With
+the Paris pack alone (`--region 45 0 50 5`: 62 s, 347 images, 44 MB read,
+5.3 MB written) a fresh package passed its smoke on the first visit, then
+closed 16 seams within 3e-12 m on the second. Engine exports copy unknown extensions:
 Windows and Web exports were checked with an actual pack and identical SHA-256.
 On Web it is listed among the MEMFS boot files, which would preload the entire
 layer. R1World currently builds as a Windows native application; a Web/console

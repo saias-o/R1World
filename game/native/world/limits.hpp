@@ -95,6 +95,9 @@ constexpr size_t kCrowdPeople=60;
 // cleared. They cost a node each and nothing else -- the mesh is shared -- but
 // a city paved with the player's abandoned cars is its own kind of wrong.
 constexpr size_t kAbandonedCars=6;
+// Multiplayer on: the parked cars drawn, the nearest first, within this far.
+constexpr size_t kParkedShown=96;
+constexpr double kParkedRadius=130;
 // Interiors (PLAN §8): built within kInteriorLoad metres of the door, released
 // beyond kInteriorRelease, kInteriorRooms at most, the player's first. An
 // entrance whose room is not built is a closed door within kClosedDoorNear,

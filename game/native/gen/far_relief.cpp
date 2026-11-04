@@ -95,7 +95,10 @@ FarLevel sampleWorldFarLevel(const ObservationStore& store, const Anchor& anchor
                 catch (const std::exception& e) { why = e.what(); }
             }
             if (!coarse) if (auto h = height()) return *h;
-            throw SourceUnavailable("no relief at " + std::to_string(lon) + "," + std::to_string(lat) + ": " + why);
+            // The coarse rings read the installed layer alone: without it,
+            // the cause is the layer, not the Mapzen tile the fallback missed.
+            throw SourceUnavailable("no relief at " + std::to_string(lon) + "," + std::to_string(lat) + ": " + why +
+                                    (installed.installed() ? "" : "; the installed relief layer is missing (assets/world/relief, built by r1relief)"));
         };
     };
     auto level = sampleFarLevel(anchor, originX, originZ, spacing, resolution,

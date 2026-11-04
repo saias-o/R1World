@@ -89,6 +89,24 @@ Avatar lerp(const Avatar& a, const Avatar& b, double t) {
     return out;
 }
 
+Car lerpCar(const Car& a, const Car& b, double t) {
+    if (!(t >= 0)) return b;
+    Car out = b;
+    out.lon = world::wrap(angleLerp(a.lon, b.lon, t));
+    out.lat = std::clamp(a.lat + (b.lat - a.lat) * t, -90., 90.);
+    out.alt = float(a.alt + (b.alt - a.alt) * t);
+    const double v = std::min(t, 1.);
+    out.yaw = float(world::wrap(angleLerp(a.yaw, b.yaw, v)));
+    out.pitch = float(a.pitch + (b.pitch - a.pitch) * v);
+    out.roll = float(a.roll + (b.roll - a.roll) * v);
+    out.speed = float(a.speed + (b.speed - a.speed) * v);
+    return out;
+}
+
+bool outranks(uint16_t claim, uint64_t owner, uint16_t otherClaim, uint64_t otherOwner) {
+    return claim != otherClaim ? claim > otherClaim : owner <= otherOwner;
+}
+
 std::array<double, 3> feetEcef(const Avatar& a) {
     const auto p = world::ecef(a.lon, a.lat, a.alt);
     return {p.x, p.y, p.z};
@@ -127,6 +145,20 @@ std::vector<uint8_t> encode(const Message& m) {
     case Kind::Rocket: writePoint(w, m.rocket.muzzle), writePoint(w, m.rocket.target); break;
     case Kind::Hit: w.u64(m.hit.victim), w.u64(m.hit.shooter), w.f32(m.hit.damage), w.u8(m.hit.killed ? 1 : 0); break;
     case Kind::Welcome: break;  // the kind says it all
+    case Kind::Vehicle: {
+        const Vehicle& v = m.vehicle;
+        const Car& c = v.state;
+        w.u64(v.car), w.u32(v.seed), w.u8(v.model), w.u16(v.claim);
+        w.u32(uint32_t(quantize<int32_t>(world::wrap(c.lon), kDegreeStep)));
+        w.u32(uint32_t(quantize<int32_t>(std::clamp(c.lat, -90., 90.), kDegreeStep)));
+        put24(w, uint32_t(std::clamp(std::round((c.alt - kAltitudeFloor) / kAltitudeStep), 0., 16777215.)));
+        w.u16(uint16_t(int(std::round((world::wrap(c.yaw) + 180.) * kTurn)) & 0xffff));
+        w.u16(uint16_t(quantize<int16_t>(std::clamp(double(c.pitch), -90., 90.), 90. / 32767.)));
+        w.u16(uint16_t(quantize<int16_t>(std::clamp(double(c.roll), -180., 180.), 180. / 32767.)));
+        w.u16(uint16_t(quantize<int16_t>(c.speed, .02)));
+        w.u8(c.driven ? 1 : 0);
+        break;
+    }
     default: break;
     }
     return out;
@@ -197,6 +229,22 @@ bool decode(const uint8_t* data, size_t size, Message& out) {
         break;
     }
     case Kind::Welcome: break;
+    case Kind::Vehicle: {
+        Vehicle& v = m.vehicle;
+        Car& c = v.state;
+        v.car = r.u64(), v.seed = r.u32(), v.model = r.u8(), v.claim = r.u16();
+        const int32_t lon = int32_t(r.u32()), lat = int32_t(r.u32());
+        c.lon = lon * kDegreeStep, c.lat = lat * kDegreeStep;
+        c.alt = float(kAltitudeFloor + get24(r) * kAltitudeStep);
+        c.yaw = float(world::wrap(r.u16() / kTurn - 180.));
+        c.pitch = float(int16_t(r.u16()) * (90. / 32767.));
+        c.roll = float(int16_t(r.u16()) * (180. / 32767.));
+        c.speed = float(int16_t(r.u16()) * .02);
+        const uint8_t driven = r.u8();
+        c.driven = driven == 1;
+        sane = sane && v.car != 0 && std::abs(c.lon) <= 180 && std::abs(c.lat) <= 90 && c.alt < 20000 && driven <= 1;
+        break;
+    }
     default: return false;
     }
     if (!r.ok() || !r.done() || !sane) return false;

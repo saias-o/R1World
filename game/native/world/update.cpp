@@ -32,6 +32,7 @@ void World::Impl::update(float delta) {
     samplePerformance(frameSeconds);handlePerformanceKeys(debugKeys);placePerformanceCanvas();
     cost=FrameCost{};
     pumpOnline();
+    updateParking();
     if(checkPhysics())return;
     if(!refreshInterface())return;
     if(!updateSession(delta,frameSeconds))return;

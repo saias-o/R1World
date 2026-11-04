@@ -122,6 +122,39 @@ struct World::Impl::Online {
     size_t welcomed = 0;   // players who joined us with our code
     double joinedAt = -1;
     std::string passed;    // the smoke's verdict, said once the other has seen it too
+    // The cars other players own (o::Vehicle), drawn from what they say.
+    struct SharedCar {
+        uint64_t owner = 0;
+        p2p::PeerHandle peer = p2p::kNoPeer;
+        uint16_t claim = 0;
+        uint32_t seed = 0;
+        uint8_t model = 0;
+        o::Car last;
+        double heard = 0;
+        nc::Replica<o::Car> replica;
+        saida::Node* node = nullptr;
+    };
+    std::map<uint64_t, SharedCar> sharedCars;
+    void carHeard(p2p::PeerHandle from, uint64_t owner, const o::Message& m) {
+        const o::Vehicle& v = m.vehicle;
+        auto found = sharedCars.find(v.car);
+        if (found != sharedCars.end() && found->second.owner != owner) {
+            // Two players claim it: the later take keeps it (o::outranks).
+            if (!o::outranks(v.claim, owner, found->second.claim, found->second.owner)) return;
+            saida::Node* node = found->second.node;
+            sharedCars.erase(found);
+            found = sharedCars.emplace(v.car, SharedCar{}).first;
+            found->second.node = node;
+        }
+        if (found == sharedCars.end()) {
+            if (sharedCars.size() >= 512) return refuse("a car of " + o::playerName(owner), "already following the most cars");
+            found = sharedCars.emplace(v.car, SharedCar{}).first;
+        }
+        SharedCar& c = found->second;
+        c.owner = owner, c.peer = from, c.claim = v.claim, c.seed = v.seed, c.model = v.model, c.last = v.state;
+        c.heard = thread->now();
+        c.replica.push(m.sent, c.heard, v.state);
+    }
     // What this machine saw each player do (online_rules.hpp, Witness).
     o::Witness witness;
     std::map<std::string, double> refusedSaid;
@@ -299,8 +332,8 @@ const char* clipOf(o::Motion m) {
 void World::Impl::startOnline() {
     const bool wanted = smoke ? onlineSmoke != nullptr : onlineWanted;
     if (!wanted) return;
-    if (onlineSmoke && !std::set<std::string>{"target", "shooter", "versions", "host", "joiner"}.count(onlineSmoke))
-        throw std::runtime_error("R1WORLD_ONLINE_SMOKE must be target, shooter, versions, host or joiner");
+    if (onlineSmoke && !std::set<std::string>{"target", "shooter", "versions", "host", "joiner", "driver", "watcher"}.count(onlineSmoke))
+        throw std::runtime_error("R1WORLD_ONLINE_SMOKE must be target, shooter, versions, host, joiner, driver or watcher");
     std::unique_ptr<Online, OnlineDeleter> n(new Online);
     // The versions smoke plays one of its two instances as another build.
     if (const char* other = std::getenv("R1WORLD_ONLINE_PROTOCOL"); other && smoke) n->protocol = other;
@@ -362,6 +395,7 @@ void World::Impl::startOnline() {
             self->welcomedBy.insert(from);
             return;
         }
+        if (m.kind == o::Kind::Vehicle) return self->carHeard(from, info->id, m);
         if (m.kind != o::Kind::State) {
             if (self->inbox.size() < 512) self->inbox.push_back({from, m});
             else self->refuse("a message from " + o::playerName(info->id), "too many at once");
@@ -863,6 +897,127 @@ void World::Impl::showOnline(double dt) {
         }
         r.shown = a;
     }
+    showSharedCars();
+}
+
+void World::Impl::showSharedCars() {
+    Online& n = *online;
+    const auto held = n.hold();
+    const uint64_t me = n.host->identity().id();
+    // Ours first: one another player took from us, he keeps (o::outranks);
+    // the rest we say where they are.
+    for (auto it = ownedCars.begin(); it != ownedCars.end();) {
+        saida::Node* node = it->first;
+        OwnedCar& own = it->second;
+        const auto other = n.sharedCars.find(own.id);
+        if (other != n.sharedCars.end() && other->second.owner != me &&
+            o::outranks(other->second.claim, other->second.owner, own.claim, me)) {
+            const std::string who = o::playerName(other->second.owner);
+            saida::Log::info("[World online] ", who, " took the car ", own.id, " (take ", other->second.claim, " against ours, ",
+                             own.claim, "): it is his");
+            if (node == car && driving()) leaveCar();
+            text("stream-status", who + " has taken this car.");
+            if (node == car) car = nullptr, carParked = false;
+            for (auto p = parked.begin(); p != parked.end(); ++p)
+                if (p->node == node) {
+                    parked.erase(p);
+                    break;
+                }
+            node->queueFree();
+            it = ownedCars.erase(it);
+            continue;
+        }
+        if (other != n.sharedCars.end()) {  // an older claim than ours: ours now
+            if (other->second.node) other->second.node->queueFree();
+            n.sharedCars.erase(other);
+        }
+        const bool driven = node == car && driving();
+        if (n.now >= own.nextSay && node->enabled()) {
+            own.nextSay = n.now + (driven ? o::kCarSendSeconds : o::kCarParkedSeconds);
+            o::Message m;
+            m.kind = o::Kind::Vehicle, m.sent = n.now;
+            m.vehicle = {own.id, own.seed, own.model, own.claim, carState(*node)};
+            n.send(m, p2p::Channel::Unreliable);
+        }
+        ++it;
+    }
+    // Theirs: drawn where their owners say, and their places left empty.
+    for (auto it = n.sharedCars.begin(); it != n.sharedCars.end();) {
+        const uint64_t id = it->first;
+        Online::SharedCar& c = it->second;
+        takenCars.insert(id);
+        const double silent = n.now - c.heard;
+        if (c.last.driven && silent > o::kCarGoneSeconds) {
+            saida::Log::info("[World online] the car ", id, " of ", o::playerName(c.owner), " is gone, not heard of for ", int(silent), " s");
+            if (c.node) c.node->queueFree();
+            it = n.sharedCars.erase(it);
+            continue;
+        }
+        o::Car at = c.last;
+        if (c.last.driven) c.replica.sample(n.now, at, o::lerpCar);
+        const bool show = playing && !(c.last.driven && silent > o::kAwaySeconds) && c.model < fleet.size() &&
+                          metresBetween(lon, lat, at.lon, at.lat) < kParkedRadius * 3;
+        if (!show) {
+            if (c.node) c.node->setEnabled(false);
+            ++it;
+            continue;
+        }
+        if (!c.node) {
+            auto made = clonePlant(*fleet[c.model].prototype);
+            vehicleCollider(*made, fleet[c.model]);
+            paintCar(*made, paintFor(c.seed));
+            c.node = engine.sceneTree().world().addChild(std::move(made));
+        }
+        c.node->setEnabled(true);
+        if (!r1::VehicleRuntime::physical(*c.node)) {
+            c.node->transform().position = glm::vec3(origin.local(ecef(at.lon, at.lat, at.alt + r1::VehicleRuntime::kBodyClearance)));
+            c.node->transform().rotation = glm::angleAxis(float(-at.yaw * rad), glm::vec3(0, 1, 0)) *
+                                           glm::angleAxis(float(at.pitch * rad), glm::vec3(1, 0, 0)) *
+                                           glm::angleAxis(float(-at.roll * rad), glm::vec3(0, 0, 1));
+        }
+        ++it;
+    }
+}
+
+bool World::Impl::nearestSharedCar(Reach& out, double& distance) {
+    if (!online) return false;
+    const auto held = online->hold();
+    bool found = false;
+    const glm::dvec3 me = ecef(lon, lat, alt);
+    for (auto& [id, c] : online->sharedCars) {
+        if (!c.node || !c.node->enabled() || c.last.driven) continue;  // nobody takes a car someone drives
+        const double d = glm::length(me - ecef(c.last.lon, c.last.lat, c.last.alt));
+        if (d < distance) distance = d, out = {c.node, nullptr, 0, 4}, found = true;
+    }
+    return found;
+}
+
+bool World::Impl::takeSharedCar(const Reach& target) {
+    if (!online) return false;
+    Online& n = *online;
+    const auto held = n.hold();
+    for (auto it = n.sharedCars.begin(); it != n.sharedCars.end(); ++it) {
+        if (it->second.node != target.node) continue;
+        const uint64_t id = it->first;
+        const uint16_t claim = uint16_t(it->second.claim + 1);
+        const uint64_t from = it->second.owner;
+        const uint32_t seed = it->second.seed;
+        const uint8_t model = it->second.model;
+        const float heading = it->second.last.yaw;
+        saida::Node* node = it->second.node;
+        n.sharedCars.erase(it);
+        abandonCurrentCar();
+        car = node;
+        const auto point = origin.origin + origin.basis * glm::dvec3(car->transform().position);
+        const auto geo = r1::ecefToGeodetic(point.x, point.y, point.z);
+        carParked = true, carLon = geo.x, carLat = geo.y, carAlt = groundAt(carLon, carLat, alt), carYaw = heading;
+        carSpeed = 0, wheelSpin = 0, steerShown = 0;
+        collectWheels(*car);
+        ownedCars[car] = {id, seed, model, claim, 0};
+        saida::Log::info("[World online] took the car ", id, " that ", o::playerName(from), " left (take ", claim, ")");
+        return true;
+    }
+    return false;
 }
 
 uint64_t World::Impl::remoteByBody(const saida::RaycastHit& hit, double& seen) {
@@ -941,6 +1096,35 @@ void World::Impl::sendRocket(const glm::vec3& muzzle, const glm::vec3& target) {
 // Two instances at one spot (tools/online_smoke.py): each must draw the other;
 // the shooter fires at the body he draws until the target's machine says it
 // was hit; the target passes once hit by the other player.
+void World::Impl::stopOnline() {
+    if (!online) return;
+    {
+        const auto held = online->hold();
+        for (auto& [peer, r] : online->remotes) online->releaseBody(r);
+        for (auto& body : online->spare) body.root->queueFree();
+        online->spare.clear();
+        for (auto& [id, c] : online->sharedCars)
+            if (c.node) c.node->queueFree();
+        online->sharedCars.clear();
+    }
+    online.reset();  // the deleter stops the thread and says the last summary
+    onlineStarted = false;
+    punchRemote = 0;
+}
+
+void World::Impl::setOnlinePlay(bool on) {
+    onlinePreference = on;
+    if (on != onlineWanted) {
+        onlineWanted = on;
+        saida::Log::info("[World options] multiplayer ", on ? "on" : "off");
+        if (!on) stopOnline(), friendCode.clear();
+        else onlineStarted = false;  // pumpOnline opens it, in play or for a friend to join
+    }
+    sayOnlinePlay();
+    sayInvite();
+    saveOptions();
+}
+
 const std::string& World::Impl::invite() {
     if (inviteCode.empty()) {
         // The smoke's host is given his, so that its joiner can be given it too.
@@ -954,13 +1138,13 @@ const std::string& World::Impl::invite() {
 
 void World::Impl::sayInvite() {
     text("invite-code", onlineWanted ? invite() : "—");
-    if (!onlineWanted) text("join-status", "Online play is off (--offline): no code, nobody to join.");
+    if (!onlineWanted) text("join-status", "Multiplayer is off: turn it on above to get a code and join a friend.");
     else if (online && !online->joinSaid.empty()) text("join-status", online->joinSaid);
 }
 
 void World::Impl::joinFriend(const std::string& typed) {
     std::string code, refusal;
-    if (!onlineWanted) refusal = "Online play is off (--offline): nobody can be joined.";
+    if (!onlineWanted) refusal = "Multiplayer is off: turn it on above, then join.";
     else if (!p2p::normalizeArenaCode(typed, code))
         refusal = "\"" + typed + "\" is not an invite code: eight letters and digits, like K7QM-2XPA.";
     else if (code == invite()) refusal = "That is your own code: give it to a friend, who types it here.";
@@ -1056,6 +1240,133 @@ void World::Impl::runOnlineSmoke(double dt) {
         }
         if (n.hud.find("on another version") != std::string::npos) n.passedAt = n.now;
         else if (n.now > 200) fail("never said the other version (panel: \"" + n.hud + "\", " + std::to_string(n.host->peers().size()) + " linked)");
+        return;
+    }
+    // A shared car: the driver takes the parked car nearest him and drives
+    // it away; the watcher must see it move, its place left empty. Both
+    // check the shared world first: no traffic, nobody, parked cars.
+    if (std::string(onlineSmoke) == "driver" || std::string(onlineSmoke) == "watcher") {
+        const bool driver = std::string(onlineSmoke) == "driver";
+        if (n.passedAt >= 1e17) return;
+        if (n.passedAt >= 0) {
+            // Meanwhile he looks at the parked car nearest him, for the picture.
+            if (driver) {
+                double nearest = 1e9;
+                for (auto& [key, tile] : loaded)
+                    for (const auto& p : tile.kerbCars)
+                        if (p.node) {
+                            const auto here = geodeticOf(tile, p.node->transform().position);
+                            const glm::dvec3 to = origin.local(ecef(here.x, here.y, alt)) - origin.local(ecef(lon, lat, alt));
+                            const double d = glm::length(to);
+                            if (d > 6 && d < nearest) nearest = d, yaw = std::atan2(to.x, -to.z) / rad;
+                        }
+            }
+            if (n.now - n.passedAt > (driver ? 6 : 2)) {  // the driver lingers, so the watcher hears where the car stands
+                saida::Log::info("[World E2E] PASS online ", onlineSmoke, ": ", n.passed);
+                n.passedAt = 1e18;
+                // The driver's view of the street he parked in, to look at.
+                if (const char* png = std::getenv("R1WORLD_ONLINE_SHOT"); png && driver) {
+                    saida::CaptureRequest shot;
+                    shot.pngPath = png, shot.frame = 1, shot.waitForAssets = false;
+                    engine.captureFrameThenExit(shot);
+                } else engine.sceneTree().quit();
+            }
+            return;
+        }
+        size_t drawn = 0, places = 0;
+        int people = 0;
+        double worstGap = 0;  // a parked car's body above or below the ground under it
+        for (auto& [key, tile] : loaded) {
+            places += tile.kerbCars.size();
+            people += tile.crowd.live();
+            for (const auto& p : tile.kerbCars)
+                if (p.node) {
+                    ++drawn;
+                    const auto at = p.node->transform().position;
+                    const auto geo = geodeticOf(tile, at);
+                    const double ground = groundUnder(tile, at.x, at.z, p.up);
+                    const double gap = std::abs(at.y - r1::VehicleRuntime::kBodyClearance - ground);
+                    if (gap > worstGap && gap > .6) {
+                        saida::Log::info("[World parking] car ", p.spot.id, " at ", geo.x, ", ", geo.y, ": road ", p.up, " m, ground ", ground,
+                                         " m, body ", at.y, " m, lane ", p.spot.lane, " speed ", tile.graph.lanes[p.spot.lane].speed,
+                                         ", physical ", r1::VehicleRuntime::physical(*p.node));
+                    }
+                    worstGap = std::max(worstGap, gap);
+                }
+        }
+        if (worstGap > .6) return fail("a parked car stands " + number(worstGap, 2) + " m off the ground under it");
+        if (trafficLive() > 0) return fail(std::to_string(trafficLive()) + " traffic cars in a shared world");
+        if (people > 0) return fail(std::to_string(people) + " passers-by in a shared world");
+        if (n.now > 240)
+            return fail(driver ? "never drove a parked car away (" + std::to_string(drawn) + " parked cars drawn of " + std::to_string(places) + ")"
+                               : "never saw the other player's car move (" + std::to_string(n.sharedCars.size()) + " cars heard of)");
+        auto placeOf = [&](uint64_t id, glm::dvec2& at) {
+            for (auto& [key, tile] : loaded)
+                for (const auto& p : tile.kerbCars)
+                    if (p.spot.id == id) {
+                        const auto point = tile.frame.origin + tile.frame.basis * glm::dvec3(p.spot.x, p.up, p.spot.y);
+                        const auto geo = r1::ecefToGeodetic(point.x, point.y, point.z);
+                        at = {geo.x, geo.y};
+                        return p.node == nullptr;  // its place empty
+                    }
+            return false;
+        };
+        if (!driver) {
+            for (auto& [id, c] : n.sharedCars) {
+                glm::dvec2 at;
+                if (!c.node || !c.node->enabled() || !placeOf(id, at)) continue;
+                const double moved = metresBetween(at.x, at.y, c.last.lon, c.last.lat);
+                if (moved < 8) continue;
+                n.passedAt = n.now;
+                n.passed = "saw " + o::playerName(c.owner) + "'s car " + number(moved, 1) + " m from its place, the place empty, " +
+                           std::to_string(drawn) + " parked cars drawn of " + std::to_string(places) + ", worst " + number(worstGap, 2) +
+                           " m off the ground, no traffic, nobody";
+            }
+            return;
+        }
+        // His picture is taken in daylight (a test run saves no option).
+        if (driver && std::getenv("R1WORLD_ONLINE_SHOT") && !forcedMinutes) forceTime(14 * 60);
+        // The driver: once the other is drawn, to the nearest parked car.
+        bool other = false;
+        for (auto& [peer, r] : n.remotes) other |= r.visible;
+        if (!other && !driving() && smokeDriveTime == 0) return;
+        if (!driving() && smokeDriveTime == 0) {
+            Reach target;
+            double distance = 1e9;
+            const glm::dvec3 me = ecef(lon, lat, alt);
+            for (auto& [key, tile] : loaded)
+                for (size_t i = 0; i < tile.kerbCars.size(); ++i)
+                    if (auto* node = tile.kerbCars[i].node) {
+                        const auto here = geodeticOf(tile, node->transform().position);
+                        const double d = glm::length(me - ecef(here.x, here.y, alt));
+                        if (d < distance) distance = d, target = {node, &tile, i, 3};
+                    }
+            if (!target.node) return;
+            if (distance > 3) {
+                const auto here = geodeticOf(*target.tile, target.node->transform().position);
+                const glm::dvec3 to = origin.local(ecef(here.x, here.y, alt)) - origin.local(me);
+                yaw = std::atan2(to.x, -to.z) / rad;
+                smokeToCar = true;
+                return;
+            }
+            smokeToCar = false;
+            if (!enterCar() || !ownedCars.count(car)) return fail("could not take the parked car " + number(distance, 1) + " m away");
+            smokeDriving = true, smokeBrake = false, smokeDriveTime = 1e-6;
+            smokeDriveStart = ecef(lon, lat, alt);
+            return;
+        }
+        smokeDriveTime += dt;
+        if (smokeDriveTime > 4) smokeBrake = true;
+        if (smokeDriveTime > 7 && driving()) {
+            smokeDriving = false;
+            leaveCar();
+            const double moved = glm::length(ecef(carLon, carLat, carAlt) - smokeDriveStart);
+            if (moved < 8) return fail("the parked car moved only " + number(moved, 1) + " m");
+            n.passedAt = n.now;
+            n.passed = "took a parked car (" + std::to_string(ownedCars.size()) + " owned) and drove it " + number(moved, 1) + " m, " +
+                       std::to_string(drawn) + " parked cars drawn of " + std::to_string(places) + ", worst " + number(worstGap, 2) +
+                       " m off the ground, no traffic, nobody";
+        }
         return;
     }
     // A friend joined by his code: the joiner starts kilometres away with

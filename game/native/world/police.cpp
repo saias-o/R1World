@@ -40,7 +40,7 @@ bool World::Impl::policeSight(glm::vec3 from,glm::vec3 to,saida::CollisionObject
 }
 
 void World::Impl::reportCrime(r1::police::Crime crime,glm::vec3 at,bool identified) {
-    if(wasted||!playing||rocketPoliceDamage)return;
+    if(wasted||!playing||rocketPoliceDamage||sharedWorld())return;
     const glm::vec3 suspect=policePlayerPosition()+glm::vec3(0,float(playerHeight*.7),0);
     bool witness=identified||policeObserved;
     // A witness must see the offender. Sound scares the street, but a shot
@@ -426,6 +426,7 @@ void World::Impl::policeAir(double dt,bool think) {
 
 void World::Impl::updatePolice(double elapsed) {
     SAIDA_PROFILE_SCOPE("World/Police");
+    if(sharedWorld())return;  // multiplayer on: no police (applySharedWorld)
     const double dt=elapsed;policeClock+=dt;policeThink+=dt;policeSpawn+=dt;
     policeRocketSpacing=std::max(0.,policeRocketSpacing-dt);
     policeEscalation.update(dt,wanted.percent>0&&wanted.lethal()&&policeObserved&&!wasted);

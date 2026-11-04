@@ -52,6 +52,7 @@ label { display: block; margin-bottom: 12px; font-size: 14px; color: #a9bbcf; }
 #settings-destination .form-row { align-items: flex-end; }
 #destination-go { height: 49px; min-width: 96px; }
 #settings-online .form-row { align-items: flex-end; margin-top: 26px; }
+#online-presets { margin-bottom: 26px; }
 #invite-code { margin: 0; font-size: 34px; letter-spacing: 4px; color: #f0f7ff; }
 #join-friend { height: 49px; min-width: 96px; }
 #forced-time { width: 140px; }

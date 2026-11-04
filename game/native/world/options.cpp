@@ -15,7 +15,10 @@ bool World::Impl::testRun() const {return smoke||!worldCapture.pngPath.empty();}
 
 void World::Impl::loadOptions() {
     const auto saved=OptionsStore(game,reportOptions).load(
-        {forcedMinutes,forcedWeather,toasterMode,giQuality,false},testRun());
+        {forcedMinutes,forcedWeather,toasterMode,giQuality,false,onlinePreference},testRun());
+    onlinePreference=saved.online;
+    // A test run plays online only when told to (R1WORLD_ONLINE_SMOKE).
+    if(!testRun())onlineWanted=onlinePreference;
     forcedMinutes=saved.forcedMinutes;
     forcedWeather=saved.forcedWeather;
     toasterMode=saved.toasterMode;
@@ -27,7 +30,7 @@ void World::Impl::loadOptions() {
 
 void World::Impl::saveOptions() {
     if(testRun())return;
-    const SavedOptions saved{forcedMinutes,forcedWeather,toasterMode,giQuality,engine.window().isFullscreen()};
+    const SavedOptions saved{forcedMinutes,forcedWeather,toasterMode,giQuality,engine.window().isFullscreen(),onlinePreference};
     if(!OptionsStore(game,reportOptions).save(saved)) {
         sayForcedTime("Option applied, but it could not be saved: see game.log.");
         sayForcedWeather("Option applied, but it could not be saved: see game.log.");
@@ -63,6 +66,15 @@ void World::Impl::sayToasterMode(const std::string& problem) {
     text("toaster-options-status",!problem.empty()?problem:
         toasterMode?"Toaster mode on: 720p, GI off, mid/far tree LODs, closer fog."
                    :"Standard quality: normal graphics and draw distance.");
+}
+
+void World::Impl::sayOnlinePlay() {
+    if(auto* off=ui->findElementById("online-off"))off->SetClass("selected",!onlineWanted);
+    if(auto* on=ui->findElementById("online-on"))on->SetClass("selected",onlineWanted);
+    ui->notifyJsMutation();
+    text("online-options-status",onlineWanted
+        ?"Multiplayer on: you meet the players near you. No traffic and no passers-by; the parked cars are the same for everyone."
+        :"Multiplayer off: you play alone, with traffic and passers-by. Nothing goes on the network.");
 }
 
 void World::Impl::sayFullscreen(const std::string& problem) {
@@ -188,6 +200,7 @@ void World::Impl::showOptions(bool show) {
     sayForcedTime();
     sayForcedWeather();
     sayToasterMode();
+    sayOnlinePlay();
     sayInvite();
 }
 

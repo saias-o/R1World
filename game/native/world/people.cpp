@@ -195,7 +195,7 @@ double World::Impl::crowdFactor() {
 
 void World::Impl::updateCrowd(float delta) {
     SAIDA_PROFILE_SCOPE("World/Crowd");
-    if(crowdKinds.empty())return;
+    if(crowdKinds.empty()||sharedWorld())return;  // multiplayer on: nobody (applySharedWorld)
     size_t remaining=kCrowdPeople-beachLive;
     const double factor=crowdFactor();
     for(auto tile:ring) {

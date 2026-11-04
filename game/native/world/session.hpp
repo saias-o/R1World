@@ -236,6 +236,8 @@ class World::Impl : public Rml::EventListener {
     bool smokeTookOver=false;
     double smokeApproachTime=0;
     double smokeDriveTime=0,smokeTopSpeed=0,smokeClear=0; glm::dvec3 smokeDriveStart{0};
+    // The online smoke's driver (R1WORLD_ONLINE_SMOKE=driver): to the parked car.
+    bool smokeToCar=false;
     size_t smokeTrafficSeen=0; bool smokeTrafficMoved=false;
     uint64_t generation=0; std::vector<Rml::Element*> listeners;
     std::map<std::string,Loaded> loaded;
@@ -724,7 +726,36 @@ class World::Impl : public Rml::EventListener {
     struct Online;
     struct OnlineDeleter { void operator()(Online* online) const; };
     std::unique_ptr<Online,OnlineDeleter> online;
-    bool onlineWanted=true,onlineStarted=false;
+    // Multiplayer, off by default: the saved choice (Settings > Online) and
+    // this session's, which --offline and --join override without saving.
+    bool onlineWanted=false,onlinePreference=false,onlineStarted=false;
+    void setOnlinePlay(bool on);
+    void sayOnlinePlay();
+    void stopOnline();
+    // Multiplayer on, the world is the same for everyone in it: no traffic,
+    // passers-by or police (each machine would have its own), and parked
+    // cars at the same places, shared once someone drives one.
+    bool sharedWorld() const {return smoke?onlineSmoke!=nullptr:onlineWanted;}
+    bool sharedApplied=false;
+    void applySharedWorld();
+    // The cars he owns there (shared_cars.cpp): the ones he took, which he
+    // tells the others about (online.cpp). The places whose car someone took
+    // stay empty for the session, wherever the car went.
+    struct OwnedCar {uint64_t id=0; uint32_t seed=0; uint8_t model=0; uint16_t claim=0; double nextSay=0;};
+    std::map<saida::Node*,OwnedCar> ownedCars;
+    std::set<uint64_t> takenCars;
+    std::map<size_t,std::vector<saida::Node*>> parkedSpares;
+    double parkingAt=0;
+    saida::Node* parkingPool=nullptr;
+    void releaseParked(Loaded& tile,Loaded::ParkedSpot& p);
+    void readParking(Loaded& tile);
+    void clearParking(Loaded& tile);
+    saida::Node* parkedNode(Loaded& tile,size_t model,uint32_t seed);
+    void updateParking();
+    r1::online::Car carState(saida::Node& node) const;
+    void forgetOwnedCar(saida::Node* node);
+    // Another player's cars, drawn from what he says (online.cpp).
+    void showSharedCars();
     const char* onlineSmoke=std::getenv("R1WORLD_ONLINE_SMOKE");  // "target" or "shooter"
     std::string onlineBlame;  // who hurt him, for hurtPlayer's log line
     void startOnline();
@@ -1401,8 +1432,13 @@ class World::Impl : public Rml::EventListener {
     glm::dvec2 geodeticOf(const Loaded& tile,const glm::vec3& local) const;
     // The nearest car the player can reach: his own, one he abandoned, or one
     // in traffic. Returns false when there is none.
+    // kind: 0 his car, 1 one he left, 2 traffic, 3 a parked car (multiplayer
+    // on), 4 a car another player left.
     struct Reach {saida::Node* node=nullptr; Loaded* tile=nullptr; size_t agent=0; int kind=0;};
+    bool takeParkedCar(const Reach& target);
+    bool takeSharedCar(const Reach& target);
     bool nearestCar(Reach& out,double& distance);
+    bool nearestSharedCar(Reach& out,double& distance);  // online.cpp
     // Hand a traffic car over: it leaves the flow, leaves its tile, and becomes
     // the car the player is in. The flow must forget it first -- a car being
     // driven by the player and by the simulation at once is two cars.
@@ -1886,7 +1922,7 @@ public:
     ~Impl();
     void setMenuGlobe(std::shared_ptr<r1::MenuGlobeState> model);
     void setOnline(bool on) { onlineWanted=on; }
-    void setJoin(const std::string& code) { joinArgument=code; }
+    void setJoin(const std::string& code) { joinArgument=code; onlineWanted=true; }
     bool failed() const;
     void diveSmoke();
     void inspectInstant(double unixSeconds);

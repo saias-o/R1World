@@ -6,7 +6,7 @@ draws of the other. They find each other through the LAN beacons and the
 Mainline DHT (plugins/p2p), each draws the other from its snapshots, and the
 target's machine judges the shots. Both must log PASS.
 
-    python tools/online_smoke.py [--versions | --join] [lon lat]
+    python tools/online_smoke.py [--versions | --join | --cars] [lon lat]
 
 --versions plays the second instance as another build (another protocol in
 its hello): each must link the other, say "on another version" on its
@@ -16,6 +16,10 @@ panel, and never draw him.
 with the first one's invite code (--join): it must be taken to him and draw
 him a few metres away, and he must draw it. The second spot is cooked on
 the way, so the first run there takes longer.
+
+--cars: the shared world. Both check there is no traffic and nobody, and
+parked cars; the first takes the parked car nearest him and drives it away,
+the second must see it move and its place left empty.
 
 Visit the spot once first (play_world.py --smoke --spawn lon lat): two
 instances cooking the same tiles at once would only measure the cook.
@@ -43,14 +47,16 @@ def invite_code():
 
 
 def main():
-    args = [a for a in sys.argv[1:] if a not in ("--versions", "--join")]
-    versions, join = "--versions" in sys.argv, "--join" in sys.argv
+    args = [a for a in sys.argv[1:] if a not in ("--versions", "--join", "--cars")]
+    versions, join, cars = "--versions" in sys.argv, "--join" in sys.argv, "--cars" in sys.argv
     lon, lat = (float(args[0]), float(args[1])) if len(args) >= 2 else (2.3522, 48.8566)
     code = invite_code()
     if versions:
         roles = (("versions", 0.0, None), ("versions", 6.0, "r1world/online-smoke-other"))
     elif join:
         roles = (("host", 0.0, None), ("joiner", 5000.0, None))
+    elif cars:
+        roles = (("driver", 0.0, None), ("watcher", 6.0, None))
     else:
         roles = (("target", 0.0, None), ("shooter", 6.0, None))
     env = {key.upper(): value for key, value in os.environ.items()}
@@ -76,11 +82,18 @@ def main():
             command += ["--join", code]
         if role == "shooter":  # his screen when his hit was confirmed (at the real hour)
             extra["R1WORLD_ONLINE_SHOT"] = str(session / "shooter-view.png")
+        if role == "driver":  # the street he parked in
+            extra["R1WORLD_ONLINE_SHOT"] = str(session / "driver-view.png")
         child = subprocess.Popen(command, cwd=GAME, env={**env, **extra}, stdout=log, stderr=log)
         runs.append((role, child, log, session))
     failed = 0
     for role, child, log, session in runs:
-        code = child.wait()
+        try:
+            code = child.wait(timeout=420)  # the game gives up at 300 s: past that it hangs
+        except subprocess.TimeoutExpired:
+            child.kill()
+            code = child.wait()
+            print(f"{role}: hung past 420 s, killed")
         log.close()
         verdict = [line.strip() for line in (session / "game.log").open(encoding="utf-8", errors="replace")
                    if "[World E2E]" in line or "[World online]" in line]

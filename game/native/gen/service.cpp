@@ -73,6 +73,7 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
     std::string error;
     Clock::time_point offlineUntil{};
     std::atomic<int> fetching{0}, cooking{0};
+    std::atomic<bool> reliefLayerSaid{false};
     // How many cooks may run at once: the threads, halved by each cook that
     // runs out of memory. Six Paris tiles cooking together hold some 800 MB
     // more than two (16 October 2026); a machine without it said bad_alloc
@@ -648,6 +649,13 @@ struct WorldService::State : std::enable_shared_from_this<WorldService::State> {
         } else {
             in.elevations = ElevationGrid{tile.bounds(), 2, {0.0, 0.0, 0.0, 0.0}};
             in.elevationSource = "temporary flat ground (relief pending)";
+            // Said once: flat ground at sea level is what the installed layer
+            // is there to spare a first visit, and its seams cannot follow a
+            // neighbour's edge (two nodes a side).
+            if (!installedRelief(store.root()).installed() && !reliefLayerSaid.exchange(true))
+                say("RELIEF-LAYER-MISSING " + store.root() + "/" + kReliefDirectory +
+                    ": a tile whose survey has not landed stands on flat ground at sea level, and the far relief is refused;"
+                    " build it with generated/tools/r1relief.exe --out assets/world/relief");
         }
         // Joined to the neighbours' ground at the edges, on the rule both
         // sides apply (gen/seams).

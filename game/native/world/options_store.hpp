@@ -15,6 +15,8 @@ struct SavedOptions {
     bool toasterMode=false;
     int giQuality=0;
     bool fullscreen=false;
+    // Multiplayer: off unless the player turns it on (Settings > Online).
+    bool online=false;
 };
 
 // Owns the existing file format and diagnostics. Applying settings to the

@@ -1,6 +1,6 @@
 """R1World as a folder another machine can run: the engine's export, stripped.
 
-    python tools/package_world.py
+    python tools/package_world.py [--partial-relief]
 
 Builds (`Play.ps1 -BuildOnly`), then exports with the engine's own
 `saida_tool export-game`, exactly as the editor's Build does: R1World.exe as
@@ -71,6 +71,15 @@ dossier crash\ s'il existe.
 
 
 def main():
+    # Without the installed relief layer a first visit stands on flat ground
+    # at sea level until its survey lands, and the far relief is refused
+    # (README, "installed relief"): no package goes out without it.
+    relief = GAME / "assets" / "world" / "relief"
+    packs = list(relief.glob("*.r1relief")) if relief.is_dir() else []
+    if len(packs) < 648 and "--partial-relief" not in sys.argv:
+        print(f"FAIL package: {relief} holds {len(packs)} of 648 relief packs; build them with "
+              "generated/tools/r1relief.exe --out assets/world/relief (or --partial-relief to pack them anyway)")
+        return 1
     env = {**os.environ, "PATH": str(MSYS) + os.pathsep + os.environ.get("PATH", "")}
     subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
                     "-File", str(GAME / "Play.ps1"), "-BuildOnly"], check=True, env=env)

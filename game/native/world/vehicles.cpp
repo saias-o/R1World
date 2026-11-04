@@ -131,6 +131,13 @@ void World::Impl::parkCar() {
     if(auto* drive=r1::VehicleRuntime::driver(*car))drive->parked=true;
     car->setEnabled(false);
     if(swimming())return;
+    // Multiplayer on, nobody brings a car of his own: the parked ones are
+    // everyone's, and the one he owned stays where he left it for the others.
+    if(sharedWorld()) {
+        if(ownedCars.count(car)){forgetOwnedCar(car);car->queueFree();car=nullptr;}
+        saida::Log::info("[World car] multiplayer on: no car of his own; the parked cars are everyone's");
+        return;
+    }
     // No road has ever reached the pack ice: nobody drives to the Pole.
     if(onSeaIce(lon,lat)) {
         saida::Log::info("[World car] on the sea ice: the player arrives on foot, with no car");
@@ -169,6 +176,7 @@ void World::Impl::abandonCurrentCar() {
 void World::Impl::keepParked(const Parked& entry) {
     parked.push_back(entry);
     while(parked.size()>kAbandonedCars) {
+        forgetOwnedCar(parked.front().node);
         // The scene's own car is in this list like any other once it has
         // been left; nothing here is special-cased, so nothing here can
         // disagree with itself about which car is the player's.
@@ -178,7 +186,7 @@ void World::Impl::keepParked(const Parked& entry) {
 }
 
 void World::Impl::clearAbandonedCars() {
-    for(auto& entry:parked)entry.node->queueFree();
+    for(auto& entry:parked){forgetOwnedCar(entry.node);entry.node->queueFree();}
     parked.clear();
 }
 
@@ -200,6 +208,14 @@ bool World::Impl::nearestCar(Reach& out,double& distance) {
         const double d=glm::length(me-ecef(entry.lon,entry.lat,entry.alt));
         if(d<distance){distance=d;out={entry.node,nullptr,i,1};found=true;}
     }
+    for(auto& [key,tile]:loaded)for(size_t i=0;i<tile.kerbCars.size();++i) {
+        const auto* node=tile.kerbCars[i].node;
+        if(!node||!node->enabled())continue;
+        const auto here=geodeticOf(tile,node->transform().position);
+        const double d=glm::length(me-ecef(here.x,here.y,alt));
+        if(d<distance){distance=d;out={tile.kerbCars[i].node,&tile,i,3};found=true;}
+    }
+    if(Reach shared;nearestSharedCar(shared,distance)){out=shared;found=true;}
     for(auto& [key,tile]:loaded) {
         for(size_t i=0;i<tile.cars.size();++i) {
             if(!tile.cars[i]||!trafficSlotLive(tile,i))continue;
@@ -341,6 +357,8 @@ bool World::Impl::enterCar() {
     if(!nearestCar(target,distance))return false;
     if(target.kind==2){if(!takeTrafficCar(target))return false;}
     else if(target.kind==1)takeAbandonedCar(target);
+    else if(target.kind==3){if(!takeParkedCar(target))return false;}
+    else if(target.kind==4){if(!takeSharedCar(target))return false;}
     if(!carParked||!car)return false;
     if(aiming)setAiming(false);
     if(auto* physics=engine.sceneTree().world().physics())r1::VehicleRuntime::activate(*car,*physics,glm::vec3(0));

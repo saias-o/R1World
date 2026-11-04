@@ -52,6 +52,12 @@ SavedOptions OptionsStore::load(SavedOptions current, bool testRun) const {
                 report(Level::Info,std::string("fullscreen ")+(current.fullscreen?"enabled":"disabled"));
             } else report(Level::Error,"cache/options.json: invalid fullscreen, ignored");
         }
+        if(const auto online=options.find("online");online!=options.end()) {
+            if(online->is_boolean()) {
+                current.online=online->get<bool>();
+                report(Level::Info,std::string("multiplayer ")+(current.online?"on":"off"));
+            } else report(Level::Error,"cache/options.json: invalid online, ignored");
+        }
         if(const auto gi=options.find("giQuality");gi!=options.end()) {
             if(gi->is_number_integer()&&*gi>=-1&&*gi<=4)current.giQuality=gi->get<int>();
             else report(Level::Error,"cache/options.json: invalid giQuality, ignored");
@@ -83,6 +89,7 @@ bool OptionsStore::save(const SavedOptions& values, bool testRun) const {
     options["toasterMode"]=values.toasterMode;
     options["giQuality"]=values.giQuality;
     options["fullscreen"]=values.fullscreen;
+    options["online"]=values.online;
     std::error_code ignored;fs::create_directories(path_.parent_path(),ignored);
     std::ofstream output(path_);
     output<<options.dump(2)<<"\n";

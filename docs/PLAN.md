@@ -245,12 +245,22 @@ première sortie.
 - Préparer la distribution de la 0.1 et vérifier l'installation et le
   lancement du paquet sur une machine propre. Le paquet existe
   (`game/tools/package_world.py`, l'export du moteur) et démarre hors du
-  dépôt, PATH réduit à Windows. Deux constats en le vérifiant : le relief
-  lointain (Mapzen z3 à z6) n'est lu que sur le disque et n'y est pas, sur ce
-  poste non plus, si bien que les anneaux lointains 3 à 8 sont refusés à
-  Paris (dit dans le journal) ; et sur une machine neuve une tuile peut rester
-  en « sol plat provisoire » à côté d'un voisin en relief (le smoke du paquet
-  échoue sur ce raccord, trois fois de suite à Paris).
+  dépôt, PATH réduit à Windows. **La couche de relief installée doit être
+  construite avant** (`generated/tools/r1relief.exe --out assets/world/relief`,
+  648 blocs, 859 Mo) : elle manquait sur ce poste, et c'était la cause des
+  deux défauts de première visite (tuile en sol plat à 0 m dont le raccord ne
+  suivait le voisin qu'aux coins, marches de 18 à 53 m ; anneaux lointains
+  refusés). Le jeu le dit désormais (`RELIEF-LAYER-MISSING`, et la raison
+  du refus des anneaux), et le paquet refuse de partir sans les 648 blocs.
+  Avec le seul bloc de Paris (62 s, 44 Mo lus), un paquet neuf passe son
+  smoke dès la première visite, puis 16 raccords fermés à la deuxième.
+  Reste : construire la couche entière (plusieurs heures de téléchargement).
+- Première visite et OpenStreetMap : Overpass répond en 52 s pour un petit
+  rectangle de Paris (le miroir en 504), et une requête peut se taire
+  jusqu'à environ douze minutes (deux points d'accès, trois essais de
+  120 s) avant que l'échec soit dit. Pendant ce temps la ville est
+  provisoire, sans bâtiments. À trancher : dire l'attente au joueur, et/ou
+  livrer un cache de départ (Paris) dans le paquet, sous ODbL.
 - Vérifier les parcours essentiels, les lieux déjà visités hors ligne et
   les limites annoncées sur la machine de référence.
 - Documenter les prérequis, commandes et limites du paquet distribué.
@@ -318,9 +328,16 @@ le découpage géographique et les règles de jeu appartiennent au jeu
 - **Rencontre par proximité, pas par tuile.** Cellules de 0,02° (2,2 km)
   rejointes à moins de 700 m et quittées au-delà de 900 m, chaque joueur lié à
   ses 32 plus proches ; la frontière se traverse sans transfert ni pause.
-- **Rien du monde n'est partagé** : voitures, trafic, animaux, passants,
-  police et météo restent propres à chaque machine. Un joueur au volant n'est
-  pas dessiné.
+- **Multijoueur coupé par défaut**, activé en un clic (*Settings > Online*,
+  conservé dans `cache/options.json` ; `--online`, `--offline` et `--join`
+  le forcent pour une session). Rejoindre un ami passe avant les points chauds.
+- **Multijoueur activé, le monde est le même pour tous** : ni trafic, ni
+  passants, ni police (chaque machine inventerait les siens) ; des voitures
+  garées aux mêmes places pour tout le monde, tirées du graphe routier de
+  chaque tuile (`world/parking_rules`). Une voiture prise appartient à son
+  conducteur, qui la diffuse comme son avatar ; les autres la dessinent et
+  laissent sa place vide. Les animaux et la météo restent propres à chaque
+  machine ; les cheats de véhicules sont refusés en le disant.
 - **La triche se juge localement** (`Witness`) : chaque machine écarte ce
   qu'elle a vu, rien n'est voté.
 
@@ -333,8 +350,13 @@ un pair, DHT IPv6, thread réseau, instantanés de 32 octets par attention,
 témoins). Rejoindre un ami (3 novembre) : un code d'invitation par session
 (onglet *Online* des réglages, ou `--join CODE`), le sujet `arenaTopic` du
 moteur, puis le Go ordinaire jusqu'à quatre mètres de l'ami ; smoke à deux
-instances à cinq kilomètres l'une de l'autre réussi. Mesures et vérifications :
-`game/README.md` et CHANGELOG du moteur.
+instances à cinq kilomètres l'une de l'autre réussi. Le monde partagé
+(3 novembre) : multijoueur coupé par défaut, interrupteur dans l'onglet
+*Online* ; activé, ni trafic ni passants ni police, et des voitures garées
+communes, la voiture prise diffusée par son conducteur (protocole
+`r1world/online-5`) ; smoke `--cars` réussi (même nombre de places sur les
+deux machines, la voiture vue en mouvement, sa place vide). Mesures et
+vérifications : `game/README.md` et CHANGELOG du moteur.
 
 **Étape 5 en cours (3 novembre 2026) : les points chauds** (150 000 joueurs à
 la tour Eiffel). Fait dans le moteur et vérifié en simulation et par les tests
@@ -380,17 +402,16 @@ lecture des journaux sont dans `docs/QUALIFICATION_MULTIJOUEUR.md`.
 
 **À décider avec l'utilisateur**
 
-- **0.1** : le jeu en ligne est actif par défaut (`--offline` le coupe) et
-  publie l'adresse du joueur dans la DHT publique. Pour une version qui
-  n'annonce pas le multijoueur : coupé par défaut, option, ou retiré.
 - **Un ami gardé quoi qu'il arrive** : le moteur ne garde que les liens vers
   les 48 plus proches ; un ami rejoint est tout près, mais une foule plus
   proche que lui ferait tomber son lien. Un sujet « groupe » dont les membres
   ne sont jamais élagués serait une brique générique du moteur. À faire
   quand une foule réelle le montrera, ou avant si les amis restent ensemble
   en se dispersant.
-- **Véhicule du joueur partagé** (autorité du conducteur, comme l'avatar,
-  sans rollback), ou rien pour l'instant.
+- **Ce qui reste propre à chaque machine dans le monde partagé** : bateaux,
+  avions et hélicoptères des tuiles (un joueur à leur bord n'est pas dessiné
+  chez les autres), animaux, météo. Les partager comme les voitures, ou les
+  retirer du monde partagé.
 
 ### Detail update — couche de détails manuels
 

@@ -31,7 +31,7 @@ constexpr const char* kApplication = "r1world/online";
 // What this build speaks, shown to every peer once linked (p2p
 // HostConfig::hello). Change it with the messages' format: two builds that
 // differ stay linked, ignore each other's messages and send none.
-constexpr const char* kProtocol = "r1world/online-4";
+constexpr const char* kProtocol = "r1world/online-5";
 // The protocol a peer's hello names, printable, or "" when it names none.
 std::string protocolOf(const std::vector<uint8_t>& hello);
 // Meeting cells: rows of 0.02 degrees (2.2 km), each cut into as many columns
@@ -104,7 +104,35 @@ constexpr double kNearMetres = 40, kViewMetres = 150, kMiddleMetres = 400, kCont
 Tier tierFor(const Avatar& me, const Avatar& him, double sinceContact, size_t rank);
 
 // Welcome: the owner of an invite code, to whoever joins its topic (below).
-enum class Kind : uint8_t { State = 1, Shot, Punch, Rocket, Hit, Welcome, Count };
+// Vehicle: a shared car, from whoever owns it (below).
+enum class Kind : uint8_t { State = 1, Shot, Punch, Rocket, Hit, Welcome, Vehicle, Count };
+
+// ── Shared cars ───────────────────────────────────────────────────────────
+// Multiplayer on, the parked cars are the same for everyone (parking_rules).
+// Whoever takes one owns it, as he owns his avatar: he says where it is, ten
+// times a second while he drives it and once a second once he has left it,
+// and the others draw it from what he says (a Replica) and hide it at its
+// place. Every take counts (`claim`); two players taking the same car, the
+// higher claim keeps it, and on a tie the lower identity.
+struct Car {
+    double lon = 0, lat = 0;
+    float alt = 0;                      // the body's ground point
+    float yaw = 0, pitch = 0, roll = 0; // degrees: heading clockwise from north, nose up, right side down
+    float speed = 0;                    // m/s along the heading
+    bool driven = false;
+};
+struct Vehicle {
+    uint64_t car = 0;    // its place's id (parking_rules), the same everywhere
+    uint32_t seed = 0;   // its paint
+    uint8_t model = 0;   // its model: the fleet's (assets/models/vehicles/fleet.json), the same in one protocol
+    uint16_t claim = 0;  // how many times it was taken
+    Car state;
+};
+constexpr double kCarSendSeconds = .1, kCarParkedSeconds = 1.;
+constexpr double kCarGoneSeconds = 30;  // a driven car not heard of this long is forgotten (its place stays empty)
+Car lerpCar(const Car& a, const Car& b, double t);
+// Whether (claim, owner) keeps a car (otherClaim, otherOwner) also claims.
+bool outranks(uint16_t claim, uint64_t owner, uint16_t otherClaim, uint64_t otherOwner);
 // A pistol round: from the muzzle along `direction` (Earth-centred, unit) for
 // `length` metres, and the player it hit on the shooter's screen, if any, as
 // he drew him at `seen` -- the victim's own clock (Replica::playback).
@@ -140,6 +168,7 @@ struct Message {
     Punch punch;
     Rocket rocket;
     Hit hit;
+    Vehicle vehicle;
 };
 std::vector<uint8_t> encode(const Message& m);
 // False for anything malformed, truncated, unknown or not finite.

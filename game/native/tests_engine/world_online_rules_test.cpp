@@ -1,5 +1,6 @@
 // Console-only: the rules of online play, without an engine, a window or a socket.
 #include "world/online_rules.hpp"
+#include "world/parking_rules.hpp"
 #include "saida/netcode/Replica.hpp"
 #include <cassert>
 #include <cmath>
@@ -90,12 +91,13 @@ static void codec() {
         accepted += o::decode(noise.data(), noise.size(), back);
     }
     assert(accepted < 10);  // only by chance: every refusal is a check, not a crash
-    for (o::Kind k : {o::Kind::Shot, o::Kind::Punch, o::Kind::Rocket, o::Kind::Hit, o::Kind::Welcome}) {
+    for (o::Kind k : {o::Kind::Shot, o::Kind::Punch, o::Kind::Rocket, o::Kind::Hit, o::Kind::Welcome, o::Kind::Vehicle}) {
         o::Message e;
         e.kind = k;
         e.shot.direction = {1, 0, 0}, e.shot.length = 10, e.shot.muzzle = o::feetEcef(walker(0));
         e.rocket.muzzle = e.rocket.target = e.shot.muzzle;
         e.punch.victim = 9;
+        e.vehicle.car = 77, e.vehicle.state.lon = 2.35, e.vehicle.state.lat = 48.85;
         const auto b = o::encode(e);
         assert(o::decode(b.data(), b.size(), back) && back.kind == k);
     }
@@ -411,6 +413,93 @@ static void joining() {
     assert(!o::decode(b.data(), b.size() - 1, back));
 }
 
+// Parked cars: the same places from the same graph, on the kerb of the
+// side the country drives on, never on an avenue, a short lane or a bridge.
+static void parking() {
+    namespace tr = saida::traffic;
+    auto street = [](float speed, float length, int16_t layer, bool oneWay) {
+        tr::Graph g;
+        g.nodes = {{0, 0}, {length, 0}};
+        tr::Lane there{0, 1, speed, 1}, back{1, 0, speed, 1};
+        there.offset = back.offset = 1.5f, there.width = back.width = 3.f, there.road = back.road = 4242;
+        there.layer = back.layer = layer;
+        g.lanes.push_back(there);
+        if (!oneWay) g.lanes.push_back(back);
+        g.build();
+        return g;
+    };
+    for (bool leftHand : {false, true}) {
+        const tr::Graph g = street(13.9f, 200, 0, false);
+        const auto spots = r1::parking::kerbSpots(g, leftHand, -1.f, "v63_27771_23996");
+        assert(spots.size() >= 8 && spots.size() <= 40);  // 28 places a side, a third of them taken
+        tr::Flow flow;
+        tr::Rules rules;
+        rules.leftHand = leftHand, rules.lateralAxisSign = -1.f;
+        flow.reset(&g, rules, 1);
+        std::set<uint64_t> ids;
+        for (const auto& s : spots) {
+            ids.insert(s.id);
+            // Beside its lane's cars, farther out: 1.5 m for the lane, 1.8 m for the parked car.
+            const auto lane = flow.positionOf(s.lane, s.s);
+            assert(std::abs(std::abs(s.y) - 1.8f) < 1e-3 && std::abs(lane.y) < std::abs(s.y) && lane.y * s.y > 0);
+            assert(s.s >= r1::parking::kEndClearance && s.s <= 200 - r1::parking::kEndClearance);
+            const auto dir = g.direction(s.lane);
+            assert(std::abs(std::sin(s.yaw) - dir.x) < 1e-4 && std::abs(std::cos(s.yaw) - dir.y) < 1e-4);
+            assert(std::string(r1::parking::modelFor(s.seed)) != "bus");
+        }
+        assert(ids.size() == spots.size());
+        const auto again = r1::parking::kerbSpots(g, leftHand, -1.f, "v63_27771_23996");
+        assert(again.size() == spots.size() && again.front().id == spots.front().id && again.back().x == spots.back().x);
+        assert(r1::parking::kerbSpots(g, leftHand, -1.f, "v63_27771_23997").front().id != spots.front().id);
+    }
+    assert(r1::parking::kerbSpots(street(25.f, 200, 0, false), false, -1.f, "t").empty());  // an avenue at 90 km/h
+    assert(r1::parking::kerbSpots(street(13.9f, 25, 0, false), false, -1.f, "t").empty());  // too short
+    assert(r1::parking::kerbSpots(street(13.9f, 200, 1, false), false, -1.f, "t").empty()); // a bridge
+    // A street drawn in short pieces (OpenStreetMap bends it at shape
+    // points): parked along its whole length, not only on long pieces.
+    {
+        tr::Graph g;
+        for (int i = 0; i <= 10; ++i) g.nodes.push_back({20.f * i, 0});
+        for (uint32_t i = 0; i < 10; ++i) {
+            tr::Lane there{i, i + 1, 13.9f, 1}, back{i + 1, i, 13.9f, 1};
+            there.offset = back.offset = 1.5f, there.width = back.width = 3.f, there.road = back.road = 7;
+            g.lanes.push_back(there), g.lanes.push_back(back);
+        }
+        g.build();
+        const auto spots = r1::parking::kerbSpots(g, false, -1.f, "v63_27771_23996");
+        size_t middle = 0;
+        for (const auto& s : spots) {
+            const float x = s.x;
+            assert(x >= r1::parking::kEndClearance - 1e-3f && x <= 200 - r1::parking::kEndClearance + 1e-3f);
+            middle += x > 40 && x < 160;
+        }
+        assert(spots.size() >= 8 && middle >= 5);
+    }
+    const auto oneWay = r1::parking::kerbSpots(street(13.9f, 200, 0, true), false, -1.f, "v63_1_1");
+    assert(!oneWay.empty());
+    for (const auto& s : oneWay) assert(s.lane == 0);
+    // Who keeps a car two players took: the later take, then the lower identity.
+    assert(o::outranks(3, 9, 2, 1) && !o::outranks(2, 1, 3, 9) && o::outranks(2, 1, 2, 9) && !o::outranks(2, 9, 2, 1));
+    // A car's state on the wire: within a centimetre and a tenth of a degree.
+    o::Message m, back;
+    m.kind = o::Kind::Vehicle, m.sent = 3.25;
+    m.vehicle.car = 0x1234567890abcdefull, m.vehicle.seed = 99, m.vehicle.claim = 4;
+    m.vehicle.state = {2.3522, 48.8566, 35.25f, -170.5f, 4.5f, -2.25f, 13.4f, true};
+    const auto b = o::encode(m);
+    assert(o::decode(b.data(), b.size(), back) && back.vehicle.car == m.vehicle.car && back.vehicle.claim == 4 &&
+           back.vehicle.seed == 99 && back.vehicle.state.driven);
+    const auto& c = back.vehicle.state;
+    assert(std::abs(c.lon - 2.3522) < 1e-6 && std::abs(c.lat - 48.8566) < 1e-6 && std::abs(c.alt - 35.25f) < .01f &&
+           std::abs(c.yaw + 170.5f) < .01f && std::abs(c.pitch - 4.5f) < .01f && std::abs(c.roll + 2.25f) < .01f &&
+           std::abs(c.speed - 13.4f) < .02f);
+    m.vehicle.car = 0;  // a car with no place is nobody's
+    const auto none = o::encode(m);
+    assert(!o::decode(none.data(), none.size(), back));
+    const o::Car a{0, 0, 0, 170, 0, 0, 0, true}, z{0, 0, 0, -170, 0, 0, 10, true};
+    assert(std::abs(std::abs(o::lerpCar(a, z, .5).yaw) - 180) < .01f);  // the short way round
+    std::printf("parking: %zu places on 200 m of street\n", r1::parking::kerbSpots(street(13.9f, 200, 0, false), false, -1.f, "v63_27771_23996").size());
+}
+
 int main() {
     cells();
     codec();
@@ -419,6 +508,7 @@ int main() {
     witnesses();
     versions();
     joining();
+    parking();
     assert(o::playerName(0x3f2a000000000000ull) == "Player 3F2A");
     std::printf("PASS online rules\n");
     return 0;

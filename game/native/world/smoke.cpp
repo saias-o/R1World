@@ -98,10 +98,24 @@ bool World::Impl::smokeOptions() {
         if(auto* status=ui->findElementById("destination-status");!status||status->GetInnerRML().find("Latitude -91")==std::string::npos)
             return fail("Go refused latitude -91 without naming the field and the range");
         field("latitude",latitude);field("longitude",longitude);
-        // The Online tab shows his invite code and refuses, saying why, a
-        // code that is none and his own (a real one would start the network).
+        // The Online tab: multiplayer off by default, and a join refused
+        // until it is on; on, it shows his invite code and refuses, saying
+        // why, a code that is none and his own (a real one would start the
+        // network). A test run saves nothing, and never plays online unless
+        // told to (R1WORLD_ONLINE_SMOKE).
         ui->executeJS("showSettingsTab('online');");
         auto said=[&](const char* id){auto* e=ui->findElementById(id);return e?e->GetInnerRML():std::string();};
+        // --join (and the online smokes) turn it on for the session: the
+        // default is what Settings keep, and the session is put back after.
+        const bool sessionOnline=onlineWanted;
+        if(onlinePreference)return fail("multiplayer is on by default");
+        testClick("online-off",false);
+        field("friend-code","K7QM-2XPA");testClick("join-friend",false);
+        if(!friendCode.empty()||said("join-status").find("Multiplayer is off")==std::string::npos)
+            return fail("a join with multiplayer off was not refused in place: "+said("join-status"));
+        testClick("online-on",false);
+        if(!onlineWanted||said("online-options-status").find("Multiplayer on")==std::string::npos)
+            return fail("the Multiplayer on button did not turn it on: "+said("online-options-status"));
         if(said("invite-code")!=invite())return fail("the Online tab does not show the invite code ("+said("invite-code")+")");
         field("friend-code","K7QM 2XP");testClick("join-friend",false);
         if(!friendCode.empty()||said("join-status").find("is not an invite code")==std::string::npos)
@@ -110,11 +124,14 @@ bool World::Impl::smokeOptions() {
         if(!friendCode.empty()||said("join-status").find("your own code")==std::string::npos)
             return fail("his own code was not refused in place: "+said("join-status"));
         field("friend-code",std::string());
+        testClick("online-off",false);
+        if(onlineWanted)return fail("the Multiplayer off button did not turn it off");
+        setOnlinePlay(sessionOnline);onlinePreference=false;
         ui->executeJS("showSettingsTab('time');");
     }
     testClick("options-back",false);
     if(optionsOpen)return fail("Retour did not close the screen");
-    saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, full screen toggled, negative coordinates typed, bad destination refused in place, bad and own invite codes refused)");
+    saida::Log::info("[World E2E] options passed (forced hour reaches the Sun, bad hour refused, real time restored, weather forced from the menu, toaster mode toggled, full screen toggled, negative coordinates typed, bad destination refused in place, multiplayer off by default and switched, bad and own invite codes refused)");
     forceTime(savedTime);
     forceWeather(savedWeather);
     // Testing both buttons must not silently change the measured preset.

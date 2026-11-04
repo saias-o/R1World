@@ -7,6 +7,7 @@
 #include "gen/fauna.hpp"
 #include "bird_animation.hpp"
 #include "knockdown.hpp"
+#include "parking_rules.hpp"
 #include "saida/traffic/Traffic.hpp"
 #include "saida/wildlife/Wildlife.hpp"
 #include "nodes/GrassNode.hpp"
@@ -184,6 +185,11 @@ struct Loaded {
     std::vector<SignalLamp> signalLamps;
     std::vector<glm::vec2> signalPositions;
     size_t wanted=0;                      // traffic population this tile's density asks for
+    // Multiplayer on: this tile's parked cars (parking_rules), the same for
+    // everyone. Every place is known; only the nearest have a node.
+    struct ParkedSpot {r1::parking::Spot spot; size_t model=0; float up=0; saida::Node* node=nullptr;};
+    std::vector<ParkedSpot> kerbCars;
+    bool parkingRead=false;
     double motorcycleChance=.05;
     // The people on its pavements (gen/crowd.hpp): the same shape as the
     // traffic, for the same reason -- the crowd points at the graph.

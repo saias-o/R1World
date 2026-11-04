@@ -62,6 +62,13 @@ void World::Impl::runCheat(const std::string& typed) {
     const Code code=r1::cheats::parse(typed);
     if(code==Code::Unknown&&typed.find_first_not_of(" \t\r\n")==std::string::npos)return;
     std::string refused;
+    // A vehicle out of nowhere is his alone: nobody else would see it.
+    const bool vehicle=code==Code::Helicopter||code==Code::Plane||code==Code::SportsCar||code==Code::Moto||code==Code::Rocket;
+    if(vehicle&&sharedWorld()) {
+        cheatSay("Not with multiplayer on: the other players would not see it.");
+        saida::Log::info("[World cheat] \"",typed,"\": refused, multiplayer on");
+        return;
+    }
     switch(code) {
     case Code::Helicopter: refused=spawnAircraft("helicopter");break;
     case Code::Plane: refused=spawnAircraft("bizjet");break;

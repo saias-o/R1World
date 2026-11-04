@@ -520,7 +520,7 @@ void World::Impl::updateTraffic(float delta) {
     // fleet budget, and the tiles nearest the player spend it first --
     // `nearby` returns them in that order. Far tiles keep their graph and
     // simply show nothing, which costs one integer.
-    size_t remaining=kTrafficCars;
+    size_t remaining=sharedWorld()?0:kTrafficCars;  // multiplayer on: no traffic (applySharedWorld)
     for(auto tile:ring) {
         auto found=loaded.find(tile.key());
         if(found==loaded.end())continue;
@@ -647,7 +647,7 @@ void World::Impl::transferTraffic() {
 
 bool World::Impl::trafficSlotLive(const Loaded& tile,size_t slot) const {
     const auto& agents=tile.flow.agents();
-    return debugTraffic&&slot<agents.size()&&agents[slot].alive;
+    return debugTraffic&&!sharedWorld()&&slot<agents.size()&&agents[slot].alive;
 }
 
 void World::Impl::syncTrafficNodes(Loaded& tile,float delta) {

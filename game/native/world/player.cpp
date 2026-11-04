@@ -72,7 +72,8 @@ double World::Impl::updatePlayer(float delta, bool sampleMouse) {
     if(playerDown){f=r=0;}  // on the ground, he does not walk
     // Two instances meet (World::runOnlineSmoke): the target paces two
     // seconds forth and two back, jumping once each way; the shooter stands.
-    if(onlineSmoke){r=0;f=std::string(onlineSmoke)=="target"&&smokeStarted?(std::fmod(smokeWalk,4.)<2.?1.:-1.):0.;}
+    // The driver walks to the parked car he will take (smokeToCar).
+    if(onlineSmoke){r=0;f=std::string(onlineSmoke)=="target"&&smokeStarted?(std::fmod(smokeWalk,4.)<2.?1.:-1.):smokeToCar?1.:0.;}
     if(retailTest())f=r=0;
     if(performanceSmoke){f=r=0;smokeStarted=false;}
     if(trafficValidation_){f=r=0;smokeStarted=false;}

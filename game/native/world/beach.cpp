@@ -25,7 +25,8 @@ void World::Impl::updateBeach(float dt) {
         if(sunScript->callExport("sunElevation",json::array(),result)==saida::ScriptCallStatus::Succeeded&&result.is_number())
             beachSun=result.get<double>();
     }
-    const double factor=r1::beachAttendance(localSolarHour(),beachSun,effectiveWeather());
+    // Multiplayer on, the beach is empty: its visitors leave as they do at night.
+    const double factor=sharedWorld()?0.:r1::beachAttendance(localSolarHour(),beachSun,effectiveWeather());
     size_t budget=24;bool created=false;
     for(auto tile:ring) {
         auto found=loaded.find(tile.key());if(found==loaded.end())continue;

@@ -56,6 +56,8 @@ set(world_runtime
     native/world/police.cpp
     native/world/online.cpp
     native/world/online_rules.cpp
+    native/world/parking_rules.cpp
+    native/world/shared_cars.cpp
     native/world/cheats.cpp
     native/world/performance.cpp
     native/world/smoke.cpp
@@ -149,9 +151,11 @@ add_executable(r1_world_player_profile_test EXCLUDE_FROM_ALL
     native/tests_engine/world_player_profile_test.cpp native/world/player_profile.cpp)
 target_include_directories(r1_world_player_profile_test PRIVATE "${SaidaEngine_SOURCE_DIR}/third_party/json")
 add_executable(r1_world_online_rules_test EXCLUDE_FROM_ALL
-    native/tests_engine/world_online_rules_test.cpp native/world/online_rules.cpp native/world/geography.cpp)
+    native/tests_engine/world_online_rules_test.cpp native/world/online_rules.cpp native/world/parking_rules.cpp
+    native/world/geography.cpp)
 target_link_libraries(r1_world_online_rules_test PRIVATE glm::glm)
-target_include_directories(r1_world_online_rules_test PRIVATE "${SaidaEngine_SOURCE_DIR}/plugins/netcode/include")
+target_include_directories(r1_world_online_rules_test PRIVATE "${SaidaEngine_SOURCE_DIR}/plugins/netcode/include"
+    "${SaidaEngine_SOURCE_DIR}/plugins/traffic/include")
 add_executable(r1_world_photo_detection_test EXCLUDE_FROM_ALL
     native/tests_engine/world_photo_detection_test.cpp native/world/photo_detection.cpp)
 target_link_libraries(r1_world_photo_detection_test PRIVATE Saida::Engine)
