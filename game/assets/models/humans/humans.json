@@ -6,7 +6,7 @@
  "author": "Microsoft (Rocketbox Studios)",
  "scale": 0.8,
  "generatedBy": "game/tools/r1/humans.py",
- "sharedVertices": 49530,
+ "sharedVertices": 54940,
  "player": {
   "name": "Male_Adult_08",
   "sex": "m",
@@ -59,7 +59,24 @@
     "source": "m_run_fast_01.max.fbx (flight frame 4)"
    }
   },
-  "skinTone": "light"
+  "skinTone": "light",
+  "autoLods": [
+   {
+    "name": "Body_LOD1",
+    "triangles": 4504,
+    "exportedVertices": 2929
+   },
+   {
+    "name": "Body_LOD2",
+    "triangles": 2363,
+    "exportedVertices": 1704
+   },
+   {
+    "name": "Body_LOD3",
+    "triangles": 912,
+    "exportedVertices": 777
+   }
+  ]
  },
  "crowd": [
   {

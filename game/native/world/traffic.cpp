@@ -129,8 +129,7 @@ std::unique_ptr<saida::Node> World::Impl::makeMotorcycleRider(const std::string&
         auto found=std::find_if(kind.levels.begin(),kind.levels.end(),
             [&](const auto& l){return l.first==level;});
         if(found!=kind.levels.end())for(const auto& meshSource:found->second) {
-            auto mesh=std::make_unique<saida::MeshNode>(meshSource->name(),meshSource->mesh(),meshSource->material());
-            mesh->transform()=meshSource->transform();holder->addChild(std::move(mesh));
+            holder->addChild(meshSource->duplicate());
         }
         rider->addChild(std::move(holder));
     }

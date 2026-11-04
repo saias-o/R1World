@@ -2860,11 +2860,27 @@ the flight phase of the sprint, held 0.74 s.
 | | triangles | exported vertices | textures |
 |---|---:|---:|---|
 | Player | 7 364 | 4 584 | 1024 / 512 px |
+| Player, AutoLOD levels 1-3 | 4 504 / 2 363 / 912 | 2 929 / 1 704 / 777 | same |
 | Passer-by, near | 2 400 | 1 571–2 010 | 512 / 256 px |
 | Passer-by, far | 500 | 432–617 | same |
 
-The twenty together are 49 530 shared vertices (`test_humans.py` holds them
-under 55 000). Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
+The twenty together are 54 940 shared vertices (`test_humans.py` holds them
+under 55 000). The player's scan is drawn for every other player too, so
+AutoLOD decimates it into three more levels in the same file (`MSFT_lod`,
+the skin carried; `python -m r1.humans --lods`, once). They take over when he
+stands 94, 46 and 23 pixels tall on a 1080-line screen (11.6, 23.7 and 47.4 m
+at his runtime size and the game's 62 degrees; AutoLOD `--coverages
+0.05,0.012,0.003`). Every copy of a body keeps its chain (the engine's
+`MeshNode::duplicate`; copying mesh and material alone had dropped it), and
+the smokes fail when the player's or another player's body has fewer levels
+than the scan. `python -m r1.human_views lods` poses each level in the walk and
+draws each switch at its size (`generated/human-lods/`): 1.2, 2.7 and 6.7 % of
+the pixels change. On 4 November 2026 the levels loaded (`GLTFLoader: 4 LOD
+levels on node Body`), the combat smoke passed with the two players 6, 20,
+40 and 70 m apart, and the solo smoke passed offline. Not measured: the frame
+time with many players, which one laptop cannot stage (a crowd of 48 players
+spread evenly over 150 m would draw about 54 k of the scan's triangles instead
+of 353 k). Mean albedos 0.05–0.28; the bake refuses a map above 0.35. The
 player stands 1.24 m at 0.68 runtime scale (the authored scale 0.8 multiplied
 by `kPeopleVehicleResize=0.85`). Run and sprint retain 2.8 and 7 m/s with
 faster playback through engine clip views, so the feet stay planted. Crowd

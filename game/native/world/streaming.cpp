@@ -519,6 +519,11 @@ void World::Impl::stream() {
             smokeFlyWait=smokeFly;smokeFlyTime=0;smokeFlyPhase=0;
             smokeWalk=0;smokeStart=ecef(lon,lat,alt);smokeRan=smokeJumped=false;
             saida::Log::info("[World E2E] spawn complete with ",loaded.size()," tiles resident");
+            // His body is a copy of the scan: its levels of detail must come with it.
+            if(playerBody&&detailLevels(*playerBody)!=playerLevels) {
+                saida::Log::error("[World E2E] FAIL player body: ",detailLevels(*playerBody)," levels of detail of the scan's ",playerLevels);
+                testFailed=true;engine.sceneTree().quit();return;
+            }
         }
     }
     if(pending) {

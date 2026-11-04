@@ -255,6 +255,16 @@ première sortie.
   Avec le seul bloc de Paris (62 s, 44 Mo lus), un paquet neuf passe son
   smoke dès la première visite, puis 16 raccords fermés à la deuxième.
   Reste : construire la couche entière (plusieurs heures de téléchargement).
+- **Textures magenta à Paris (budget des assets décodés).** Depuis que les
+  tuiles de Paris ont été recuites (4 novembre, 1 h), les cerisiers urbains
+  (5 % des arbres de ville au nord, `gen/scatter.cpp`) s'ajoutent aux arbres
+  déjà chargés et le budget de 512 Mo (`kDecodedAssetBudget`) déborde : des
+  dizaines de refus « asset memory budget exceeded » par session, et le sol,
+  le ciel et des objets dessinés avec la texture manquante, en solo comme en
+  ligne. Aucun test n'échoue sur ces refus. Le moteur ne rend la mémoire
+  décodée qu'à la libération de l'asset (`AssetLoader`) ; à trancher : ce que
+  le jeu garde en prototypes, ce que le moteur garde une fois envoyé au GPU,
+  et un smoke qui échoue sur un refus de budget (CLAUDE.md §3).
 - Première visite et OpenStreetMap : Overpass répond en 52 s pour un petit
   rectangle de Paris (le miroir en 504), et une requête peut se taire
   jusqu'à environ douze minutes (deux points d'accès, trois essais de
@@ -368,10 +378,17 @@ AutoLOD sur les maillages animés (et `MSFT_lod` de nouveau écrit), atlas de
 billboards animés dont la marche suit la distance parcourue. Reste, dans cet
 ordre :
 
-- **Générer les LOD animés** du joueur et des passants avec AutoLOD et les
-  charger ; copier la chaîne de LOD (`MeshNode::setLods`) quand le jeu recopie
-  un corps (`combat.cpp` pour le joueur, `online.cpp` pour les autres
-  joueurs). Seuils de couverture validés à l'œil. Profite aussi au jeu seul.
+- **Fait (4 novembre) : LOD animés du joueur.** AutoLOD (recompilé : le
+  binaire du 16 octobre ignorait les maillages animés) donne au scan du joueur
+  trois niveaux, 4 504, 2 363 et 912 triangles, squelette compris
+  (`python -m r1.humans --lods`), qui basculent quand il mesure 94, 46 et
+  23 pixels de haut (11,6, 23,7 et 47,4 m ; `--coverages`, nouvelle option
+  d'AutoLOD). Le moteur gagne `MeshNode::duplicate()`, qui garde la chaîne :
+  les six copies du jeu (corps du joueur, autres joueurs, passants,
+  motards, animaux, plantes) la perdaient. Les passants gardent leurs deux
+  niveaux Blender (2 400 et 500 triangles). Planche de validation :
+  `python -m r1.human_views lods` (1,2 %, 2,7 % et 6,7 % des pixels changent
+  aux bascules).
 - **Cuire les imposteurs de personnes** depuis les scans Rocketbox déjà sur le
   disque (`assets/models/humans`, CLAUDE.md §1 : pas d'autre source) :
   8 azimuts × une rangée × 8 à 12 poses de `walk` (foulée mesurée du clip) et

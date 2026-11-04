@@ -768,10 +768,7 @@ void World::Impl::showOnline(double dt) {
                 for (auto& c : playerBody->children()) {
                     auto* mesh = dynamic_cast<saida::MeshNode*>(c.get());
                     if (!mesh || c.get() == pistol || c.get() == launcher) continue;
-                    auto copy = std::make_unique<saida::MeshNode>(mesh->name(), mesh->mesh(), mesh->material());
-                    copy->transform() = mesh->transform();
-                    copy->castShadows() = mesh->castShadows();
-                    body->addChild(std::move(copy));
+                    body->addChild(mesh->duplicate());  // its LOD chain with it
                 }
                 if (auto gun = r1::buildPistol(engine.resources())) {
                     gun->addBehaviour<saida::BoneAttachmentBehaviour>("Bip01 R Hand", pistolGrip);
@@ -1397,6 +1394,8 @@ void World::Impl::runOnlineSmoke(double dt) {
                       : "never joined (" + (n.joinSaid.empty() ? std::string("nothing said") : n.joinSaid) + ")");
         return;
     }
+    // The shooter's picture is taken in daylight (a test run saves no option).
+    if (shooter && std::getenv("R1WORLD_ONLINE_SHOT") && !forcedMinutes) forceTime(14 * 60);
     if (other && n.sawAt < 0) {
         n.sawAt = n.now;
         saida::Log::info("[World online] smoke: drawing ", other->name, " at ",
@@ -1412,7 +1411,11 @@ void World::Impl::runOnlineSmoke(double dt) {
                       "% extrapolated, " + number(other->travelled, 1) + " m travelled, delay " +
                       std::to_string(int(other->replica.targetDelay() * 1000)) + " ms";
         }
-        saida::Log::info("[World E2E] PASS online ", onlineSmoke, ": drew the other player, ",
+        // Every other player is a copy of the scan: drawn in its levels of detail.
+        if (other && other->root && detailLevels(*other->root) != playerLevels)
+            return fail("the other player's body has " + std::to_string(detailLevels(*other->root)) + " levels of detail of the scan's " +
+                        std::to_string(playerLevels));
+        saida::Log::info("[World E2E] PASS online ", onlineSmoke, ": drew the other player in ", playerLevels, " levels of detail, ",
                          shooter ? "hits confirmed " + std::to_string(n.hitsGiven) : "hits taken " + std::to_string(n.hitsTaken),
                          ", refusals ", n.refused.size(), drawing, ", snapshots sent near/middle/far ",
                          n.sentByTier[0], "/", n.sentByTier[1], "/", n.sentByTier[2]);

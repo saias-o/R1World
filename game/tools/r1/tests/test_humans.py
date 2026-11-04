@@ -68,7 +68,26 @@ class Humans(unittest.TestCase):
         # shared models' 15% of the 1 048 576-vertex arena (CLAUDE.md §5).
         self.assertLessEqual(MANIFEST["sharedVertices"], 55000)
         self.assertEqual(MANIFEST["sharedVertices"],
-                         sum(l["exportedVertices"] for p in [MANIFEST["player"]] + MANIFEST["crowd"] for l in p["lods"]))
+                         sum(l["exportedVertices"] for p in [MANIFEST["player"]] + MANIFEST["crowd"]
+                             for l in p["lods"] + p.get("autoLods", [])))
+
+    def test_the_player_is_drawn_in_levels_of_detail(self):
+        # Every other player is a copy of his scan (native/world/online.cpp):
+        # AutoLOD's three levels, each coarser, the skin carried, switched at
+        # decreasing screen coverage (python -m r1.humans --lods).
+        model = GAME / MANIFEST["player"]["model"]
+        levels = humans.autolod_levels(model)
+        self.assertEqual(levels, MANIFEST["player"]["autoLods"])
+        self.assertEqual(len(levels), 3)
+        counts = [MANIFEST["player"]["lods"][0]["triangles"]] + [l["triangles"] for l in levels]
+        self.assertEqual(counts, sorted(counts, reverse=True))
+        doc = humans.glb_document(model)
+        node = next(n for n in doc["nodes"] if "MSFT_lod" in n.get("extensions", {}))
+        coverage = node["extras"]["MSFT_screencoverage"]
+        self.assertEqual(coverage[1:], sorted(coverage[1:], reverse=True))
+        self.assertEqual(["--coverages", ",".join(f"{c:g}" for c in [round(v, 6) for v in coverage[1:]])], humans.PLAYER_AUTOLOD)
+        for i in node["extensions"]["MSFT_lod"]["ids"]:
+            self.assertEqual(doc["nodes"][i].get("skin"), node.get("skin"))
 
     def test_skin_and_cloth_are_albedos(self):
         for person in [MANIFEST["player"]] + MANIFEST["crowd"]:

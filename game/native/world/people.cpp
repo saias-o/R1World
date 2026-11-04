@@ -7,6 +7,7 @@ void World::Impl::loadHumans() {
     input>>humans;
     humanScale=humans.at("scale").get<double>()*kPeopleVehicleResize;
     playerHeight=humans.at("player").at("height").get<double>()*humanScale;
+    playerLevels=1+humans.at("player").value("autoLods",json::array()).size();
     for(const auto& entry:humans.at("crowd")) {
         HumanKind kind;
         kind.name=entry.at("name");kind.model=entry.at("model");
@@ -65,7 +66,7 @@ World::Impl::HumanKind* World::Impl::humanKind(size_t index) {
             here.position=above.position+above.rotation*(above.scale*n.transform().position);
             const std::string mine=n.name()=="Near"||n.name()=="Far"?n.name():level;
             if(n.mesh()&&!mine.empty()) {
-                auto mesh=std::make_unique<saida::MeshNode>(n.name(),n.mesh(),n.material());
+                auto mesh=copyMesh(n);
                 mesh->transform()=here;
                 auto found=std::find_if(kind.levels.begin(),kind.levels.end(),[&](const auto& l){return l.first==mine;});
                 if(found==kind.levels.end()){kind.levels.emplace_back(mine,std::vector<std::unique_ptr<saida::MeshNode>>{});found=kind.levels.end()-1;}
@@ -126,9 +127,7 @@ bool World::Impl::makePerson(saida::Node& parent,size_t selected,Person& person,
     for(const auto& [level,meshes]:kind->levels) {
         auto holder=std::make_unique<saida::Node>(level);
         for(const auto& m:meshes) {
-            auto mesh=std::make_unique<saida::MeshNode>(m->name(),m->mesh(),m->material());
-            mesh->transform()=m->transform();
-            holder->addChild(std::move(mesh));
+            holder->addChild(m->duplicate());
         }
         root->addChild(std::move(holder));
     }

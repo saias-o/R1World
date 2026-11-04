@@ -40,7 +40,7 @@ void World::Impl::collectSkinned(const saida::Node& source,std::vector<std::uniq
         here.scale=above.scale*n.transform().scale;
         here.position=above.position+above.rotation*(above.scale*n.transform().position);
         if(n.mesh()) {
-            auto mesh=std::make_unique<saida::MeshNode>(n.name(),n.mesh(),n.material());
+            auto mesh=copyMesh(n);
             mesh->transform()=here;out.push_back(std::move(mesh));
         }
         for(const auto& c:n.children())walk(*c,here);
@@ -90,7 +90,7 @@ bool World::Impl::makeBeast(saida::Node& parent,const std::string& model,double 
     for(const auto& [level,meshes]:kind->levels) {
         auto holder=std::make_unique<saida::Node>(level);
         for(const auto& m:meshes) {
-            auto mesh=std::make_unique<saida::MeshNode>(m->name(),m->mesh(),m->material());
+            auto mesh=m->duplicate();
             mesh->transform()=r1::animalTransform(glm::inverse(kind->rig->rootParent())*m->localMatrix());
             holder->addChild(std::move(mesh));
         }

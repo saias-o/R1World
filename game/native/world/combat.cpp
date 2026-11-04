@@ -19,9 +19,8 @@ void World::Impl::unifyPlayerBody() {
         here.scale=above.scale*n.transform().scale;
         here.position=above.position+above.rotation*(above.scale*n.transform().position);
         if(n.mesh()) {
-            auto mesh=std::make_unique<saida::MeshNode>(n.name(),n.mesh(),n.material());
+            auto mesh=copyMesh(n);
             mesh->transform()=here;
-            if(auto* shown=dynamic_cast<saida::MeshNode*>(&n))mesh->castShadows()=shown->castShadows();
             body->addChild(std::move(mesh));
         }
         for(auto& c:n.children())walk(*c,here);

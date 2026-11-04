@@ -7,6 +7,8 @@ he walks past, in everyday clothes, with walks, waits, telephones and
 benches captured on people rather than keyed by hand.
 
     python -m r1.humans            (from game/tools; needs Blender 4.2)
+    python -m r1.humans --lods     (the player's levels of detail alone, on the
+                                    models already baked; no Blender)
 
 Everything is fetched at one pinned commit into `cache/downloads/rocketbox/`
 and nothing downloaded is committed except what this bakes:
@@ -18,6 +20,9 @@ and nothing downloaded is committed except what this bakes:
   retargeted onto the avatar (`humans_blender.py`).
 * `assets/models/humans/humans.json` -- heights, clip speeds, vertex counts
   and where every file came from, which the game reads at start-up.
+* The player's levels of detail: his scan is drawn for every other player
+  too (native/world/online.cpp), so AutoLOD (engine/autolod) decimates it
+  into three more levels, the skin carried, in the same file (MSFT_lod).
 
 The game draws people at `SCALE` of their scanned size and moves them at the
 speed each clip was captured at, so a foot never slides.
@@ -104,6 +109,14 @@ CLIP_SECONDS = {"shrug": 4.0, "angry": 6.0, "dust": 6.0}
 # was 1.5-3 k triangles; the player keeps the whole scan (7.4 k).
 CROWD_LODS = [{"name": "Near", "triangles": 2400}, {"name": "Far", "triangles": 500}]
 PLAYER_LODS = [{"name": "Body"}]
+# The player's AutoLOD levels: AutoLOD's ratios (60, 30 and 10 % of the
+# triangles), switched when he stands 94, 46 and 23 pixels tall on a
+# 1080-line screen -- 11.6, 23.7 and 47.4 m away at the game's 62 degree
+# field of view and his runtime size (SCALE x kPeopleVehicleResize). The
+# coverage is MeshLod.cpp's: the bounding sphere's screen diameter, squared.
+# python -m r1.human_views lods draws each switch at its size.
+PLAYER_AUTOLOD = ["--coverages", "0.05,0.012,0.003"]
+AUTOLOD = GAME.parent / "engine/build-rel/autolod/autolod.exe"
 # Texture sides in pixels: body, head, hair/eyelash cards, and optional hat.
 PLAYER_TEXTURES = (1024, 512, 512)
 CROWD_TEXTURES = (512, 256, 256, 256)
@@ -179,6 +192,41 @@ def _textures(name: str, files: dict, sides, work: Path) -> tuple[dict, dict]:
     return out, albedo
 
 
+def glb_document(path: Path) -> dict:
+    data = path.read_bytes()
+    length = struct.unpack_from("<I", data, 12)[0]
+    return json.loads(data[20:20 + length])
+
+
+def autolod_levels(path: Path) -> list[dict]:
+    """The levels AutoLOD added (MSFT_lod), as the manifest lists them."""
+    doc = glb_document(path)
+    lower = {i for node in doc.get("nodes", []) for i in node.get("extensions", {}).get("MSFT_lod", {}).get("ids", [])}
+    levels = []
+    for i in sorted(lower):
+        mesh = doc["meshes"][doc["nodes"][i]["mesh"]]
+        levels.append({"name": mesh.get("name", str(i)),
+                       "triangles": sum(doc["accessors"][p["indices"]]["count"] // 3 for p in mesh["primitives"]),
+                       "exportedVertices": sum(doc["accessors"][p["attributes"]["POSITION"]]["count"] for p in mesh["primitives"])})
+    return levels
+
+
+def add_player_lods(model: Path) -> list[dict]:
+    """Once: a model that has its levels already keeps them."""
+    if autolod_levels(model):
+        return autolod_levels(model)
+    if not AUTOLOD.exists():
+        raise SystemExit(f"AutoLOD not built: {AUTOLOD} (cmake --build engine/build-rel/autolod)")
+    out = model.with_suffix(".lod.glb")
+    env = {**os.environ, "PATH": r"C:\msys64\ucrt64\bin" + os.pathsep + os.environ.get("PATH", "")}
+    result = subprocess.run([str(AUTOLOD), str(model), str(out), *PLAYER_AUTOLOD], capture_output=True, text=True, env=env)
+    if result.returncode != 0 or not out.exists() or not autolod_levels(out):
+        out.unlink(missing_ok=True)
+        raise SystemExit(f"AutoLOD refused {model.name}:\n{result.stdout[-2000:]}\n{result.stderr[-2000:]}")
+    out.replace(model)
+    return autolod_levels(model)
+
+
 def glb_vertices(path: Path) -> dict:
     """Vertices per mesh, as the engine will upload them (seams included)."""
     data = path.read_bytes()
@@ -221,7 +269,24 @@ def _bake(name: str, sex: str, player: bool, work: Path, tree: list[dict]) -> di
     return entry
 
 
+def lods_only() -> int:
+    """The player's levels on the model already baked, and the manifest's count."""
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    model = GAME / manifest["player"]["model"]
+    levels = add_player_lods(model)
+    manifest["player"]["autoLods"] = levels
+    entries = [manifest["player"], *manifest["crowd"]]
+    manifest["sharedVertices"] = sum(l["exportedVertices"] for e in entries for l in e["lods"] + e.get("autoLods", []))
+    MANIFEST.write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
+    print(f"{model.name}: " + "  ".join(f"{l['name']} {l['triangles']} tri / {l['exportedVertices']} v" for l in levels)
+          + f"; {manifest['sharedVertices']} shared vertices")
+    return 0
+
+
 def main() -> int:
+    import sys
+    if "--lods" in sys.argv:
+        return lods_only()
     if not BLENDER.exists():
         raise SystemExit(f"Blender 4.2 not found at {BLENDER}; set BLENDER")
     OUT.mkdir(parents=True, exist_ok=True)
@@ -249,8 +314,9 @@ def main() -> int:
         return _bake(*job, work, tree)
     with concurrent.futures.ThreadPoolExecutor(4) as pool:
         entries = list(pool.map(bake_or_reuse, jobs))
+    entries[0]["autoLods"] = add_player_lods(GAME / entries[0]["model"])
     player, crowd = entries[0], entries[1:]
-    shared = sum(l["exportedVertices"] for e in entries for l in e["lods"])
+    shared = sum(l["exportedVertices"] for e in entries for l in e["lods"] + e.get("autoLods", []))
     manifest = {
         "source": f"https://github.com/{REPO}", "commit": COMMIT, "license": "MIT", "licenseFile": LICENSE,
         "author": "Microsoft (Rocketbox Studios)", "scale": SCALE, "generatedBy": "game/tools/r1/humans.py",

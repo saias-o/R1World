@@ -6,7 +6,7 @@ draws of the other. They find each other through the LAN beacons and the
 Mainline DHT (plugins/p2p), each draws the other from its snapshots, and the
 target's machine judges the shots. Both must log PASS.
 
-    python tools/online_smoke.py [--versions | --join | --cars] [lon lat]
+    python tools/online_smoke.py [--versions | --join | --cars] [--apart metres] [lon lat]
 
 --versions plays the second instance as another build (another protocol in
 its hello): each must link the other, say "on another version" on its
@@ -16,6 +16,10 @@ panel, and never draw him.
 with the first one's invite code (--join): it must be taken to him and draw
 him a few metres away, and he must draw it. The second spot is cooked on
 the way, so the first run there takes longer.
+
+--apart sets how far apart the target and the shooter stand (6 m by
+default): at 20, 40 or 70 m the shooter's picture shows the other player
+in each of his levels of detail.
 
 --cars: the shared world. Both check there is no traffic and nobody, and
 parked cars; the first takes the parked car nearest him and drives it away,
@@ -47,6 +51,11 @@ def invite_code():
 
 
 def main():
+    apart = 6.0
+    if "--apart" in sys.argv:
+        at = sys.argv.index("--apart")
+        apart = float(sys.argv[at + 1])
+        del sys.argv[at:at + 2]
     args = [a for a in sys.argv[1:] if a not in ("--versions", "--join", "--cars")]
     versions, join, cars = "--versions" in sys.argv, "--join" in sys.argv, "--cars" in sys.argv
     lon, lat = (float(args[0]), float(args[1])) if len(args) >= 2 else (2.3522, 48.8566)
@@ -58,7 +67,7 @@ def main():
     elif cars:
         roles = (("driver", 0.0, None), ("watcher", 6.0, None))
     else:
-        roles = (("target", 0.0, None), ("shooter", 6.0, None))
+        roles = (("target", 0.0, None), ("shooter", apart, None))
     env = {key.upper(): value for key, value in os.environ.items()}
     env["PATH"] = "C:/msys64/ucrt64/bin" + os.pathsep + env.get("PATH", "")
     env.setdefault("SAIDA_WINDOW_HIDDEN", "1")

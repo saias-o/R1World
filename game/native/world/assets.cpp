@@ -1,13 +1,24 @@
 #include "session.hpp"
 
 namespace r1::world {
+std::unique_ptr<saida::MeshNode> World::Impl::copyMesh(const saida::Node& source) {
+    if(auto* original=dynamic_cast<const saida::MeshNode*>(&source))return original->duplicate();
+    auto mesh=std::make_unique<saida::MeshNode>(source.name(),source.mesh(),source.material());
+    mesh->transform()=source.transform();
+    return mesh;
+}
+
+size_t World::Impl::detailLevels(saida::Node& root) {
+    size_t most=1;
+    root.traverse([&](saida::Node& n,const glm::mat4&){
+        if(auto* mesh=dynamic_cast<saida::MeshNode*>(&n))most=std::max(most,std::max<size_t>(1,mesh->lods().size()));
+    });
+    return most;
+}
+
 std::unique_ptr<saida::Node> World::Impl::clonePlant(saida::Node& source) {
     std::unique_ptr<saida::Node> out;
-    if(source.mesh()){
-        auto mesh=std::make_unique<saida::MeshNode>(source.name(),source.mesh(),source.material());
-        if(auto* original=dynamic_cast<saida::MeshNode*>(&source))mesh->castShadows()=original->castShadows();
-        out=std::move(mesh);
-    }
+    if(source.mesh())out=copyMesh(source);
     else out=std::make_unique<saida::Node>(source.name());
     out->transform()=source.transform();
     for(auto& child:source.children())out->addChild(clonePlant(*child));
@@ -31,8 +42,7 @@ void World::Impl::collectMeshes(saida::Node& source,const saida::Transform& abov
     here.scale=above.scale*source.transform().scale;
     here.position=above.position+above.rotation*(above.scale*source.transform().position);
     if(source.mesh()) {
-        auto mesh=std::make_unique<saida::MeshNode>(source.name(),source.mesh(),source.material());
-        if(auto* original=dynamic_cast<saida::MeshNode*>(&source))mesh->castShadows()=original->castShadows();
+        auto mesh=copyMesh(source);
         mesh->transform()=here;
         out.push_back(std::move(mesh));
     }

@@ -1787,6 +1787,16 @@ private:
     bool retailShot(const char* moment,const r1::InteriorPlan& plan,r1::P2 facing={0,0});
     void runRetailTest(double dt);
     std::unique_ptr<saida::Node> clonePlant(saida::Node& source);
+    // A drawn copy of a node: the engine's duplicate for a MeshNode -- its
+    // LOD chain with it, which a copy of mesh and material alone dropped,
+    // drawing every copy of an AutoLOD model at full detail -- else its
+    // mesh and material.
+    static std::unique_ptr<saida::MeshNode> copyMesh(const saida::Node& source);
+    // The most levels of detail any mesh under `root` draws in (1: none).
+    static size_t detailLevels(saida::Node& root);
+    // The player's scan in levels of detail (humans.json, autoLods): what a
+    // copy of his body must keep, or every other player is drawn whole.
+    size_t playerLevels=1;
     // A clone of a prototype with its empty nodes removed: every mesh it holds
     // comes back as one node carrying the transform it would have inherited.
     //
