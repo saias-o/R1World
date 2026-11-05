@@ -1,4 +1,4 @@
-# Comparaisons rurales — générateur v34, 7 octobre 2026
+# Références photographiques rurales
 
 Les captures utilisent `--camera-geo` aux coordonnées publiées des photos,
 indépendamment du déplacement du joueur lors du chargement. Aucun point n'est
@@ -18,7 +18,7 @@ Moretown : direction magnétique EXIF corrigée par WMM2025 et retournée de
 180° après identification de la maison OSM 1161789689, dont l'adresse et le
 lien Commons désignent cette photo. Tafraout : orientation recalée sur l'oued
 et le pont ; panorama assemblé dont la focale/coupe restent incertaines.
-Les autres focales et toutes les conditions sont dans `captures.json`.
+Les focales et conditions sont produites dans `captures.json` par le script de capture.
 
 Le générateur ajoute des proportions, matériaux et jardins régionaux US/RU/MA/JP,
 des toitures par ailes pour les maisons en L, des annexes basses et des règles
@@ -27,24 +27,6 @@ Les dimensions mesurées gardent la priorité ; les jardins restent exclus des
 îlots denses, rues piétonnes et commerces. Les textures de façade contenant des
 fenêtres sont retirées du lit de l'oued, des panneaux de clôture et des murs de
 limite ; ils utilisent respectivement roche, planches et pierre sans fenêtres.
-
-| Tuile de référence | Sommets | Cuisson native (ms, indicatif) |
-|---|---:|---:|
-| Moretown | 12 352 | 111 |
-| Souzdal | 38 853 | 548 |
-| Tafraout | 18 808 | 95 |
-| Tsumago | 23 659 | 148 |
-
-Plafond conservé : 120 000 sommets par tuile. Ces mesures ne qualifient pas
-les 30 fps soutenus partout dans le monde sur Ryzen 7 5700U / MX450.
-Paris, tuile 27771/23994 : géométrie et props identiques
-octet pour octet à la référence antérieure, 110 428 sommets, aucun jardin inféré.
-SHA256 GLB : `4542FE9E30FB87E0D619B17D9A227A2053FE237AF035C518B1BC6C5B1028C659`.
-SHA256 props : `A6EC30021AFAC2E6DB703F60EC3BE979FB0EDC77B24FFD8E44C9659FFD544668`.
-
-Compilation Windows et outils natifs réussies ; 286 tests passent. Un échec
-préexistant demeure : `Bridges.two_carriageways_mapped_side_by_side_are_one_deck`.
-Les helpers Python compilent ; `git diff --check` ne signale pas d'erreur.
 
 Restent des écarts visibles : buissons/haies/massifs insuffisants (reportés dans
 PLAN pour plus tard), couleurs et détails propres à chaque maison non observés,

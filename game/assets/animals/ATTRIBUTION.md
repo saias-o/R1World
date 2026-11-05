@@ -1,6 +1,6 @@
 # Attribution des animaux
 
-Les adaptations présentes dans ce dossier sont des conversions en GLB, normalisations approximatives d’échelle, conversions/réductions de textures, réductions LOD, corrections de compatibilité Collada, optimisation de canaux d’animation constants, création de rigs de déformation lorsque nécessaire, retrait de pistes de contrôleurs sans influence sur les sommets, déduplication de stockage et recompression PNG sans perte des canaux utilisés. Les téléchargements bruts ont été nettoyés à la demande de l’utilisateur. Les preuves de licence, métadonnées source et empreintes historiques sont conservées dans `licenses/provenance.zip` ; les modèles adaptés complets restent dans les GLB.
+Les adaptations présentes dans ce dossier sont des conversions en GLB, normalisations approximatives d’échelle, conversions/réductions de textures, réductions LOD, corrections de compatibilité Collada, optimisation de canaux d’animation constants, création de rigs de déformation lorsque nécessaire, retrait de pistes de contrôleurs sans influence sur les sommets, déduplication de stockage et recompression PNG sans perte des canaux utilisés. Les preuves de licence, métadonnées source et empreintes historiques sont conservées dans `licenses/provenance.zip` ; les modèles adaptés complets restent dans les GLB.
 
 ## CC BY-SA 3.0 — Wildfire Games
 

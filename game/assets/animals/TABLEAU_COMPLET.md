@@ -13,7 +13,7 @@ Les nombres de polygones sont exprimés en **triangles réellement présents dan
 | Bovins | 23 | 2 taureaux, 6 vaches, 10 Sanga, 5 zébus | 768–932 | 422–512 | 41 | 8–10 |
 | Brochet | 1 | Modèle unique | 1632 | 896 | 58 | 4 |
 | Cervidés | 5 | 3 robes du modèle léger, 1 biche détaillée, 1 cerf à bois détaillé | 306–4924 | 214–2705 | 31–38 | 9–10 |
-| Chat domestique | 2 | Tigré et sphynx ; rigs créés ici | 7500–8000 | 4125–4399 | 19 | 2 |
+| Chat domestique | 2 | Tigré et sphynx ; rigs ajoutés | 7500–8000 | 4125–4399 | 19 | 2 |
 | Chauve-souris | 1 | Modèle unique | 7732 | 4251 | 32 | 5 |
 | Cheval / poney | 70 | 70 variantes de chevaux et poneys : robes, tachetés, Lusitanien, Marwari, Persan, Thessalien, etc. | 1666–1714 | 916–942 | 86–95 | 7–10 |
 | Chien | 3 | 2 robes de mastiff, 1 lévrier irlandais | 849–856 | 466–470 | 47–48 | 7 |
@@ -29,7 +29,7 @@ Les nombres de polygones sont exprimés en **triangles réellement présents dan
 | Girafe | 4 | Adulte et petit, chacun en 2 robes | 690 | 379 | 31 | 6 |
 | Gnou | 1 | Modèle unique | 638 | 350 | 41 | 10 |
 | Gorille | 1 | Modèle unique | 10000 | 5500 | 16 | 2 |
-| Grenouilles / dendrobates | 3 | Dendrobate bleu, Ranitomeya amazonica et rainette aux yeux rouges ; rigs créés ici | 4500–6362 | 2475–3498 | 16 | 2 |
+| Grenouilles / dendrobates | 3 | Dendrobate bleu, Ranitomeya amazonica et rainette aux yeux rouges ; rigs ajoutés | 4500–6362 | 2475–3498 | 16 | 2 |
 | Guêpe | 1 | Modèle unique | 1832 | 1006 | 40 | 1 |
 | Hibou | 1 | Modèle unique | 12000 | 6600 | 13 | 2 |
 | Hippopotame | 2 | 2 textures | 1422 | 782 | 65 | 10 |
@@ -77,7 +77,7 @@ Les liens des identifiants ouvrent le GLB LOD0 ; le lien du nombre de triangles 
 
 | Animal | Identifiant / fichier | Triangles LOD0 | Triangles LOD1 | Réduction triangles | LOD0 Kio | LOD1 Kio | Os | Clips | Rig | Licence |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|---|
-| Ara | [parrot_macaw](parrot_macaw.glb) | 12000 | [6600](parrot_macaw-lod1.glb) | 45.0 % | 1342.9 | 663.1 | 13 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Ara | [parrot_macaw](parrot_macaw.glb) | 12000 | [6600](parrot_macaw-lod1.glb) | 45.0 % | 1342.9 | 663.1 | 13 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Araignée | [spider_garden](spider_garden.glb) | 1744 | [958](spider_garden-lod1.glb) | 45.1 % | 500.4 | 193.8 | 52 | 1 | Auteur | CC0-1.0 |
 | Bovins | [bull](bull.glb) | 838 | [460](bull-lod1.glb) | 45.1 % | 556.8 | 521.6 | 41 | 10 | Auteur | CC-BY-SA-3.0 |
 | Bovins | [bull_shape2](bull_shape2.glb) | 838 | [460](bull_shape2-lod1.glb) | 45.1 % | 556.8 | 521.6 | 41 | 10 | Auteur | CC-BY-SA-3.0 |
@@ -108,8 +108,8 @@ Les liens des identifiants ouvrent le GLB LOD0 ; le lien du nombre de triangles 
 | Cervidés | [deer_coat3](deer_coat3.glb) | 306 | [214](deer_coat3-lod1.glb) | 30.1 % | 309.7 | 299.0 | 38 | 10 | Auteur | CC-BY-SA-3.0 |
 | Cervidés | [doe](doe.glb) | 4784 | [2630](doe-lod1.glb) | 45.0 % | 1120.5 | 446.9 | 31 | 10 | Auteur | CC0-1.0 |
 | Cervidés | [stag](stag.glb) | 4924 | [2705](stag-lod1.glb) | 45.1 % | 2001.0 | 710.3 | 31 | 9 | Auteur | CC0-1.0 |
-| Chat domestique | [cat_sphynx](cat_sphynx.glb) | 7500 | [4125](cat_sphynx-lod1.glb) | 45.0 % | 785.1 | 378.0 | 19 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
-| Chat domestique | [cat_tabby](cat_tabby.glb) | 8000 | [4399](cat_tabby-lod1.glb) | 45.0 % | 926.3 | 402.8 | 19 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Chat domestique | [cat_sphynx](cat_sphynx.glb) | 7500 | [4125](cat_sphynx-lod1.glb) | 45.0 % | 785.1 | 378.0 | 19 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
+| Chat domestique | [cat_tabby](cat_tabby.glb) | 8000 | [4399](cat_tabby-lod1.glb) | 45.0 % | 926.3 | 402.8 | 19 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Chauve-souris | [bat](bat.glb) | 7732 | [4251](bat-lod1.glb) | 45.0 % | 690.6 | 391.4 | 32 | 5 | Auteur | CC0-1.0 |
 | Cheval / poney | [horse](horse.glb) | 1682 | [924](horse-lod1.glb) | 45.1 % | 731.1 | 690.1 | 86 | 9 | Auteur | CC-BY-SA-3.0 |
 | Cheval / poney | [horse_breed](horse_breed.glb) | 1666 | [916](horse_breed-lod1.glb) | 45.0 % | 546.0 | 500.3 | 95 | 7 | Auteur | CC-BY-SA-3.0 |
@@ -200,7 +200,7 @@ Les liens des identifiants ouvrent le GLB LOD0 ; le lien du nombre de triangles 
 | Cochon / porcelet | [piglet_coat3](piglet_coat3.glb) | 303 | [212](piglet_coat3-lod1.glb) | 30.0 % | 159.1 | 147.8 | 28 | 8 | Auteur | CC-BY-SA-3.0 |
 | Corbeau | [crow](crow.glb) | 542 | [298](crow-lod1.glb) | 45.0 % | 65.4 | 54.6 | 9 | 2 | Auteur | CC-BY-SA-3.0 |
 | Crocodile | [crocodile](crocodile.glb) | 700 | [385](crocodile-lod1.glb) | 45.0 % | 588.3 | 566.7 | 27 | 7 | Auteur | CC-BY-SA-3.0 |
-| Dauphin | [dolphin](dolphin.glb) | 7000 | [3850](dolphin-lod1.glb) | 45.0 % | 649.3 | 322.7 | 8 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Dauphin | [dolphin](dolphin.glb) | 7000 | [3850](dolphin-lod1.glb) | 45.0 % | 649.3 | 322.7 | 8 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Dindon | [turkey](turkey.glb) | 798 | [438](turkey-lod1.glb) | 45.1 % | 2045.8 | 672.6 | 31 | 5 | Auteur | CC-BY-SA-3.0 |
 | Dromadaire | [camel](camel.glb) | 2294 | [1260](camel-lod1.glb) | 45.1 % | 986.4 | 903.9 | 93 | 10 | Auteur | CC-BY-SA-3.0 |
 | Dromadaire | [camel_coat2](camel_coat2.glb) | 2294 | [1260](camel_coat2-lod1.glb) | 45.1 % | 1002.9 | 919.8 | 93 | 10 | Auteur | CC-BY-SA-3.0 |
@@ -212,12 +212,12 @@ Les liens des identifiants ouvrent le GLB LOD0 ; le lien du nombre de triangles 
 | Girafe | [giraffe_baby](giraffe_baby.glb) | 690 | [379](giraffe_baby-lod1.glb) | 45.1 % | 361.0 | 317.2 | 31 | 6 | Auteur | CC-BY-SA-3.0 |
 | Girafe | [giraffe_baby_coat2](giraffe_baby_coat2.glb) | 690 | [379](giraffe_baby_coat2-lod1.glb) | 45.1 % | 422.1 | 361.8 | 31 | 6 | Auteur | CC-BY-SA-3.0 |
 | Gnou | [wildebeest](wildebeest.glb) | 638 | [350](wildebeest-lod1.glb) | 45.1 % | 451.2 | 431.4 | 41 | 10 | Auteur | CC-BY-SA-3.0 |
-| Gorille | [gorilla](gorilla.glb) | 10000 | [5500](gorilla-lod1.glb) | 45.0 % | 899.3 | 430.8 | 16 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
-| Grenouilles / dendrobates | [frog_amazon](frog_amazon.glb) | 5376 | [2955](frog_amazon-lod1.glb) | 45.0 % | 1493.2 | 506.1 | 16 | 2 | Créé ici : contrôle uniquement | CC-BY-4.0 |
-| Grenouilles / dendrobates | [frog_blue](frog_blue.glb) | 4500 | [2475](frog_blue-lod1.glb) | 45.0 % | 698.9 | 313.7 | 16 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
-| Grenouilles / dendrobates | [frog_red_eye](frog_red_eye.glb) | 6362 | [3498](frog_red_eye-lod1.glb) | 45.0 % | 2538.1 | 805.0 | 16 | 2 | Créé ici : contrôle uniquement | CC-BY-4.0 |
+| Gorille | [gorilla](gorilla.glb) | 10000 | [5500](gorilla-lod1.glb) | 45.0 % | 899.3 | 430.8 | 16 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
+| Grenouilles / dendrobates | [frog_amazon](frog_amazon.glb) | 5376 | [2955](frog_amazon-lod1.glb) | 45.0 % | 1493.2 | 506.1 | 16 | 2 | Ajouté : contrôle uniquement | CC-BY-4.0 |
+| Grenouilles / dendrobates | [frog_blue](frog_blue.glb) | 4500 | [2475](frog_blue-lod1.glb) | 45.0 % | 698.9 | 313.7 | 16 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
+| Grenouilles / dendrobates | [frog_red_eye](frog_red_eye.glb) | 6362 | [3498](frog_red_eye-lod1.glb) | 45.0 % | 2538.1 | 805.0 | 16 | 2 | Ajouté : contrôle uniquement | CC-BY-4.0 |
 | Guêpe | [wasp_realistic](wasp_realistic.glb) | 1832 | [1006](wasp_realistic-lod1.glb) | 45.1 % | 554.4 | 230.8 | 40 | 1 | Auteur | CC0-1.0 |
-| Hibou | [owl_eagle](owl_eagle.glb) | 12000 | [6600](owl_eagle-lod1.glb) | 45.0 % | 1378.2 | 682.8 | 13 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Hibou | [owl_eagle](owl_eagle.glb) | 12000 | [6600](owl_eagle-lod1.glb) | 45.0 % | 1378.2 | 682.8 | 13 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Hippopotame | [hippopotamus](hippopotamus.glb) | 1422 | [782](hippopotamus-lod1.glb) | 45.0 % | 819.4 | 761.0 | 65 | 10 | Auteur | CC-BY-SA-3.0 |
 | Hippopotame | [hippopotamus_coat2](hippopotamus_coat2.glb) | 1422 | [782](hippopotamus_coat2-lod1.glb) | 45.0 % | 815.0 | 758.2 | 65 | 10 | Auteur | CC-BY-SA-3.0 |
 | Lapin | [rabbit](rabbit.glb) | 2640 | [1451](rabbit-lod1.glb) | 45.0 % | 3851.5 | 1649.1 | 37 | 9 | Auteur | CC0-1.0 |
@@ -227,25 +227,25 @@ Les liens des identifiants ouvrent le GLB LOD0 ; le lien du nombre de triangles 
 | Loup | [arctic_wolf](arctic_wolf.glb) | 696 | [382](arctic_wolf-lod1.glb) | 45.1 % | 1137.7 | 1115.6 | 32 | 9 | Auteur | CC-BY-SA-3.0 |
 | Loup | [wolf](wolf.glb) | 696 | [382](wolf-lod1.glb) | 45.1 % | 1155.5 | 1128.2 | 32 | 9 | Auteur | CC-BY-SA-3.0 |
 | Loup | [wolf_coat2](wolf_coat2.glb) | 696 | [382](wolf_coat2-lod1.glb) | 45.1 % | 1144.5 | 1122.1 | 32 | 9 | Auteur | CC-BY-SA-3.0 |
-| Lézard | [lizard](lizard.glb) | 4500 | [2474](lizard-lod1.glb) | 45.0 % | 136.7 | 81.2 | 19 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Lézard | [lizard](lizard.glb) | 4500 | [2474](lizard-lod1.glb) | 45.0 % | 136.7 | 81.2 | 19 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Mouette | [seagull](seagull.glb) | 420 | [294](seagull-lod1.glb) | 30.0 % | 53.9 | 48.1 | 9 | 2 | Auteur | CC-BY-SA-3.0 |
 | Mouton | [sheep1](sheep1.glb) | 254 | [176](sheep1-lod1.glb) | 30.7 % | 179.8 | 176.6 | 23 | 5 | Auteur | CC-BY-SA-3.0 |
 | Mouton | [sheep3](sheep3.glb) | 254 | [176](sheep3-lod1.glb) | 30.7 % | 155.0 | 149.3 | 23 | 5 | Auteur | CC-BY-SA-3.0 |
 | Ours brun | [bear_brown](bear_brown.glb) | 2530 | [1390](bear_brown-lod1.glb) | 45.1 % | 883.8 | 787.5 | 75 | 10 | Auteur | CC-BY-SA-3.0 |
 | Ours noir | [bear_black](bear_black.glb) | 2530 | [1390](bear_black-lod1.glb) | 45.1 % | 837.3 | 758.2 | 75 | 10 | Auteur | CC-BY-SA-3.0 |
 | Ours polaire | [bear_white](bear_white.glb) | 2528 | [1390](bear_white-lod1.glb) | 45.0 % | 849.5 | 762.1 | 75 | 10 | Auteur | CC-BY-SA-3.0 |
-| Paon | [peacock](peacock.glb) | 846 | [465](peacock-lod1.glb) | 45.0 % | 536.0 | 518.8 | 36 | 7 | Auteur | CC-BY-SA-3.0 |
+| Paon | [peacock](peacock.glb) | 846 | [465](peacock-lod1.glb) | 45.0 % | 541.6 | 524.3 | 36 | 7 | Auteur | CC-BY-SA-3.0 |
 | Papillon monarque | [butterfly](butterfly.glb) | 240 | [168](butterfly-lod1.glb) | 30.0 % | 171.5 | 167.3 | 25 | 3 | Auteur | CC0-1.0 |
 | Pie-grièche à bec jaune | [shrike](shrike.glb) | 996 | [546](shrike-lod1.glb) | 45.2 % | 2369.3 | 738.4 | 65 | 2 | Auteur | CC0-1.0 |
-| Pigeon | [pigeon_rock](pigeon_rock.glb) | 2508 | [1378](pigeon_rock-lod1.glb) | 45.1 % | 389.9 | 149.3 | 13 | 2 | Créé ici : contrôle uniquement | CC-BY-4.0 |
+| Pigeon | [pigeon_rock](pigeon_rock.glb) | 2508 | [1378](pigeon_rock-lod1.glb) | 45.1 % | 389.9 | 149.3 | 13 | 2 | Ajouté : contrôle uniquement | CC-BY-4.0 |
 | Poisson générique / banc | [fish_generic](fish_generic.glb) | 728 | [400](fish_generic-lod1.glb) | 45.1 % | 77.9 | 58.7 | 7 | 3 | Auteur | CC-BY-SA-3.0 |
 | Poisson générique / banc | [fish_single](fish_single.glb) | 56 | [38](fish_single-lod1.glb) | 32.1 % | 32.8 | 26.2 | 8 | 1 | Auteur | CC-BY-SA-3.0 |
 | Poule / coq | [chicken_kelgar](chicken_kelgar.glb) | 2724 | [1496](chicken_kelgar-lod1.glb) | 45.1 % | 1625.3 | 729.6 | 40 | 12 | Auteur | CC0-1.0 |
 | Poule / coq | [rooster](rooster.glb) | 3452 | [1897](rooster-lod1.glb) | 45.0 % | 1458.4 | 711.0 | 46 | 11 | Auteur | CC0-1.0 |
-| Pygargue à tête blanche | [eagle_bald](eagle_bald.glb) | 12000 | [6600](eagle_bald-lod1.glb) | 45.0 % | 1244.9 | 643.8 | 13 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
-| Rapace | [hawk](hawk.glb) | 134 | [92](hawk-lod1.glb) | 31.3 % | 70.6 | 68.9 | 9 | 2 | Auteur | CC-BY-SA-3.0 |
-| Rapace | [hawk_coat2](hawk_coat2.glb) | 134 | [92](hawk_coat2-lod1.glb) | 31.3 % | 70.6 | 68.9 | 9 | 2 | Auteur | CC-BY-SA-3.0 |
-| Rat | [rat_street](rat_street.glb) | 6500 | [3575](rat_street-lod1.glb) | 45.0 % | 2764.5 | 772.4 | 19 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Pygargue à tête blanche | [eagle_bald](eagle_bald.glb) | 12000 | [6600](eagle_bald-lod1.glb) | 45.0 % | 1244.9 | 643.8 | 13 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
+| Rapace | [hawk](hawk.glb) | 134 | [92](hawk-lod1.glb) | 31.3 % | 70.7 | 69.0 | 9 | 2 | Auteur | CC-BY-SA-3.0 |
+| Rapace | [hawk_coat2](hawk_coat2.glb) | 134 | [92](hawk_coat2-lod1.glb) | 31.3 % | 70.8 | 69.0 | 9 | 2 | Auteur | CC-BY-SA-3.0 |
+| Rat | [rat_street](rat_street.glb) | 6500 | [3575](rat_street-lod1.glb) | 45.0 % | 2764.5 | 772.4 | 19 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Renard arctique | [fox_arctic](fox_arctic.glb) | 640 | [352](fox_arctic-lod1.glb) | 45.0 % | 423.2 | 401.3 | 44 | 5 | Auteur | CC-BY-SA-3.0 |
 | Renard roux | [fox_red](fox_red.glb) | 640 | [352](fox_red-lod1.glb) | 45.0 % | 436.6 | 410.7 | 44 | 5 | Auteur | CC-BY-SA-3.0 |
 | Requin | [shark](shark.glb) | 292 | [204](shark-lod1.glb) | 30.1 % | 55.2 | 47.7 | 11 | 3 | Auteur | CC-BY-SA-3.0 |
@@ -253,13 +253,13 @@ Les liens des identifiants ouvrent le GLB LOD0 ; le lien du nombre de triangles 
 | Rhinocéros | [rhino](rhino.glb) | 792 | [434](rhino-lod1.glb) | 45.2 % | 440.4 | 390.7 | 32 | 6 | Auteur | CC-BY-SA-3.0 |
 | Rorqual | [whale_fin](whale_fin.glb) | 872 | [478](whale_fin-lod1.glb) | 45.2 % | 167.5 | 117.9 | 8 | 4 | Auteur | CC-BY-SA-3.0 |
 | Rotengle | [fish_kelgar](fish_kelgar.glb) | 1476 | [811](fish_kelgar-lod1.glb) | 45.1 % | 1239.5 | 423.7 | 12 | 2 | Auteur | CC0-1.0 |
-| Rouge-gorge | [robin](robin.glb) | 14000 | [7700](robin-lod1.glb) | 45.0 % | 1317.6 | 679.2 | 13 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Rouge-gorge | [robin](robin.glb) | 14000 | [7700](robin-lod1.glb) | 45.0 % | 1317.6 | 679.2 | 13 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Sanglier | [boar](boar.glb) | 362 | [250](boar-lod1.glb) | 30.9 % | 166.7 | 149.9 | 28 | 6 | Auteur | CC-BY-SA-3.0 |
 | Souris | [mouse_brown](mouse_brown.glb) | 3020 | [1660](mouse_brown-lod1.glb) | 45.0 % | 2326.4 | 745.9 | 25 | 1 | Auteur | CC-BY-4.0 |
 | Thon | [tuna](tuna.glb) | 310 | [216](tuna-lod1.glb) | 30.3 % | 85.4 | 72.9 | 15 | 1 | Auteur | CC-BY-SA-3.0 |
 | Tigre | [tiger](tiger.glb) | 686 | [376](tiger-lod1.glb) | 45.2 % | 1576.7 | 1565.6 | 41 | 9 | Auteur | CC-BY-SA-3.0 |
 | Tortue de Reeves | [turtle_pond](turtle_pond.glb) | 7998 | [4396](turtle_pond-lod1.glb) | 45.0 % | 2413.3 | 701.5 | 25 | 3 | Auteur | CC0-1.0 |
-| Tortue marine | [turtle_sea](turtle_sea.glb) | 6500 | [3575](turtle_sea-lod1.glb) | 45.0 % | 898.6 | 391.8 | 10 | 2 | Créé ici : contrôle uniquement | CC0-1.0 |
+| Tortue marine | [turtle_sea](turtle_sea.glb) | 6500 | [3575](turtle_sea-lod1.glb) | 45.0 % | 898.6 | 391.8 | 10 | 2 | Ajouté : contrôle uniquement | CC0-1.0 |
 | Zèbre | [zebra](zebra.glb) | 636 | [349](zebra-lod1.glb) | 45.1 % | 257.0 | 232.6 | 44 | 5 | Auteur | CC-BY-SA-3.0 |
 | Âne | [donkey](donkey.glb) | 302 | [210](donkey-lod1.glb) | 30.5 % | 139.6 | 133.6 | 40 | 3 | Auteur | CC-BY-SA-3.0 |
 | Éléphant asiatique | [elephant_asian](elephant_asian.glb) | 1538 | [844](elephant_asian-lod1.glb) | 45.1 % | 1051.9 | 987.1 | 79 | 7 | Auteur | CC-BY-SA-3.0 |
@@ -274,6 +274,6 @@ Les liens des identifiants ouvrent le GLB LOD0 ; le lien du nombre de triangles 
 - [Licences et attributions](ATTRIBUTION.md).
 - [Aperçu visuel](preview.jpg).
 
-Tous les fichiers sont riggés. Les LOD1 gardent les mêmes os et noms de clips que leur LOD0. Les textures sont embarquées, limitées à 1024 px pour LOD0 et 512 px pour LOD1 ; une texture source plus petite reste à sa résolution d’origine. Les réductions exactes figurent dans chaque ligne. Les rigs créés ici incluent des clips de contrôle, sans locomotion de production. Les poses statiques et clips d’origine sont identifiés dans le CSV et le manifeste.
+Tous les fichiers sont riggés. Les LOD1 gardent les mêmes os et noms de clips que leur LOD0. Les textures sont embarquées, limitées à 1024 px pour LOD0 et 512 px pour LOD1 ; une texture source plus petite reste à sa résolution d’origine. Les réductions exactes figurent dans chaque ligne. Les rigs ajoutés incluent des clips de contrôle, sans locomotion de production. Les poses statiques et clips d’origine sont identifiés dans le CSV et le manifeste.
 
-Licences du lot livré : CC0 1.0, CC BY-SA 3.0 et CC BY 4.0. Les variantes ne constituent pas autant d’espèces différentes. Les modèles restent des assets préparés : aucun comportement ou changement de LOD automatique n’est intégré au jeu.
+Licences du lot livré : CC0 1.0, CC BY-SA 3.0 et CC BY 4.0. Les variantes ne constituent pas autant d’espèces différentes. Le placement et les comportements sont décrits dans la [référence runtime](../../../docs/WORLD.md#animals).

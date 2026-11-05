@@ -1,5 +1,4 @@
 """Build the distributable asset catalogue from measured GLBs and provenance."""
-import collections
 import csv
 import hashlib
 import json
@@ -92,21 +91,46 @@ def build():
         writer.writerow(['id','animal','license','author','lod0_triangles','lod1_triangles','lod0_bytes','lod1_bytes','bones','rig_origin','animation_status','clips','source'])
         for a in assets:
             writer.writerow([a['id'],a['label'],a['license'],a['author'],a['lod0']['triangles'],a['lod1']['triangles'],a['lod0']['bytes'],a['lod1']['bytes'],a['lod0']['bones'],a['rig_origin'],a['animation_status'],'; '.join(c['name'] for c in a['lod0']['clips']),a['source_url']])
-    grouped=collections.defaultdict(list)
-    for a in assets: grouped[a['label']].append(a)
-    lines=['# Animaux préparés — 26 octobre 2026','',f"{totals['models_including_variants']} modèles/variantes, regroupés en **{totals['animal_types']} types d’animaux**, avec un GLB et un GLB LOD1 chacun. Les robes, sexes, âges et races ne sont pas comptés comme des espèces distinctes.",'',f"**{totals['glb_files']} GLB, {totals['glb_bytes']/1048576:.1f} Mio au total.** LOD0 : {totals['lod0_triangle_range'][0]}–{totals['lod0_triangle_range'][1]} triangles ; LOD1 : {totals['lod1_triangle_range'][0]}–{totals['lod1_triangle_range'][1]} triangles. Le LOD1 conserve en moyenne {totals['lod1_mean_triangle_ratio']*100:.1f} % des triangles.",'','Les textures, squelettes et clips sont intégrés aux GLB. `nom.glb` est le modèle proche ; `nom-lod1.glb` est sa réduction avec le même squelette et les mêmes noms de clips. Textures limitées à 1024 px au proche et 512 px au LOD1. Pas de Draco, Meshopt ou KTX requis. Les tangentes des normal maps sont intégrées. Échelle en mètres approximative, axe vertical +Y ; les orientations de départ sont conservées.','', '## Catalogue','', '| Type | Modèles / variantes | Triangles LOD0 |', '|---|---:|---:|']
-    for label,items in sorted(grouped.items()):
-        tris=[a['lod0']['triangles'] for a in items]
-        lines.append(f"| {label} | {len(items)} | {min(tris)}–{max(tris)} |")
-    lines+=['','## Mesures et vérifications','',f"Validateur Khronos glTF : **{totals['gltf_errors']} erreur, {totals['gltf_warnings']} avertissement**. Smoke des {totals['glb_files']} fichiers : buffers et textures embarqués, triangles, poids normalisés, indices d’os, conservation des rigs/clips entre LOD et déformation numérique sur cinq instants de chacun des {totals['sampled_animation_clips']} clips (variantes et LOD compris).",'','Des réimports Blender ont aussi servi à vérifier visuellement les mouvements et les découpes alpha. Tous les rendus et imports ont tourné en arrière-plan, sans fenêtre ni lancement du jeu. Aucun code du jeu ou du moteur n’a été modifié.','', '## Fichiers utiles','', '- [Catalogue CSV](catalog.csv) : coût, licence, auteur, clips et source par animal.', '- [Manifeste complet](manifest.json) : mesures par LOD, provenance, corrections et SHA-256.', '- [Attributions](ATTRIBUTION.md) et [licences](licenses/).', '- [Aperçu](preview.jpg) : sélection représentative issue des GLB finaux.', '- [Provenance archivée](licenses/provenance.zip) : preuves de licence, métadonnées et empreintes historiques ; les sources brutes ont été nettoyées.', '- Outils et rapports de smoke/revue : `data/animal-pipeline/`.','', '## Optimisation et nettoyage', '', 'Les textures conservent leurs dimensions et leurs pixels utilisés par les matériaux. La compaction retire uniquement les pistes de contrôleurs sans influence sur aucun sommet, en conservant tous les os, noms et durées de clips ; les données de géométrie et de mouvement visibles restent identiques. Les buffers, accessors et samplers strictement identiques sont partagés. Aucun décodeur supplémentaire n’est requis. Les sources brutes, doublons de GLB, rendus de travail et journaux ont été retirés du projet et placés dans la corbeille Windows. Voir `OPTIMISATION.md`.', '', '## Sélection et limites','', 'Priorité aux silhouettes naturelles et aux textures réalistes cohérentes. Les modèles de 0 A.D. forment le socle ; plusieurs animaux CC0 de Kelgar apportent des modèles plus détaillés et de nouveaux types. Les candidats cartoon, les figurines, les monstres et les textures de cadavres sont exclus. Des sources CC0 et CC BY 4.0 complètent le lot avec des silhouettes naturelles ; des rigs de déformation ont été créés pour les modèles statiques retenus. Les variantes de lapin de 184 triangles ont été remplacées par un lapin CC0 plus détaillé.','', 'Les ajouts couvrent chats domestiques, rongeurs, oiseaux, amphibiens, tortues, primate et invertébrés. Le canard, l’oie, le moineau et l’écureuil restent à compléter : les candidats vérifiés étaient trop cartoon, des figurines ou sans preuve de licence suffisante. Voir `EXPANSION.md` pour les comparaisons et limites des nouveaux rigs.','', 'Les GLB sont préparés et vérifiés comme fichiers. Leur compatibilité visuelle avec le rendu du jeu reste à vérifier lors d’une future intégration ; aucun comportement, placement ou changement automatique de LOD n’a été ajouté.']
-    (OUT/'README.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
-    credits=['# Attribution des animaux','', 'Les adaptations présentes dans ce dossier sont des conversions en GLB, normalisations approximatives d’échelle, conversions/réductions de textures, réductions LOD, corrections de compatibilité Collada, optimisation de canaux d’animation constants, création de rigs de déformation lorsque nécessaire, retrait de pistes de contrôleurs sans influence sur les sommets, déduplication de stockage et recompression PNG sans perte des canaux utilisés. Les téléchargements bruts ont été nettoyés à la demande de l’utilisateur. Les preuves de licence, métadonnées source et empreintes historiques sont conservées dans `licenses/provenance.zip` ; les modèles adaptés complets restent dans les GLB.','', '## CC BY-SA 3.0 — Wildfire Games','', '**Wildfire Games**, https://www.wildfiregames.com/ — modèles, textures et animations du projet [0 A.D.](https://github.com/0ad/0ad). Licence [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), copie et notice originales dans `licenses/`.','', 'Les fichiers dérivés de ces œuvres sont distribués sous CC BY-SA 3.0. Conserver cette attribution, le lien de licence et l’indication des adaptations lors de leur redistribution. Le manifeste précise la source et le commit pour chaque fichier.','', '## CC BY-SA 3.0 — Terra Magna','', '**The Council of Modders, Fallen Empire Studio, Scion Development**, https://www.wildfiregames.com/ — dindon du projet [Terra Magna](https://github.com/0ADMods/terra_magna). Même licence [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Notice originale : `licenses/terra-magna-art.txt`.','', '## CC0 1.0 — sources diverses','', 'Ces contributions sont conservées sous [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Crédit volontaire :','']
+    lines = [
+        '# Catalogue des animaux', '',
+        f"{totals['models_including_variants']} modèles/variantes, "
+        f"{totals['animal_types']} types et {totals['glb_files']} GLB "
+        f"({totals['glb_bytes']/1048576:.1f} Mio dans les rapports de mesure).",
+        'Les robes, sexes, âges et races ne sont pas des espèces distinctes.', '',
+        '## Formats', '',
+        'Chaque modèle possède un LOD0 et un LOD1 avec les mêmes os et noms de clips. '
+        'Textures et animations sont embarquées ; limites de texture : 1024 px au proche, '
+        '512 px au LOD1. Axe vertical +Y, unités en mètres, échelle approximative. '
+        'Les orientations de source sont conservées. Aucun décodeur Draco, Meshopt ou KTX requis.', '',
+        f"Triangles : {totals['lod0_triangle_range'][0]}–{totals['lod0_triangle_range'][1]} au proche, "
+        f"{totals['lod1_triangle_range'][0]}–{totals['lod1_triangle_range'][1]} au LOD1.", '',
+        '## Références', '',
+        '- [Tableau complet](TABLEAU_COMPLET.md) : variantes et coûts par modèle.',
+        '- [Catalogue CSV](catalog.csv) : clips, auteur, licence et source.',
+        '- [Manifeste](manifest.json) : mesures par LOD, corrections et SHA-256.',
+        '- [Attributions](ATTRIBUTION.md) et [licences](licenses/).',
+        '- [Aperçu](preview.jpg).',
+        '- [Optimisation du stockage](OPTIMISATION.md).',
+        '- [Ajouts et limites des rigs](EXPANSION.md).',
+        '- [Pipeline de préparation](../../../data/animal-pipeline/README.md).', '',
+        '## Mesures et utilisation', '',
+        'Les rapports de fichiers sont conservés sous data/animal-pipeline/review/. '
+        'Le smoke contrôle les buffers, textures, poids, indices, rigs et clips entre LOD, '
+        'ainsi que le skinning à cinq instants par clip. Le validateur Khronos '
+        'contrôle les deux LOD de chaque modèle.', '',
+        'Le catalogue inventorie les assets disponibles. Le placement dépend de fauna.json ; '
+        'les mesures et rôles des clips utilisés sont dans animals.json. '
+        'Certains rigs ne fournissent que des clips de contrôle, sans locomotion. '
+        'Voir la [référence runtime](../../../docs/WORLD.md#animals) pour les comportements et limites.',
+    ]
+    (OUT/'README.md').write_text('\n'.join(lines)+'\n',encoding='utf-8',newline='\n')
+    credits=['# Attribution des animaux','', 'Les adaptations présentes dans ce dossier sont des conversions en GLB, normalisations approximatives d’échelle, conversions/réductions de textures, réductions LOD, corrections de compatibilité Collada, optimisation de canaux d’animation constants, création de rigs de déformation lorsque nécessaire, retrait de pistes de contrôleurs sans influence sur les sommets, déduplication de stockage et recompression PNG sans perte des canaux utilisés. Les preuves de licence, métadonnées source et empreintes historiques sont conservées dans `licenses/provenance.zip` ; les modèles adaptés complets restent dans les GLB.','', '## CC BY-SA 3.0 — Wildfire Games','', '**Wildfire Games**, https://www.wildfiregames.com/ — modèles, textures et animations du projet [0 A.D.](https://github.com/0ad/0ad). Licence [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), copie et notice originales dans `licenses/`.','', 'Les fichiers dérivés de ces œuvres sont distribués sous CC BY-SA 3.0. Conserver cette attribution, le lien de licence et l’indication des adaptations lors de leur redistribution. Le manifeste précise la source et le commit pour chaque fichier.','', '## CC BY-SA 3.0 — Terra Magna','', '**The Council of Modders, Fallen Empire Studio, Scion Development**, https://www.wildfiregames.com/ — dindon du projet [Terra Magna](https://github.com/0ADMods/terra_magna). Même licence [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Notice originale : `licenses/terra-magna-art.txt`.','', '## CC0 1.0 — sources diverses','', 'Ces contributions sont conservées sous [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Crédit volontaire :','']
     for a in assets:
         if a['license']=='CC0-1.0': credits.append(f"- **{a['label']}** (`{a['id']}`), {a['author']} — [page originale]({a['source_url']}).")
     credits+=['','## CC BY 4.0 — contributions originales','','Ces modèles et leurs adaptations sont distribués sous [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), copie dans `licenses/CC-BY-4.0.txt`. Modifications : conversion GLB, mise à l’échelle, LOD, textures réduites et, sauf mention de rig original dans le manifeste, création du squelette, des poids et de clips de contrôle. Les fichiers GLB ont été obtenus par la distribution publique Objaverse ; la licence de chaque œuvre est vérifiée séparément de celle du jeu de données.','']
     for a in assets:
         if a['license']=='CC-BY-4.0':credits.append(f"- **{a['label']}** (`{a['id']}`), {a['author']} — [œuvre originale]({a['source_url']}).")
-    (OUT/'ATTRIBUTION.md').write_text('\n'.join(credits)+'\n',encoding='utf-8')
+    (OUT/'ATTRIBUTION.md').write_text('\n'.join(credits)+'\n',encoding='utf-8',newline='\n')
     # Raw source caches may have been explicitly cleaned. Their historical
     # hashes and licensing evidence remain in licenses/provenance.zip.
     if SOURCE.exists():

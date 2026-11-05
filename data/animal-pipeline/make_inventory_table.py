@@ -11,8 +11,8 @@ for asset in assets:
     groups.setdefault(asset['label'],[]).append(asset)
 
 NOTES={
-    'cat':'Tigré et sphynx ; rigs créés ici',
-    'frog':'Dendrobate bleu, Ranitomeya amazonica et rainette aux yeux rouges ; rigs créés ici',
+    'cat':'Tigré et sphynx ; rigs ajoutés',
+    'frog':'Dendrobate bleu, Ranitomeya amazonica et rainette aux yeux rouges ; rigs ajoutés',
     'mouse':'Souris brune, rig et clip de l’auteur',
     'cattle':'2 taureaux, 6 vaches, 10 Sanga, 5 zébus',
     'deer':'3 robes du modèle léger, 1 biche détaillée, 1 cerf à bois détaillé',
@@ -59,15 +59,15 @@ lines+=['',f'## Détail exact des {len(assets)} modèles / variantes','',
 for a in sorted(assets,key=lambda a:(a['label'],a['id'])):
     near,lod=a['lod0'],a['lod1']
     reduction=(1-lod['triangles']/near['triangles'])*100
-    lines.append(f"| {a['label']} | [{a['id']}]({a['id']}.glb) | {near['triangles']} | [{lod['triangles']}]({a['id']}-lod1.glb) | {reduction:.1f} % | {near['bytes']/1024:.1f} | {lod['bytes']/1024:.1f} | {near['bones']} | {len(near['clips'])} | {'Créé ici : contrôle uniquement' if a['rig_origin']=='created_for_R1World' else 'Auteur'} | {a['license']} |")
+    lines.append(f"| {a['label']} | [{a['id']}]({a['id']}.glb) | {near['triangles']} | [{lod['triangles']}]({a['id']}-lod1.glb) | {reduction:.1f} % | {near['bytes']/1024:.1f} | {lod['bytes']/1024:.1f} | {near['bones']} | {len(near['clips'])} | {'Ajouté : contrôle uniquement' if a['rig_origin']=='created_for_R1World' else 'Auteur'} | {a['license']} |")
 lines+=['','## Informations complémentaires','',
         '- [CSV complet](catalog.csv) : mêmes variantes, noms précis des clips et URL source.',
         '- [Manifeste JSON](manifest.json) : mesures, empreintes SHA-256, dimensions, clips, provenance et corrections.',
         '- [Licences et attributions](ATTRIBUTION.md).',
         '- [Aperçu visuel](preview.jpg).','',
-        'Tous les fichiers sont riggés. Les LOD1 gardent les mêmes os et noms de clips que leur LOD0. Les textures sont embarquées, limitées à 1024 px pour LOD0 et 512 px pour LOD1 ; une texture source plus petite reste à sa résolution d’origine. Les réductions exactes figurent dans chaque ligne. Les rigs créés ici incluent des clips de contrôle, sans locomotion de production. Les poses statiques et clips d’origine sont identifiés dans le CSV et le manifeste.','',
-        'Licences du lot livré : CC0 1.0, CC BY-SA 3.0 et CC BY 4.0. Les variantes ne constituent pas autant d’espèces différentes. Les modèles restent des assets préparés : aucun comportement ou changement de LOD automatique n’est intégré au jeu.']
-(OUT/'TABLEAU_COMPLET.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+        'Tous les fichiers sont riggés. Les LOD1 gardent les mêmes os et noms de clips que leur LOD0. Les textures sont embarquées, limitées à 1024 px pour LOD0 et 512 px pour LOD1 ; une texture source plus petite reste à sa résolution d’origine. Les réductions exactes figurent dans chaque ligne. Les rigs ajoutés incluent des clips de contrôle, sans locomotion de production. Les poses statiques et clips d’origine sont identifiés dans le CSV et le manifeste.','',
+        'Licences du lot livré : CC0 1.0, CC BY-SA 3.0 et CC BY 4.0. Les variantes ne constituent pas autant d’espèces différentes. Le placement et les comportements sont décrits dans la [référence runtime](../../../docs/WORLD.md#animals).']
+(OUT/'TABLEAU_COMPLET.md').write_text('\n'.join(lines)+'\n',encoding='utf-8',newline='\n')
 assert len(assets)>0 and len(groups)>0
 assert sum(len(items) for items in groups.values())==len(assets)
 print(f'Wrote {len(groups)} summary rows and {len(assets)} detailed rows.')

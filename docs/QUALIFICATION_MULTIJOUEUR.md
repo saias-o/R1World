@@ -1,107 +1,93 @@
-# Qualifier le multijoueur en réel (phase B)
+# Qualification du multijoueur sur deux PC
 
-Le multijoueur passe ses tests sur une seule machine : deux instances, le réseau
-local, la DHT publique (`game/tools/online_smoke.py`, avec ou sans `--versions`
-et `--join`). Ce qui n'a jamais été mesuré, c'est **deux machines sur deux
-réseaux réels**. C'est le vrai risque : NAT symétrique, réseau mobile, routeur
-qui bloque le multicast, pare-feu.
+Les smokes automatisés utilisent deux instances sur un seul poste.
+La traversée de réseaux réels, les sessions longues et les performances
+avec plusieurs pairs restent à qualifier.
 
-Cette check-list se déroule avec deux PC : **A**, le poste de développement, et
-**B**, un second poste. Elle produit des journaux à renvoyer ; le verdict se
-lit dedans.
+## Préparer les postes
 
-## 1. Préparer le paquet (sur A)
+Sur A, préparer le relief complet et le paquet selon
+[DEVELOPMENT.md](DEVELOPMENT.md#distribution), puis :
 
 ```powershell
-cd game
-python tools\package_world.py
+python game/tools/package_world.py
 ```
 
-Il produit `game\generated\package\R1World-<commit>.zip` (environ 435 Mo) :
-l'export du moteur (`saida_tool export-game`), l'exécutable sans ses
-informations de débogage, `Jouer.cmd` qui écrit le journal dans `logs\`, et
-`LISEZMOI.txt`. Ni le cache, ni les sauvegardes, ni l'identité en ligne de A n'y
-entrent. **Garder `game\generated\world-windows\R1World.exe` du même commit** :
-c'est lui qui lit les adresses d'un rapport de plantage venu de B.
+Copier `game/generated/package/R1World-<commit>.zip` sur B et l'extraire
+dans un dossier accessible en écriture. Garder sur A l'exécutable non dépouillé
+`game/generated/world-windows/R1World.exe` du même commit pour symboliser
+les rapports de crash de B.
 
-Copier le zip sur B (clé USB, cloud), le décompresser dans un dossier où
-l'on peut écrire (pas `Program Files`), lancer `Jouer.cmd`.
+B doit disposer de Windows et d'un pilote Vulkan compatible. Lancer
+`Jouer.cmd` pour conserver un journal. Autoriser le réseau dans le pare-feu.
+Un exécutable non signé peut déclencher SmartScreen ; vérifier l'origine
+du paquet avant de choisir son exécution.
 
-À savoir avant de commencer :
+Activer **Settings > Online** sur les deux postes : le multijoueur est
+désactivé par défaut. Sur A, lire le code de session ; sur B, le saisir dans
+le même onglet puis **Join**, ou lancer `Jouer.cmd --join CODE`.
+Le panneau indique recherche, découverte, voyage et arrivée près de l'ami.
+Après 30 s sans réponse, il le signale et poursuit la recherche.
 
-- Windows peut bloquer un exécutable non signé (« Windows a protégé votre
-  ordinateur ») : *Informations complémentaires*, puis *Exécuter quand même*.
-- Le pare-feu demande l'accès au réseau : l'autoriser, sinon B ne reçoit rien.
-- Un premier passage sur une machine neuve n'a pas de cache : des marches de
-  terrain peuvent apparaître le temps que le relief arrive (voir § 5). Ce
-  n'est pas du réseau.
+## Scénarios
 
-## 2. Se retrouver
+Le premier dure au moins 30 minutes, les suivants au moins dix minutes.
+Noter commit, matériel, résolution, préréglage, heure et topologie réseau.
 
-Sur A, dans *Settings > Online*, lire le code d'invitation (par exemple
-`K7QM-2XPA`). Sur B, le taper dans le même onglet et cliquer *Join*, ou lancer
-`Jouer.cmd --join K7QM-2XPA`. B est emmené à quatre mètres de A. Le panneau
-en ligne, en bas de l'écran, dit chaque étape (recherche, trouvé, en route, à
-côté). Un code qui ne répond pas est dit au bout de 30 secondes, et la
-recherche continue.
-
-## 3. Les scénarios
-
-À faire dans l'ordre. Chaque scénario est une session d'au moins **dix
-minutes**, et le premier dure **trente minutes**.
-
-| # | A | B | Ce qu'il éprouve |
+| Cas | A | B | Objet |
 |---|---|---|---|
-| 1 | box domestique | une autre box domestique (chez quelqu'un d'autre) | le cas réel : deux NAT, la DHT, le perçage UDP |
-| 2 | box domestique | partage de connexion 4G/5G d'un téléphone | NAT d'opérateur, souvent symétrique : le perçage doit passer, car à deux aucun relais n'est possible (un relais est un troisième joueur qui les a présentés) |
-| 3 | même box | même box, sur un routeur ou un Wi-Fi qui isole les clients ou coupe le multicast | se trouver sans les balises LAN, par la DHT seule |
+| 1 | Box domestique | Autre box domestique | Découverte publique et traversée de deux NAT |
+| 2 | Box domestique | Partage 4G/5G | NAT opérateur, IPv6 et limites du perçage |
+| 3 | Même routeur | Clients isolés ou multicast bloqué | Découverte et connexion sans balises LAN |
 
-Pendant chaque session :
+Pour chaque cas :
 
-1. Se rejoindre par le code (§ 2), noter le temps affiché jusqu'à « Beside ».
-2. Marcher ensemble deux minutes, courir, sauter : l'autre doit glisser sans
-   saut ni téléportation.
-3. Se tirer dessus au pistolet et se frapper : les touches doivent compter
-   chez la victime, sans refus.
-4. S'éloigner à plus d'un kilomètre (en voiture), puis revenir : l'autre
-   disparaît, puis revient tout seul.
-5. Pour le scénario 1, rester ensemble trente minutes en tout.
+1. Rejoindre par invitation et mesurer le délai jusqu'à l'arrivée.
+2. Marcher ensemble, courir et sauter pendant deux minutes ; observer
+   saccades, téléportations et disparition de l'autre.
+3. Tirer au pistolet et frapper ; vérifier les dégâts sur le poste victime.
+4. Prendre une voiture garée, la déplacer, sortir et la reprendre depuis
+   l'autre poste. Vérifier sa position et sa place de départ vide.
+5. S'éloigner à plus d'un kilomètre, revenir et vérifier la redécouverte.
+6. Terminer la durée prévue, puis tester départ et retour hors ligne.
+7. Refaire les contrôles visuels de jour et de nuit.
 
-## 4. Ce qu'il faut renvoyer, et comment le lire
+Deux NAT impossibles à percer ne peuvent se relayer sans un troisième pair
+joignable par les deux. Dans le cas 2, noter cette topologie si la jonction
+échoue ; ne pas la présenter comme une prise en charge validée.
+Le cas 3 teste aussi une limite ouverte des adresses privées derrière un
+routeur sans multicast ni hairpinning.
 
-De chaque PC : le fichier `logs\game-<date>.log` de la session (sur A, lancé
-par `Play.ps1`, il est dans `game\cache\sessions\<id>\game.log`), et le
-dossier `crash\` s'il existe sur B.
+## Journaux et verdict
 
-Les lignes utiles commencent par `[World online]` :
+Conserver les journaux des deux postes :
+`logs/game-<date>.log` du paquet, ou
+`game/cache/sessions/<id>/game.log` du lanceur de développement.
+Conserver `crash/` lorsqu'il existe.
 
-- `Player X is here, from <adresse>` ou `relayed by Player Y` : le lien, direct
-  ou relayé, et son aller-retour.
-- `going to Player X`, `joined Player X: N m from him` : la jonction.
-- Une fois par minute : liens, liens relayés, joueurs suivis, version
-  différente, foule estimée, instantanés envoyés par palier, pire attente du
-  thread réseau, et **les images de la minute : médiane, p95, p99 et pire**.
-- `refused …` : un refus et sa raison, à lire un par un.
+Les lignes `[World online]` donnent adresse et lien direct/relais,
+départ/arrivée de l'invitation, refus avec raison et bilan par minute :
+liens, versions, population estimée, instantanés par palier, pire attente
+du thread réseau, médiane/p95/p99/pire temps de frame.
 
-Est **qualifié** un scénario où : la jonction aboutit en moins d'une minute ;
-le lien ne tombe pas pendant la session (aucun `left: closed` ou `timed out`
-hors départ volontaire) ; aucun refus inattendu ; le p99 des images en ligne
-reste dans la même classe que le solo sur la même machine ; le pire retard du
-thread réseau reste sous 50 ms.
+Un scénario est qualifié si :
 
-## 5. Limites connues avant de commencer
+- La jonction réussit en moins d'une minute.
+- Le lien reste actif jusqu'au départ volontaire, sans fermeture ni timeout inattendu.
+- Aucun refus inattendu ne survient et les interactions demandées fonctionnent.
+- Le p99 des frames reste comparable au solo sur le même poste et les mêmes réglages.
+- Le pire retard du thread réseau reste sous 50 ms.
 
-- **Première visite sur une machine neuve.** Une tuile peut rester en « sol
-  plat provisoire (relief en attente) » à côté d'une tuile qui a son relief,
-  une marche de 18 à 53 m : le smoke solo du paquet échoue sur ce point,
-  trois fois de suite à Paris. Et le relief lointain (zooms 3 à 6) n'est lu
-  que sur le disque, où il n'est pas, sur A non plus : les anneaux lointains
-  sont refusés (`ring N refused` dans le journal) sur les deux postes. Ce
-  sont des chantiers de la distribution 0.1, pas du multijoueur.
-- **Lien conservé par proximité.** Le moteur garde les liens vers les 48
-  joueurs les plus proches. Un ami qu'on vient de rejoindre est tout près,
-  donc gardé ; dans une foule de plus de 48 personnes plus proches que lui,
-  son lien pourrait tomber. Rien ne marque encore « cet ami est gardé quoi
-  qu'il arrive ».
-- **Véhicules.** Un joueur au volant n'est pas dessiné (`Pose::Vehicle`) : le
-  véhicule partagé est un chantier de la phase C.
+Une session entre deux joueurs ne qualifie pas le coût d'une foule.
+Mesurer séparément débit, CPU, mémoire et temps de frame avec davantage de pairs.
+
+## Limites à prendre en compte
+
+- Un ami n'est pas protégé contre l'élagage des liens par proximité dans une foule.
+- Bateaux, avions, hélicoptères, animaux et météo restent locaux.
+  Un joueur en bateau ou en aéronef n'est pas dessiné chez l'autre.
+- Les roquettes ne synchronisent pas la destruction des voitures.
+- L'affichage de la foule distante reste à implémenter.
+- Une installation sans les 648 blocs de relief n'est pas un paquet complet.
+  Les défauts de première visite, les délais Overpass et le budget d'assets
+  décodés sont suivis dans [PLAN.md](PLAN.md#7-version-01-et-sortie-prochaine).

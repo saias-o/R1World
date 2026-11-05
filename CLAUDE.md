@@ -1,141 +1,69 @@
 # R1World — règles de travail
 
-`docs/PLAN.md` dit **ce qu'est** le projet : thèse, contraintes, invariants,
-décisions. Ce fichier dit ce qu'il ne faut pas faire, parce que chaque règle ci-dessous a été apprise en la
-cassant.
+`docs/PLAN.md` porte les objectifs, invariants et travaux ouverts.
+`game/README.md` décrit l'utilisation du jeu ; `docs/WORLD.md` son fonctionnement
+technique ; `docs/DEVELOPMENT.md` la compilation et les vérifications.
+L'historique des changements reste dans Git.
 
----
+## 1. Préserver la qualité des assets
 
-## 1. Ne jamais remplacer un asset existant par un moins bon
+- Examiner les assets existants et `game/assets/THIRD_PARTY_ASSETS.json` avant
+  d'en choisir un nouveau. Réutiliser le meilleur asset qui couvre le besoin.
+- Ne pas remplacer un asset par un modèle de qualité inférieure. Si le budget
+  rend l'asset existant inutilisable, exposer la contrainte et demander un choix.
+- Pour une couverture manquante, chercher d'abord un asset du même grade.
+  Les kits Kenney conviennent aux objets sans meilleur équivalent, pas aux arbres
+  déjà couverts par les scans Poly Haven.
+- Vérifier le résultat visuellement ; les tests de fichiers ne détectent pas
+  une dégradation de silhouette, de texture ou d'animation.
 
-**C'est la règle numéro un et elle a été cassée deux fois.**
+## 2. Utiliser des albédos mesurés
 
-Le projet embarque des arbres **photoscannés Poly Haven** — `fir_sapling`,
-`pine_sapling_small`, `quiver_tree_01`, `quiver_tree_02`. En ajoutant les props au monde
-(9 septembre 2026), un kit Kenney basse-poly a été branché pour la végétation
-alors que ces arbres-là étaient déjà sur le disque, déjà normalisés, déjà
-inscrits dans `assets/THIRD_PARTY_ASSETS.json`.
+Plages de référence : eau 0,03–0,06 ; asphalte et béton 0,10–0,15 ; forêt
+0,08–0,15 ; herbe 0,18–0,25 ; cultures et roche 0,15–0,25 ; sable sec
+0,30–0,40 ; neige fraîche 0,80–0,90. Les couleurs peintes des kits ne sont
+pas des mesures. `normalize.repaint_kit_model` refuse les matériaux absents
+de sa palette.
 
-**La barre visuelle du projet est fixée par son meilleur asset existant, pas par
-ce qui est commode pour la fonctionnalité en cours.** Une fonctionnalité qui
-abaisse cette barre est une régression vendue comme un progrès, et aucun test ne
-la voit : seul le joueur la voit, et seulement en ouvrant le jeu.
+## 3. Rendre les refus explicites
 
-En pratique :
+Un refus nomme sa raison dans le journal, est visible pour le joueur et fait
+échouer le smoke concerné sur cette raison. Une erreur connue ne doit pas
+ressembler à un chargement sans fin.
 
-- Avant de choisir un asset, **regarder d'abord ce qui est déjà sur le disque**
-  et dans `assets/THIRD_PARTY_ASSETS.json`. Le réutiliser.
-- Un nouvel asset peut **élargir** la couverture (une essence qui manque, un
-  objet sans équivalent). Il ne peut jamais **déplacer** un meilleur asset qui
-  couvre déjà le cas.
-- Si l'asset existant ne tient pas une contrainte (budget, arène, nombre), **le
-  dire et demander** — jamais substituer quelque chose de moins cher en silence.
-- Quand la couverture manque vraiment, chercher un asset **du même grade**
-  (CC0 photoscanné, Poly Haven) avant de descendre vers un kit stylisé.
-- Les kits Kenney conviennent aux objets sans meilleur équivalent dans le projet
-  — lampadaires, bancs, arrêts de bus, poteaux. **Pas aux arbres.**
+## 4. Faire primer les observations
 
-`tools/r1/tests/test_props.py` tient cette règle : un test échoue si une essence
-d'arbre pointe ailleurs que sur les modèles photoscannés.
+Une hauteur, une forme de toit ou une emprise observée prime sur une estimation.
+Le manifeste distingue données mesurées, inférences et observations manquantes
+(PLAN §3 I5). Un monument généré conserve son emprise OSM.
 
-## 2. Les couleurs d'un kit sont de la peinture, pas des albédos
+## 5. Respecter les budgets du moteur
 
-Appris deux fois le même jour, sur les sols puis sur les arbres. Kenney peint le
-feuillage `(0,16 · 0,79 · 0,67)` — un turquoise à quatre fois l'albédo d'une
-feuille — et la première table de sols donnait 0,38 à l'asphalte et 0,78 au sable
-sec. À la lumière de ce monde, tout ce qui dépasse ~0,35 sature : la palette
-entière s'effondre en un seul blanc.
+Comparer les budgets de génération et de résidence à la capacité réelle de
+`GeometryRegistry` : 1 048 576 sommets par défaut. Les props sont des nœuds
+sur des maillages partagés par `MeshCache`, jamais des copies dans la géométrie
+des tuiles.
 
-Toute valeur de couleur entrant dans le jeu est un **albédo mesuré** : eau
-0,03–0,06 · asphalte et béton 0,10–0,15 · forêt 0,08–0,15 · herbe 0,18–0,25 ·
-cultures et roche 0,15–0,25 · sable sec 0,30–0,40 · neige fraîche 0,80–0,90.
-`normalize.repaint_kit_model` refuse tout matériau que la palette ne nomme pas
-(PLAN §4 : *un asset non conforme n'entre pas*).
+## 6. Placer les responsabilités au bon endroit
 
-## 3. Un refus doit se dire, jamais ressembler à de la lenteur
+- Capacité générique indispensable (physique, animation, LOD, streaming) : moteur.
+- Capacité générique optionnelle (trafic, faune, réseau) : plugin moteur.
+- Géographie, observations OSM, tuilage et règles de R1World : jeu.
 
-Trois fois dans `native/world.cpp` : le compteur de tuiles figé, la tuile qui ne
-tenait pas dans l'arène, le spawn refusé dans l'eau. Chaque fois, le code
-*savait* et se taisait, et le symptôme était un délai de trois minutes qui
-accusait le réseau.
-
-Tout refus écrit une ligne de journal nommant la raison, fait échouer le test de
-fumée sur cette raison-là, et dit quelque chose au joueur.
-
-## 4. Ce qui est mesuré bat toujours ce qui est inféré
-
-PLAN §3 I5. Une hauteur taguée, une forme de toit taguée, une emprise relevée : rien
-d'inféré ne les écrase, et le manifeste écrit lequel des deux a répondu. C'est
-aussi pourquoi une église garde son emprise OSM et reçoit une flèche générée
-plutôt qu'un modèle d'église posé par-dessus.
-
-## 5. L'arène fait 1 048 576 sommets et ce n'est pas un choix
-
-`GeometryRegistry::kDefaultMaxVertices`. Toute mesure de géométrie se compare à ce nombre, et les budgets
-(`TILE_VERTEX_BUDGET`, `kResidentVertices`) en découlent au lieu d'être choisis.
-
-Les props sont des **nœuds de scène**, jamais de la géométrie de tuile : le
-`MeshCache` indexe par asset, donc six cents nœuds pointant sur un arbre
-téléversent cet arbre une fois.
-
-## 6. Améliorer le moteur, ne jamais le contourner
-
-Le 25 septembre 2026, la foule coûtait 3 ms d'animation. Le jeu l'a d'abord
-contournée : il désactivait les animateurs du moteur et les faisait avancer
-lui-même. La vraie cause était ailleurs, et un contournement ne l'aurait jamais
-montrée : **le jeu se liait au build Debug du moteur**, où une image de Paris
-coûtait 35 ms au lieu de 4,5.
-
-- R1World se lie à `engine/build-rel` (RelWithDebInfo), que `Play.ps1`
-  configure et tient à jour ; jamais à `engine/build`, qui est le Debug.
-- Quand le moteur est lent, faux ou incomplet, **on corrige le moteur**, avec
-  ses règles (`engine/AGENTS.md`, `CONTRIBUTING.md`, `SPEC.md`, un test).
-- Une modification du moteur est **générique** : elle améliore Saida pour tout
-  jeu, et R1World en profite. Rien dans le moteur ne connaît R1World.
-- **Le jeu est un projet, comme un projet Unity ou Unreal.** Ce qu'un moteur 3D
-  digne de ce nom (et optimisé) doit fournir se fait **dans le moteur**, pas
-  dans le jeu. Pour chaque fonctionnalité, on tranche :
-  - **générique et indispensable à un moteur** (contrôleur de personnage,
-    physique, animation, LOD, streaming…) → dans le moteur (`engine/src`) ;
-  - **générique mais pas indispensable** (trafic, foule…) → un plugin
-    (`engine/plugins/`, sur le modèle de `plugins/traffic`) ;
-  - **vraiment propre à R1World** (OSM, tuiles, globe, règles de ce monde) → le jeu.
-- Si le moteur a **presque** ce qu'il faut, on le complète au lieu de le
-  contourner : le jeu n'inclut pas Jolt, ne recompose pas des matrices que le
-  moteur tient, ne réécrit pas ce qu'un nœud du moteur fait déjà. Le
-  25 septembre, les pieds du joueur étaient un `CharacterVirtual` Jolt piloté à
-  la main alors que le moteur avait `CharacterBodyNode` ; il lui manquait un
-  déplacement immédiat, on le lui a donné (`moveAndSlide`).
-- Avant de conclure qu'une chose coûte cher, on la mesure :
-  `--profile <trace.json>` sur n'importe quel exécutable Saida.
+Compléter une API moteur manquante au lieu de la contourner dans le jeu.
+Le moteur ne connaît pas R1World. Suivre `engine/AGENTS.md` pour le modifier.
+Mesurer un problème de coût avec `--profile <trace.json>` dans le build
+optimisé `engine/build-rel` (RelWithDebInfo), utilisé par `game/Play.ps1`.
 
 ## 7. Vérifier hors ligne
 
-Le cache est une promesse : un lieu déjà visité ne touche plus le réseau.
+Un lieu déjà visité doit fonctionner sans réseau de données géographiques.
+Le vérifier avec les proxys fermés et un smoke sur ce lieu, selon
+`docs/DEVELOPMENT.md`. Les échanges P2P sont distincts du cache du monde.
+Pour compiler sous Windows, placer `C:\msys64\ucrt64\bin` en tête du PATH ;
+`Play.ps1` et `build_tools.sh` le font eux-mêmes.
 
-```powershell
-$env:HTTP_PROXY = "http://127.0.0.1:9"; $env:HTTPS_PROXY = "http://127.0.0.1:9"
-$env:SAIDA_WINDOW_HIDDEN = "1"
-cd game
-python tools\play_world.py --smoke --spawn 2.3522 48.8566
-sh native/build_tools.sh; generated\tools\r1test.exe
-python -m unittest discover -s tools\r1\tests -t tools
-```
+## 8. Travailler sur main
 
-Le monde est généré dans le jeu (`native/gen`) : `play_world.py` reconstruit
-l'exécutable (`Play.ps1 -BuildOnly`) puis le lance, sous n'importe quel
-Python 3. Pour compiler, `C:\msys64\ucrt64\bin` doit être **en tête** du PATH ;
-sinon le lien échoue avec un `ld returned 116` sans autre message
-(`engine/AGENTS.md`). `Play.ps1` et `build_tools.sh` l'y mettent eux-mêmes.
-
-Un test de fumée qui passe, proxys fermés, sur un lieu déjà visité est ce qui
-prouve la promesse ; son journal est dans `cache/sessions/<id>/game.log`.
-
-## 8. Jamais de branche
-
-Le 2 novembre 2026, le netcode a été commité sur deux branches créées pour
-l'occasion, dans le moteur et dans le jeu. **Il est interdit de créer une
-branche**, dans ce dépôt comme dans `engine/` : on travaille et on commite sur
-`main`, déjà extrait. Pas de changement de branche, pas de worktree, pas de
-réécriture de l'historique de `main`.
-
+Ne créer aucune branche ni worktree, dans ce dépôt comme dans `engine/`.
+Travailler sur `main`, sans changement de branche ni réécriture de son historique.

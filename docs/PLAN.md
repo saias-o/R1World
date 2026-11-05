@@ -3,7 +3,7 @@
 **Explorer la Terre entière à l'échelle 1:1 en photographiant le monde :
 monuments, animaux, paysages et événements insolites.**
 
-## À traiter en premier (28 octobre 2026)
+## À traiter en premier
 
 - **Le smoke « perf walk » échoue par intermittence.** Depuis le cache des
   contributeurs GI (Saida 7b33d9f : GI/Prepare ~12 → ~1 ms, image ~45 → ~22 ms
@@ -20,15 +20,15 @@ monuments, animaux, paysages et événements insolites.**
   Il faut des assets CC0 du même grade que les existants, choisis par
   l'utilisateur (CLAUDE.md §1).
 
-Mis à jour le 3 novembre 2026. Ce plan conserve la direction du jeu, ses
+Ce plan conserve la direction du jeu, ses
 contraintes durables et les travaux restant à faire. Les fonctionnalités
 livrées, leur fonctionnement et leurs mesures sont documentés dans
-`game/README.md` ; leur historique reste dans Git.
+`game/README.md` et `docs/WORLD.md` ; leur historique reste dans Git.
 
 **La version actuelle du jeu est la 0.1. Sa sortie est prévue prochainement.**
 Le catalogue de découvertes animalières reste un objectif à terme. La prise de
 photo libre, le portfolio persistant et le menu du joueur sont décrits dans
-`game/README.md` (29 octobre 2026).
+`game/README.md`.
 
 **Le but du jeu est l'exploration par la photographie.** La collection donnera
 une raison concrète de voyager : les animaux apparaîtront selon l'endroit du monde où
@@ -231,7 +231,7 @@ la portée de la végétation reste celle du mode graphique choisi, même en vé
    autorité sur la position, dont dépendent le rebasage, le streamer et le
    soleil.
 7. **Le cache est une promesse.** Un lieu déjà visité se recharge sans requête
-   réseau de données du monde (`CLAUDE.md` §7). Les échanges P2P de la future
+   réseau de données du monde (`CLAUDE.md` §7). Les échanges P2P de la
    MULTIPLAYER UPDATE sont distincts ; le lieu reste jouable hors ligne.
 
 ---
@@ -323,7 +323,7 @@ Le transport, la découverte et la réplication sont des briques génériques du
 moteur (`engine/plugins/p2p` et `engine/plugins/netcode`, SPEC §11.6–11.7) ;
 le découpage géographique et les règles de jeu appartiennent au jeu
 (`game/native/world/online*.cpp`). Le fonctionnement livré est décrit dans
-`game/README.md`, *Other players*. Ce chantier n'est pas annoncé dans la 0.1.
+`docs/WORLD.md`, section *Multiplayer*. Ce chantier n'est pas annoncé dans la 0.1.
 
 **Décisions prises (3 novembre 2026)**
 
@@ -351,58 +351,16 @@ le découpage géographique et les règles de jeu appartiennent au jeu
 - **La triche se juge localement** (`Witness`) : chaque machine écarte ce
   qu'elle a vu, rien n'est voté.
 
-**Fait.** Étape 1 (2 novembre) : rollback générique du moteur. Étape 2
-(2 novembre) : transport chiffré, perforation des NAT, découverte par la DHT
-Mainline et le réseau local. Étape 3 (3 novembre) : les autres joueurs dans
-R1World, tirs, coups et roquettes jugés par la cible, smoke à deux instances
-réussi. Étape 4 (3 novembre) : la foule (voisinage par proximité, relais par
-un pair, DHT IPv6, thread réseau, instantanés de 32 octets par attention,
-témoins). Rejoindre un ami (3 novembre) : un code d'invitation par session
-(onglet *Online* des réglages, ou `--join CODE`), le sujet `arenaTopic` du
-moteur, puis le Go ordinaire jusqu'à quatre mètres de l'ami ; smoke à deux
-instances à cinq kilomètres l'une de l'autre réussi. Le monde partagé
-(3 novembre) : multijoueur coupé par défaut, interrupteur dans l'onglet
-*Online* ; activé, ni trafic ni passants ni police, et des voitures garées
-communes, la voiture prise diffusée par son conducteur (protocole
-`r1world/online-5`) ; smoke `--cars` réussi (même nombre de places sur les
-deux machines, la voiture vue en mouvement, sa place vide). Mesures et
-vérifications : `game/README.md` et CHANGELOG du moteur.
+Le transport, les avatars, le combat, les invitations et les voitures partagées
+sont implémentés ; voir `docs/WORLD.md`, section Multiplayer, et les commandes
+de vérification dans `docs/DEVELOPMENT.md`.
 
-**Étape 5 en cours (3 novembre 2026) : les points chauds** (150 000 joueurs à
-la tour Eiffel). Fait dans le moteur et vérifié en simulation et par les tests
-(SPEC §4.4, §11.7, CHANGELOG) : DHT réduite à la porte même pour une foule
-immense (16 clés par cellule, membres silencieux, 8 annonceurs élus par un
-résumé circulant, taille de la foule estimée), vue lointaine de la foule
-(`sightings`), liens gardés plus longtemps (`keepRatio`, réglé dans le jeu),
-AutoLOD sur les maillages animés (et `MSFT_lod` de nouveau écrit), atlas de
-billboards animés dont la marche suit la distance parcourue. Reste, dans cet
-ordre :
+**Grandes foules : travaux ouverts**
 
-- **Fait (4 novembre) : LOD animés du joueur.** AutoLOD (recompilé : le
-  binaire du 16 octobre ignorait les maillages animés) donne au scan du joueur
-  trois niveaux, 4 504, 2 363 et 912 triangles, squelette compris
-  (`python -m r1.humans --lods`), qui basculent quand il mesure 94, 46 et
-  23 pixels de haut (11,6, 23,7 et 47,4 m ; `--coverages`, nouvelle option
-  d'AutoLOD). Le moteur gagne `MeshNode::duplicate()`, qui garde la chaîne :
-  les six copies du jeu (corps du joueur, autres joueurs, passants,
-  motards, animaux, plantes) la perdaient. Les passants gardent leurs deux
-  niveaux Blender (2 400 et 500 triangles). Planche de validation :
-  `python -m r1.human_views lods` (1,2 %, 2,7 % et 6,7 % des pixels changent
-  aux bascules).
-- **Fait (4 novembre) : imposteurs du joueur, validés et branchés.**
-  `python -m r1.human_impostor` pose le scan du joueur par ses propres clips
-  (`r1/human_views.py`) : 8 azimuts × une rangée × 12 poses de `walk` et 8
-  d'`idle`, cellules de 128 px, albédo, normales et visibilité comme
-  `tree_impostor.py`, tournés vers −Z (l'avant du moteur, sans quoi la marche
-  défilerait à l'envers), la foulée en mètres du monde (0,826 m) ; 2,6 Mo,
-  inscrits dans `assets/THIRD_PARTY_ASSETS.json`. Un autre joueur debout à
-  plus de 60 m est dessiné en imposteur (retour au corps sous 54 m,
-  `o::drawnAsImpostor`) : son corps caché et posé deux fois par seconde, sa
-  capsule gardée pour qu'un tir le touche. À tester en réel (deux PC) : une
-  foule de joueurs au loin, et le coût mémoire des atlas (21 Mo décodés) avec
-  le budget déjà saturé à Paris. Planches :
-  `game/generated/human-impostors/`. Les 19 passants n'en ont pas encore
-  (environ 50 Mo) : leur foule a déjà ses deux niveaux.
+Les LOD animés et les imposteurs du joueur sont branchés. Restent :
+
+- Qualifier leur rendu avec une foule sur deux PC et le coût mémoire des atlas
+  (environ 21 Mo décodés), notamment avec le budget déjà saturé à Paris.
 - **Dessiner la foule lointaine** : `rc.sightings` (256), `setLook` (cap et
   allure sur 16 bits), un budget fixe d'imposteurs (environ 200, moins en mode
   toaster) placés aux positions vues, prolongées par cap et allure selon leur
@@ -422,7 +380,7 @@ lecture des journaux sont dans `docs/QUALIFICATION_MULTIJOUEUR.md`.
   réseau (journal `[World online] N linked`), déconnexions et retour hors
   ligne.
 - p95/p99 des images sur la MX450 avec 1 à 3 pairs (le résumé par minute les
-  donne), puis le coût des imposteurs une fois branchés.
+  donne), et le coût des imposteurs.
 - Une vraie foule, et le coût par pair (débit, CPU, mémoire) selon I4.
 
 **À décider avec l'utilisateur**
@@ -452,8 +410,8 @@ lecture des journaux sont dans `docs/QUALIFICATION_MULTIJOUEUR.md`.
 Le lance-roquettes du joueur, les tirs depuis les hélicoptères et les tirs
 policiers contre les véhicules sont décrits dans `game/README.md`.
 L'explosion SaidaFX, l'éjection et le retrait du véhicule partagent le même
-traitement d'impact. Les vérifications sont consignées dans
-`docs/ROCKET_UPDATE.md`. Reste à mesurer les poursuites prolongées et le coût
+traitement d'impact. Les commandes de vérification sont dans
+`docs/DEVELOPMENT.md`. Reste à mesurer les poursuites prolongées et le coût
 des explosions sur la machine MX450 de référence.
 ### Véhicules et trafic — extensions et qualifications
 

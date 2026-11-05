@@ -76,8 +76,15 @@ cmake --build engine/build-rel --target SaidaEngine SaidaEngineHub SaidaEngineRu
 ```
 
 Executables are written to `engine/build-rel/bin/`.
-See the [game documentation](game/README.md) for controls and technical details,
-or the [engine documentation](engine/README.md) for additional build options.
+See the [player guide](game/README.md) for controls and features.
+
+## Documentation
+
+- [Development and verification](docs/DEVELOPMENT.md): builds, tests, captures and local files.
+- [World reference](docs/WORLD.md): generation, streaming, actors and multiplayer contracts.
+- [Project plan](docs/PLAN.md): goals, constraints and open work.
+- [Multiplayer qualification](docs/QUALIFICATION_MULTIJOUEUR.md): tests on two PCs.
+- [Engine documentation](engine/README.md): Saida setup and build options.
 
 ## License
 

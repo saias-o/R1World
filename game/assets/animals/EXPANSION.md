@@ -1,11 +1,4 @@
-# Extension réaliste des animaux — 26 octobre 2026
-
-**Runtime integration, 27 October 2026:** the BIRD update now authors flight,
-resting and foraging poses on the delivered bird rigs through Saida's pose
-modifier interface. The original `Rig_Check_*` clips remain diagnostic assets;
-they have not been relabelled as production flight. Folded feather deployment
-and close-up rig quality still need visual qualification. See
-[game documentation](../../README.md#bird-update--27-october-2026).
+# Animaux complémentaires
 
 **20 modèles ajoutés, 17 types supplémentaires, 15 rigs créés et 5 rigs d’origine conservés.** Les 338 GLB précédents sont conservés ; l’ensemble a ensuite été compacté sans changement de géométrie, de squelette, de mouvement visible ni de pixels utilisés par les matériaux (voir `OPTIMISATION.md`). L’ensemble passe de 169 à 189 modèles/variantes et de 45 à 62 types ; 378 fichiers GLB au total.
 
@@ -38,9 +31,9 @@ Les ajouts occupent **34.6 Mio**, textures et clips compris. Chaque modèle poss
 
 ## Cohérence visuelle
 
-Les références actuelles et les nouveaux GLB ont été réimportés et rendus avec la même caméra, le même cadrage relatif et le même éclairage, en CPU et sans fenêtre. Les modèles sont présentés à taille comparable pour juger le style ; leur échelle relative n’est donc pas celle du monde.
+Les références actuelles et les nouveaux GLB ont été réimportés et rendus avec la même caméra, le même cadrage relatif et le même éclairage, avec le même moteur de rendu. Les modèles sont présentés à taille comparable pour juger le style ; leur échelle relative n’est donc pas celle du monde.
 
-Le chat, le rat, la souris et le gorille gardent des volumes naturels et des textures proches du renard, du lapin et du loup existants. Les oiseaux ajoutés ont des textures détaillées compatibles avec la poule actuelle ; leur détail est supérieur aux oiseaux les plus légers de 0 A.D. Les teintes vives des aras et dendrobates correspondent à des animaux réels. Aucune proportion de personnage ou de jouet n’a été retenue.
+Le chat, le rat, la souris et le gorille gardent des volumes naturels et des textures proches du renard, du lapin et du loup existants. Les oiseaux ajoutés ont des textures détaillées compatibles avec la poule actuelle ; leur détail est supérieur aux oiseaux les plus légers de 0 A.D.
 
 - [Mammifères et oiseaux communs : actuel à gauche, ajout à droite](comparaison-ajouts-1.jpg).
 - [Rapaces, ara et amphibiens](comparaison-ajouts-2.jpg).
@@ -64,15 +57,15 @@ La guêpe, l’araignée et la souris conservent un clip d’origine. La pie-gri
 - Grenouille verte et autres candidats : licence actuelle absente ou version non confirmée.
 - Escargot OpenGameArt : coquille seule, sans corps.
 
-**Manques courants prioritaires :** canard colvert, oie, moineau, écureuil, hérisson, blaireau, loutre, castor, héron, cygne, grenouille commune, serpent et escargot complet. Leur absence reste explicite plutôt que d’être comblée par des figurines ou des personnages.
+**Manques courants prioritaires :** canard colvert, oie, moineau, écureuil, hérisson, blaireau, loutre, castor, héron, cygne, grenouille commune, serpent et escargot complet.
 
-Les preuves de licence et métadonnées individuelles sont conservées dans `licenses/provenance.zip`. Les sources brutes et rendus de travail ont été retirés du projet et placés dans la corbeille à la demande de l’utilisateur. Les données du corpus Objaverse ne remplacent jamais la licence de chaque œuvre ; quatre ajouts sont sous CC BY 4.0, les seize autres sous CC0 1.0. Voir les [attributions](ATTRIBUTION.md).
+Les preuves de licence et métadonnées individuelles sont conservées dans `licenses/provenance.zip`. Les données du corpus Objaverse ne remplacent jamais la licence de chaque œuvre ; quatre ajouts sont sous CC BY 4.0, les seize autres sous CC0 1.0. Voir les [attributions](ATTRIBUTION.md).
 
 ## Vérification et périmètre
 
 Validateur Khronos sur les 378 GLB : **0 erreur, 0 avertissement**. Smoke des buffers, textures embarquées, poids, indices, rigs identiques entre LOD et skinning à cinq instants pour chacun des 2 732 clips (variantes et LOD compris). Les vingt ajouts ont aussi été contrôlés visuellement après réimport : LOD0, LOD1 et pose au milieu de chaque clip exporté.
 
-Aucune fenêtre ouverte, aucun lancement du jeu. Uniquement imports, rendus Blender en arrière-plan et vérifications de fichiers. Aucun comportement d’animal, code du jeu, placement ou sélection automatique de LOD n’a été ajouté.
+Ces contrôles portent sur les fichiers préparés. Le placement et les comportements du jeu sont décrits dans la [référence runtime](../../../docs/WORLD.md#animals).
 
 - [Tableau complet des 189 modèles/variantes](TABLEAU_COMPLET.md).
 - [CSV mesuré et statut des animations](catalog.csv).

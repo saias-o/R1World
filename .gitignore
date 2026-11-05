@@ -14,3 +14,8 @@ __pycache__/
 # The planet relief layer, built by game/native/tools/r1relief (about 859 MB):
 # installed with the game by its export, not kept in git.
 game/assets/world/relief/
+
+# Local diagnostics and runtime crash reports.
+/build/
+/game/crash/
+/crash/

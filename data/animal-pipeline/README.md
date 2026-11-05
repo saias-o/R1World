@@ -1,28 +1,14 @@
-# Pipeline des animaux — état après nettoyage
+# Pipeline des animaux
 
-**Integration note, 27 October 2026:** `game/tools/r1/animals.py` now measures
-all 14 bird variants used by `fauna.json` and recognizes source fly/glide roles.
-The existing repair pass retargets hawk glide and peacock clips on both LODs;
-an exact comparison confirms unchanged geometry, rigs, weights, UVs, materials
-and image bytes in those six files. Procedural gameplay flight is authored in
-`game/native/bird_animation.hpp`; source control clips remain diagnostic.
-See `game/README.md` for the BIRD update and its validation limits.
+Les assets livrés sont sous `game/assets/animals/`. Leur
+[manifeste](../../game/assets/animals/manifest.json) conserve mesures,
+provenance, corrections et empreintes. Le placement en jeu dépend de
+`game/assets/animals/fauna.json` ; tous les modèles du catalogue ne sont
+pas utilisés.
 
-Livraison : `game/assets/animals/`. Le catalogue et son manifeste sont les références pour les 189 modèles/variantes, 62 types et 378 GLB. Aucun comportement ni code du jeu modifié.
+## Vérifier et produire le catalogue
 
-Les sources brutes, doublons, rendus intermédiaires, journaux et caches ont été placés dans la corbeille à la demande de l’utilisateur. Les preuves de licence, métadonnées et empreintes historiques sont dans `game/assets/animals/licenses/provenance.zip`. Les téléchargements originaux ne sont plus dans l’espace de travail. Les outils de téléchargement et préparation restent disponibles, mais leur utilisation nécessite de récupérer à nouveau les sources.
-
-## Optimisation finale
-
-`compact_storage.py` retire les canaux des contrôleurs qui ne peuvent influencer aucun sommet et partage les buffers, accessors et samplers identiques. Il conserve tous les os, les clés visibles, les noms et durées de clips, sans simplifier ni quantifier la géométrie.
-
-`compress_textures_lossless.py` conserve les dimensions et pixels utilisés par les matériaux. Aucun JPEG n’est réencodé ; les PNG sont recompressés et leur alpha est retiré uniquement lorsqu’il n’est pas utilisé. Aucun décodeur supplémentaire requis.
-
-`review/storage-equivalence.json` documente l’équivalence exacte des 378 fichiers avec leur copie avant optimisation. `review/storage-visual.json` confirme zéro différence de pixel sur huit rendus avant/après ; la planche est conservée dans la livraison. Les copies de comparaison et rendus bruts ont ensuite été nettoyés.
-
-## Vérifier ou reconstruire le catalogue
-
-Les rapports finaux `review/smoke.json` et `review/gltf-validation.json` sont conservés : 378 fichiers, aucune erreur ni avertissement. `smoke_assets.py` vérifie buffers, textures, poids, indices, squelettes, clips et skinning à cinq instants par clip.
+Depuis la racine du dépôt :
 
 ```powershell
 python -B data/animal-pipeline/smoke_assets.py
@@ -33,6 +19,39 @@ python -B data/animal-pipeline/make_inventory_table.py
 python -B data/animal-pipeline/build_expansion_report.py
 ```
 
-Le manifeste existant porte les métadonnées de provenance après nettoyage. `build_catalog.py` peut lire le manifeste 0 A.D. depuis l’archive de preuves ; il ne recrée pas les sources brutes. Les générateurs réutilisent les planches finales déjà conservées quand les caches de rendu sont absents.
+Le smoke vérifie buffers, textures embarquées, poids, indices, squelettes,
+clips et skinning à cinq instants par clip. Le validateur Khronos produit
+`review/gltf-validation.json`. `build_catalog.py` consomme ces deux rapports
+et les rapports individuels préparés pour actualiser manifeste, CSV,
+présentation et attributions. Ne pas les supprimer comme des fichiers temporaires.
 
-Blender a été utilisé uniquement avec `-b -t 2`, sans interface. Les rigs créés ici sont basiques avec clips de contrôle ; ils ne constituent pas des animations de locomotion prêtes à jouer. Voir `EXPANSION.md` pour les limites et `OPTIMISATION.md` pour les tailles et garanties.
+Les générateurs de planches réutilisent les images finales si les caches de
+rendu sont absents. Pillow est nécessaire aux planches ; Blender sert à la
+conversion et à l'inspection des modèles. Les scripts de téléchargement et
+de préparation exigent de récupérer les sources qui ne sont plus présentes.
+
+## Provenance et optimisation
+
+`game/assets/animals/licenses/provenance.zip` conserve les licences,
+métadonnées et empreintes des sources. `build_catalog.py` peut y lire le
+manifeste 0 A.D. si le cache brut est absent.
+
+`compact_storage.py` retire les canaux de contrôleurs sans influence sur les
+sommets et déduplique buffers, accessors et samplers. Il conserve les os,
+clés visibles, noms et durées de clips. `compress_textures_lossless.py`
+recompresse les PNG et retire un alpha seulement s'il n'est pas utilisé ;
+les JPEG, dimensions et pixels utilisés restent intacts.
+
+Les audits historiques `review/storage-equivalence.json` et
+`review/storage-visual.json` documentent l'équivalence avant/après.
+Leurs images comparatives finales sont dans la livraison.
+
+## Intégration au jeu
+
+`game/tools/r1/animals.py` mesure les modèles retenus par la faune et associe
+les rôles des clips. `game/native/bird_animation.hpp` complète les poses
+des oiseaux. Les clips `Rig_Check_*` servent à inspecter les déformations ;
+ils ne constituent pas des animations de locomotion.
+
+Voir la [référence runtime](../../docs/WORLD.md#animals) pour les comportements
+et limites, et le [guide de développement](../../docs/DEVELOPMENT.md) pour les tests.
